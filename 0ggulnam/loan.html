@@ -1,1 +1,2347 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영끌남 대출 특강 💰 - 0원에서 시작하는 대출 레버리지 완전 정복</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --background: #f8fafc;
+            --foreground: #0a0a0a;
+            --card: #ffffff;
+            --card-foreground: #0a0a0a;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --border: #e2e8f0;
+            --primary: #18181b;
+            --primary-foreground: #fafafa;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --success: #22c55e;
+            --warning: #eab308;
+            --error: #ef4444;
+            --violet: #8b5cf6;
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.7;
+            background: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 30%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 40% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 45%),
+                radial-gradient(circle at 90% 80%, rgba(249, 115, 22, 0.04) 0%, transparent 40%);
+            z-index: -1;
+            animation: gradientFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes gradientFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(2%, 1%) rotate(1deg); }
+            50% { transform: translate(0, 2%) rotate(0deg); }
+            75% { transform: translate(-1%, 1%) rotate(-1deg); }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header { margin-bottom: 32px; }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            color: #0284c7;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 100px;
+            letter-spacing: -0.01em;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 33px;
+            font-weight: 700;
+            color: var(--foreground);
+            letter-spacing: -0.03em;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--muted-foreground);
+            font-size: 16px;
+        }
+
+        /* TOC */
+        .toc {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 56px;
+        }
+
+        .toc-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--muted-foreground);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #1d1d1f;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: rgba(241, 245, 249, 0.5);
+        }
+
+        .toc-item:hover {
+            background: rgba(14, 165, 233, 0.1);
+            color: #0284c7;
+            transform: translateX(2px);
+        }
+
+        .toc-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Section */
+        .section { margin-bottom: 80px; }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%);
+            color: #7c3aed;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 100px;
+            letter-spacing: 0.02em;
+            margin-bottom: 12px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-bottom: 40px;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            border-color: rgba(203, 213, 225, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            padding: 24px 24px 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, transparent 100%);
+            margin-bottom: 40px;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--foreground);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+            letter-spacing: -0.01em;
+        }
+
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            color: white;
+        }
+
+        .card-icon.blue { background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%); }
+        .card-icon.green { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+        .card-icon.yellow { background: linear-gradient(135deg, #ff9f0a 0%, #ffb340 100%); }
+        .card-icon.red { background: linear-gradient(135deg, #ff3b30 0%, #ff6961 100%); }
+        .card-icon.violet { background: linear-gradient(135deg, #af52de 0%, #bf5af2 100%); }
+        .card-icon.teal { background: linear-gradient(135deg, #5ac8fa 0%, #64d2ff 100%); }
+        .card-icon.orange { background: linear-gradient(135deg, #ff9500 0%, #ffaa33 100%); }
+        .card-icon.dark { background: linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%); }
+
+        .card-body { padding: 0 24px 24px; }
+
+        .card-body p {
+            font-size: 16px;
+            color: #374151;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        .card-body p:last-child { margin-bottom: 0; }
+
+        .subsection {
+            margin-bottom: 32px;
+        }
+
+        .subsection-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(14, 165, 233, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(241, 245, 249, 0.9) 0%, rgba(226, 232, 240, 0.5) 100%);
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .metric-card:hover {
+            background: linear-gradient(135deg, rgba(224, 242, 254, 0.8) 0%, rgba(186, 230, 253, 0.4) 100%);
+            border-color: rgba(14, 165, 233, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--muted-foreground);
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 29px;
+            font-weight: 700;
+            color: var(--foreground);
+            letter-spacing: -0.02em;
+        }
+
+        .metric-unit {
+            font-size: 13px;
+            color: var(--muted-foreground);
+            margin-top: 4px;
+        }
+
+        /* Table */
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 24px;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            padding: 16px 20px;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--muted-foreground);
+            border-bottom: 2px solid var(--border);
+            background: rgba(248, 250, 252, 0.7);
+        }
+
+        .table td {
+            padding: 16px 20px;
+            font-size: 15px;
+            color: var(--foreground);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+            vertical-align: top;
+            line-height: 1.6;
+        }
+
+        .table tbody tr:last-child td { border-bottom: none; }
+        .table tbody tr:hover { background: rgba(241, 245, 249, 0.5); }
+
+        .table .col-emphasis { font-weight: 600; color: #0284c7; }
+
+        /* Callout */
+        .callout {
+            display: flex;
+            flex-direction: column;
+            padding: 22px;
+            border-radius: 14px;
+            margin-bottom: 32px;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        .callout-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .callout-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            color: white;
+        }
+
+        .callout-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .callout-text {
+            font-size: 14.5px;
+            color: #515154;
+            line-height: 1.8;
+        }
+
+        .callout-text strong { color: #1d1d1f; font-weight: 600; }
+        .callout-text ul, .callout-text ol { padding-left: 20px; margin: 8px 0; }
+        .callout-text li { margin-bottom: 6px; }
+
+        .callout.blue .callout-icon { background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%); }
+        .callout.green .callout-icon { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+        .callout.yellow .callout-icon { background: linear-gradient(135deg, #ff9f0a 0%, #ffb340 100%); }
+        .callout.red .callout-icon { background: linear-gradient(135deg, #ff3b30 0%, #ff6961 100%); }
+        .callout.violet .callout-icon { background: linear-gradient(135deg, #af52de 0%, #bf5af2 100%); }
+        .callout.teal .callout-icon { background: linear-gradient(135deg, #5ac8fa 0%, #64d2ff 100%); }
+        .callout.orange .callout-icon { background: linear-gradient(135deg, #ff9500 0%, #ffaa33 100%); }
+        .callout.gray .callout-icon { background: linear-gradient(135deg, #8e8e93 0%, #aeaeb2 100%); }
+
+        /* Step Card */
+        .step-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .step-card {
+            display: flex;
+            gap: 20px;
+            padding: 24px;
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .step-number.s1 { background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%); }
+        .step-number.s2 { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+        .step-number.s3 { background: linear-gradient(135deg, #ff9500 0%, #ffaa33 100%); }
+        .step-number.s4 { background: linear-gradient(135deg, #af52de 0%, #bf5af2 100%); }
+        .step-number.s5 { background: linear-gradient(135deg, #ff3b30 0%, #ff6961 100%); }
+
+        .step-content { flex: 1; }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--foreground);
+            margin-bottom: 8px;
+        }
+
+        .step-desc {
+            font-size: 15px;
+            color: #4b5563;
+            line-height: 1.75;
+            margin-bottom: 12px;
+        }
+
+        .step-detail {
+            padding: 14px 18px;
+            background: var(--muted);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #515154;
+            line-height: 1.7;
+            margin-bottom: 8px;
+        }
+
+        .step-detail:last-child { margin-bottom: 0; }
+        .step-detail strong { color: #0284c7; font-weight: 600; }
+
+        /* Compare cards */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .compare-grid.three { grid-template-columns: repeat(3, 1fr); }
+
+        .compare-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+
+        .compare-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        .compare-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .compare-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            color: white;
+        }
+
+        .compare-card-icon.blue { background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%); }
+        .compare-card-icon.green { background: linear-gradient(135deg, #34c759 0%, #30d158 100%); }
+        .compare-card-icon.violet { background: linear-gradient(135deg, #af52de 0%, #bf5af2 100%); }
+        .compare-card-icon.orange { background: linear-gradient(135deg, #ff9500 0%, #ffaa33 100%); }
+        .compare-card-icon.red { background: linear-gradient(135deg, #ff3b30 0%, #ff6961 100%); }
+        .compare-card-icon.teal { background: linear-gradient(135deg, #5ac8fa 0%, #64d2ff 100%); }
+
+        .compare-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .compare-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            margin-bottom: 4px;
+            gap: 12px;
+        }
+
+        .compare-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .compare-item-label {
+            font-size: 14px;
+            color: var(--muted-foreground);
+            min-width: 90px;
+            flex-shrink: 0;
+        }
+
+        .compare-item-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--foreground);
+            text-align: right;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 100px;
+        }
+
+        .badge-success { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+        .badge-warning { background: rgba(234, 179, 8, 0.1); color: #ca8a04; }
+        .badge-error { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+        .badge-info { background: rgba(14, 165, 233, 0.1); color: #0284c7; }
+        .badge-violet { background: rgba(139, 92, 246, 0.1); color: #7c3aed; }
+
+        /* Calc Box */
+        .calc-box {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(139, 92, 246, 0.03) 100%);
+            border: 1px dashed rgba(14, 165, 233, 0.3);
+            border-radius: 12px;
+            padding: 22px;
+            margin: 20px 0;
+        }
+
+        .calc-box-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0284c7;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            font-size: 15px;
+            border-bottom: 1px dashed rgba(14, 165, 233, 0.15);
+        }
+
+        .calc-row:last-child {
+            border-bottom: none;
+            padding-top: 14px;
+            margin-top: 6px;
+            border-top: 2px solid rgba(14, 165, 233, 0.4);
+            font-weight: 700;
+            font-size: 17px;
+            color: #0284c7;
+        }
+
+        .calc-label { color: #515154; }
+        .calc-value { font-weight: 600; color: #1d1d1f; }
+        .calc-value.minus { color: #dc2626; }
+        .calc-value.plus { color: #16a34a; }
+
+        /* Quote box */
+        .quote-box {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(14, 165, 233, 0.04) 100%);
+            border-radius: 12px;
+            padding: 22px 26px;
+            margin: 24px 0;
+            font-size: 16px;
+            color: #1d1d1f;
+            line-height: 1.8;
+            font-style: italic;
+            border-left: 4px solid #af52de;
+        }
+
+        .quote-box strong { font-style: normal; color: #7c3aed; }
+
+        /* Highlight */
+        .highlight {
+            background: linear-gradient(180deg, transparent 60%, rgba(255, 235, 59, 0.4) 60%);
+            font-weight: 600;
+            padding: 0 2px;
+        }
+
+        .text-emphasis { color: #0071e3; font-weight: 600; }
+        .text-success { color: #16a34a; font-weight: 600; }
+        .text-warning { color: #b45309; font-weight: 600; }
+        .text-error { color: #dc2626; font-weight: 600; }
+        .text-violet { color: #7c3aed; font-weight: 600; }
+
+        /* List */
+        .check-list, .x-list, .num-list {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+
+        .check-list li, .x-list li, .num-list li {
+            padding: 12px 0;
+            padding-left: 36px;
+            position: relative;
+            font-size: 15px;
+            color: var(--foreground);
+            line-height: 1.7;
+        }
+
+        .check-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0; top: 12px;
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .x-list li::before {
+            content: '✕';
+            position: absolute;
+            left: 0; top: 12px;
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, #ff3b30 0%, #ff6961 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .num-list { counter-reset: num; }
+        .num-list li::before {
+            counter-increment: num;
+            content: counter(num);
+            position: absolute;
+            left: 0; top: 12px;
+            width: 24px; height: 24px;
+            background: linear-gradient(135deg, #0071e3 0%, #40a9ff 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Glossary */
+        .glossary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .glossary-item {
+            padding: 18px;
+            background: white;
+            border-radius: 12px;
+            border-left: 3px solid #0ea5e9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .glossary-term {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0284c7;
+            margin-bottom: 6px;
+        }
+
+        .glossary-def {
+            font-size: 14px;
+            color: #515154;
+            line-height: 1.65;
+        }
+
+        /* Action Box */
+        .action-box {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(14, 165, 233, 0.04) 100%);
+            border: 2px solid rgba(34, 197, 94, 0.2);
+            border-radius: 14px;
+            padding: 22px;
+            margin: 20px 0;
+        }
+
+        .action-box-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #16a34a;
+            margin-bottom: 14px;
+        }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .compare-grid, .compare-grid.three { grid-template-columns: 1fr; }
+            .toc-grid { grid-template-columns: repeat(2, 1fr); }
+            .glossary-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px 16px; }
+            h1 { font-size: 26px; }
+            .subtitle { font-size: 15px; }
+            .section { margin-bottom: 56px; }
+            .card { margin-bottom: 28px; }
+            .card-header {
+                padding: 20px;
+                margin-bottom: 28px;
+                flex-direction: row;
+                align-items: center;
+            }
+            .card-title { font-size: 18px; }
+            .card-icon { width: 48px; height: 48px; font-size: 20px; }
+            .card-body { padding: 0 20px 20px; }
+            .card-body p { font-size: 15px; }
+            .callout { padding: 18px; margin-bottom: 24px; }
+            .callout-header {
+                gap: 12px;
+                margin-bottom: 16px;
+                flex-direction: row;
+                align-items: center;
+            }
+            .callout-icon { width: 40px; height: 40px; font-size: 18px; }
+            .callout-title { font-size: 16px; }
+            .callout-text { font-size: 13.5px; }
+            .compare-card { padding: 20px; }
+            .compare-card-header {
+                margin-bottom: 20px;
+                flex-direction: row;
+                align-items: center;
+            }
+            .compare-card-icon { width: 40px; height: 40px; font-size: 18px; }
+            .compare-card-title { font-size: 20px; }
+            .table-wrap { margin: 0 -20px; padding: 0 20px; }
+            .table-wrap table { min-width: 600px; }
+            .table-wrap::after {
+                content: '← 좌우로 스크롤하세요 →';
+                display: block;
+                text-align: center;
+                font-size: 13px;
+                color: #86868b;
+                padding: 8px 0;
+            }
+            .step-card { padding: 18px; gap: 14px; }
+            .step-number { width: 48px; height: 48px; font-size: 20px; }
+            .step-title { font-size: 16px; }
+            .step-desc { font-size: 14px; }
+            .step-detail { font-size: 13px; }
+            .metric-value { font-size: 22px; }
+            .toc-grid { grid-template-columns: 1fr; }
+            .subsection-title { font-size: 16px; }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 22px; }
+            .subtitle { font-size: 14px; }
+            .card-title { font-size: 16px; }
+            .card-icon { width: 44px; height: 44px; }
+            .compare-card-title { font-size: 18px; }
+            .compare-item-value { font-size: 14px; }
+            .metrics-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <span class="header-badge">📚 미니 라이브 특강 · 약 1시간 · 강의 정리본</span>
+            <h1>영끌남 대출 특강 💰📊</h1>
+            <p class="subtitle">0원에서 시작하는 대출 레버리지 완전 정복 ✨ · 호스텔/공간대여업/숙박업/임대업 창업자를 위한 4단계 자금 마련 로드맵 🚀</p>
+        </div>
+
+        <!-- TOC -->
+        <div class="toc">
+            <div class="toc-title">📑 강의 목차 (총 11개 PART)</div>
+            <div class="toc-grid">
+                <a href="#part1" class="toc-item"><span class="toc-num">1</span><span>강의 개요 & 핵심 메시지</span></a>
+                <a href="#part2" class="toc-item"><span class="toc-num">2</span><span>대출의 본질 이해</span></a>
+                <a href="#part3" class="toc-item"><span class="toc-num">3</span><span>대출 분류 마스터 가이드</span></a>
+                <a href="#part4" class="toc-item"><span class="toc-num">4</span><span>법인 대표자 신용 관리법</span></a>
+                <a href="#part5" class="toc-item"><span class="toc-num">5</span><span>대출 목적 (운전 vs 시설)</span></a>
+                <a href="#part6" class="toc-item"><span class="toc-num">6</span><span>0원 → 1억 4단계 프로세스</span></a>
+                <a href="#part7" class="toc-item"><span class="toc-num">7</span><span>신용보증재단 활용 가이드</span></a>
+                <a href="#part8" class="toc-item"><span class="toc-num">8</span><span>1년 후 추가 대출 전략</span></a>
+                <a href="#part9" class="toc-item"><span class="toc-num">9</span><span>담보대출 활용법 (집·건물)</span></a>
+                <a href="#part10" class="toc-item"><span class="toc-num">10</span><span>금리 구조 완전 분석</span></a>
+                <a href="#part11" class="toc-item"><span class="toc-num">11</span><span>실행 로드맵 + Q&A</span></a>
+            </div>
+        </div>
+
+        <!-- KPI Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">💵 초기 가용 자금</div>
+                <div class="metric-value">6천~1억</div>
+                <div class="metric-unit">신용+신보 합산</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">📉 신보재단 금리</div>
+                <div class="metric-value">2.3%</div>
+                <div class="metric-unit">정책자금 ⭐</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">🏢 법인 LTV</div>
+                <div class="metric-value">80~90%</div>
+                <div class="metric-unit">DSR 미적용 🎯</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">📊 4단계 결과</div>
+                <div class="metric-value">0원 → 1억</div>
+                <div class="metric-unit">현실적 시뮬레이션</div>
+            </div>
+        </div>
+
+        <!-- PART 1: 강의 개요 -->
+        <div class="section" id="part1">
+            <span class="section-label">📚 PART 01</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon blue">🎬</div>
+                        강의 개요 & 오늘의 핵심 메시지
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="subsection">
+                        <div class="subsection-title">📍 이 강의를 만든 3가지 이유</div>
+                        <p>영끌남 강의는 정규 커리큘럼 외에도 라이브 특강으로 업데이트된 내용을 추가 제공합니다. 이번 미니 특강이 만들어진 배경은 다음과 같습니다.</p>
+                        <ul class="num-list">
+                            <li><strong>1년 전부터 함께한 기존 수강생을 위한 정리</strong> — 그동안 현금 흐름의 "결과"는 많이 다뤘지만, "0원에서 시작하는 실질적 대출 방법"은 한 번도 체계적으로 정리한 적이 없었음. 이번 기회에 마무리.</li>
+                            <li><strong>숙사장님 라인 호스텔 창업자 서포트</strong> — 영끌남 강의 수강생들이 호스텔 허가 관련해 숙사장님께 많은 도움을 받음. 답례로 영끌남이 잘하는 "대출/매입" 영역에서 임차 사업 창업자에게 도움이 되도록 강의 진행.</li>
+                            <li><strong>7기 신규 수강생 기본 개념 잡기</strong> — 반년 만에 모집한 7기 수강생들이 본 강의 시작 전에 대출의 기본 개념을 갖고 들어올 수 있도록 사전 학습 자료 제공.</li>
+                        </ul>
+                    </div>
+
+                    <div class="callout violet">
+                        <div class="callout-header">
+                            <div class="callout-icon">📌</div>
+                            <div class="callout-title">오늘 강의의 3가지 핵심 컨셉</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>1️⃣ 사업자 대출의 본질 이해</strong><br>왜 우리는 개인 대출이 아닌 사업자 대출을 받아야 하는가? 가계대출과 사업자 대출의 규제 차이는 무엇인가?<br><br>
+                            <strong>2️⃣ 0원에서 시작하는 4단계 프로세스</strong><br>현금이 전혀 없는 상태에서 어떻게 6천~1억의 사업 자금을 마련할 수 있는가? 신용대출 → 신보재단 활용 → 자금 갈아타기 사이클 완성.<br><br>
+                            <strong>3️⃣ 담보대출 응용</strong><br>매입 건물·기존 집을 활용해 추가 자금을 끌어쓰는 노하우. KB시세와 건물 시세의 차이가 어떻게 추가 레버리지를 만드는가?
+                        </div>
+                    </div>
+
+                    <div class="quote-box">
+                        💬 "내가 0원이라고 해도, 은행 거래 한 번쯤은 했을 거잖아요. 거기서부터 시작입니다." <strong>— 영끌남</strong>
+                    </div>
+
+                    <div class="callout teal">
+                        <div class="callout-header">
+                            <div class="callout-icon">🎯</div>
+                            <div class="callout-title">이 강의가 도움 되는 사람</div>
+                        </div>
+                        <div class="callout-text">
+                            <ul>
+                                <li>호스텔/모텔/에어비앤비 등 <strong>숙박업 창업</strong>을 준비 중인 분</li>
+                                <li>파티룸/연습실/스튜디오 등 <strong>공간 대여업 창업자</strong></li>
+                                <li>임대업·자영업·온라인 사업으로 <strong>건물 매입까지 가고 싶은 분</strong></li>
+                                <li>현금이 거의 없는 상태에서 <strong>레버리지로 시작하고 싶은 초보 투자자</strong></li>
+                                <li>이미 사업체가 있지만 <strong>추가 자금이 필요한 분</strong></li>
+                                <li>본업에 묶여 사업자 못 내는 <strong>겸업금지 직장인·공무원</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 2: 대출의 본질 이해 -->
+        <div class="section" id="part2">
+            <span class="section-label">🧠 PART 02</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon teal">💡</div>
+                        대출의 본질 이해 — 왜 사업자 대출인가
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="subsection">
+                        <div class="subsection-title">⚖️ 가계대출 vs 사업자대출, 정부 규제의 철학</div>
+                        <p>한국 정부가 대출을 규제하는 방식을 이해하면, 왜 우리가 사업자로 가야 하는지 명확해집니다. 정부 규제의 본질은 "<strong>국민 주거 안정성 보장</strong>"이에요. 즉, 개인이 살 집을 공급해야 하는 의무가 정부에 있습니다.</p>
+                        <p>그래서 정부는 <strong class="text-error">집값 → 강력 규제</strong>합니다. 가계대출 한도 축소, DSR 강화, LTV 인하, 다주택자 규제 등. 하지만 정부가 <strong>건물값을 규제</strong>한 적은 없어요. 음식점·호스텔·공간대여업 대출에 "그만 받아!"라고 한 적도 없죠. 왜? 사업자는 <strong class="text-success">국민 주거가 아니라 경제 활동</strong>이니까.</p>
+                    </div>
+
+                    <div class="callout blue">
+                        <div class="callout-header">
+                            <div class="callout-icon">📊</div>
+                            <div class="callout-title">정부의 대출 규제 철학 한눈에</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>🏠 가계대출 (주거용)</strong><br>
+                            • 정부 입장: 부동산 폭등 방지, 가계 부채 통제<br>
+                            • 규제 강도: <strong class="text-error">매우 강함 ⚠️</strong><br>
+                            • 적용 도구: DSR + LTV + 다주택 규제 + 신혼부부 한도 + 생애최초 한도 등 다층 규제<br><br>
+                            <strong>💼 사업자대출 (사업용)</strong><br>
+                            • 정부 입장: 경제 활동 장려, 일자리 창출<br>
+                            • 규제 강도: <strong class="text-success">매우 약함 ✨</strong><br>
+                            • 적용 도구: 사업성 평가 + 매출 검증 (정부가 "막을 이유"가 없음)<br><br>
+                            🔑 <strong>핵심 결론:</strong> 가계대출 규제가 강해질수록, 사업자 대출의 가치는 더 커집니다. 영끌남이 강조하는 "사업자 만들어라"가 그래서 중요한 거예요.
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <div class="subsection-title">🔑 DSR과 LTV — 핵심 용어 완전 정복</div>
+                        <p>대출의 3가지 핵심 규제는 모두 약자입니다. 이 약자만 이해하면 모든 대출 상품을 비교할 수 있어요.</p>
+                    </div>
+
+                    <div class="glossary-grid">
+                        <div class="glossary-item">
+                            <div class="glossary-term">📊 DSR (Debt Service Ratio)</div>
+                            <div class="glossary-def"><strong>총부채원리금상환비율</strong>. 한 달 소득 중 모든 대출의 원리금 상환액 비율. 예: 월 소득 1,000만 원, DSR 40% 한도 → 모든 대출 합산 월 상환액이 400만 원 넘으면 추가 대출 불가.</div>
+                        </div>
+                        <div class="glossary-item">
+                            <div class="glossary-term">🏠 LTV (Loan To Value)</div>
+                            <div class="glossary-def"><strong>담보인정비율</strong>. 담보 가치 대비 대출 한도. 예: 10억짜리 호스텔, LTV 60% → 6억까지만 대출 가능. 담보가 비싸면 한도가 커지고, 싸면 작음.</div>
+                        </div>
+                        <div class="glossary-item">
+                            <div class="glossary-term">📉 DTI (Debt To Income)</div>
+                            <div class="glossary-def"><strong>총부채상환비율</strong>. 연 소득 대비 주택담보대출의 원리금 + 기타 대출 이자만 본 비율. DSR보다는 약한 규제 (DSR이 등장한 이후로는 보조 지표).</div>
+                        </div>
+                        <div class="glossary-item">
+                            <div class="glossary-term">🏷 근저당권</div>
+                            <div class="glossary-def">대출 시 은행이 담보를 잡고 등기부등본에 설정하는 권리. <strong>실제 대출액의 120%</strong>로 설정해 떼먹힘 방지. 3억 빌리면 3.6억으로 등기.</div>
+                        </div>
+                        <div class="glossary-item">
+                            <div class="glossary-term">🏘 방 공제 (소액임차보증금)</div>
+                            <div class="glossary-def">주택임대차보호법상 최우선변제금. 사업자 담보대출 시 한도에서 차감. 1주택 = 5,300만 원, 다주택 = 더 차감.</div>
+                        </div>
+                        <div class="glossary-item">
+                            <div class="glossary-term">📑 용도 증빙</div>
+                            <div class="glossary-def">대출 받은 자금을 신청한 목적대로 썼는지 통장 거래 내역·계약서·세금계산서로 증명하는 절차. 용도 외 사용 적발 시 대출 회수.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 3: 대출 분류 -->
+        <div class="section" id="part3">
+            <span class="section-label">📂 PART 03</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon violet">📊</div>
+                        대출 분류 마스터 가이드 (3단 트리 구조)
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>대출은 단순히 "대출"로 끝나지 않아요. <strong>3단계 트리 구조</strong>로 나뉩니다. 이걸 이해해야 본인이 어떤 대출을 받아야 하는지 알 수 있어요. 🪜</p>
+
+                    <div class="callout teal">
+                        <div class="callout-header">
+                            <div class="callout-icon">🌳</div>
+                            <div class="callout-title">대출 분류 트리 구조</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>1단계 분기 — 누가 받느냐?</strong><br>
+                            └ 개인 대출 / 사업자 대출<br><br>
+                            <strong>2단계 분기 — 사업자라면 어떤 사업자?</strong><br>
+                            └ 개인사업자 / 법인사업자<br><br>
+                            <strong>3단계 분기 — 무엇을 위해?</strong><br>
+                            └ 운전자금 / 시설자금<br><br>
+                            <strong>4단계 분기 — 무엇을 담보로?</strong><br>
+                            └ 신용 / 담보<br><br>
+                            🔑 모든 대출 = (개인/사업자) × (개인/법인) × (운전/시설) × (신용/담보) 조합
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <div class="subsection-title">📋 개인 vs 개인사업자 vs 법인사업자 비교표</div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>항목</th>
+                                    <th>개인 대출</th>
+                                    <th>개인사업자</th>
+                                    <th>법인사업자</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>DSR 적용</strong></td>
+                                    <td><span class="badge badge-error">강력 적용 ⚠️</span></td>
+                                    <td><span class="badge badge-warning">완화 적용</span></td>
+                                    <td><span class="badge badge-success">거의 안 봄 ✨</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>LTV 한도</strong></td>
+                                    <td>최대 60% (계속 강화 중)</td>
+                                    <td>60~70%</td>
+                                    <td class="col-emphasis">80~90% 🎯</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>심사 기준</strong></td>
+                                    <td>소득 + 신용 + 담보</td>
+                                    <td>매출 + 신용 + 담보</td>
+                                    <td>대표자 신용 + 사업소득 + 담보</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>설립 비용</strong></td>
+                                    <td>없음</td>
+                                    <td>거의 없음 (홈택스 5분)</td>
+                                    <td>20~50만 원 (법무사)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>운용 자유도</strong></td>
+                                    <td>낮음</td>
+                                    <td>중간</td>
+                                    <td class="col-emphasis">높음 ✨</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>세금 (이익 시)</strong></td>
+                                    <td>종합소득세 6~45%</td>
+                                    <td>종합소득세 6~45%</td>
+                                    <td class="col-emphasis">법인세 9~24%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>세금 (배당 시)</strong></td>
+                                    <td>—</td>
+                                    <td>—</td>
+                                    <td>배당소득세 15.4% 추가 ⚠️</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>추천 용도</strong></td>
+                                    <td>주거용 부동산</td>
+                                    <td>수도권 사업/임대</td>
+                                    <td class="col-emphasis">지방 + 본격 투자</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="callout blue">
+                        <div class="callout-header">
+                            <div class="callout-icon">🎯</div>
+                            <div class="callout-title">결론: 어떤 사업자가 좋은가?</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>📍 수도권 + 단일 사업장</strong><br>
+                            → <span class="text-emphasis">개인사업자 시작 추천</span>. 설립 간편, 세금 단순, 초기에는 매출 작아 법인의 절세 효과가 적음.<br><br>
+                            <strong>📍 지방 + 다수 사업장 + 건물 매입</strong><br>
+                            → <span class="text-violet">법인 추천</span>. DSR 미적용으로 LTV 80~90% 가능, 법인세가 종합소득세보다 저렴, 자녀 주주로 등록해 증여세 절세까지.<br><br>
+                            🔑 <strong>실전 전략:</strong> 영끌남도 본인은 법인 5개 보유 중. 개인사업자로 매출 만들고, 법인으로 자산 매입하는 <span class="text-success">"개인 → 법인 자금 이동"</span> 구조 활용.
+                        </div>
+                    </div>
+
+                    <div class="callout violet">
+                        <div class="callout-header">
+                            <div class="callout-icon">⚡</div>
+                            <div class="callout-title">법인 사업자 DSR 미적용의 진짜 의미</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>법인은 DSR을 보지 않습니다 = 한도가 무한대?</strong> 아니에요. 정확히는 다음과 같아요.<br><br>
+                            ✅ <strong>완화된 적용</strong>: DSR 자체는 형식적으로 봄. 하지만 임대료·사업소득으로 이자 갚을 수 있다고 증명되면 면제 가능.<br>
+                            ✅ <strong>이자 커버 가능 여부가 핵심</strong>: 임대 잘 맞춰져 있거나, 호스텔/숙박업 직접 운영해 이자소득 증명 → DSR 빼줌.<br>
+                            ✅ <strong>대표자 신용은 봄</strong>: 법인이 DSR 안 본다고 대표자 신용까지 안 보는 건 아님. 대표자 신용도 중요.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 4: 법인 대표자 신용 관리 -->
+        <div class="section" id="part4">
+            <span class="section-label">👤 PART 04</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon orange">🛡</div>
+                        법인 대표자 신용 관리법
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>법인 대출도 결국 <strong>대표자 신용</strong>에 의존합니다. 법인 자체엔 영혼이 없으니까요. 대표자가 어떻게 신용을 관리하느냐에 따라 같은 매출이라도 한도와 금리가 천차만별입니다. 💡</p>
+
+                    <div class="subsection">
+                        <div class="subsection-title">📊 은행이 보는 대표자 신용 3가지 축</div>
+                    </div>
+
+                    <div class="compare-grid three">
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon blue">🅰</div>
+                                <span class="compare-card-title">NICE 신용점수</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">기관</span>
+                                <span class="compare-item-value">한국신용평가</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">우대 점수</span>
+                                <span class="compare-item-value">800점 이상</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">조회 빈도</span>
+                                <span class="compare-item-value">월 1회 무료</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">개선 방법</span>
+                                <span class="compare-item-value">연체 X / 신용카드 사용</span>
+                            </div>
+                        </div>
+
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon green">🅱</div>
+                                <span class="compare-card-title">KCB 신용점수</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">기관</span>
+                                <span class="compare-item-value">올크레딧</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">우대 점수</span>
+                                <span class="compare-item-value">800점 이상</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">조회 빈도</span>
+                                <span class="compare-item-value">월 1회 무료</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">개선 방법</span>
+                                <span class="compare-item-value">대출 다양화 / 거래 이력</span>
+                            </div>
+                        </div>
+
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon violet">💼</div>
+                                <span class="compare-card-title">사업소득</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">증명 방식</span>
+                                <span class="compare-item-value">매출 / 이자소득 / 임대료</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">필수 자료</span>
+                                <span class="compare-item-value">부가세 신고 / 종합소득세</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">기간</span>
+                                <span class="compare-item-value">최소 3개월~1년</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">우대 조건</span>
+                                <span class="compare-item-value">월 300~500만 원 이상</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="callout green" style="margin-top: 32px;">
+                        <div class="callout-header">
+                            <div class="callout-icon">🏆</div>
+                            <div class="callout-title">은행 거래 이력 만드는 5가지 방법 ⭐</div>
+                        </div>
+                        <div class="callout-text">
+                            아무리 신용점수가 좋아도 <strong>거래 이력이 없으면 신용 평가가 어렵습니다.</strong> 영끌남이 추천하는 거래 이력 만들기 방법:<br><br>
+                            <strong>1️⃣ 주거래 은행 정하기</strong> — 우리·신한·KB·하나 중 하나 선택. 모든 거래 집중.<br>
+                            <strong>2️⃣ 신용카드 발급 + 사용</strong> — 월 30만 원 이상 꾸준히 사용. 자동이체 등록.<br>
+                            <strong>3️⃣ 적금/예금 가입</strong> — 월 10~30만 원 자동이체. 1년 만기 후 갱신.<br>
+                            <strong>4️⃣ IRP/연금저축 가입</strong> — 세제 혜택 + 거래 이력 동시 확보.<br>
+                            <strong>5️⃣ 예치금 거래</strong> — MMF, CMA 등으로 단기 자금 회전 이력 만들기.<br><br>
+                            🔑 <strong>핵심:</strong> 위 5가지를 <strong>최소 6개월~1년</strong> 꾸준히 → 은행이 "이 사람 진짜 거래 잘 해!"라고 판단 → 대출 한도/금리 우대.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 5: 대출 목적 -->
+        <div class="section" id="part5">
+            <span class="section-label">🎯 PART 05</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon yellow">🪜</div>
+                        대출 목적 + 담보 유형 매트릭스
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="subsection">
+                        <div class="subsection-title">📋 운전자금 vs 시설자금 — 절대 헷갈리면 안 되는 이유</div>
+                        <p>대출은 <strong>목적이 명확</strong>해야 합니다. 받은 목적과 다른 데 쓰면 큰일 나요! 은행이 "용도 증빙" 단계에서 거래 내역을 다 확인하기 때문이에요. ⚠️</p>
+                    </div>
+
+                    <div class="compare-grid">
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon green">💼</div>
+                                <span class="compare-card-title">운전자금 대출</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">목적</span>
+                                <span class="compare-item-value">사업 영위에 필요한 자금</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">사용처</span>
+                                <span class="compare-item-value">인테리어 / 보증금 / 인건비</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대상</span>
+                                <span class="compare-item-value">호스텔·공간대여·임대사업자</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">한도</span>
+                                <span class="compare-item-value">3천~5억 (매출에 따라)</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">상환 기간</span>
+                                <span class="compare-item-value">1~5년 (단기)</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대표 상품</span>
+                                <span class="compare-item-value">신보 햇살론, 정책자금</span>
+                            </div>
+                        </div>
+
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon blue">🏢</div>
+                                <span class="compare-card-title">시설자금 대출</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">목적</span>
+                                <span class="compare-item-value">고정 자산 매입</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">사용처</span>
+                                <span class="compare-item-value">건물·토지·사업장 매입</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대상</span>
+                                <span class="compare-item-value">건물 투자자·자가 사업자</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">한도</span>
+                                <span class="compare-item-value">담보의 60~90%</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">상환 기간</span>
+                                <span class="compare-item-value">10~30년 (장기)</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대표 상품</span>
+                                <span class="compare-item-value">은행 담보대출, 정책 시설자금</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="callout red" style="margin-top: 32px;">
+                        <div class="callout-header">
+                            <div class="callout-icon">⚠️</div>
+                            <div class="callout-title">절대 금지 ⛔ 목적 외 사용</div>
+                        </div>
+                        <div class="callout-text">
+                            🚫 운전자금 → <strong>건물 매입에 사용</strong>: 적발 시 대출 회수<br>
+                            🚫 시설자금 → <strong>인테리어에 사용</strong>: 적발 시 대출 회수<br><br>
+                            <strong>왜 이게 중요할까?</strong> 은행은 자금 집행 후 <strong class="text-error">"용도 증빙"</strong>이라는 과정으로 통장 거래 내역, 계약서, 세금계산서를 확인합니다. 목적 외 사용이 적발되면:<br>
+                            <ul>
+                                <li><strong>대출 즉시 회수</strong> (전액 상환 요구)</li>
+                                <li><strong>신용도 하락</strong> (NICE/KCB 점수 급락)</li>
+                                <li><strong>형사 처벌 가능</strong> (사기 또는 사문서 위조)</li>
+                                <li><strong>5년간 대출 금지</strong> (블랙리스트 등재)</li>
+                            </ul>
+                            🔑 <strong>핵심 원칙:</strong> 받은 목적과 같은 곳에만 써야 합니다. 운전자금은 사업 운영에, 시설자금은 부동산 매입에. 무조건 같은 라인 안에서 사용하세요.
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <div class="subsection-title">🔀 신용대출 vs 담보대출</div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>항목</th>
+                                    <th>신용대출 💳</th>
+                                    <th>담보대출 🏠</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>이자율</strong></td>
+                                    <td><span class="text-error">비쌈 (4.5~5%)</span></td>
+                                    <td><span class="text-success">저렴 (3~3.6%)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>한도</strong></td>
+                                    <td><span class="text-error">작음 (3천~5천)</span></td>
+                                    <td><span class="text-success">큼 (담보의 70~90%)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>심사 기간</strong></td>
+                                    <td>1~3일 (빠름)</td>
+                                    <td>2~4주 (감정평가 필요)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>리스크</strong></td>
+                                    <td>은행이 부담 (대신 이자 ↑)</td>
+                                    <td>차주가 부담 (담보 잃을 수 있음)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>활용 시점</strong></td>
+                                    <td>창업 초기·담보 없음</td>
+                                    <td>건물·집·기존 자산 활용</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>금리 변동성</strong></td>
+                                    <td>높음 (신용 변화에 민감)</td>
+                                    <td>낮음 (담보 가치는 안정)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="callout blue">
+                        <div class="callout-header">
+                            <div class="callout-icon">📍</div>
+                            <div class="callout-title">2×2 매트릭스로 정리하면 ✨</div>
+                        </div>
+                        <div class="callout-text">
+                            대출은 <strong>"목적 × 담보 유무"</strong> 두 축으로 4가지 조합이 가능합니다.<br><br>
+                            <strong>1️⃣ 운전자금 + 신용대출</strong> ← <span class="text-violet">오늘 강의의 메인 주제!</span><br>
+                            창업 초기 0원 → 6천~1억 만들기. 담보 없이 사업 시작하는 사람들의 길.<br><br>
+                            <strong>2️⃣ 운전자금 + 담보대출</strong><br>
+                            기존 집·건물 활용해 사업 자금 확보. 후순위 대출 등.<br><br>
+                            <strong>3️⃣ 시설자금 + 담보대출</strong><br>
+                            건물 매입 시 본 강의에서 다룸. LTV 70~90%.<br><br>
+                            <strong>4️⃣ 시설자금 + 신용대출</strong><br>
+                            거의 안 씀 (한도 작아 의미 없음). 단, 프랜차이즈론 같은 특수 상품은 예외.
+                        </div>
+                    </div>
+
+                    <div class="callout teal">
+                        <div class="callout-header">
+                            <div class="callout-icon">🍔</div>
+                            <div class="callout-title">예외 케이스: 프랜차이즈론 (1금융 5천 한도)</div>
+                        </div>
+                        <div class="callout-text">
+                            배스킨라빈스, 메가커피, 이디야 등 <strong>유명 프랜차이즈를 창업</strong>할 때는 1금융권에서 <strong>프랜차이즈론(5천만 원 한도)</strong>이 가능합니다.<br><br>
+                            🔑 <strong>구조:</strong> 가맹점 본사가 담보 제공 → 1금융 은행이 5천 빌려줌<br>
+                            🔑 <strong>이게 가능한 이유:</strong> 본사가 가맹점 영업권을 담보로 제공하기 때문 (즉, 무담보 같지만 실제는 담보대출)<br><br>
+                            ⚠️ <strong>한계:</strong> 우리는 호스텔·공간대여업·임대업이라 프랜차이즈론은 해당 안 됨. 그래서 다음 PART 6의 4단계 프로세스로 가야 함.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 6: 4단계 프로세스 (CORE!) -->
+        <div class="section" id="part6">
+            <span class="section-label">🚀 PART 06 · 메인 코어</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon orange">🔥</div>
+                        0원에서 1억 만들기 · 4단계 실전 프로세스
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>여기부터가 <strong class="text-emphasis">진짜 핵심</strong>입니다. 사업자도 없고, 담보도 없고, 현금도 없는 분들이 어떻게 6천~1억 자금을 마련할 수 있는지 단계별로 설명합니다. 📍</p>
+
+                    <div class="quote-box">
+                        💬 "내가 0원이라고 해도, 은행 거래 한 번쯤은 했을 거잖아요. 거기서부터 시작입니다." <strong>— 영끌남</strong>
+                    </div>
+
+                    <div class="callout orange">
+                        <div class="callout-header">
+                            <div class="callout-icon">⚙️</div>
+                            <div class="callout-title">전체 프로세스 한눈에 보기</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>🎯 목표:</strong> 0원 → 6천~1억 가용 자금 + 사업체 + 신용 형성<br>
+                            <strong>⏰ 기간:</strong> 약 2~4주 (계약 + 신청 + 자금 실행)<br>
+                            <strong>💰 최종 결과:</strong> 평균 금리 2.3~3.8%로 6천~1억 사용 가능<br><br>
+                            <strong>4단계 흐름:</strong><br>
+                            ① 신용대출 한도 확인 (3~5천)<br>
+                            → ② 신보재단 사전 통보서 받기 (3~5천)<br>
+                            → ③ 사업장 계약 + 자금 집행<br>
+                            → ④ 신보 대출 실행 → 2금융 상환 (금리 갈아타기)
+                        </div>
+                    </div>
+
+                    <div class="step-grid">
+                        <div class="step-card">
+                            <div class="step-number s1">1</div>
+                            <div class="step-content">
+                                <div class="step-title">🏦 STEP 1 · 주거래 은행 또는 2금융 신용대출 한도 확인</div>
+                                <div class="step-desc">먼저 본인의 신용대출 가용 한도를 정확히 파악합니다. 직장인·프리랜서·기존 사업자라면 <strong>주거래 은행 우선</strong>, 무직자/특수직이라면 <strong>신협·새마을금고 등 2금융</strong>으로 갑니다.</div>
+                                <div class="step-detail">
+                                    💡 <strong>방문 시 확인할 것</strong>: 신용대출 가능 한도, 적용 금리, 거치 기간, 중도상환 수수료, 만기 연장 조건<br>
+                                    📌 <strong>금리 비교 (오늘 기준)</strong>:<br>
+                                    • 1금융 신용대출 ≈ 기준금리(2.5%) + 가산(1.3%) = <strong>약 3.8%</strong><br>
+                                    • 2금융 신용대출 ≈ 기준금리(2.5%) + 가산(2.3%) = <strong>약 4.8%</strong><br>
+                                    • 캐피탈 ≈ 5.5~6.5% / 대부업 ≈ 15%~ (절대 금지!)
+                                </div>
+                                <div class="step-detail">
+                                    🎯 <strong>한도 늘리기 팁</strong>:<br>
+                                    • 직장인이면 재직증명서·소득금액증명원 지참<br>
+                                    • 프리랜서면 최근 1년 소득금액증명원 + 통장 거래 내역<br>
+                                    • 자영업자면 부가세 신고서·매출 자료 지참<br>
+                                    • <strong class="text-success">기존 거래 이력 있는 은행이 유리</strong> (신규는 한도 작음)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s2">2</div>
+                            <div class="step-content">
+                                <div class="step-title">📋 STEP 2 · 신용보증재단 한도 사전 확인 (자금 지원 통보서 받기)</div>
+                                <div class="step-desc">네이버에 "신용보증재단중앙회" 검색 → 신용보증해드림 사이트 접속 → 본인 사업장 지역의 16개 지역 재단에 직접 전화. <strong>"자금 지원 통보서"</strong>를 받아두는 게 핵심!</div>
+                                <div class="step-detail">
+                                    💡 <strong>해드림 사이트 검색 가이드</strong>:<br>
+                                    1. 단계 → "창업" 선택 (창업자 아니면 "성장")<br>
+                                    2. 자금 용도 → "운전자금" 선택<br>
+                                    3. 지원 한도 → "3천~5천" 입력<br>
+                                    4. 지역 → 본인 사업장 지역 선택<br>
+                                    5. 조회하기 → 가능한 상품 리스트 확인
+                                </div>
+                                <div class="step-detail">
+                                    📌 <strong>전화 시 멘트 예시</strong>: "안녕하세요, 제가 [지역]에서 [업종, 예: 호스텔/공간대여업]을 창업하려고 합니다. 신용보증해드림에서 보니 [상품명, 예: 햇살론 플러스]가 있던데, 운전자금 3천만 원 정도 한도가 어떻게 되는지 상담받고 싶습니다."
+                                </div>
+                                <div class="step-detail">
+                                    ⚠️ <strong>중요</strong>: 신보재단은 <strong class="text-error">"하고 싶다"</strong>고 돈 안 줍니다. <strong class="text-success">"하고 나서 증빙해라"</strong>가 원칙. 그래서 자금 지원 통보서 (예: 운전자금 5억까지 지원, 금리 2.3% 가능)를 사전에 받아두는 게 핵심입니다. 이게 없으면 다음 단계로 못 가요!
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s3">3</div>
+                            <div class="step-content">
+                                <div class="step-title">🏠 STEP 3 · 사업장 임대 계약 + 공사비 지출 (1단계 자금 활용)</div>
+                                <div class="step-desc">STEP 1에서 빌린 신용대출 3~5천을 사용해 <strong>사업장 보증금 + 공사비</strong>를 지출합니다. 모든 거래는 <strong>통장 거래 내역</strong>으로 남겨야 다음 단계 증빙이 가능합니다.</div>
+                                <div class="step-detail">
+                                    💡 <strong>사업 유형별 자본금 가이드</strong>:<br>
+                                    • 에어비앤비: 보증금 500~1,000 + 공사 500~1,000 = <strong>총 1천~1.5천</strong><br>
+                                    • 공간대여(파티룸/연습실): 보증금 1,000 + 공사 1,500~2,000 = <strong>총 2.5~3천</strong><br>
+                                    • 호스텔: 보증금 2,000~3,000 + 공사 2,000~3,000 = <strong>총 4~6천</strong><br>
+                                    • 모텔/숙박업: 보증금 5,000+ 공사 1억+ = <strong>총 1.5억+</strong>
+                                </div>
+                                <div class="step-detail">
+                                    📌 <strong>증빙 자료 필수 보관</strong>:<br>
+                                    • 임대차 계약서 원본<br>
+                                    • 보증금 입금 영수증 / 통장 거래 내역<br>
+                                    • 인테리어 업체 견적서·계약서·세금계산서<br>
+                                    • 공사비 지출 통장 거래 내역<br>
+                                    • 사업자등록증 (사업자 신규 발급 필수!)
+                                </div>
+                                <div class="step-detail">
+                                    🎯 <strong>핵심 노하우</strong>: 보증금이 1천만 원, 공사가 2천만 원이라면 <strong>합쳐서 3천만 원</strong>의 통장 거래 흐름이 만들어집니다. 이게 STEP 4의 신보재단 대출 근거가 돼요!
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s4">4</div>
+                            <div class="step-content">
+                                <div class="step-title">💰 STEP 4 · 신보재단 대출 실행 → 2금융 즉시 상환 (금리 갈아타기)</div>
+                                <div class="step-desc">통장 거래 내역을 신보재단에 제출하면 <strong>2.3% 금리로 3천만 원이 입금</strong>됩니다. 이 돈으로 STEP 1에서 빌린 2금융권 4.8% 신용대출을 <strong>즉시 상환!</strong> 결과적으로 2.5%p 금리 절감 ✨</div>
+                                <div class="step-detail">
+                                    💡 <strong>핵심 흐름</strong>:<br>
+                                    ① 비싼 돈(2금융 4.8%) 빌림 → 사업장 + 공사 집행<br>
+                                    ② 통장 내역 신보재단 제출 → 싼 돈(2.3%) 입금<br>
+                                    ③ 싼 돈으로 비싼 돈 상환 → <strong class="text-success">2.5%p 금리 절감</strong><br>
+                                    ④ 결과: 신보 2.3% 3천만 원 + 주거래 신용대출 3~5천 = <strong class="text-emphasis">총 6천~1억 자금</strong>
+                                </div>
+                                <div class="step-detail">
+                                    📌 <strong>예시 시뮬레이션 (자본금 0원, 호스텔 창업)</strong>:<br>
+                                    • 1단계: 2금융 신용대출 3천 (이자 4.8%, 월 12만 원)<br>
+                                    • 2단계: 신보재단 통보서 5천 한도 확보<br>
+                                    • 3단계: 호스텔 보증금 2천 + 공사 1천 = 3천 집행<br>
+                                    • 4단계: 신보 3천 입금 (이자 2.3%, 월 5.75만 원) → 2금융 상환<br>
+                                    • <strong>최종</strong>: 6.25만 원/월 절감 + 호스텔 운영 시작!
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="callout yellow" style="margin-top: 32px;">
+                        <div class="callout-header">
+                            <div class="callout-icon">⚠️</div>
+                            <div class="callout-title">반드시 지켜야 할 주의사항 5가지</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>1️⃣ 자금 지원 통보서 먼저 받기</strong> — 신보재단에 신청 전 반드시 자금 지원 통보서(확약서)를 먼저 받고 진행. 받지 못한 채 공사부터 시작하면 자금이 안 나올 수 있음.<br><br>
+                            <strong>2️⃣ 통장 거래 내역·계약서·세금계산서 보관</strong> — 5년치 보관 의무. 분실 시 용도 증빙 불가능 → 대출 회수 위험.<br><br>
+                            <strong>3️⃣ 사업자등록증 신규 발급 필수</strong> — STEP 3 시점에 사업자등록 완료 필요. 부가세 신고도 누락 X.<br><br>
+                            <strong>4️⃣ 본인 신용·상환 능력 점검</strong> — 이 강의는 대출 권유가 아닌 방법론 공유. 본인이 매월 이자 + 원금 상환 가능한지 시뮬레이션 필수.<br><br>
+                            <strong>5️⃣ 5년 의무 운영</strong> — 신보재단 정책자금은 보통 5년 만기. 중간에 사업 접으면 즉시 회수. 진짜로 사업할 사람만 신청.
+                        </div>
+                    </div>
+
+                    <div class="action-box">
+                        <div class="action-box-title">🎯 STEP 4까지 완료 시 최종 결과</div>
+                        <div class="callout-text">
+                            ✅ <strong>가용 자금</strong>: 6천만 원 ~ 1억<br>
+                            ✅ <strong>평균 금리</strong>: 약 3.0~3.5% (혼합 시)<br>
+                            ✅ <strong>사업체</strong>: 개인사업자 또는 법인 운영 중<br>
+                            ✅ <strong>현금 흐름</strong>: 호스텔/공간대여 등에서 월 200~500만 원 발생 시작<br>
+                            ✅ <strong>신용</strong>: 기존엔 없던 사업소득 형성 → 1년 후 추가 대출 가능
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 7: 신용보증재단 -->
+        <div class="section" id="part7">
+            <span class="section-label">🏛 PART 07</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon green">🆚</div>
+                        신용보증재단 활용 완전 가이드
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>"신보"라고 다 같은 게 아닙니다. <strong>3개 기관이 완전히 다릅니다.</strong> 본인 단계에 맞는 기관에 가야 대출이 나와요. 📑</p>
+
+                    <div class="compare-grid three">
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon green">🏪</div>
+                                <span class="compare-card-title">신용보증재단</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대상</span>
+                                <span class="compare-item-value">소상공인 / 창업자</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">단계</span>
+                                <span class="compare-item-value">초기 ~ 3개월 미만</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">한도</span>
+                                <span class="compare-item-value">3천~5억</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">금리</span>
+                                <span class="compare-item-value">2.3% 내외</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">접근성</span>
+                                <span class="compare-item-value">⭐⭐⭐⭐⭐ 가장 쉬움</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대표 상품</span>
+                                <span class="compare-item-value">햇살론 플러스</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">조직</span>
+                                <span class="compare-item-value">16개 지역 재단</span>
+                            </div>
+                        </div>
+
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon blue">📊</div>
+                                <span class="compare-card-title">신용보증기금</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대상</span>
+                                <span class="compare-item-value">매출 발생 사업자</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">단계</span>
+                                <span class="compare-item-value">1년 차 이후</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">한도</span>
+                                <span class="compare-item-value">5천~수십억</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">금리</span>
+                                <span class="compare-item-value">2.5~3%</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">접근성</span>
+                                <span class="compare-item-value">⭐⭐⭐⭐ 매출 필요</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대표 상품</span>
+                                <span class="compare-item-value">일반보증, 특례보증</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">조직</span>
+                                <span class="compare-item-value">중앙 + 지역본부</span>
+                            </div>
+                        </div>
+
+                        <div class="compare-card">
+                            <div class="compare-card-header">
+                                <div class="compare-card-icon violet">🏢</div>
+                                <span class="compare-card-title">기술보증기금</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대상</span>
+                                <span class="compare-item-value">중소·기술기업</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">단계</span>
+                                <span class="compare-item-value">성장기 사업자</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">한도</span>
+                                <span class="compare-item-value">1억~수백억</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">금리</span>
+                                <span class="compare-item-value">2.5~3%</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">접근성</span>
+                                <span class="compare-item-value">⭐⭐⭐ 검증 필요</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">대표 상품</span>
+                                <span class="compare-item-value">기보 보증, 기술보증</span>
+                            </div>
+                            <div class="compare-item">
+                                <span class="compare-item-label">조직</span>
+                                <span class="compare-item-value">기술평가팀 + 영업본부</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="callout teal" style="margin-top: 32px;">
+                        <div class="callout-header">
+                            <div class="callout-icon">📋</div>
+                            <div class="callout-title">신용보증해드림 사이트 단계별 검색 가이드 🔍</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>전체 흐름:</strong> 네이버 → "신용보증재단중앙회" → 신용보증해드림 → 보증상품찾기<br><br>
+                            <strong>STEP 1.</strong> 단계 선택<br>
+                            • <span class="text-emphasis">창업</span>: 사업자등록 3개월 미만<br>
+                            • <span class="text-emphasis">성장</span>: 사업자 1년+ 매출 형성<br>
+                            • <span class="text-emphasis">재도전</span>: 폐업 후 재창업<br>
+                            • <span class="text-emphasis">제도</span>: 청년·여성·장애인 등 특수계층<br><br>
+                            <strong>STEP 2.</strong> 자금 용도 선택 — 운전자금 / 시설자금<br>
+                            <strong>STEP 3.</strong> 한도 입력 — 본인 필요액 (예: 3천~5천)<br>
+                            <strong>STEP 4.</strong> 지역 선택 — 본인 사업장 소재지<br>
+                            <strong>STEP 5.</strong> 조회하기 → 가능 상품 리스트 → 16개 지역 재단 중 내 지역으로 직접 전화 📞
+                        </div>
+                    </div>
+
+                    <div class="callout orange">
+                        <div class="callout-header">
+                            <div class="callout-icon">🌟</div>
+                            <div class="callout-title">관광진흥기금 (호스텔/숙박업 필독!)</div>
+                        </div>
+                        <div class="callout-text">
+                            🏨 <strong>한국관광공사</strong>가 운영하는 정책 기금. 호스텔·관광호텔·캠핑장 등 관광 인프라 사업자를 위한 저금리 대출.<br><br>
+                            <strong>특징</strong>:<br>
+                            • 모집 시기: <strong>1년에 1회</strong> (매년 1~2월 공고)<br>
+                            • 한도: 시설자금 최대 50억, 운전자금 최대 5억<br>
+                            • 금리: <strong class="text-success">2~3%대 저금리</strong><br>
+                            • 상환: 5~15년 (장기)<br><br>
+                            🔑 호스텔·숙박업 하시는 분은 <strong>매년 1월에 공고 체크 필수!</strong> 영끌남도 본인이 받은 적 있음.
+                        </div>
+                    </div>
+
+                    <div class="callout violet">
+                        <div class="callout-header">
+                            <div class="callout-icon">📜</div>
+                            <div class="callout-title">자금 지원 통보서가 어떻게 생겼는가</div>
+                        </div>
+                        <div class="callout-text">
+                            신보재단에서 받는 <strong>"자금 지원 통보서"</strong>는 다음 정보가 적혀 있어요.<br><br>
+                            <strong>① 보증대상 사업자명</strong> (개인 또는 법인 명의)<br>
+                            <strong>② 지원 한도</strong> (예: 운전자금 5억까지 지원 가능)<br>
+                            <strong>③ 적용 금리</strong> (예: 2.3% / 2차 보전 후)<br>
+                            <strong>④ 상환 방식</strong> (만기일시상환 / 원리금균등 등)<br>
+                            <strong>⑤ 보증 기간</strong> (보통 5년)<br>
+                            <strong>⑥ 신용보증재단 직인</strong>과 담당자 서명<br><br>
+                            🔑 <strong>이 통보서가 곧 "보증서"</strong>입니다. 이걸 들고 은행에 가면 신보재단이 보증해주는 조건으로 대출 실행!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 8: 1년 후 추가 대출 -->
+        <div class="section" id="part8">
+            <span class="section-label">📈 PART 08</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon violet">⬆️</div>
+                        1년 후 추가 대출 전략
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>4단계 프로세스로 사업자를 만들고 1년 운영하면, 본인 신용이 <strong>완전히 다른 사람</strong>이 됩니다. 매출 300~500만 원/월이 형성되면, 이제 추가 레버리지가 가능해져요. ✨</p>
+
+                    <div class="callout green">
+                        <div class="callout-header">
+                            <div class="callout-icon">🎯</div>
+                            <div class="callout-title">신용 형성 전 vs 후 — 무엇이 달라지는가</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>📍 신용 형성 전 (창업 0개월)</strong><br>
+                            • 담보: ❌ 없음<br>
+                            • 신용: ❌ 거래 이력 부족<br>
+                            • 매출: ❌ 0원<br>
+                            • <strong>대출 환경</strong>: 한도 작음, 금리 높음, 2금융이 한계<br><br>
+                            <strong>📍 신용 형성 후 (창업 1년+)</strong><br>
+                            • 담보: ⚪ 여전히 없거나 사업장 보증금<br>
+                            • 신용: ✅ 거래 이력 + 사업소득 형성<br>
+                            • 매출: ✅ 월 300~500만 원 안정적<br>
+                            • <strong>대출 환경</strong>: 한도 ↑, 금리 ↓, 1금융·신보기금·기보 이용 가능<br><br>
+                            🔑 <strong>핵심 변화:</strong> 이때부터는 <strong>신용보증재단 + 신용보증기금 동시 조사</strong>. 사업이 더 컸다면 <strong>기술보증기금</strong>까지 두드려보세요!
+                        </div>
+                    </div>
+
+                    <div class="callout blue">
+                        <div class="callout-header">
+                            <div class="callout-icon">🌟</div>
+                            <div class="callout-title">실제 사례: 이지용 님 케이스 (해외구매대행 → 1억)</div>
+                        </div>
+                        <div class="callout-text">
+                            7기 모집 시 만난 이지용 님은 <strong>해외 구매대행으로 월 800만 원 순수익</strong>이 찍히는 분이었습니다. 그 매출을 기반으로 <strong class="text-emphasis">기술보증기금에서 1억 원 대출</strong>을 받으셨어요.<br><br>
+                            <strong>사례 분석</strong>:<br>
+                            • <strong>1단계</strong>: 해외구매대행 사업자 등록 (개인사업자)<br>
+                            • <strong>2단계</strong>: 1년 운영, 매출 800만 원/월 형성<br>
+                            • <strong>3단계</strong>: 부가세 신고서·종합소득세 신고서 발급<br>
+                            • <strong>4단계</strong>: 기술보증기금 신청 → 1억 보증<br>
+                            • <strong>5단계</strong>: 1금융 은행 대출 실행 (금리 약 3%)<br><br>
+                            🎯 <strong>핵심 인사이트:</strong> 사업체로 매출만 만들어 두면, 그 매출이 곧 <strong>건물 매입 자기자본</strong>으로 변환됩니다. 이 1억은 사업 운영비로 쓰면서, 사업 소득으로 따로 모은 돈을 건물 매입 에쿼티로 사용하는 구조!
+                        </div>
+                    </div>
+
+                    <div class="callout orange">
+                        <div class="callout-header">
+                            <div class="callout-icon">💼</div>
+                            <div class="callout-title">사업체를 운영해야 하는 진짜 이유</div>
+                        </div>
+                        <div class="callout-text">
+                            영끌남 본인도 <strong>주식·비트코인·아파트·건물 투자</strong>로 버는 돈이 사업체 수익보다 큽니다. 그럼에도 사업체를 가져가는 이유는 단 하나:<br><br>
+                            🔑 <strong>"안정적인 현금"</strong> 때문이에요.<br><br>
+                            예를 들어 건물 담보대출 받으면 월 이자가 300만 원 나가는데, 사업체에서 이걸 감당 가능한 선이라면 <strong>심리적 부담이 0</strong>이 됩니다. 부동산 시세가 잠깐 떨어져도 <strong>현금흐름이 받쳐주면 버틸 수 있어요</strong>.<br><br>
+                            📌 <strong>영끌남 추천 사업체 구조</strong>:<br>
+                            • <strong>온라인 사업</strong>: 쿠팡, 해외구매대행, 스마트스토어 (재고 관리)<br>
+                            • <strong>오프라인 사업</strong>: 공간대여, 호스텔, 에어비앤비 (부동산 활용)<br>
+                            • <strong>투트랙 추천</strong>: 온라인 + 오프라인 하나씩 = 분산 리스크
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 9: 담보대출 활용 -->
+        <div class="section" id="part9">
+            <span class="section-label">🏠 PART 09</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon teal">🔓</div>
+                        담보대출 활용법 1 · 기존 담보 (집) 활용
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>나에게 이미 <strong>집 한 채</strong>가 있다면? 그 집을 <strong>사업자 담보대출</strong>로 활용해 추가 사업 자금을 끌어쓸 수 있어요. 집값 상승분이 곧 가용 자금이 됩니다. ✨</p>
+
+                    <div class="callout violet">
+                        <div class="callout-header">
+                            <div class="callout-icon">📐</div>
+                            <div class="callout-title">실전 계산 예시: 4억에 산 집이 8억 됐을 때</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>상황 가정:</strong><br>
+                            • 4억에 산 집이 8억으로 상승 (시세 +4억)<br>
+                            • 기존 주담대 3억 사용 중 (근저당 설정 3.6억 = 120%)<br>
+                            • 호스텔 2호점 운전자금이 필요한 상태<br><br>
+                            <strong>풀어야 할 질문:</strong> 이 집을 활용해 얼마까지 추가 대출 가능?
+                        </div>
+                    </div>
+
+                    <div class="calc-box">
+                        <div class="calc-box-title">🧮 후순위 사업자 담보대출 계산</div>
+                        <div class="calc-row">
+                            <span class="calc-label">📌 현재 시세</span>
+                            <span class="calc-value">8억 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">📊 LTV 80% (사업자 담보대출)</span>
+                            <span class="calc-value">8억 × 0.8 = 6.4억 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">🏠 방 공제 (1주택)</span>
+                            <span class="calc-value minus">- 5,300만 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">💵 최대 대출 가능액</span>
+                            <span class="calc-value">5억 8,700만 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">💼 기존 근저당 (실제 3억의 120%)</span>
+                            <span class="calc-value minus">- 3억 6,000만 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">🎯 후순위로 받을 수 있는 금액</span>
+                            <span class="calc-value plus">2억 2,700만 원 ✨</span>
+                        </div>
+                    </div>
+
+                    <div class="callout yellow">
+                        <div class="callout-header">
+                            <div class="callout-icon">💡</div>
+                            <div class="callout-title">왜 방 공제를 하는가? (소액임차보증금)</div>
+                        </div>
+                        <div class="callout-text">
+                            은행이 사업자 담보대출 시 <strong>주택임대차보호법상 최우선변제금</strong>을 차감하는 거예요.<br><br>
+                            <strong>법적 배경:</strong> 만약 채무자가 대출 못 갚아 경매로 넘어가면, 그 집에 살던 임차인이 보증금 일부(최우선변제금)를 가장 먼저 받음. 은행은 그 후순위. 그래서 미리 차감.<br><br>
+                            <strong>방 공제 금액:</strong><br>
+                            • 1주택 = 5,300만 원<br>
+                            • 다주택 = 더 차감 (지역마다 다름)<br>
+                            • 주택 임대차 X = 차감 안 함<br><br>
+                            🔑 <strong>근저당 120% 룰:</strong> 은행은 떼먹히지 않으려 실제 대출의 120%를 근저당으로 설정해요. 3억 빌리면 등기부등본에 3.6억으로 찍힘.
+                        </div>
+                    </div>
+
+                    <div class="callout red">
+                        <div class="callout-header">
+                            <div class="callout-icon">⚠️</div>
+                            <div class="callout-title">중요 ⚠️ 용도 증빙 함정 (꼭 읽어주세요)</div>
+                        </div>
+                        <div class="callout-text">
+                            ✅ <strong>주택 담보로 사업자 대출 → 진짜 사업 운전자금으로 사용</strong>: 문제 없음<br>
+                            ❌ <strong>주택 담보로 사업자 대출 → 다른 건물 매입에 사용</strong>: <span class="text-error">용도 증빙 불일치 = 대출 회수 위험</span><br><br>
+                            🔑 <strong>핵심 원칙:</strong> 사업자 대출은 무조건 <strong>"실제 사업 운전자금"</strong>으로만 써야 안전합니다. 통장 거래 내역 + 세금계산서 + 거래처 송금 이력 등으로 깔끔하게 증빙되는 흐름만 만드세요.<br><br>
+                            ⚠️ <strong>주의:</strong> 다른 데 쓰면 대출 회수 + 신용 하락 + 형사 처벌 위험. 무리하지 마세요.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon blue">🏢</div>
+                        담보대출 활용법 2 · 매입 건물 담보 활용
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>매입할 건물 자체가 담보가 됩니다. 그리고 <strong>싸게 산 건물</strong>은 시세와의 차액만큼 추가 대출이 가능해요! 영끌남 본인 사례로 설명할게요. 🎯</p>
+
+                    <div class="callout violet">
+                        <div class="callout-header">
+                            <div class="callout-icon">📐</div>
+                            <div class="callout-title">영끌남 실전 사례: 44억 → 60억 시세 차익 활용</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>매입 시점:</strong> 44억 3천만 원에 매입 → 80% LTV로 35억 4천만 원 대출<br>
+                            <strong>현재:</strong> 감정가 60억으로 평가 = <span class="text-emphasis">시세 차익 16억!</span><br><br>
+                            <strong>풀어야 할 질문:</strong> 이 건물을 활용해 추가로 얼마까지 대출 가능?
+                        </div>
+                    </div>
+
+                    <div class="calc-box">
+                        <div class="calc-box-title">🧮 매입 건물 추가 대출 한도 계산</div>
+                        <div class="calc-row">
+                            <span class="calc-label">📌 매입가</span>
+                            <span class="calc-value">44억 3,000만 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">📊 매입 시 80% 대출</span>
+                            <span class="calc-value minus">- 35억 4,000만 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">📈 현재 시세 (감정평가)</span>
+                            <span class="calc-value plus">60억 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">📊 시세 기준 80% 대출 한도</span>
+                            <span class="calc-value">60억 × 0.8 = 48억 원</span>
+                        </div>
+                        <div class="calc-row">
+                            <span class="calc-label">🎯 추가 가용 한도</span>
+                            <span class="calc-value plus">48억 - 35.4억 = 12억 6,000만 원 ✨</span>
+                        </div>
+                    </div>
+
+                    <div class="callout teal">
+                        <div class="callout-header">
+                            <div class="callout-icon">🔍</div>
+                            <div class="callout-title">아파트 vs 건물 — KB시세의 함정</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>🏘 아파트의 비극</strong><br>
+                            40억짜리 아파트라도 <strong>KB시세는 34억</strong>일 수 있어요. 은행 담보 인정은 KB시세 기준 23.8억까지만 (70%). 그러면 자기자본으로 16억을 부담해야 하죠.<br><br>
+                            • 매입가: 40억<br>
+                            • KB시세: 34억<br>
+                            • LTV 70% 기준 대출: 23.8억<br>
+                            • <strong class="text-error">필요 자기자본: 16.2억 ⚠️</strong><br>
+                            • 비싸게 사면 자기자본 부담이 폭증!<br><br>
+                            <strong>🏢 건물의 축복</strong><br>
+                            매입가 44억이라도 <strong>감정가는 60억</strong>일 수 있음. 싸게만 사면 즉시 추가 자금 확보 가능!<br><br>
+                            • 매입가: 44.3억<br>
+                            • 감정가: 60억<br>
+                            • LTV 80% 기준 대출: 48억 (자기자본 -3.7억!)<br>
+                            • <strong class="text-success">자기자본 음수 = 무자본 매입 가능 🎯</strong><br><br>
+                            🔑 <strong>핵심 차이:</strong> 아파트는 시세대로 살 수밖에 없지만, <strong>건물은 싸게 사는 게 가능</strong>합니다. 영끌남 강의의 핵심도 결국 이 "싼 건물 찾기"!
+                        </div>
+                    </div>
+
+                    <div class="callout green">
+                        <div class="callout-header">
+                            <div class="callout-icon">🎯</div>
+                            <div class="callout-title">최종 자금 구조 시뮬레이션</div>
+                        </div>
+                        <div class="callout-text">
+                            <strong>📍 매입 시점 자금 구조 (영끌남 모델)</strong><br><br>
+                            🏢 건물 시설자금 담보대출<br>
+                            • 한도: 매입가의 70~80%<br>
+                            • 금리: <span class="text-emphasis">3.6% (담보대출 우대)</span><br>
+                            • 비율: 전체 자금의 70~80%<br><br>
+                            💼 부족한 20% 자기자본 충당<br>
+                            • 사업체 운전자금 (정책자금 2.3%)<br>
+                            • 사업 소득 (월 300~500만 원 누적)<br>
+                            • 신보재단·기보재단 추가 보증<br><br>
+                            <strong>📊 평균 금리: 약 3.0%</strong><br>
+                            (담보 80% × 3.6% + 운전 20% × 2.3% = 가중평균 ~3.34%)<br><br>
+                            🔑 <strong>핵심 조건:</strong> 매입할 건물 수익률이 <strong class="text-success">3% 상회</strong>해야 합니다. 그래야 이자 + 원금 자동 상환 + 잉여 현금 발생!<br><br>
+                            🎯 영끌남이 강의에서 강조하는 <strong>"수익률 3% 상회 건물만 사라"</strong>의 진짜 의미가 바로 이거예요.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 10: 금리 -->
+        <div class="section" id="part10">
+            <span class="section-label">📉 PART 10</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon dark">📊</div>
+                        금리 구조 완전 분석 (오늘 기준)
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <p>금리는 <strong>기준금리(금융채) + 가산금리</strong>로 구성됩니다. 어디서 받느냐에 따라 가산금리가 천차만별이에요. 📌</p>
+
+                    <div class="subsection">
+                        <div class="subsection-title">📋 기관별 금리 구조 비교 (2026.04.25 기준)</div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>금융기관</th>
+                                    <th>대출 종류</th>
+                                    <th>기준금리</th>
+                                    <th>가산금리</th>
+                                    <th>최종 금리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong class="text-success">정책자금 (신보재단)</strong></td>
+                                    <td>운전자금</td>
+                                    <td>—</td>
+                                    <td>—</td>
+                                    <td class="col-emphasis">2.3% 🥇</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>1금융 (은행)</strong></td>
+                                    <td>담보대출</td>
+                                    <td>2.5%</td>
+                                    <td>+1.0%</td>
+                                    <td class="col-emphasis">3.5%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>1금융 (은행)</strong></td>
+                                    <td>신용대출</td>
+                                    <td>2.5%</td>
+                                    <td>+1.3%</td>
+                                    <td>3.8%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>2금융 (신협·새마을)</strong></td>
+                                    <td>신용대출</td>
+                                    <td>2.5%</td>
+                                    <td>+2.3%</td>
+                                    <td>4.8%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong class="text-warning">보험사·캐피탈</strong></td>
+                                    <td>신용대출</td>
+                                    <td>2.5%</td>
+                                    <td>+3~4%</td>
+                                    <td>5.5~6.5%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong class="text-error">대부업·사채</strong></td>
+                                    <td>신용대출</td>
+                                    <td>2.5%</td>
+                                    <td>+10%↑</td>
+                                    <td>15%~ 🚨</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="callout blue">
+                        <div class="callout-header">
+                            <div class="callout-icon">🔍</div>
+                            <div class="callout-title">금리 흐름 예측하는 방법 (숙제!)</div>
+                        </div>
+                        <div class="callout-text">
+                            🔑 <strong>금융채 금리</strong>를 보면 미래 금리 예측이 가능합니다. 영끌남이 추천하는 사이트에서 <strong>날짜를 바꿔가며</strong> 6개월/1년/2년 변동 금리를 비교해보세요.<br><br>
+                            <strong>📊 오늘 기준 (2026.04.25)</strong><br>
+                            • 6개월 변동: 2.5%<br>
+                            • 1년 변동: 2.5%<br>
+                            • 2년 변동: 2.5%<br>
+                            → <span class="text-success">앞으로 2년간 저금리 기조 유지 예측</span><br><br>
+                            <strong>📊 2022년 12월</strong><br>
+                            • 6개월: 4.5% / 1년: 4.5% / 2년: 4.6%<br>
+                            → 당시 고금리 기조 유지 예측 = 실제로 그랬음<br><br>
+                            <strong>📊 2020년 12월</strong><br>
+                            • 6개월: 0.8% / 1년: 0.9% / 2년: 1.0%<br>
+                            → 점진적 상승 신호 = 이후 4%까지 상승<br><br>
+                            🎯 <strong>활용법:</strong> 본인이 대출받았던 날짜를 찍어보세요. 은행이 얼마에 빌려와서 +몇 % 가산했는지 한눈에 확인 가능합니다!
+                        </div>
+                    </div>
+
+                    <div class="callout orange">
+                        <div class="callout-header">
+                            <div class="callout-icon">💡</div>
+                            <div class="callout-title">대환대출 — 금리 갈아타기 황금률</div>
+                        </div>
+                        <div class="callout-text">
+                            🔄 <strong>대환대출이란?</strong> 기존 비싼 대출을 새 싼 대출로 갈아타는 것.<br><br>
+                            <strong>실제 효과 시뮬레이션</strong>:<br>
+                            • 기존: 10억 × 4.5% = 연 이자 4,500만 원<br>
+                            • 대환: 10억 × 3.5% = 연 이자 3,500만 원<br>
+                            • <strong class="text-success">절감액: 연 1,000만 원 / 3년 = 3,000만 원!</strong><br><br>
+                            🎯 영끌남도 본인이 최근 3.4%로 대환받음. <strong>1금융 대환 가능하면 무조건 시도</strong>! 1% 절감만 해도 큰 차이입니다.<br><br>
+                            📞 <strong>대환 시 체크 포인트:</strong><br>
+                            • 중도상환 수수료 확인 (보통 0.5~1.5%)<br>
+                            • 새 은행의 가산금리·우대금리 비교 (3곳 이상 견적)<br>
+                            • 본인의 NICE/KCB 신용점수 사전 확인<br>
+                            • 대출 만기·거치 기간 협상
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PART 11: 실행 로드맵 + Q&A -->
+        <div class="section" id="part11">
+            <span class="section-label">🎯 PART 11 · 마무리</span>
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon green">✨</div>
+                        실행 로드맵 + Q&A 핵심 인사이트
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="subsection">
+                        <div class="subsection-title">🗓 단계별 실행 액션 플랜</div>
+                    </div>
+
+                    <div class="step-grid">
+                        <div class="step-card">
+                            <div class="step-number s1">1</div>
+                            <div class="step-content">
+                                <div class="step-title">🏃 Day 1 (오늘) · 정보 수집 단계</div>
+                                <div class="step-desc">신용보증재단중앙회 사이트 접속. 본인 지역·창업·운전자금 조회 → 가능한 정책자금 상품 목록 확보. 본인 신용점수 (NICE/KCB) 무료 확인.</div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s2">2</div>
+                            <div class="step-content">
+                                <div class="step-title">📞 Week 1 · 상담 단계</div>
+                                <div class="step-desc">주거래 은행 또는 2금융 (신협·새마을금고) 방문해서 신용대출 한도 확인. 동시에 신보재단 지역 담당자에게 전화 → 자금 지원 통보서 발급 절차 문의.</div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s3">3</div>
+                            <div class="step-content">
+                                <div class="step-title">🎯 Week 2 · 사업 아이템 확정</div>
+                                <div class="step-desc">예산 + 신용 한도에 맞는 사업 결정. 에어비앤비 (1~1.5천) / 공간대여 (1.5~3천) / 호스텔 (4~6천) / 모텔 (1.5억+). 사업장 임대 가능 매물 탐색 시작.</div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s4">4</div>
+                            <div class="step-content">
+                                <div class="step-title">🏠 Month 1 · 계약 + 인테리어</div>
+                                <div class="step-desc">사업장 임대 계약 체결 + 사업자등록증 발급 + 인테리어 시작. 모든 거래는 통장 이체로 진행해 거래 내역 보관.</div>
+                            </div>
+                        </div>
+
+                        <div class="step-card">
+                            <div class="step-number s5">5</div>
+                            <div class="step-content">
+                                <div class="step-title">💰 Month 2~3 · 신보 대출 + 금리 갈아타기</div>
+                                <div class="step-desc">통장 거래 내역을 신보재단에 제출 → 자금 지원 통보서 기반 대출 실행 → 2금융 신용대출 즉시 상환 → 평균 금리 절감 완료. 사업 본격 운영 시작!</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="subsection" style="margin-top: 48px;">
+                        <div class="subsection-title">💬 라이브 Q&A 핵심 인사이트</div>
+                    </div>
+
+                    <div class="callout blue">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">신생 법인도 90% 대출 가능한가요?</div>
+                        </div>
+                        <div class="callout-text">
+                            ❌ 사업 소득이 없는 <strong>신생 법인은 90% 어려움</strong>. <strong>80%가 현실적</strong>입니다.<br>
+                            🔑 90%는 사업 소득 + 운영 이력 + 신용 좋은 대표자가 모두 갖춰진 케이스에서나 가능해요.<br>
+                            💡 신생 법인이 90% 받으려면: ① 대표자 본인이 1금융 거래 이력 5년+ ② 자본금 1억+ ③ 임대료 안정적 + 보증인 추가
+                        </div>
+                    </div>
+
+                    <div class="callout violet">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">만 24세인데 2금융 신용대출 3~5천 가능?</div>
+                        </div>
+                        <div class="callout-text">
+                            ⏰ 나이가 어려서 한도가 작을 수 있어요. 그래서 추천 방법:<br>
+                            ① 가족(부모님)에게 가용 자금 1~2천 빌려서 통장 이력 찍기<br>
+                            ② 그 다음 신보재단/기보재단으로 정책자금 받기<br>
+                            ③ 받은 정책자금으로 가족 돈 상환 → 신용 형성 사이클<br><br>
+                            🔑 <strong>핵심:</strong> 24세는 신용보증재단 청년창업자금 별도 상품 있으니 꼭 체크!
+                        </div>
+                    </div>
+
+                    <div class="callout orange">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">겸업 금지 직장인은 어떻게?</div>
+                        </div>
+                        <div class="callout-text">
+                            🚫 본인 명의 개인사업자 못 냄? OK!<br>
+                            ✅ <strong>법인을 설립하고 대표자를 다른 사람</strong>(가족·배우자)으로 등록하세요.<br>
+                            ✅ 본인은 <strong>주주로 지분만 보유</strong>해서 우회 가능. 의결권은 가짐.<br>
+                            🔑 <strong>주의:</strong> 공무원은 발기인도 못 되니 주주로만 들어가야 함. 변호사·법무사와 사전 상의 필수.<br>
+                            💡 <strong>가장 깔끔한 방법:</strong> 배우자를 대표로, 본인은 30~40% 주주로 등록하면 의결권 + 배당권 모두 확보 가능.
+                        </div>
+                    </div>
+
+                    <div class="callout teal">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">건물 담보 한도를 늘리려면?</div>
+                        </div>
+                        <div class="callout-text">
+                            🏢 1금융에서 <strong>재감정 신청</strong>하면 됩니다.<br>
+                            ⏰ 보통 매입 후 <strong>6개월 정도 후</strong>에 가능 (시간이 지나야 시세 변동 인정).<br>
+                            💡 시세 상승분만큼 추가 대출 가능 = 운영 자금 추가 확보!<br>
+                            🔑 <strong>실전 팁:</strong> 1년에 한 번씩 재감정 받는 습관 만들기. 시세 ↑ = 한도 ↑.
+                        </div>
+                    </div>
+
+                    <div class="callout green">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">관광진흥기금? 다른 정책자금?</div>
+                        </div>
+                        <div class="callout-text">
+                            🌟 <strong>관광진흥기금</strong> — 1년에 한 번씩 모집! 호스텔·숙박업 하시는 분들 꼭 알아두세요.<br>
+                            🌟 <strong>중소벤처 / 소상공인 진흥 대출</strong> — 매년 다양한 상품 모집.<br>
+                            🌟 영끌남 본인도 <strong>신보 + 기보 + 재단 + 기금</strong> 다양하게 활용 중!<br><br>
+                            🔑 <strong>모니터링 포인트:</strong><br>
+                            • 매년 1~2월: 관광진흥기금 공고<br>
+                            • 매년 3~4월: 소상공인 정책자금<br>
+                            • 매년 6~7월: 중소벤처 R&D 자금<br>
+                            • 수시: 청년·여성·장애인 특별 자금
+                        </div>
+                    </div>
+
+                    <div class="callout red">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">현재 4% 중반 담보대출 금리, 너무 비싼 건가?</div>
+                        </div>
+                        <div class="callout-text">
+                            ⚠️ <strong>네, 비쌉니다.</strong> 일반 임대업이라도 4% 중반은 너무 높아요.<br>
+                            ✅ <strong>가산금리</strong>가 너무 높게 적용된 케이스. 2.5% 기준금리 + 1% 가산 = 3.5%가 적정선.<br>
+                            🎯 영끌남 본인도 최근 3.4%로 대환 받음. 1금융 대환 가능하면 무조건 시도!<br>
+                            💡 <strong>금액별 절감 효과 (1% 인하 시)</strong>:<br>
+                            • 5억 × 1% × 3년 = 1,500만 원<br>
+                            • 10억 × 1% × 3년 = 3,000만 원<br>
+                            • 20억 × 1% × 3년 = 6,000만 원<br>
+                            🔑 절대 그냥 두지 마세요!
+                        </div>
+                    </div>
+
+                    <div class="callout yellow">
+                        <div class="callout-header">
+                            <div class="callout-icon">Q</div>
+                            <div class="callout-title">법인 수익을 개인으로 가져오는 방법?</div>
+                        </div>
+                        <div class="callout-text">
+                            🤔 <strong>"왜 그 돈을 개인으로 가져오려고 하세요?"</strong> 영끌남 답변.<br>
+                            🎯 그 돈으로 또 투자하실 거잖아요? 그러면 <strong>법인에서 재투자</strong>하세요.<br><br>
+                            💡 <strong>가장 좋은 방법 3가지</strong>:<br>
+                            ① <strong>자녀에게 증여</strong> (증여세 절세 구간 활용)<br>
+                            ② <strong>법인 설립 시 처음부터 자녀를 주주로 등록</strong> (이게 베스트!)<br>
+                            ③ <strong>법인에서 재투자</strong> (배당하지 말고 부동산·주식 등에 재투자)<br><br>
+                            ⚠️ <strong>피해야 할 방법:</strong> 배당 = 법인세(9~24%) + 배당소득세(15.4%) = <strong class="text-error">이중과세</strong>로 비효율.
+                        </div>
+                    </div>
+
+                    <div class="subsection" style="margin-top: 48px;">
+                        <div class="subsection-title">🎯 종합 정리: 0원 → 건물주 6가지 핵심 원칙</div>
+                    </div>
+
+                    <ul class="num-list">
+                        <li><strong>대출의 4축을 이해하라</strong> — 개인 vs 사업자 / 운전자금 vs 시설자금 / 신용 vs 담보 / 1금융 vs 2금융 vs 정책자금. 모든 대출은 이 4축의 조합입니다.</li>
+                        <li><strong>법인이 베스트</strong> — DSR 안 보고 LTV도 80~90% 가능. 단, 대표자 신용·거래 이력 관리가 필수. 자녀 주주 등록까지 고려하면 최고.</li>
+                        <li><strong>0원이라도 시작 가능</strong> — 4단계 프로세스(2금융 신용 → 신보 한도 확인 → 사업장 계약 → 신보로 갈아타기)로 6천~1억 확보. 평균 금리 3% 이내.</li>
+                        <li><strong>1년 후가 진짜 시작</strong> — 매출 형성되면 신용보증기금·기술보증기금으로 추가 1억 + 더 큰 레버리지 가능. 이지용 님 사례 참고.</li>
+                        <li><strong>건물 투자는 시세 차익이 곧 가용 자금</strong> — 싸게 산 건물은 감정가 상승 = 추가 대출 한도 = 새로운 투자. 영끌남 44억→60억 케이스.</li>
+                        <li><strong>사업체 1개는 무조건 가져가라</strong> — 안정적 현금흐름 확보. 온라인(쿠팡·구매대행) + 오프라인(공간대여·호스텔) 투트랙 추천. 이자 감당 + 신용 형성 동시에.</li>
+                    </ul>
+
+                    <div class="action-box" style="margin-top: 32px;">
+                        <div class="action-box-title">🚀 강의 후속 액션 플랜 체크리스트</div>
+                        <ul class="check-list">
+                            <li><strong>오늘 당장</strong>: 신용보증재단중앙회 사이트 접속 + 본인 지역·창업·운전자금 조회</li>
+                            <li><strong>이번 주 안에</strong>: 주거래 은행 또는 신협·새마을금고 방문해 신용대출 한도 확인</li>
+                            <li><strong>1주일 내</strong>: 사업 아이템 확정 (공간대여 1.5~3천 / 에어비앤비 1~1.5천 / 호스텔 4~6천)</li>
+                            <li><strong>이번 달 안에</strong>: 사업장 임대 계약 + 인테리어 시작</li>
+                            <li><strong>3개월 내</strong>: 신보재단 자금 실행 + 2금융 상환 = 금리 갈아타기 완료 🎯</li>
+                            <li><strong>1년 후</strong>: 신용보증기금·기술보증기금 추가 대출 신청</li>
+                            <li><strong>2~3년 후</strong>: 사업소득 누적 → 건물 매입 자기자본 확보 → 부동산 투자 진입</li>
+                        </ul>
+                    </div>
+
+                    <div class="quote-box" style="margin-top: 32px;">
+                        💬 "내가 만약에 남들한테 잘하면 그 복이 내 아들한테 돌아온다. 저희 아버지 말씀이고 저는 그걸 믿거든요. 그래서 저도 의리 있게 강의하고, 같이 으쌰으쌰 했으면 좋겠어요."<br><br>
+                        <strong>— 영끌남 강의 클로징</strong>
+                    </div>
+
+                    <div class="callout violet" style="margin-top: 32px;">
+                        <div class="callout-header">
+                            <div class="callout-icon">📺</div>
+                            <div class="callout-title">강의 복습 가이드</div>
+                        </div>
+                        <div class="callout-text">
+                            한 번에 다 이해하기 어려운 내용입니다. 영끌남 본인도 "<strong>한 번 들어서는 절대로 이해가 안 가요</strong>"라고 했어요.<br><br>
+                            🎬 <strong>추천 학습법</strong>:<br>
+                            ① 1회독: 전체 흐름만 잡기 (오늘)<br>
+                            ② 2회독: PART 6 (4단계 프로세스) 집중<br>
+                            ③ 3회독: 본인 상황에 맞는 PART만 정독<br>
+                            ④ 실전: 신보재단 사이트 직접 조회 + 은행 방문<br><br>
+                            🔑 <strong>본 강의 (영끌남 정규)</strong>에서는 건물 투자·법인 세팅 더 자세히 다룹니다. 미니 특강은 "대출 기본기" 잡는 용도!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
