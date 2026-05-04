@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
-const { useState, useEffect, useRef } = React;
+import { supabase } from "./src/lib/supabase";
 
     // ── 색상 ──
     const C = {
@@ -23,7 +22,6 @@ const { useState, useEffect, useRef } = React;
       { label:"5억~10억",       rate:0.42 },
       { label:"10억 초과",       rate:0.45 },
     ];
-
 
     // ── 천단위 콤마 입력 ──
     function parseNum(s) { return Number(String(s).replace(/[^0-9.-]/g,""))||0; }
@@ -151,20 +149,28 @@ const { useState, useEffect, useRef } = React;
       return null;
     }
     function saveStorage(properties, activeId) {
-      try {
-        localStorage.setItem("auction-props", JSON.stringify({properties, activeId}));
-        window.storage?.set("auction-props", JSON.stringify({properties, activeId}));
-      } catch {}
+      try { localStorage.setItem("auction-props", JSON.stringify({properties, activeId})); } catch {}
     }
     function loadTax() {
       try { const s = localStorage.getItem("auction-tax"); if (s) return JSON.parse(s); } catch {}
       return { taxMode:"auto", taxBracketIdx:2, open:false };
     }
     function saveTax(t) {
-      try {
-        localStorage.setItem("auction-tax", JSON.stringify(t));
-        window.storage?.set("auction-tax", JSON.stringify(t));
-      } catch {}
+      try { localStorage.setItem("auction-tax", JSON.stringify(t)); } catch {}
+    }
+    function loadSnapshots() {
+      try { const s = localStorage.getItem("auction-snapshots"); if (s) return JSON.parse(s); } catch {}
+      return [];
+    }
+    function saveSnapshots(snaps) {
+      try { localStorage.setItem("auction-snapshots", JSON.stringify(snaps)); } catch {}
+    }
+    function loadExpenses() {
+      try { const s = localStorage.getItem("auction-expenses"); if (s) return JSON.parse(s); } catch {}
+      return [];
+    }
+    function saveExpenses(exps) {
+      try { localStorage.setItem("auction-expenses", JSON.stringify(exps)); } catch {}
     }
 
     // ── 앱 ──
@@ -178,21 +184,46 @@ const { useState, useEffect, useRef } = React;
       const [editingPropName, setEditingPropName] = useState(null);
       const [saveStatus, setSaveStatus] = useState(null);
       const [tax, setTax] = useState(loadTax());
+      const [savedSnaps, setSavedSnaps] = useState(loadSnapshots);
+      const [editingSnapName, setEditingSnapName] = useState(null);
+      const [expenses, setExpenses] = useState(loadExpenses);
+      const [expForm, setExpForm] = useState({ date:new Date().toISOString().slice(0,10), category:"기타", amount:"", memo:"" });
+      const [showExpForm, setShowExpForm] = useState(false);
+      const [user, setUser] = useState(null);
+      const [showAuth, setShowAuth] = useState(false);
+      const [authForm, setAuthForm] = useState({ email:"", password:"" });
+      const [authLoading, setAuthLoading] = useState(false);
+      const [authError, setAuthError] = useState(null);
       const saveTimer = useRef(null);
 
+      // 세션 감지
       useEffect(() => {
-        (async () => {
-          try {
-            const r = await window.storage?.get("auction-props");
-            if (r?.value) {
-              const d = JSON.parse(r.value);
-              if (d.properties?.length) { setProps(d.properties); setActiveId(d.activeId||d.properties[0].id); }
-            }
-            const rt = await window.storage?.get("auction-tax");
-            if (rt?.value) setTax(JSON.parse(rt.value));
-          } catch {}
-        })();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setUser(session?.user ?? null);
+          if (session?.user) loadSnapsFromSupabase();
+        });
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+          setUser(session?.user ?? null);
+          if (session?.user) loadSnapsFromSupabase();
+        });
+        return () => subscription.unsubscribe();
       }, []);
+
+      async function loadSnapsFromSupabase() {
+        const { data, error } = await supabase
+          .from("auction_snapshots")
+          .select("*")
+          .order("saved_at", { ascending: false });
+        if (!error && data) {
+          const snaps = data.map(r => ({
+            id: r.id, name: r.name, savedAt: r.saved_at,
+            propName: r.prop_name, bidPrice: r.bid_price,
+            holdMonths: r.hold_months, taxLabel: r.tax_label, scenarios: r.scenarios,
+          }));
+          setSavedSnaps(snaps);
+          saveSnapshots(snaps);
+        }
+      }
 
       const activeProp = props.find(p => p.id === activeId) || props[0];
       const curId = activeId || props[0].id;
@@ -281,14 +312,83 @@ const { useState, useEffect, useRef } = React;
         ? `종소세 ${(TAX_BRACKETS[tax.taxBracketIdx].rate*100).toFixed(0)}%구간`
         : "종소세 누진";
 
+      // ── 스냅샷 저장/삭제/이름변경 ──
+      async function saveSnap() {
+        const scenarios = [...profit.sellScenarios].sort((a,b)=>a-b).map(sell => ({sell, ...calcProfit(sell)}));
+        const now = new Date();
+        const name = `${activeProp.name} · ${now.toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"})} ${now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}`;
+        if (user) {
+          const { data, error } = await supabase.from("auction_snapshots").insert({
+            name, prop_name:activeProp.name, bid_price:profit.bidPrice,
+            hold_months:profit.holdMonths, tax_label:taxLabel, scenarios,
+          }).select().single();
+          if (!error && data) {
+            const snap = { id:data.id, name:data.name, savedAt:data.saved_at, propName:data.prop_name, bidPrice:data.bid_price, holdMonths:data.hold_months, taxLabel:data.tax_label, scenarios:data.scenarios };
+            const next = [snap, ...savedSnaps];
+            setSavedSnaps(next); saveSnapshots(next);
+          }
+        } else {
+          const snap = { id:uid(), name, savedAt:now.toISOString(), propName:activeProp.name, bidPrice:profit.bidPrice, holdMonths:profit.holdMonths, taxLabel, scenarios };
+          const next = [snap, ...savedSnaps];
+          setSavedSnaps(next); saveSnapshots(next);
+        }
+      }
+      async function deleteSnap(id) {
+        if (user) await supabase.from("auction_snapshots").delete().eq("id", id);
+        const next = savedSnaps.filter(s => s.id !== id);
+        setSavedSnaps(next); saveSnapshots(next);
+      }
+      async function renameSnap(id, name) {
+        if (user) await supabase.from("auction_snapshots").update({ name }).eq("id", id);
+        const next = savedSnaps.map(s => s.id === id ? {...s, name} : s);
+        setSavedSnaps(next); saveSnapshots(next);
+      }
+
+      // ── 로그인/로그아웃 ──
+      async function login() {
+        setAuthLoading(true); setAuthError(null);
+        const { error } = await supabase.auth.signInWithPassword({ email:authForm.email, password:authForm.password });
+        setAuthLoading(false);
+        if (error) setAuthError("이메일 또는 비밀번호가 올바르지 않아요");
+        else setShowAuth(false);
+      }
+      async function logout() {
+        await supabase.auth.signOut();
+        setSavedSnaps(loadSnapshots());
+      }
+
+      // ── 지출 기록 ──
+      const EXP_CATS = ["취득세","법무사/등기","인테리어","명도비","관리비","중개수수료","대출이자","세금","기타"];
+      function addExpense() {
+        if (!expForm.amount) return;
+        const exp = { id:uid(), date:expForm.date, category:expForm.category, amount:Number(String(expForm.amount).replace(/[^0-9]/g,"")), memo:expForm.memo };
+        const next = [exp, ...expenses].sort((a,b)=>b.date.localeCompare(a.date));
+        setExpenses(next); saveExpenses(next);
+        setShowExpForm(false);
+        setExpForm({ date:new Date().toISOString().slice(0,10), category:"기타", amount:"", memo:"" });
+      }
+      function deleteExpense(id) {
+        const next = expenses.filter(e=>e.id!==id);
+        setExpenses(next); saveExpenses(next);
+      }
+
       return (
-        <div style={{fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif", background:C.bg, minHeight:"100vh", padding:"20px 16px 40px", color:C.text}}>
+        <div style={{fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif", background:C.bg, minHeight:"100vh", color:C.text}}>
+          <div style={{maxWidth:480, margin:"0 auto", padding:"20px 16px 40px"}}>
 
           {/* 헤더 */}
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>매매사업자용</div>
-            <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>경매 수익 계산기</div>
-            <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준 · 장기보유특별공제 미적용</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+            <div>
+              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>매매사업자용</div>
+              <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>경매 수익 계산기</div>
+              <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준 · 장기보유특별공제 미적용</div>
+            </div>
+            <div style={{flexShrink:0,marginTop:4}}>
+              {user
+                ? <button onClick={logout} style={{border:`1px solid ${C.border}`,background:C.surface,borderRadius:8,padding:"5px 11px",fontSize:11,cursor:"pointer",color:C.sub,fontFamily:"inherit"}}>로그아웃</button>
+                : <button onClick={()=>setShowAuth(true)} style={{border:`1px solid ${C.accent}`,background:C.accentBg,borderRadius:8,padding:"5px 11px",fontSize:11,fontWeight:700,cursor:"pointer",color:C.accent,fontFamily:"inherit"}}>로그인</button>
+              }
+            </div>
           </div>
 
           {/* 물건 탭 */}
@@ -327,7 +427,7 @@ const { useState, useEffect, useRef } = React;
 
           {/* 메인 탭 */}
           <div style={{display:"flex",gap:4,marginBottom:14,background:C.surface2,padding:3,borderRadius:12,border:`1px solid ${C.border}`}}>
-            {[{id:"loan",label:"대출 비교"},{id:"profit",label:"순이익 계산"}].map(t=>(
+            {[{id:"loan",label:"대출 비교"},{id:"profit",label:"순이익 계산"},{id:"expense",label:"지출 기록"},{id:"saved",label:savedSnaps.length>0?`저장 (${savedSnaps.length})`:"저장 목록"}].map(t=>(
               <button key={t.id} onClick={()=>setTab(t.id)} style={{
                 flex:1,padding:"9px 0",borderRadius:9,border:"none",cursor:"pointer",
                 fontFamily:"inherit",fontSize:13,fontWeight:700,
@@ -530,7 +630,7 @@ const { useState, useEffect, useRef } = React;
                 )}
               </div>
 
-              {/* 종합소득세 설정 - 전역, 접기/펼치기 */}
+              {/* 종합소득세 설정 */}
               <div style={{...card,border:`1.5px solid ${C.accent}30`,background:C.accentBg}}>
                 <button onClick={()=>updateTax(t=>({...t,open:!t.open}))}
                   style={{width:"100%",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",padding:0}}>
@@ -633,7 +733,12 @@ const { useState, useEffect, useRef } = React;
 
               {/* 결과 */}
               <div style={card}>
-                <div style={{fontSize:9,color:C.muted,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>시나리오별 순이익</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>시나리오별 순이익</div>
+                  <button onClick={saveSnap} style={{border:`1px solid ${C.border}`,background:C.surface2,borderRadius:7,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",color:C.accent,fontFamily:"inherit"}}>
+                    📎 {user?"클라우드 저장":"저장"}
+                  </button>
+                </div>
                 {[...profit.sellScenarios].sort((a,b)=>a-b).map((sell,i)=>{
                   const r=calcProfit(sell);
                   const isPos=r.netProfit>=0;
@@ -642,8 +747,6 @@ const { useState, useEffect, useRef } = React;
                     :`종소세 (유효 ${r.effectiveRate.toFixed(1)}%)`;
                   return (
                     <div key={i} style={{borderTop:i===0?"none":`1px solid ${C.border2}`,padding:i===0?"0 0 18px":"18px 0"}}>
-
-                      {/* 매도가 + 매매차익 */}
                       <div style={{background:C.surface2,borderRadius:10,padding:"12px 14px",marginBottom:8,border:`1px solid ${C.border}`}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
                           <span style={{fontSize:10,color:C.muted,fontWeight:600}}>매도가</span>
@@ -654,8 +757,6 @@ const { useState, useEffect, useRef } = React;
                           <span style={{fontSize:17,fontWeight:800,color:r.grossGain>=0?C.text:C.red}}>{r.grossGain>=0?"+":""}{fmt(r.grossGain)}원</span>
                         </div>
                       </div>
-
-                      {/* 비용 내역 */}
                       <div style={{background:C.surface2,borderRadius:10,padding:"12px 14px",marginBottom:8,border:`1px solid ${C.border}`}}>
                         <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600,marginBottom:10}}>비용 내역</div>
                         <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -687,8 +788,6 @@ const { useState, useEffect, useRef } = React;
                           </div>
                         </div>
                       </div>
-
-                      {/* 세금 */}
                       <div style={{background:C.accentBg,borderRadius:10,padding:"12px 14px",marginBottom:8,border:`1px solid ${C.accent}20`}}>
                         <div style={{fontSize:9,color:C.accent,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600,marginBottom:8}}>세금</div>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
@@ -700,8 +799,6 @@ const { useState, useEffect, useRef } = React;
                           <span style={{fontSize:12,fontWeight:700,color:C.accent}}>{fmt(r.taxableGain)}원</span>
                         </div>
                       </div>
-
-                      {/* 결과 */}
                       <div style={{background:isPos?C.greenBg:C.redBg,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPos?"#c2e0ce":"#f0c8c8"}`}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
                           <span style={{fontSize:11,color:isPos?C.green:C.red,fontWeight:600}}>총 비용 (세금 포함)</span>
@@ -717,6 +814,186 @@ const { useState, useEffect, useRef } = React;
                 })}
               </div>
               <div style={{textAlign:"center",fontSize:10,color:C.muted,marginBottom:20}}>종합소득세 간이 추정치 · 타소득 합산 시 세율 달라질 수 있음 · 세무사 상담 필수</div>
+            </div>
+          )}
+
+          {/* ── 지출 기록 ── */}
+          {tab==="expense" && (
+            <div>
+              {/* 입력 폼 */}
+              {showExpForm ? (
+                <div style={{...card,marginBottom:12,border:`1.5px solid ${C.border}`}}>
+                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600,marginBottom:12}}>지출 추가</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                    <div>
+                      <span style={lbl}>날짜</span>
+                      <input type="date" value={expForm.date} onChange={e=>setExpForm(p=>({...p,date:e.target.value}))} style={inp} />
+                    </div>
+                    <div>
+                      <span style={lbl}>카테고리</span>
+                      <select value={expForm.category} onChange={e=>setExpForm(p=>({...p,category:e.target.value}))} style={{...inp,background:C.surface}}>
+                        {EXP_CATS.map(c=><option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{marginBottom:8}}>
+                    <span style={lbl}>금액</span>
+                    <NumInput value={parseNum(expForm.amount)} onChange={v=>setExpForm(p=>({...p,amount:v}))} placeholder="0" style={inp} />
+                  </div>
+                  <div style={{marginBottom:12}}>
+                    <span style={lbl}>메모</span>
+                    <input placeholder="물건명, 용도 등" value={expForm.memo} onChange={e=>setExpForm(p=>({...p,memo:e.target.value}))} style={inp} />
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setShowExpForm(false)} style={{flex:1,padding:"9px 0",borderRadius:9,border:`1px solid ${C.border}`,background:C.surface2,fontSize:13,fontWeight:600,cursor:"pointer",color:C.sub,fontFamily:"inherit"}}>취소</button>
+                    <button onClick={addExpense} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",background:C.text,fontSize:13,fontWeight:700,cursor:"pointer",color:"#fff",fontFamily:"inherit"}}>추가</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={()=>setShowExpForm(true)} style={{width:"100%",padding:"11px 0",borderRadius:10,border:`1.5px dashed ${C.border}`,background:"none",fontSize:13,cursor:"pointer",color:C.sub,fontFamily:"inherit",marginBottom:12,fontWeight:600}}>+ 지출 추가</button>
+              )}
+
+              {/* 합계 */}
+              {expenses.length>0 && (
+                <div style={{...card,marginBottom:12,background:C.surface2}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:11,color:C.sub,fontWeight:600}}>총 지출 ({expenses.length}건)</span>
+                    <span style={{fontSize:17,fontWeight:900,color:C.text,letterSpacing:"-0.03em"}}>{fmt(expenses.reduce((s,e)=>s+e.amount,0))}원</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 목록 */}
+              {expenses.length===0
+                ? <div style={{textAlign:"center",padding:"60px 0",color:C.muted,fontSize:13}}>지출 내역이 없어요</div>
+                : expenses.map((exp,i)=>{
+                    const isNewMonth = i===0 || expenses[i-1].date.slice(0,7)!==exp.date.slice(0,7);
+                    return (
+                      <div key={exp.id}>
+                        {isNewMonth && (
+                          <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:"0.05em",marginBottom:6,marginTop:i>0?14:0}}>
+                            {exp.date.slice(0,7).replace("-","년 ")}월
+                          </div>
+                        )}
+                        <div style={{...card,marginBottom:6,padding:"12px 14px"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                                <span style={{fontSize:10,color:C.surface,background:C.sub,borderRadius:4,padding:"1px 6px",fontWeight:600}}>{exp.category}</span>
+                                {exp.memo && <span style={{fontSize:11,color:C.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exp.memo}</span>}
+                              </div>
+                              <div style={{fontSize:10,color:C.muted}}>{exp.date}</div>
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                              <span style={{fontSize:14,fontWeight:800,color:C.red}}>−{fmt(exp.amount)}</span>
+                              <button onClick={()=>deleteExpense(exp.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15,padding:0}}>×</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+          )}
+
+          {/* ── 저장 목록 ── */}
+          {tab==="saved" && (
+            <div>
+              {!user && (
+                <div style={{background:C.accentBg,border:`1px solid ${C.accent}30`,borderRadius:12,padding:"12px 14px",marginBottom:12,fontSize:12,color:C.accent}}>
+                  로그인하면 기기를 바꿔도 저장 목록이 유지돼요.
+                  <button onClick={()=>setShowAuth(true)} style={{marginLeft:8,fontWeight:700,color:C.accent,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textDecoration:"underline",fontSize:12}}>로그인</button>
+                </div>
+              )}
+              {savedSnaps.length===0
+                ? <div style={{textAlign:"center",padding:"60px 0",color:C.muted,fontSize:13}}>
+                    저장된 결과가 없어요<br/>
+                    <span style={{fontSize:11,marginTop:6,display:"block"}}>순이익 계산 탭에서 📎 저장을 눌러보세요</span>
+                  </div>
+                : savedSnaps.map(snap=>(
+                  <div key={snap.id} style={{...card,marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                      <div style={{flex:1,minWidth:0,marginRight:8}}>
+                        {editingSnapName===snap.id
+                          ? <input autoFocus value={snap.name}
+                              onChange={e=>renameSnap(snap.id,e.target.value)}
+                              onBlur={()=>setEditingSnapName(null)}
+                              onKeyDown={e=>e.key==="Enter"&&setEditingSnapName(null)}
+                              style={{...inp,fontSize:13,fontWeight:700,padding:"4px 8px"}} />
+                          : <div style={{fontSize:13,fontWeight:700,color:C.text,wordBreak:"break-all",cursor:"pointer"}}
+                              onDoubleClick={()=>setEditingSnapName(snap.id)}>
+                              {snap.name}
+                            </div>
+                        }
+                        <div style={{fontSize:10,color:C.muted,marginTop:3}}>
+                          {snap.propName} · 낙찰가 {fmt(snap.bidPrice)} · {snap.holdMonths}개월 · {snap.taxLabel}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button onClick={()=>setEditingSnapName(snap.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13}}>✏</button>
+                        <button onClick={()=>deleteSnap(snap.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15}}>×</button>
+                      </div>
+                    </div>
+                    {snap.scenarios.map((r,i)=>{
+                      const isPos=r.netProfit>=0;
+                      return (
+                        <div key={i} style={{borderTop:`1px solid ${C.border2}`,paddingTop:10,marginTop:i>0?10:0}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                            <span style={{fontSize:11,color:C.sub}}>매도가 {fmt(r.sell)}</span>
+                            <span style={{fontSize:11,color:C.muted}}>매매차익 {r.grossGain>=0?"+":""}{fmt(r.grossGain)}</span>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:C.sub}}>총비용 {fmt(r.totalCost)}</span>
+                            <span style={{fontSize:18,fontWeight:900,letterSpacing:"-0.03em",color:isPos?C.green:C.red}}>
+                              {isPos?"+":""}{fmt(r.netProfit)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div style={{fontSize:9,color:C.muted,marginTop:8,textAlign:"right"}}>
+                      {new Date(snap.savedAt).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})} 저장
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          )}
+
+          </div>
+
+          {/* ── 로그인 모달 ── */}
+          {showAuth && (
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+              onClick={e=>e.target===e.currentTarget&&setShowAuth(false)}>
+              <div style={{background:C.surface,borderRadius:20,padding:28,width:"100%",maxWidth:340,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
+                <div style={{fontSize:17,fontWeight:800,marginBottom:4,color:C.text}}>로그인</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:20}}>클라우드 저장을 위한 관리자 로그인</div>
+                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+                  <input
+                    type="email" placeholder="이메일"
+                    value={authForm.email}
+                    onChange={e=>setAuthForm(p=>({...p,email:e.target.value}))}
+                    onKeyDown={e=>e.key==="Enter"&&login()}
+                    style={{...inp,fontSize:15,padding:"11px 13px"}}
+                  />
+                  <input
+                    type="password" placeholder="비밀번호"
+                    value={authForm.password}
+                    onChange={e=>setAuthForm(p=>({...p,password:e.target.value}))}
+                    onKeyDown={e=>e.key==="Enter"&&login()}
+                    style={{...inp,fontSize:15,padding:"11px 13px"}}
+                  />
+                </div>
+                {authError && <div style={{fontSize:12,color:C.red,marginBottom:12}}>{authError}</div>}
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>setShowAuth(false)} style={{flex:1,padding:"11px 0",borderRadius:10,border:`1px solid ${C.border}`,background:C.surface2,fontSize:14,fontWeight:600,cursor:"pointer",color:C.sub,fontFamily:"inherit"}}>취소</button>
+                  <button onClick={login} disabled={authLoading} style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:C.accent,fontSize:14,fontWeight:700,cursor:"pointer",color:"#fff",fontFamily:"inherit",opacity:authLoading?0.7:1}}>
+                    {authLoading?"로그인 중...":"로그인"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

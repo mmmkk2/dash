@@ -185,25 +185,25 @@ export default function App() {
         input,select{font-family:inherit}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
         .tab-btn{padding:9px 12px;font-size:13px;font-weight:600;border-radius:10px;transition:all .2s;white-space:nowrap;flex:1}
-        .tab-btn.on{background:#4f46e5;color:#fff;box-shadow:0 4px 12px #4f46e530}
-        .tab-btn:not(.on){color:#888}.tab-btn:not(.on):hover{background:#e8e9ff;color:#4f46e5}
+        .tab-btn.on{background:#374151;color:#fff;box-shadow:0 4px 12px #37415130}
+        .tab-btn:not(.on){color:#888}.tab-btn:not(.on):hover{background:#f3f4f6;color:#374151}
         .sub-tab{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;transition:all .2s}
-        .sub-tab.on{background:#4f46e5;color:#fff}
+        .sub-tab.on{background:#374151;color:#fff}
         .sub-tab:not(.on){background:#f3f4f6;color:#666}
         .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 6px #0000000a;transition:all .2s}
-        .card:hover{box-shadow:0 4px 16px #4f46e518;transform:translateY(-1px)}
+        .card:hover{box-shadow:0 2px 8px #00000012;transform:translateY(-1px)}
         .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
-        .btn-p{background:#4f46e5;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600}
-        .btn-p:hover{background:#3730a3}
+        .btn-p{background:#374151;color:#fff;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600}
+        .btn-p:hover{background:#1f2937}
         .btn-sm{padding:5px 11px;border-radius:8px;font-size:12px;font-weight:600;transition:all .15s}
         .form-g{display:flex;flex-direction:column;gap:6px}
         .form-g label{font-size:12px;font-weight:600;color:#666}
         .form-g input,.form-g select{border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;transition:border .2s}
-        .form-g input:focus,.form-g select:focus{border-color:#4f46e5}
+        .form-g input:focus,.form-g select:focus{border-color:#374151}
         .overlay{position:fixed;inset:0;background:#0006;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
         .modal{background:#fff;border-radius:20px;padding:26px;width:100%;max-width:420px;box-shadow:0 20px 60px #0003}
         .mini-inp{border:1.5px solid #e5e7eb;border-radius:8px;padding:6px 9px;font-size:12px;outline:none;width:100%}
-        .mini-inp:focus{border-color:#4f46e5}
+        .mini-inp:focus{border-color:#374151}
         .pulse{animation:pulse 2s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
         .empty{text-align:center;padding:50px 20px;color:#bbb}
@@ -214,7 +214,7 @@ export default function App() {
       <div style={{ background: "#fff", borderBottom: "1px solid #f0f0f0" }}>
         <div style={{ maxWidth: 940, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 58, padding: "0 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, background: "#4f46e5", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📦</div>
+            <div style={{ width: 32, height: 32, background: "#374151", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📦</div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 15 }}>앤딩 비품관리</div>
               <div style={{ fontSize: 10, color: "#aaa" }}>상도점 · 무인</div>
@@ -228,7 +228,7 @@ export default function App() {
               </div>
             )}
             {alertItems.length > 0 && (
-              <div className="pulse" style={{ background: "#fff3e0", border: "1px solid #ff9500", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700, color: "#f59e0b", cursor: "pointer" }}
+              <div className="pulse" style={{ background: "#fff3e0", border: "1px solid #ff9500", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700, color: "#92400e", cursor: "pointer" }}
                 onClick={() => setTab("alerts")}>
                 ⚠️ {alertItems.length}개
               </div>
@@ -242,12 +242,12 @@ export default function App() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 16 }}>
           {[
-            { label: "전체 비품", value: items.length + "종", bg: "linear-gradient(135deg,#4f46e5,#7c3aed)", icon: "📋" },
-            { label: "재고부족", value: alertItems.length + "개", bg: "linear-gradient(135deg,#f59e0b,#ef4444)", icon: "⚠️" },
-            { label: "재고 자산", value: (totalAsset / 10000).toFixed(0) + "만원", bg: "linear-gradient(135deg,#059669,#10b981)", icon: "💰" },
-            { label: "상도점 구매", value: sandoCount + "건", bg: "linear-gradient(135deg,#1d4ed8,#3b82f6)", icon: "🏪" },
+            { label: "전체 비품", value: items.length + "종", bg: "#f1f5f9", textColor: "#1e293b", icon: "📋" },
+            { label: "재고부족", value: alertItems.length + "개", bg: "#fef9f0", textColor: "#92400e", icon: "⚠️" },
+            { label: "재고 자산", value: (totalAsset / 10000).toFixed(0) + "만원", bg: "#f0faf4", textColor: "#14532d", icon: "💰" },
+            { label: "상도점 구매", value: sandoCount + "건", bg: "#f0f4ff", textColor: "#1e3a8a", icon: "🏪" },
           ].map(s => (
-            <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: "14px", color: "#fff" }}>
+            <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: "14px", color: s.textColor }}>
               <div style={{ fontSize: 18 }}>{s.icon}</div>
               <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2 }}>{s.value}</div>
               <div style={{ fontSize: 10, opacity: .85 }}>{s.label}</div>
@@ -298,14 +298,14 @@ export default function App() {
 
                     return (
                       <div key={mail.id} className="card"
-                        style={{ border: `2px solid ${isSelected ? "#4f46e5" : "transparent"}`, background: isSelected ? "#f5f3ff" : "#fff", opacity: isImported ? .5 : 1 }}
+                        style={{ border: `2px solid ${isSelected ? "#374151" : "transparent"}`, background: isSelected ? "#f3f4f6" : "#fff", opacity: isImported ? .5 : 1 }}
                         onClick={() => !isImported && toggleSelect(mail.id)}>
 
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                           {/* 체크 (상도점/제외 탭만) */}
                           {gmailTab !== "미확인" && !isImported && (
                             <div style={{ marginTop: 2, flexShrink: 0 }}>
-                              <div style={{ width: 18, height: 18, border: `2px solid ${isSelected ? "#4f46e5" : "#d1d5db"}`, borderRadius: "50%", background: isSelected ? "#4f46e5" : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <div style={{ width: 18, height: 18, border: `2px solid ${isSelected ? "#374151" : "#d1d5db"}`, borderRadius: "50%", background: isSelected ? "#374151" : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 {isSelected && <div style={{ width: 7, height: 7, background: "#fff", borderRadius: "50%" }} />}
                               </div>
                             </div>
@@ -318,7 +318,7 @@ export default function App() {
                               </span>
                               {isImported && <span className="badge" style={{ background: "#f0fdf4", color: "#16a34a", fontSize: 10 }}>✓ 가져옴</span>}
                               <span style={{ fontSize: 11, color: "#bbb", marginLeft: "auto" }}>{mail.date}</span>
-                              {mail.amount > 0 && <span style={{ fontWeight: 800, color: "#4f46e5", fontSize: 14 }}>{fmt(mail.amount)}</span>}
+                              {mail.amount > 0 && <span style={{ fontWeight: 800, color: "#374151", fontSize: 14 }}>{fmt(mail.amount)}</span>}
                             </div>
                             <div style={{ fontSize: 13, color: "#333", marginBottom: gmailTab === "미확인" ? 10 : 0 }}>{mail.product}</div>
 
@@ -378,7 +378,7 @@ export default function App() {
             {/* Floating 가져오기 버튼 */}
             {selectedMails.length > 0 && (
               <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 50 }}>
-                <button className="btn-p" style={{ padding: "14px 28px", fontSize: 15, borderRadius: 50, boxShadow: "0 8px 24px #4f46e550" }} onClick={importSelected}>
+                <button className="btn-p" style={{ padding: "14px 28px", fontSize: 15, borderRadius: 50, boxShadow: "0 8px 24px #37415150" }} onClick={importSelected}>
                   구매이력에 추가 {selectedMails.length}건 →
                 </button>
               </div>
@@ -453,7 +453,7 @@ export default function App() {
                         <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{h.date}{h.note ? ` · ${h.note}` : ""}</div>
                       </div>
                       <div style={{ textAlign: "right", flexShrink: 0, marginRight: 6 }}>
-                        <div style={{ fontWeight: 700, color: "#4f46e5" }}>+{h.qty}개</div>
+                        <div style={{ fontWeight: 700, color: "#374151" }}>+{h.qty}개</div>
                         <div style={{ fontSize: 12, color: "#888" }}>{fmt(h.totalCost)}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
@@ -507,7 +507,7 @@ export default function App() {
               </div>
               {cycleList.map(item => {
                 const pct = item.avgInterval ? Math.min(100, Math.round(item.daysSince / item.avgInterval * 100)) : Math.min(100, Math.round(item.daysSince / 30 * 100));
-                const barColor = item.overdue ? "#ef4444" : pct > 70 ? "#f59e0b" : "#4f46e5";
+                const barColor = item.overdue ? "#ef4444" : pct > 70 ? "#f59e0b" : "#374151";
                 return (
                   <div key={item.name} className="card" style={{ marginBottom: 10, border: item.overdue ? "1.5px solid #fecdd3" : "1.5px solid transparent" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
