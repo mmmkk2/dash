@@ -25,6 +25,14 @@ const apps = [
     bg: 'linear-gradient(135deg, #1e3a2f 0%, #2d5a42 100%)',
     tag: '개인 재무',
   },
+  {
+    path: '/assets',
+    icon: '📊',
+    title: '내 자산',
+    desc: '주식 · 달러 · 부동산 · 예금 · 순자산 추적',
+    bg: 'linear-gradient(135deg, #1a3258 0%, #2a4e96 100%)',
+    tag: '자산관리',
+  },
 ]
 
 export default function Home() {
