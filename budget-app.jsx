@@ -929,6 +929,44 @@ function StatsView({txs,entity,cards}){
 }
 
 /* ── Coupang Import Modal ── */
+async function fetchGmailCoupang(token, since, until) {
+  const sinceTs = Math.floor(new Date(since).getTime() / 1000);
+  const untilTs = Math.floor(new Date(until).getTime() / 1000) + 86400;
+  const q = encodeURIComponent(`from:noreply@e.coupang.com after:${sinceTs} before:${untilTs}`);
+  const searchRes = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=50`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (searchRes.status === 401) throw new Error("401");
+  if (!searchRes.ok) throw new Error("Gmail API 오류");
+  const { messages } = await searchRes.json();
+  if (!messages?.length) return [];
+  const details = await Promise.all(
+    messages.slice(0, 30).map(m =>
+      fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Date`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      ).then(r => r.json())
+    )
+  );
+  return details.map(m => ({
+    date: new Date(parseInt(m.internalDate)).toISOString().slice(0,10),
+    snippet: m.snippet || "",
+  }));
+}
+
+function parseMailSnippets(snippets) {
+  return snippets.map(({ date, snippet }) => {
+    const amtAll = [...snippet.matchAll(/(\d{1,3}(?:,\d{3})+|\d{4,})\s*원/g)]
+      .map(m => parseInt(m[1].replace(/,/g, '')))
+      .filter(n => n >= 100 && n < 50000000);
+    const amount = amtAll.length ? Math.max(...amtAll) : null;
+    const skipPat = /주문|결제|배송|발송|확인|완료|총|합계|금액|쿠팡|이츠/;
+    const parts = snippet.split(/[,|]/).map(s => s.trim()).filter(s => s.length >= 5 && !skipPat.test(s) && !/^\d/.test(s));
+    const name = (parts[0] || snippet.slice(0, 50)).slice(0, 60).trim();
+    return { date, name: name || "상품명 확인 필요", amount };
+  });
+}
+
 function parsePastedMails(text) {
   const results = [];
   // 빈 줄 2개 이상 or "---" 구분자로 메일 분리
@@ -975,26 +1013,65 @@ const IMPORT_ENTS = {
 const IMPORT_KEYS = ["personal","cafe","realty","skip"];
 
 function CoupangImport({ onRegister }) {
-  const [pasteText, setPasteText] = useState("");
-  const [status,    setStatus]    = useState("idle");
-  const [rows,      setRows]      = useState([]);
-  const [errMsg,    setErrMsg]    = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const today    = new Date().toISOString().slice(0,10);
+  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const [gmailToken, setGmailToken] = useState(null);
+  const [since,      setSince]      = useState(monthAgo);
+  const [until,      setUntil]      = useState(today);
+  const [pasteText,  setPasteText]  = useState("");
+  const [showPaste,  setShowPaste]  = useState(false);
+  const [status,     setStatus]     = useState("idle");
+  const [rows,       setRows]       = useState([]);
+  const [errMsg,     setErrMsg]     = useState("");
+  const [submitted,  setSubmitted]  = useState(false);
 
-  function parseMails() {
+  function connectGmail(onToken) {
+    const client = window.google?.accounts?.oauth2?.initTokenClient({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/gmail.readonly",
+      callback: (res) => {
+        if (res.error) { setErrMsg("Google 로그인 실패: " + res.error); setStatus("error"); return; }
+        setGmailToken(res.access_token);
+        setErrMsg("");
+        if (onToken) onToken(res.access_token);
+      },
+    });
+    if (!client) { setErrMsg("Google 스크립트 로딩 중이에요. 잠시 후 다시 시도해 주세요."); setStatus("error"); return; }
+    client.requestAccessToken();
+  }
+
+  async function fetchMails(token, append = false) {
+    setStatus("loading"); setErrMsg("");
+    try {
+      const snippets = await fetchGmailCoupang(token ?? gmailToken, since, until);
+      if (!snippets.length) { setStatus("error"); setErrMsg("해당 기간 쿠팡 메일이 없어요."); return; }
+      const parsed = parseMailSnippets(snippets);
+      applyParsed(parsed, append);
+    } catch(e) {
+      if (e.message === "401") { setGmailToken(null); setStatus("error"); setErrMsg("인증이 만료됐어요. Google 계정을 다시 연결해 주세요."); }
+      else { setStatus("error"); setErrMsg(e.message || "오류가 발생했어요."); }
+    }
+  }
+
+  function parsePaste() {
     setErrMsg("");
     if (!pasteText.trim()) { setErrMsg("이메일 내용을 붙여넣어 주세요."); setStatus("error"); return; }
     const parsed = parsePastedMails(pasteText);
     if (!parsed.length) { setErrMsg("파싱할 수 있는 내용이 없어요. 빈 줄로 메일을 구분해 주세요."); setStatus("error"); return; }
-    const seen = new Set();
-    const deduped = parsed.filter(p => {
-      const k = `${p.date}__${p.name}__${p.amount}`;
-      if (seen.has(k)) return false; seen.add(k); return true;
-    });
-    setRows(deduped.map((p,i) => ({
+    applyParsed(parsed, false);
+  }
+
+  function applyParsed(parsed, append) {
+    const newRows = parsed.map((p,i) => ({
       id:`r${i}_${Date.now()}`, date:p.date, name:p.name,
       amountEdit:p.amount?String(p.amount):"", entity:"personal", done:false,
-    })));
+    }));
+    setRows(prev => {
+      const base = append ? prev : [];
+      const existingKeys = new Set(base.map(r => `${r.date}__${r.name}__${r.amountEdit}`));
+      const fresh = newRows.filter(r => !existingKeys.has(`${r.date}__${r.name}__${r.amountEdit}`));
+      return [...base, ...fresh];
+    });
     setStatus("parsed");
   }
 
@@ -1036,34 +1113,102 @@ function CoupangImport({ onRegister }) {
         <span style={{fontSize:"11px",color:C.inkLight}}>Gmail → 파싱 → 등록</span>
       </div>
 
-      {/* 붙여넣기 + 파싱 */}
+      {/* Gmail 연결 or 날짜 선택 */}
       <div style={{background:C.cream,borderRadius:"14px",padding:"14px",
         border:`1px solid ${C.border}`,marginBottom:"16px"}}>
-        <SLabel>이메일 내용 붙여넣기</SLabel>
-        <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"8px",lineHeight:1.5}}>
-          Gmail에서 쿠팡 주문 확인 메일을 열고 내용을 복사해 붙여넣으세요.<br/>
-          여러 메일은 <b>빈 줄</b>로 구분하면 한번에 파싱해요.
-        </div>
-        <textarea
-          value={pasteText}
-          onChange={e=>setPasteText(e.target.value)}
-          placeholder={"[쿠팡] 주문이 확정되었습니다\n2026.05.13\n다하다 둥굴레차 100개입\n13,000원\n\n(다음 메일은 빈 줄로 구분)"}
-          rows={6}
-          style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:"10px",
-            padding:"10px 12px",fontSize:"12px",color:C.ink,background:C.white,
-            fontFamily:"'DM Sans',sans-serif",resize:"vertical",outline:"none",
-            lineHeight:1.6,boxSizing:"border-box"}}
-        />
-        <button onClick={parseMails} style={{
-          width:"100%",marginTop:"10px",padding:"12px",
-          background:C.ink,color:"#fff",border:"none",borderRadius:"11px",
-          fontSize:"14px",fontWeight:700,cursor:"pointer",
-          display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-          fontFamily:"'DM Sans',sans-serif",
-          boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
-          <Mail size={14}/> 파싱하기
-        </button>
+        {!gmailToken ? (
+          <>
+            <div style={{fontSize:"12px",color:C.inkMid,marginBottom:"12px",lineHeight:1.6}}>
+              Google 계정을 연결하면 쿠팡 주문 메일을 자동으로 가져와요.
+            </div>
+            <button onClick={connectGmail} style={{
+              width:"100%",padding:"12px",background:C.ink,color:"#fff",
+              border:"none",borderRadius:"11px",fontSize:"14px",fontWeight:700,
+              cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+              gap:"8px",fontFamily:"'DM Sans',sans-serif",
+              boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
+              <Mail size={14}/> Google 계정 연결
+            </button>
+            <button onClick={()=>setShowPaste(p=>!p)} style={{
+              width:"100%",marginTop:"8px",padding:"9px",background:"none",
+              border:`1px dashed ${C.border}`,borderRadius:"10px",fontSize:"12px",
+              color:C.inkLight,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+              직접 붙여넣기
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
+              <div style={{fontSize:"12px",color:C.inkMid}}>Gmail 연결됨 ✓</div>
+              <button onClick={()=>setGmailToken(null)} style={{fontSize:"11px",color:C.inkLight,
+                background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                연결 해제
+              </button>
+            </div>
+            <SLabel>기간 설정</SLabel>
+            <div style={{display:"flex",gap:"8px",alignItems:"center",marginBottom:"10px"}}>
+              <input type="date" value={since} onChange={e=>setSince(e.target.value)} max={until}
+                style={{flex:1,border:`1.5px solid ${C.border}`,borderRadius:"10px",padding:"9px 10px",
+                  fontSize:"13px",fontWeight:600,color:C.ink,background:C.white,outline:"none",
+                  fontFamily:"'DM Sans',sans-serif"}}/>
+              <span style={{fontSize:"12px",color:C.inkLight,flexShrink:0}}>~</span>
+              <input type="date" value={until} onChange={e=>setUntil(e.target.value)} min={since} max={today}
+                style={{flex:1,border:`1.5px solid ${C.border}`,borderRadius:"10px",padding:"9px 10px",
+                  fontSize:"13px",fontWeight:600,color:C.ink,background:C.white,outline:"none",
+                  fontFamily:"'DM Sans',sans-serif"}}/>
+            </div>
+            <button onClick={()=>fetchMails(null, false)} disabled={status==="loading"} style={{
+              width:"100%",padding:"12px",
+              background:status==="loading"?"#9c8e82":C.ink,
+              color:"#fff",border:"none",borderRadius:"11px",
+              fontSize:"14px",fontWeight:700,cursor:status==="loading"?"not-allowed":"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
+              fontFamily:"'DM Sans',sans-serif",boxShadow:status!=="loading"?"0 4px 14px rgba(0,0,0,0.2)":"none"}}>
+              {status==="loading"
+                ?<><RefreshCw size={14} className="spin"/> 메일 읽는 중...</>
+                :<><Mail size={14}/> 쿠팡 메일 가져오기</>}
+            </button>
+            {status==="parsed" && rows.length>0 && (
+              <button
+                onClick={()=>connectGmail(token=>fetchMails(token, true))}
+                style={{width:"100%",marginTop:"8px",padding:"9px",background:"none",
+                  border:`1px dashed ${C.border}`,borderRadius:"10px",fontSize:"12px",
+                  color:C.inkMid,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"}}>
+                <Plus size={12}/> 다른 계정 추가
+              </button>
+            )}
+          </>
+        )}
       </div>
+
+      {/* 직접 붙여넣기 (폴백) */}
+      {showPaste && (
+        <div style={{background:C.cream,borderRadius:"14px",padding:"14px",
+          border:`1px solid ${C.border}`,marginBottom:"16px"}}>
+          <SLabel>이메일 내용 붙여넣기</SLabel>
+          <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"8px",lineHeight:1.5}}>
+            여러 메일은 <b>빈 줄</b>로 구분하면 한번에 파싱해요.
+          </div>
+          <textarea
+            value={pasteText}
+            onChange={e=>setPasteText(e.target.value)}
+            placeholder={"[쿠팡] 주문이 확정되었습니다\n2026.05.13\n다하다 둥굴레차 100개입\n13,000원\n\n(다음 메일은 빈 줄로 구분)"}
+            rows={5}
+            style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:"10px",
+              padding:"10px 12px",fontSize:"12px",color:C.ink,background:C.white,
+              fontFamily:"'DM Sans',sans-serif",resize:"vertical",outline:"none",
+              lineHeight:1.6,boxSizing:"border-box"}}
+          />
+          <button onClick={parsePaste} style={{
+            width:"100%",marginTop:"10px",padding:"12px",background:C.ink,color:"#fff",
+            border:"none",borderRadius:"11px",fontSize:"14px",fontWeight:700,cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
+            fontFamily:"'DM Sans',sans-serif",boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
+            <Mail size={14}/> 파싱하기
+          </button>
+        </div>
+      )}
 
       {/* 에러 */}
       {status==="error"&&(
