@@ -154,8 +154,8 @@ const TREE_CAFE = {
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],소득세:[],기타:[]}},
 };
 const TREE_REALTY = {
-  수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{매매수익:[],임대수입:[],기타:[]}},
-  취득비용:{ color:"#b5451b",accent:"#e07a5f",icon:"🏠",children:{취득세:[],등기비:[],중개수수료:[],기타:[]}},
+  수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{매도가:[],임대수입:[],기타:[]}},
+  취득비용:{ color:"#b5451b",accent:"#e07a5f",icon:"🏠",children:{취득가:[],취득세:[],등기비:[],중개수수료:[],기타:[]}},
   보유비용:{ color:"#0077b6",accent:"#48cae4",icon:"📋",children:{대출이자:["주택담보대출","신용대출","기타"],관리비:[],수리비:[],재산세:[],종합부동산세:[],기타:[]}},
   처분비용:{ color:"#4a1942",accent:"#9b5de5",icon:"📝",children:{양도세:[],중개수수료:[],명도비:[],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],종합소득세:[],기타:[]}},
