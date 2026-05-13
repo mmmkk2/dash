@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, ChevronRight as ChevronR, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, Calendar, AlertCircle, X } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, ChevronRight as ChevronR, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -929,44 +929,41 @@ function StatsView({txs,entity,cards}){
 }
 
 /* ── Coupang Import Modal ── */
-async function parseMailsWithClaude(snippets) {
-  const prompt = `다음은 쿠팡 주문 확인 이메일 스니펫 목록입니다.
-각 이메일에서 상품명과 구매금액을 파싱해서 JSON 배열로 반환하세요.
-규칙: 같은 주문에 여러 상품이면 각각 별도 항목. 금액 불명확시 amount는 null. 중복 제거. 상품명 60자 이내.
-반환 형식(JSON만, 마크다운 없이): [{"date":"YYYY-MM-DD","name":"상품명","amount":숫자또는null}]
+function parsePastedMails(text) {
+  const results = [];
+  // 빈 줄 2개 이상 or "---" 구분자로 메일 분리
+  const chunks = text.split(/\n{2,}|---+/).map(c=>c.trim()).filter(c=>c.length>4);
+  const today = new Date().toISOString().slice(0,10);
 
-이메일 목록:
-${snippets.map((s,i)=>`[${i+1}] 날짜:${s.date}\n내용:${s.snippet}`).join("\n\n")}`;
+  for (const chunk of chunks) {
+    // 날짜 추출 (YYYY.MM.DD / YYYY-MM-DD / YYYY년MM월DD일 / MM월DD일)
+    const dateM = chunk.match(/(\d{4})[년.\-\/\s]+(\d{1,2})[월.\-\/\s]+(\d{1,2})[일]?/)
+      || chunk.match(/(\d{1,2})[월\.\-\/](\d{1,2})[일]?/);
+    let date = today;
+    if (dateM) {
+      if (dateM[3]) {
+        date = `${dateM[1]}-${String(dateM[2]).padStart(2,'0')}-${String(dateM[3]).padStart(2,'0')}`;
+      } else {
+        const yr = new Date().getFullYear();
+        date = `${yr}-${String(dateM[1]).padStart(2,'0')}-${String(dateM[2]).padStart(2,'0')}`;
+      }
+    }
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:1000,
-      messages:[{role:"user",content:prompt}],
-    }),
-  });
-  const data = await res.json();
-  const text = data.content?.find(b=>b.type==="text")?.text||"[]";
-  try { return JSON.parse(text.replace(/```json|```/g,"").trim()); } catch { return []; }
-}
+    // 금액 추출 — 가장 큰 값 (배송비 제외)
+    const amtAll = [...chunk.matchAll(/(\d{1,3}(?:,\d{3})+|\d{4,})\s*원/g)]
+      .map(m=>parseInt(m[1].replace(/,/g,'')))
+      .filter(n=>n>=100 && n<50000000);
+    const amount = amtAll.length ? Math.max(...amtAll) : null;
 
-async function fetchCoupangMails(sinceDate) {
-  const days = Math.ceil((Date.now()-new Date(sinceDate).getTime())/86400000);
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model:"claude-sonnet-4-20250514", max_tokens:1000,
-      messages:[{role:"user",content:
-        `Gmail에서 쿠팡 주문 확인 이메일을 검색해주세요. 검색어: "from:noreply@e.coupang.com subject:주문 newer_than:${days}d". 최대 30개. 각 메일의 스니펫과 날짜를 JSON 배열로만 반환: [{"date":"YYYY-MM-DD","snippet":"..."}]`
-      }],
-      mcp_servers:[{type:"url",url:"https://gmailmcp.googleapis.com/mcp/v1",name:"gmail-mcp"}],
-    }),
-  });
-  const data = await res.json();
-  const text = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("\n")||"[]";
-  try { const m=text.match(/\[[\s\S]*\]/); return m?JSON.parse(m[0]):[];} catch{return [];}
+    // 상품명 추출 — 숫자/날짜/키워드 없는 첫 번째 의미 있는 줄
+    const lines = chunk.split('\n').map(l=>l.trim()).filter(l=>l);
+    const skipPattern = /^[\d\s년월일.\-\/]+$|주문|결제|배송|배달|발송|확인|완료|총|합계|금액|원$/;
+    const nameLine = lines.find(l=>l.length>=5 && !skipPattern.test(l));
+    const name = (nameLine||lines[0]||"상품명 확인 필요").slice(0,60);
+
+    results.push({ date, name, amount });
+  }
+  return results;
 }
 
 const IMPORT_ENTS = {
@@ -978,36 +975,27 @@ const IMPORT_ENTS = {
 const IMPORT_KEYS = ["personal","cafe","realty","skip"];
 
 function CoupangImport({ onRegister }) {
-  const today    = new Date().toISOString().slice(0,10);
-  const monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
-  const [since,   setSince]   = useState(monthAgo);
-  const [until,   setUntil]   = useState(today);
-  const [status,  setStatus]  = useState("idle");
-  const [rows,    setRows]    = useState([]);
-  const [errMsg,  setErrMsg]  = useState("");
-  const [submitted,setSubmitted] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [status,    setStatus]    = useState("idle");
+  const [rows,      setRows]      = useState([]);
+  const [errMsg,    setErrMsg]    = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-  async function fetchMails() {
-    setStatus("loading"); setErrMsg("");
-    try {
-      const mails = await fetchCoupangMails(since);
-      if (!mails.length) { setStatus("error"); setErrMsg("해당 기간 쿠팡 메일이 없어요."); return; }
-      // until 날짜 이후 메일 필터링
-      const filtered = mails.filter(m => m.date <= until);
-      if (!filtered.length) { setStatus("error"); setErrMsg("선택한 기간에 해당하는 메일이 없어요."); return; }
-      const parsed = await parseMailsWithClaude(filtered);
-      if (!parsed.length) { setStatus("error"); setErrMsg("메일 파싱에 실패했어요."); return; }
-      const seen=new Set();
-      const deduped=parsed.filter(p=>{
-        const k=`${p.date}__${p.name}__${p.amount}`;
-        if(seen.has(k))return false; seen.add(k); return true;
-      });
-      setRows(deduped.map((p,i)=>({
-        id:`r${i}_${Date.now()}`, date:p.date, name:p.name,
-        amountEdit:p.amount?String(p.amount):"", entity:"personal", done:false,
-      })));
-      setStatus("parsed");
-    } catch(e) { setStatus("error"); setErrMsg(e.message||"오류가 발생했어요."); }
+  function parseMails() {
+    setErrMsg("");
+    if (!pasteText.trim()) { setErrMsg("이메일 내용을 붙여넣어 주세요."); setStatus("error"); return; }
+    const parsed = parsePastedMails(pasteText);
+    if (!parsed.length) { setErrMsg("파싱할 수 있는 내용이 없어요. 빈 줄로 메일을 구분해 주세요."); setStatus("error"); return; }
+    const seen = new Set();
+    const deduped = parsed.filter(p => {
+      const k = `${p.date}__${p.name}__${p.amount}`;
+      if (seen.has(k)) return false; seen.add(k); return true;
+    });
+    setRows(deduped.map((p,i) => ({
+      id:`r${i}_${Date.now()}`, date:p.date, name:p.name,
+      amountEdit:p.amount?String(p.amount):"", entity:"personal", done:false,
+    })));
+    setStatus("parsed");
   }
 
   const pending = rows.filter(r=>!r.done);
@@ -1048,44 +1036,32 @@ function CoupangImport({ onRegister }) {
         <span style={{fontSize:"11px",color:C.inkLight}}>Gmail → 파싱 → 등록</span>
       </div>
 
-      {/* 날짜 + 버튼 */}
+      {/* 붙여넣기 + 파싱 */}
       <div style={{background:C.cream,borderRadius:"14px",padding:"14px",
         border:`1px solid ${C.border}`,marginBottom:"16px"}}>
-        <SLabel>기간 설정</SLabel>
-        <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-          <div style={{flex:1,display:"flex",alignItems:"center",
-            border:`1.5px solid ${C.border}`,borderRadius:"10px",
-            padding:"0 10px",background:C.white}}>
-            <Calendar size={11} color={C.inkLight} style={{marginRight:"6px",flexShrink:0}}/>
-            <input type="date" value={since} onChange={e=>setSince(e.target.value)}
-              max={until}
-              style={{flex:1,border:"none",background:"transparent",fontSize:"13px",
-                fontWeight:600,color:C.ink,padding:"10px 0",outline:"none",
-                fontFamily:"'DM Sans',sans-serif"}}/>
-          </div>
-          <span style={{fontSize:"12px",color:C.inkLight,flexShrink:0}}>~</span>
-          <div style={{flex:1,display:"flex",alignItems:"center",
-            border:`1.5px solid ${C.border}`,borderRadius:"10px",
-            padding:"0 10px",background:C.white}}>
-            <Calendar size={11} color={C.inkLight} style={{marginRight:"6px",flexShrink:0}}/>
-            <input type="date" value={until} onChange={e=>setUntil(e.target.value)}
-              min={since} max={today}
-              style={{flex:1,border:"none",background:"transparent",fontSize:"13px",
-                fontWeight:600,color:C.ink,padding:"10px 0",outline:"none",
-                fontFamily:"'DM Sans',sans-serif"}}/>
-          </div>
+        <SLabel>이메일 내용 붙여넣기</SLabel>
+        <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"8px",lineHeight:1.5}}>
+          Gmail에서 쿠팡 주문 확인 메일을 열고 내용을 복사해 붙여넣으세요.<br/>
+          여러 메일은 <b>빈 줄</b>로 구분하면 한번에 파싱해요.
         </div>
-        <button onClick={fetchMails} disabled={status==="loading"} style={{
+        <textarea
+          value={pasteText}
+          onChange={e=>setPasteText(e.target.value)}
+          placeholder={"[쿠팡] 주문이 확정되었습니다\n2026.05.13\n다하다 둥굴레차 100개입\n13,000원\n\n(다음 메일은 빈 줄로 구분)"}
+          rows={6}
+          style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:"10px",
+            padding:"10px 12px",fontSize:"12px",color:C.ink,background:C.white,
+            fontFamily:"'DM Sans',sans-serif",resize:"vertical",outline:"none",
+            lineHeight:1.6,boxSizing:"border-box"}}
+        />
+        <button onClick={parseMails} style={{
           width:"100%",marginTop:"10px",padding:"12px",
-          background:status==="loading"?"#9c8e82":C.ink,
-          color:"#fff",border:"none",borderRadius:"11px",
-          fontSize:"14px",fontWeight:700,cursor:status==="loading"?"not-allowed":"pointer",
+          background:C.ink,color:"#fff",border:"none",borderRadius:"11px",
+          fontSize:"14px",fontWeight:700,cursor:"pointer",
           display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-          fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s",
-          boxShadow:status!=="loading"?"0 4px 14px rgba(0,0,0,0.2)":"none"}}>
-          {status==="loading"
-            ?<><RefreshCw size={14} className="spin"/> Gmail 읽는 중...</>
-            :<><Mail size={14}/> 쿠팡 메일 가져오기</>}
+          fontFamily:"'DM Sans',sans-serif",
+          boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
+          <Mail size={14}/> 파싱하기
         </button>
       </div>
 
