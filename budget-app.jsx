@@ -198,11 +198,11 @@ function Modal({open,onClose,children}){
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(26,20,16,0.6)",
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
-        background:C.paper,borderRadius:"28px 28px 0 0",padding:"8px 24px 40px",
-        width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"92vh",overflowY:"auto",
+        background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px 36px",
+        width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"78vh",overflowY:"auto",
         boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`,borderBottom:"none"}}>
         <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
-          margin:"12px auto 24px",cursor:"pointer"}} onClick={onClose}/>
+          margin:"10px auto 18px",cursor:"pointer"}} onClick={onClose}/>
         {children}
       </div>
     </div>
@@ -298,10 +298,9 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
 
   return(
     <div style={{fontFamily:"'Inter',sans-serif"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-          <span style={{fontFamily:"'Inter',sans-serif",fontSize:"21px",color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
-          <span style={{fontSize:"11px",color:C.inkLight}}>{isEdit?"Edit":"Add"}</span>
+          <span style={{fontFamily:"'Inter',sans-serif",fontSize:"18px",fontWeight:700,color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
         </div>
         {isEdit&&(
           <button onClick={onDelete} disabled={saving} style={{display:"flex",alignItems:"center",gap:"5px",
@@ -313,19 +312,19 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
       </div>
 
       {/* Entity */}
-      <div style={{marginBottom:"18px"}}>
+      <div style={{marginBottom:"10px"}}>
         <SLabel>주체</SLabel>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"7px"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px"}}>
           {ENTITY_KEYS.map(ek=>{
             const e=ENTITIES[ek];const sel=entity===ek;
             return(
               <button key={ek} className="cat-btn" onClick={()=>pickEntity(ek)} style={{
-                padding:"9px 6px",borderRadius:"11px",cursor:"pointer",
+                padding:"7px 6px",borderRadius:"10px",cursor:"pointer",
                 border:`1.5px solid ${sel?e.color:C.border}`,
                 background:sel?e.color:C.white,color:sel?"#fff":C.inkMid,
                 fontFamily:"'Inter',sans-serif",transition:"all 0.18s",
-                boxShadow:sel?`0 3px 12px ${e.color}44`:"none"}}>
-                <div style={{fontSize:"12px",fontWeight:700,lineHeight:1.3,padding:"2px 0"}}>{e.label}</div>
+                boxShadow:sel?`0 2px 8px ${e.color}44`:"none"}}>
+                <div style={{fontSize:"11px",fontWeight:700,lineHeight:1.3}}>{e.label}</div>
               </button>
             );
           })}
@@ -335,18 +334,18 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
       {/* CAT1 */}
       {entity==="personal"?(
         <>
-          <div style={{marginBottom:"14px"}}>
+          <div style={{marginBottom:"8px"}}>
             <SLabel>대분류</SLabel>
-            <div style={{display:"flex",gap:"7px"}}>
+            <div style={{display:"flex",gap:"6px"}}>
               {[["수입","#2d6a4f"],["저축","#1d4e89"],["지출","#b5451b"]].map(([g,gc])=>{
                 const sel=group===g;
                 return(
                   <button key={g} className="cat-btn" onClick={()=>pickGroup(g)} style={{
-                    flex:1,padding:"9px 6px",borderRadius:"11px",cursor:"pointer",
+                    flex:1,padding:"7px 6px",borderRadius:"10px",cursor:"pointer",
                     border:`1.5px solid ${sel?gc:C.border}`,
                     background:sel?gc:"#fff",color:sel?"#fff":C.inkMid,
                     fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:"13px",
-                    boxShadow:sel?`0 3px 12px ${gc}44`:"none"}}>
+                    boxShadow:sel?`0 2px 8px ${gc}44`:"none"}}>
                     {g}
                   </button>
                 );
@@ -354,7 +353,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
             </div>
           </div>
           {group!=="수입"&&(
-            <div style={{marginBottom:"14px"}}>
+            <div style={{marginBottom:"8px"}}>
               <SLabel>세분류</SLabel>
               <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
                 {(group==="지출"
@@ -397,7 +396,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
 
       {/* CAT2 */}
       {cat2keys.length>0&&(
-        <div style={{marginBottom:"14px"}}>
+        <div style={{marginBottom:"8px"}}>
           <SLabel>항목1</SLabel>
           <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
             {cat2keys.map(k=>(
@@ -415,7 +414,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
 
       {/* CAT3 */}
       {cat3list.length>0&&(
-        <div style={{marginBottom:"14px"}}>
+        <div style={{marginBottom:"8px"}}>
           <SLabel>항목2</SLabel>
           <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
             {cat3list.map(k=>(
@@ -441,7 +440,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
           <input type="text" inputMode="numeric" value={amount}
             onChange={e=>{const raw=e.target.value.replace(/[^0-9]/g,"");setAmount(raw?Number(raw).toLocaleString("ko-KR"):raw);}}
             placeholder="0" style={{flex:1,border:"none",background:"transparent",
-              fontSize:"24px",fontWeight:700,color:C.ink,padding:"12px 0",outline:"none",
+              fontSize:"20px",fontWeight:700,color:C.ink,padding:"10px 0",outline:"none",
               fontFamily:"'Inter',sans-serif",letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums"}}/>
           <span style={{color:C.inkLight,fontSize:"13px"}}>원</span>
         </div>
@@ -523,13 +522,13 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
       </div>
 
       {/* Memo + Date */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"20px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"14px"}}>
         <div><SLabel>메모</SLabel><Inp value={memo} onChange={e=>setMemo(e.target.value)} placeholder="선택사항"/></div>
         <div><SLabel>날짜</SLabel><Inp type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
       </div>
 
       <button className="add-btn" onClick={submit} disabled={saving} style={{
-        width:"100%",padding:"14px",background:saving?"#9c8e82":ent.color,color:"#fff",border:"none",
+        width:"100%",padding:"13px",background:saving?"#9c8e82":ent.color,color:"#fff",border:"none",
         borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:saving?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
         fontFamily:"'Inter',sans-serif",boxShadow:`0 4px 18px ${ent.color}55`,transition:"all 0.2s"}}>
