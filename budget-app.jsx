@@ -256,7 +256,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
   const [group,setGroup]=useState(deriveGroup(initCat1));
   const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[initCat1]?.children||{})[0]||"");
   const [cat3,setCat3]=useState(init.cat3||"");
-  const [amount,setAmount]=useState(init.amount?String(init.amount):"");
+  const [amount,setAmount]=useState(init.amount?Number(init.amount).toLocaleString("ko-KR"):"");
   const [memo,setMemo]=useState(init.memo||"");
   const [date,setDate]=useState(init.date||today);
   const [cardId,setCardId]=useState(init.cardId||"");
@@ -435,7 +435,8 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
           background:err?"#fff5f0":C.white,
           border:`1.5px solid ${err?"#e07a5f":C.border}`,borderRadius:"12px",padding:"0 16px"}}>
           <span style={{color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"17px",marginRight:"8px"}}>₩</span>
-          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
+          <input type="text" inputMode="numeric" value={amount}
+            onChange={e=>{const raw=e.target.value.replace(/[^0-9]/g,"");setAmount(raw?Number(raw).toLocaleString("ko-KR"):raw);}}
             placeholder="0" style={{flex:1,border:"none",background:"transparent",
               fontSize:"24px",fontWeight:700,color:C.ink,padding:"12px 0",outline:"none",
               fontFamily:"'Inter',sans-serif",letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums"}}/>
@@ -897,40 +898,95 @@ function FixedView({txs, onDelete, year, month}){
 }
 
 /* ── Stats ── */
+function catDisplayName(name){
+  return name.replace(/^지출-/,"").replace(/^저축\/투자/,"저축 ");
+}
+
+function BreakdownList({data,total,sign,expanded,setExpanded}){
+  if(!data.length)return(
+    <div style={{textAlign:"center",padding:"32px 20px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>내역이 없어요</div>
+  );
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+      {data.map((item)=>{
+        const pct=Math.round((item.value/total)*100);
+        const isOpen=expanded===item.name;
+        return(
+          <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
+            <button onClick={()=>setExpanded(isOpen?null:item.name)}
+              style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
+              <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
+                <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
+                <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{item.name}</div>
+                <div style={{fontSize:"11px",color:item.color,fontWeight:700,fontFamily:"'Inter',sans-serif",marginRight:"4px"}}>{pct}%</div>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:item.color}}>{sign}{fmtS(item.value)}</div>
+                <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
+              </div>
+              <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
+                <div style={{width:`${pct}%`,height:"100%",background:item.color,borderRadius:"99px"}}/>
+              </div>
+            </button>
+            {isOpen&&item.sub.length>0&&(
+              <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 13px",background:C.paper}}>
+                {item.sub.map((s)=>{
+                  const sp=Math.round((s.value/item.value)*100);
+                  return(
+                    <div key={s.name} style={{marginBottom:"8px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
+                        <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                        <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                      </div>
+                      <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
+                        <div style={{width:`${sp}%`,height:"100%",background:item.color+"bb",borderRadius:"99px"}}/>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatsView({txs,entity,cards}){
   const tree=TREES[entity]||TREE_PERSONAL;
-  const [statsTab,setStatsTab]=useState("cat");
+  const [statsTab,setStatsTab]=useState("expense");
   const [expanded,setExpanded]=useState(null);
 
-  const income=useMemo(()=>txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0),[txs]);
+  const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
+  const saved=useMemo(()=>txs.filter(t=>t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
   const expense=useMemo(()=>txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0),[txs]);
-  const savings=income-expense;
-  const savingsRate=income>0?Math.round((savings/income)*100):0;
+  const totalIn=incomeAmt+saved;
+  const savingsRate=totalIn>0?Math.round((saved/totalIn)*100):0;
 
-  const byCat1=useMemo(()=>{
+  function buildBreakdown(filterFn){
     const m={};
-    txs.filter(t=>t.type==="expense").forEach(t=>{
+    txs.filter(filterFn).forEach(t=>{
       if(!m[t.cat1])m[t.cat1]={value:0,sub:{}};
       m[t.cat1].value+=t.amount;
       m[t.cat1].sub[t.cat2]=(m[t.cat1].sub[t.cat2]||0)+t.amount;
     });
     return Object.entries(m).map(([name,d])=>({
-      name,value:d.value,color:tree[name]?.color||C.inkMid,
+      name:catDisplayName(name),rawName:name,value:d.value,color:tree[name]?.color||C.inkMid,
       sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value),
     })).sort((a,b)=>b.value-a.value);
-  },[txs,tree]);
+  }
 
+  const byIncome=useMemo(()=>buildBreakdown(t=>t.type==="income"),[txs,tree]);
+  const byExpense=useMemo(()=>buildBreakdown(t=>t.type==="expense"),[txs,tree]);
   const byCard=useMemo(()=>{
     const m={};
     txs.filter(t=>t.type==="expense").forEach(t=>{const k=t.cardId||"__none__";m[k]=(m[k]||0)+t.amount;});
     return Object.entries(m).map(([id,value])=>{
       const card=cards.find(c=>c.id===id);
-      return{name:card?card.name:"미지정",value,color:card?card.color:C.inkLight};
+      return{name:card?card.name:"미지정",value,color:card?card.color:C.inkLight,sub:[]};
     }).sort((a,b)=>b.value-a.value);
   },[txs,cards]);
 
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
-  const totalExp=expense||1;
 
   if(!txs.length)return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
@@ -938,17 +994,25 @@ function StatsView({txs,entity,cards}){
     </div>
   );
 
+  const activeData = statsTab==="income"?byIncome:statsTab==="expense"?byExpense:byCard;
+  const activeTotal = (statsTab==="income"?(totalIn||1):statsTab==="expense"?(expense||1):(expense||1));
+  const activeSign = statsTab==="income"?"+":" ";
+  const activeLabel = statsTab==="income"?"수입 구성":statsTab==="expense"?"지출 구성":"카드별 지출";
+
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
 
       {/* Summary */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px"}}>
         {[
-          {label:"수입",val:"+"+fmtS(income),color:"#2d6a4f",bg:"#f0fdf4"},
-          {label:"지출",val:"-"+fmtS(expense),color:"#b5451b",bg:"#fff5f0"},
-          {label:"저축률",val:`${savingsRate}%`,color:savingsRate>=0?"#1d4e89":"#831843",bg:"#f0f4ff"},
-        ].map(({label,val,color,bg})=>(
-          <div key={label} style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center"}}>
+          {label:"수입",val:"+"+fmtS(incomeAmt),color:"#2d6a4f",bg:"#f0fdf4",tab:"income"},
+          {label:"지출",val:fmtS(expense),color:"#b5451b",bg:"#fff5f0",tab:"expense"},
+          {label:"저축률",val:saved>0?`${savingsRate}%`:"—",color:saved>0?"#1d4e89":C.inkLight,bg:"#f0f4ff",tab:null},
+        ].map(({label,val,color,bg,tab})=>(
+          <div key={label} onClick={tab?()=>{setStatsTab(tab);setExpanded(null);}:undefined}
+            style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center",
+              cursor:tab?"pointer":"default",
+              outline:statsTab===tab?`2px solid ${color}`:"none",outlineOffset:"2px",transition:"outline 0.15s"}}>
             <div style={{fontSize:"9px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>{label}</div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color,letterSpacing:"-0.3px",wordBreak:"keep-all"}}>{val}</div>
           </div>
@@ -957,8 +1021,8 @@ function StatsView({txs,entity,cards}){
 
       {/* Tab */}
       <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",border:`1px solid ${C.border}`,gap:"3px"}}>
-        {[["cat","카테고리"],["card","카드"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setStatsTab(k)} style={{
+        {[["income","수입"],["expense","지출"],["card","카드"]].map(([k,l])=>(
+          <button key={k} onClick={()=>{setStatsTab(k);setExpanded(null);}} style={{
             flex:1,padding:"8px",border:"none",borderRadius:"8px",cursor:"pointer",
             fontWeight:statsTab===k?700:400,fontSize:"12px",transition:"all 0.15s",
             background:statsTab===k?C.ink:"transparent",color:statsTab===k?"#fff":C.inkLight,
@@ -966,104 +1030,24 @@ function StatsView({txs,entity,cards}){
         ))}
       </div>
 
-      {statsTab==="cat"&&byCat1.length>0&&(
-        <>
-          {/* Donut */}
-          <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>지출 구성</div>
-            <ResponsiveContainer width="100%" height={170}>
-              <PieChart>
-                <Pie data={byCat1} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
-                  {byCat1.map((e,i)=><Cell key={i} fill={e.color}/>)}
-                </Pie>
-                <Tooltip formatter={v=>[fmt(v),"지출"]} contentStyle={tt}/>
-                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Expandable progress bars */}
-          <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-            {byCat1.map((item)=>{
-              const pct=Math.round((item.value/totalExp)*100);
-              const isOpen=expanded===item.name;
-              return(
-                <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
-                  <button onClick={()=>setExpanded(isOpen?null:item.name)}
-                    style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
-                      <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
-                      <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{item.name}</div>
-                      <div style={{fontSize:"11px",color:item.color,fontWeight:700,fontFamily:"'Inter',sans-serif",marginRight:"6px"}}>{pct}%</div>
-                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(item.value)}</div>
-                      <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
-                    </div>
-                    <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
-                      <div style={{width:`${pct}%`,height:"100%",background:item.color,borderRadius:"99px"}}/>
-                    </div>
-                  </button>
-                  {isOpen&&(
-                    <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 13px",background:C.paper}}>
-                      {item.sub.map((s)=>{
-                        const sp=Math.round((s.value/item.value)*100);
-                        return(
-                          <div key={s.name} style={{marginBottom:"8px"}}>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
-                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
-                            </div>
-                            <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
-                              <div style={{width:`${sp}%`,height:"100%",background:item.color+"bb",borderRadius:"99px"}}/>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
+      {/* Donut */}
+      {activeData.length>0&&(
+        <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
+          <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>{activeLabel}</div>
+          <ResponsiveContainer width="100%" height={170}>
+            <PieChart>
+              <Pie data={activeData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
+                {activeData.map((e,i)=><Cell key={i} fill={e.color}/>)}
+              </Pie>
+              <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
+              <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       )}
 
-      {statsTab==="card"&&byCard.length>0&&(
-        <>
-          {/* Donut */}
-          <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>카드별 지출</div>
-            <ResponsiveContainer width="100%" height={170}>
-              <PieChart>
-                <Pie data={byCard} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
-                  {byCard.map((e,i)=><Cell key={i} fill={e.color}/>)}
-                </Pie>
-                <Tooltip formatter={v=>[fmt(v),"지출"]} contentStyle={tt}/>
-                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Card progress bars */}
-          <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-            {byCard.map((c)=>{
-              const pct=Math.round((c.value/totalExp)*100);
-              return(
-                <div key={c.name} style={{background:C.white,borderRadius:"14px",padding:"13px 14px 10px",border:`1px solid ${C.border}`}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
-                    <div style={{width:"9px",height:"9px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
-                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{c.name}</div>
-                    <div style={{fontSize:"11px",color:c.color,fontWeight:700,fontFamily:"'Inter',sans-serif",marginRight:"6px"}}>{pct}%</div>
-                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(c.value)}</div>
-                  </div>
-                  <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
-                    <div style={{width:`${pct}%`,height:"100%",background:c.color,borderRadius:"99px"}}/>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {/* Breakdown bars */}
+      <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded}/>
     </div>
   );
 }
