@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, ChevronRight as ChevronR, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
    Supabase 프로젝트 생성 후 아래 두 값을 교체하세요.
@@ -900,20 +900,37 @@ function FixedView({txs, onDelete, year, month}){
 function StatsView({txs,entity,cards}){
   const tree=TREES[entity]||TREE_PERSONAL;
   const [statsTab,setStatsTab]=useState("cat");
+  const [expanded,setExpanded]=useState(null);
+
+  const income=useMemo(()=>txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0),[txs]);
+  const expense=useMemo(()=>txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0),[txs]);
+  const savings=income-expense;
+  const savingsRate=income>0?Math.round((savings/income)*100):0;
+
   const byCat1=useMemo(()=>{
-    const m={};txs.filter(t=>t.type==="expense").forEach(t=>{m[t.cat1]=(m[t.cat1]||0)+t.amount;});
-    return Object.entries(m).map(([name,value])=>({name,value,color:tree[name]?.color||C.inkMid})).sort((a,b)=>b.value-a.value);
+    const m={};
+    txs.filter(t=>t.type==="expense").forEach(t=>{
+      if(!m[t.cat1])m[t.cat1]={value:0,sub:{}};
+      m[t.cat1].value+=t.amount;
+      m[t.cat1].sub[t.cat2]=(m[t.cat1].sub[t.cat2]||0)+t.amount;
+    });
+    return Object.entries(m).map(([name,d])=>({
+      name,value:d.value,color:tree[name]?.color||C.inkMid,
+      sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value),
+    })).sort((a,b)=>b.value-a.value);
   },[txs,tree]);
+
   const byCard=useMemo(()=>{
-    const m={};txs.filter(t=>t.type==="expense").forEach(t=>{const k=t.cardId||"__none__";m[k]=(m[k]||0)+t.amount;});
+    const m={};
+    txs.filter(t=>t.type==="expense").forEach(t=>{const k=t.cardId||"__none__";m[k]=(m[k]||0)+t.amount;});
     return Object.entries(m).map(([id,value])=>{
       const card=cards.find(c=>c.id===id);
       return{name:card?card.name:"미지정",value,color:card?card.color:C.inkLight};
     }).sort((a,b)=>b.value-a.value);
   },[txs,cards]);
-  const income=txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-  const expense=txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'DM Sans',sans-serif",fontSize:"12px"};
+  const totalExp=expense||1;
 
   if(!txs.length)return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
@@ -923,64 +940,127 @@ function StatsView({txs,entity,cards}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-        {[["수입",income,"#2d6a4f","#f0fdf4","#b7e4c7"],[" 지출",-expense,"#b5451b","#fff5f0","#f4c5b2"]].map(([l,v,c,bg,b])=>(
-          <div key={l} style={{background:bg,borderRadius:"16px",padding:"16px",border:`1px solid ${b}`}}>
-            <div style={{fontSize:"9px",fontWeight:700,color:c,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"7px",fontFamily:"'DM Sans',sans-serif"}}>{l}</div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"21px",color:c,letterSpacing:"-0.5px"}}>{v>=0?"+":""}{fmtS(v)}</div>
+
+      {/* Summary */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px"}}>
+        {[
+          {label:"수입",val:"+"+fmtS(income),color:"#2d6a4f",bg:"#f0fdf4"},
+          {label:"지출",val:"-"+fmtS(expense),color:"#b5451b",bg:"#fff5f0"},
+          {label:"저축률",val:`${savingsRate}%`,color:savingsRate>=0?"#1d4e89":"#831843",bg:"#f0f4ff"},
+        ].map(({label,val,color,bg})=>(
+          <div key={label} style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center"}}>
+            <div style={{fontSize:"9px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'DM Sans',sans-serif"}}>{label}</div>
+            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"15px",color,letterSpacing:"-0.3px",wordBreak:"keep-all"}}>{val}</div>
           </div>
         ))}
       </div>
+
+      {/* Tab */}
       <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",border:`1px solid ${C.border}`,gap:"3px"}}>
-        {[["cat","카테고리별"],["card","카드별"]].map(([k,l])=>(
+        {[["cat","카테고리"],["card","카드"]].map(([k,l])=>(
           <button key={k} onClick={()=>setStatsTab(k)} style={{
             flex:1,padding:"8px",border:"none",borderRadius:"8px",cursor:"pointer",
             fontWeight:statsTab===k?700:400,fontSize:"12px",transition:"all 0.15s",
-            background:statsTab===k?C.ink:"transparent",color:statsTab===k?"#fff":C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+            background:statsTab===k?C.ink:"transparent",color:statsTab===k?"#fff":C.inkLight,
+            fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
         ))}
       </div>
+
       {statsTab==="cat"&&byCat1.length>0&&(
         <>
-          <div style={{background:C.white,borderRadius:"18px",padding:"18px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"12px",fontFamily:"'DM Sans',sans-serif"}}>대분류별 지출</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart><Pie data={byCat1} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={76} paddingAngle={3}>
-                {byCat1.map((e,i)=><Cell key={i} fill={e.color}/>)}
-              </Pie><Tooltip formatter={v=>fmt(v)} contentStyle={tt}/><Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{v}</span>}/></PieChart>
+          {/* Donut */}
+          <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
+            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'DM Sans',sans-serif"}}>지출 구성</div>
+            <ResponsiveContainer width="100%" height={170}>
+              <PieChart>
+                <Pie data={byCat1} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
+                  {byCat1.map((e,i)=><Cell key={i} fill={e.color}/>)}
+                </Pie>
+                <Tooltip formatter={v=>[fmt(v),"지출"]} contentStyle={tt}/>
+                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{v}</span>}/>
+              </PieChart>
             </ResponsiveContainer>
           </div>
-          <div style={{background:C.white,borderRadius:"18px",padding:"18px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"12px",fontFamily:"'DM Sans',sans-serif"}}>항목별 TOP</div>
-            <ResponsiveContainer width="100%" height={Math.max(180,byCat1.length*34)}>
-              <BarChart data={byCat1} layout="vertical" margin={{left:4,right:20}}>
-                <XAxis type="number" tick={{fontSize:10,fontFamily:"'DM Sans',sans-serif",fill:C.inkLight}} tickFormatter={fmtS} axisLine={false} tickLine={false}/>
-                <YAxis type="category" dataKey="name" tick={{fontSize:10,fontFamily:"'DM Sans',sans-serif",fill:C.inkMid}} width={110} axisLine={false} tickLine={false}/>
-                <CartesianGrid strokeDasharray="2 4" horizontal={false} stroke={C.border}/>
-                <Tooltip formatter={v=>fmt(v)} contentStyle={tt}/>
-                <Bar dataKey="value" radius={[0,6,6,0]}>{byCat1.map((e,i)=><Cell key={i} fill={e.color}/>)}</Bar>
-              </BarChart>
-            </ResponsiveContainer>
+
+          {/* Expandable progress bars */}
+          <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+            {byCat1.map((item)=>{
+              const pct=Math.round((item.value/totalExp)*100);
+              const isOpen=expanded===item.name;
+              return(
+                <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
+                  <button onClick={()=>setExpanded(isOpen?null:item.name)}
+                    style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
+                      <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
+                      <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{item.name}</div>
+                      <div style={{fontSize:"11px",color:item.color,fontWeight:700,fontFamily:"'DM Sans',sans-serif",marginRight:"6px"}}>{pct}%</div>
+                      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(item.value)}</div>
+                      <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
+                    </div>
+                    <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
+                      <div style={{width:`${pct}%`,height:"100%",background:item.color,borderRadius:"99px"}}/>
+                    </div>
+                  </button>
+                  {isOpen&&(
+                    <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 13px",background:C.paper}}>
+                      {item.sub.map((s)=>{
+                        const sp=Math.round((s.value/item.value)*100);
+                        return(
+                          <div key={s.name} style={{marginBottom:"8px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
+                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                            </div>
+                            <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
+                              <div style={{width:`${sp}%`,height:"100%",background:item.color+"bb",borderRadius:"99px"}}/>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
+
       {statsTab==="card"&&byCard.length>0&&(
         <>
-          <div style={{background:C.white,borderRadius:"18px",padding:"18px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"12px",fontFamily:"'DM Sans',sans-serif"}}>카드별 지출</div>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart><Pie data={byCard} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={76} paddingAngle={3}>
-                {byCard.map((e,i)=><Cell key={i} fill={e.color}/>)}
-              </Pie><Tooltip formatter={v=>fmt(v)} contentStyle={tt}/><Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{v}</span>}/></PieChart>
+          {/* Donut */}
+          <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
+            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'DM Sans',sans-serif"}}>카드별 지출</div>
+            <ResponsiveContainer width="100%" height={170}>
+              <PieChart>
+                <Pie data={byCard} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
+                  {byCard.map((e,i)=><Cell key={i} fill={e.color}/>)}
+                </Pie>
+                <Tooltip formatter={v=>[fmt(v),"지출"]} contentStyle={tt}/>
+                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{v}</span>}/>
+              </PieChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Card progress bars */}
           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
-            {byCard.map((c,i)=>(
-              <div key={i} style={{background:C.white,borderRadius:"12px",padding:"12px 14px",border:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:"10px"}}>
-                <div style={{width:"10px",height:"10px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
-                <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{c.name}</div>
-                <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"15px",color:"#b5451b",fontWeight:700}}>-{fmtS(c.value)}</div>
-              </div>
-            ))}
+            {byCard.map((c)=>{
+              const pct=Math.round((c.value/totalExp)*100);
+              return(
+                <div key={c.name} style={{background:C.white,borderRadius:"14px",padding:"13px 14px 10px",border:`1px solid ${C.border}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
+                    <div style={{width:"9px",height:"9px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
+                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{c.name}</div>
+                    <div style={{fontSize:"11px",color:c.color,fontWeight:700,fontFamily:"'DM Sans',sans-serif",marginRight:"6px"}}>{pct}%</div>
+                    <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(c.value)}</div>
+                  </div>
+                  <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
+                    <div style={{width:`${pct}%`,height:"100%",background:c.color,borderRadius:"99px"}}/>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -1788,6 +1868,7 @@ export default function App(){
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
+  const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy"};
   const [themeKey, setThemeKey] = useState(()=>localStorage.getItem(THEME_KEY)||"cream");
 
   // C를 현재 테마로 동기화
@@ -1938,7 +2019,7 @@ export default function App(){
             {ENTITY_KEYS.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
-                <button key={ek} onClick={()=>{setEntity(ek);setTab("list");}} style={{
+                <button key={ek} onClick={()=>{setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");}} style={{
                   flex:1,padding:"9px 4px",borderRadius:"10px",cursor:"pointer",border:"none",
                   background:sel?e.color:"rgba(255,255,255,0.07)",
                   color:sel?"#fff":"rgba(255,255,255,0.45)",
