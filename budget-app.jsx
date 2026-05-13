@@ -41,7 +41,7 @@ const cardToRow = c => ({ id: c.id, name: c.name, color: c.color, sort_order: c.
 /* ── Fonts & Styles ── */
 const FONT_LINK = document.createElement("link");
 FONT_LINK.rel = "stylesheet";
-FONT_LINK.href = "https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap";
+FONT_LINK.href = "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap";
 document.head.appendChild(FONT_LINK);
 
 const STYLE = document.createElement("style");
@@ -196,7 +196,7 @@ function Modal({open,onClose,children}){
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"28px 28px 0 0",padding:"8px 24px 40px",
-        width:"100%",maxWidth:"540px",maxHeight:"92vh",overflowY:"auto",
+        width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"92vh",overflowY:"auto",
         boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`,borderBottom:"none"}}>
         <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
           margin:"12px auto 24px",cursor:"pointer"}} onClick={onClose}/>
@@ -208,20 +208,20 @@ function Modal({open,onClose,children}){
 
 const SLabel = ({children}) => (
   <div style={{fontSize:"9px",fontWeight:700,letterSpacing:"0.14em",color:C.inkLight,
-    textTransform:"uppercase",marginBottom:"10px",fontFamily:"'DM Sans',sans-serif"}}>{children}</div>
+    textTransform:"uppercase",marginBottom:"10px",fontFamily:"'Inter',sans-serif"}}>{children}</div>
 );
 const Inp = ({style,...p}) => (
   <input style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:"10px",
     padding:"10px 13px",fontSize:"14px",color:C.ink,outline:"none",
-    background:C.white,boxSizing:"border-box",fontFamily:"'DM Sans',sans-serif",...style}} {...p}/>
+    background:C.white,boxSizing:"border-box",fontFamily:"'Inter',sans-serif",...style}} {...p}/>
 );
 
 /* ── Setup Guide ── */
 function SetupGuide(){
   return(
     <div style={{background:C.white,borderRadius:"20px",padding:"24px",border:`1px solid ${C.border}`,margin:"16px 0"}}>
-      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"18px",color:C.ink,marginBottom:"6px"}}>Supabase 연동 필요</div>
-      <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"20px",fontFamily:"'DM Sans',sans-serif"}}>아래 순서대로 설정하면 폰+PC 어디서나 데이터가 동기화돼요</div>
+      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"18px",color:C.ink,marginBottom:"6px"}}>Supabase 연동 필요</div>
+      <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"20px",fontFamily:"'Inter',sans-serif"}}>아래 순서대로 설정하면 폰+PC 어디서나 데이터가 동기화돼요</div>
       {[
         ["1","supabase.com 접속 후 무료 계정 생성 및 새 프로젝트 생성"],
         ["2","SQL Editor에서 supabase_setup.sql 파일 내용 전체 실행"],
@@ -231,8 +231,8 @@ function SetupGuide(){
         <div key={n} style={{display:"flex",gap:"12px",marginBottom:"14px",alignItems:"flex-start"}}>
           <div style={{width:"24px",height:"24px",borderRadius:"50%",background:C.ink,
             color:"#fff",fontSize:"11px",fontWeight:700,display:"flex",alignItems:"center",
-            justifyContent:"center",flexShrink:0,fontFamily:"'DM Sans',sans-serif"}}>{n}</div>
-          <div style={{fontSize:"13px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif",lineHeight:1.5}}>{t}</div>
+            justifyContent:"center",flexShrink:0,fontFamily:"'Inter',sans-serif"}}>{n}</div>
+          <div style={{fontSize:"13px",color:C.inkMid,fontFamily:"'Inter',sans-serif",lineHeight:1.5}}>{t}</div>
         </div>
       ))}
     </div>
@@ -294,10 +294,10 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
   }
 
   return(
-    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{fontFamily:"'Inter',sans-serif"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-          <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"21px",color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
+          <span style={{fontFamily:"'Inter',sans-serif",fontSize:"21px",color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
           <span style={{fontSize:"11px",color:C.inkLight}}>{isEdit?"Edit":"Add"}</span>
         </div>
         {isEdit&&(
@@ -320,7 +320,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
                 padding:"9px 6px",borderRadius:"11px",cursor:"pointer",
                 border:`1.5px solid ${sel?e.color:C.border}`,
                 background:sel?e.color:C.white,color:sel?"#fff":C.inkMid,
-                fontFamily:"'DM Sans',sans-serif",transition:"all 0.18s",
+                fontFamily:"'Inter',sans-serif",transition:"all 0.18s",
                 boxShadow:sel?`0 3px 12px ${e.color}44`:"none"}}>
                 <div style={{fontSize:"12px",fontWeight:700,lineHeight:1.3,padding:"2px 0"}}>{e.label}</div>
               </button>
@@ -342,7 +342,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
                     flex:1,padding:"9px 6px",borderRadius:"11px",cursor:"pointer",
                     border:`1.5px solid ${sel?gc:C.border}`,
                     background:sel?gc:"#fff",color:sel?"#fff":C.inkMid,
-                    fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:"13px",
+                    fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:"13px",
                     boxShadow:sel?`0 3px 12px ${gc}44`:"none"}}>
                     {g}
                   </button>
@@ -362,7 +362,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
                   return(
                     <button key={k} className="cat-btn" onClick={()=>pickCat1(k)} style={{
                       padding:"5px 14px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
-                      fontFamily:"'DM Sans',sans-serif",
+                      fontFamily:"'Inter',sans-serif",
                       border:`1.5px solid ${sel?v.color:C.border}`,
                       background:sel?v.color:"#fff",color:sel?"#fff":C.inkMid,
                       boxShadow:sel?`0 2px 8px ${v.color}44`:"none"}}>
@@ -381,7 +381,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
             {Object.entries(tree).map(([k,v])=>(
               <button key={k} className="cat-btn" onClick={()=>pickCat1(k)} style={{
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
-                fontFamily:"'DM Sans',sans-serif",
+                fontFamily:"'Inter',sans-serif",
                 border:`1.5px solid ${cat1===k?v.color:C.border}`,
                 background:cat1===k?v.color:"#fff",color:cat1===k?"#fff":C.inkMid,
                 boxShadow:cat1===k?`0 2px 8px ${v.color}44`:"none"}}>
@@ -400,7 +400,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
             {cat2keys.map(k=>(
               <button key={k} className="cat-btn" onClick={()=>{setCat2(k);setCat3("");}} style={{
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
-                fontFamily:"'DM Sans',sans-serif",
+                fontFamily:"'Inter',sans-serif",
                 border:`1.5px solid ${cat2===k?m1.color:C.border}`,
                 background:cat2===k?m1.color+"14":"#fff",color:cat2===k?m1.color:C.inkMid}}>
                 {k}
@@ -418,7 +418,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
             {cat3list.map(k=>(
               <button key={k} className="cat-btn" onClick={()=>setCat3(cat3===k?"":k)} style={{
                 padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
-                fontFamily:"'DM Sans',sans-serif",
+                fontFamily:"'Inter',sans-serif",
                 border:`1.5px solid ${cat3===k?m1.accent:C.border}`,
                 background:cat3===k?m1.accent+"18":C.cream,color:cat3===k?m1.color:C.inkLight}}>
                 {k}
@@ -434,11 +434,11 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
         <div style={{display:"flex",alignItems:"center",
           background:err?"#fff5f0":C.white,
           border:`1.5px solid ${err?"#e07a5f":C.border}`,borderRadius:"12px",padding:"0 16px"}}>
-          <span style={{color:C.inkLight,fontFamily:"'DM Serif Display',serif",fontSize:"17px",marginRight:"8px"}}>₩</span>
+          <span style={{color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"17px",marginRight:"8px"}}>₩</span>
           <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
             placeholder="0" style={{flex:1,border:"none",background:"transparent",
               fontSize:"24px",fontWeight:700,color:C.ink,padding:"12px 0",outline:"none",
-              fontFamily:"'DM Serif Display',serif",letterSpacing:"-0.5px"}}/>
+              fontFamily:"'Inter',sans-serif",letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums"}}/>
           <span style={{color:C.inkLight,fontSize:"13px"}}>원</span>
         </div>
       </div>
@@ -452,14 +452,14 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
               padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
               border:`1.5px solid ${cardId===""?C.ink:C.border}`,
               background:cardId===""?C.ink:"#fff",color:cardId===""?"#fff":C.inkMid,
-              fontFamily:"'DM Sans',sans-serif"}}>미지정</button>
+              fontFamily:"'Inter',sans-serif"}}>미지정</button>
             {cards.map(c=>(
               <button key={c.id} onClick={()=>setCardId(c.id)} style={{
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
                 border:`1.5px solid ${cardId===c.id?c.color:C.border}`,
                 background:cardId===c.id?c.color:"#fff",
                 color:cardId===c.id?"#fff":C.inkMid,
-                fontFamily:"'DM Sans',sans-serif"}}>{c.name}</button>
+                fontFamily:"'Inter',sans-serif"}}>{c.name}</button>
             ))}
           </div>
         </div>
@@ -479,8 +479,8 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
               left:isFixed?"19px":"3px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
           </div>
           <div style={{flex:1,textAlign:"left"}}>
-            <div style={{fontSize:"13px",fontWeight:600,color:isFixed?"#b5451b":C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>고정지출</div>
-            <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'DM Sans',sans-serif"}}>
+            <div style={{fontSize:"13px",fontWeight:600,color:isFixed?"#b5451b":C.inkMid,fontFamily:"'Inter',sans-serif"}}>고정지출</div>
+            <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
               {isFixed?"매달 반복되는 고정 지출":"일반 지출"}
             </div>
           </div>
@@ -489,7 +489,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
           <div style={{background:"#fff8f0",border:"1.5px solid #b5451b",borderTop:"1px solid #f4c5b2",
             borderRadius:"0 0 12px 12px",padding:"12px 14px",
             display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'DM Sans',sans-serif",flexShrink:0}}>
+            <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
               매월 발생일
             </div>
             <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
@@ -502,7 +502,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
                     padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
                     border:`1.5px solid ${sel?"#b5451b":"#f4c5b2"}`,
                     background:sel?"#b5451b":"#fff",color:sel?"#fff":"#b5451b",
-                    fontFamily:"'DM Sans',sans-serif"}}>
+                    fontFamily:"'Inter',sans-serif"}}>
                     {label}
                   </button>
                 );
@@ -513,7 +513,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
               min="1" max="31"
               style={{width:"70px",border:"1.5px solid #f4c5b2",borderRadius:"8px",
                 padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
-                background:"#fff",fontFamily:"'DM Sans',sans-serif",textAlign:"center"}}/>
+                background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
           </div>
         )}
       </div>
@@ -528,7 +528,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
         width:"100%",padding:"14px",background:saving?"#9c8e82":ent.color,color:"#fff",border:"none",
         borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:saving?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-        fontFamily:"'DM Sans',sans-serif",boxShadow:`0 4px 18px ${ent.color}55`,transition:"all 0.2s"}}>
+        fontFamily:"'Inter',sans-serif",boxShadow:`0 4px 18px ${ent.color}55`,transition:"all 0.2s"}}>
         {saving
           ? <><RefreshCw size={16} className="spin"/> 저장 중...</>
           : isEdit?<><Check size={16}/> 저장하기</>:<><PlusCircle size={16}/> 추가하기</>}
@@ -559,9 +559,9 @@ function CardSettings({cards,onChange,saving}){
   }
 
   return(
-    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{fontFamily:"'Inter',sans-serif"}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"22px"}}>
-        <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"21px",color:C.ink}}>결제수단 관리</span>
+        <span style={{fontFamily:"'Inter',sans-serif",fontSize:"21px",color:C.ink}}>결제수단 관리</span>
         <span style={{fontSize:"11px",color:C.inkLight}}>Cards</span>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"20px"}}>
@@ -572,7 +572,7 @@ function CardSettings({cards,onChange,saving}){
             {editId===c.id
               ?<input value={editName} onChange={e=>setEditName(e.target.value)} autoFocus
                 style={{flex:1,border:`1.5px solid ${C.border}`,borderRadius:"8px",
-                  padding:"6px 10px",fontSize:"13px",outline:"none",fontFamily:"'DM Sans',sans-serif"}}/>
+                  padding:"6px 10px",fontSize:"13px",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
               :<span style={{flex:1,fontSize:"13px",fontWeight:500,color:C.ink}}>{c.name}</span>
             }
             <div style={{display:"flex",gap:"4px"}}>
@@ -601,7 +601,7 @@ function CardSettings({cards,onChange,saving}){
         <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
           <Inp value={newName} onChange={e=>setNewName(e.target.value)} placeholder="카드 이름" style={{flex:1}}/>
           <button onClick={addCard} style={{background:C.ink,border:"none",borderRadius:"10px",
-            padding:"0 16px",color:"#fff",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",
+            padding:"0 16px",color:"#fff",cursor:"pointer",fontFamily:"'Inter',sans-serif",
             fontSize:"13px",fontWeight:600,display:"flex",alignItems:"center",gap:"4px",flexShrink:0}}>
             <Plus size={14}/> 추가
           </button>
@@ -642,7 +642,7 @@ function TreeView({txs,onEdit,entity,cards}){
   if(!txs.length)return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
       <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📭</div>
-      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>비어있어요</div>
+      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>비어있어요</div>
       <div style={{fontSize:"12px",color:C.inkLight}}>거래를 추가해보세요</div>
     </div>
   );
@@ -661,11 +661,11 @@ function TreeView({txs,onEdit,entity,cards}){
               <div style={{width:"4px",height:"36px",borderRadius:"99px",flexShrink:0,
                 background:`linear-gradient(180deg,${m1.color},${m1.accent})`}}/>
               <div style={{flex:1}}>
-                <div style={{fontSize:"14px",fontWeight:600,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{c1}</div>
-                <div style={{fontSize:"11px",color:C.inkLight,marginTop:"1px",fontFamily:"'DM Sans',sans-serif"}}>{cnt}건</div>
+                <div style={{fontSize:"14px",fontWeight:600,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{c1}</div>
+                <div style={{fontSize:"11px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>{cnt}건</div>
               </div>
               <div style={{fontSize:"15px",fontWeight:700,marginRight:"6px",
-                color:total>=0?"#2d6a4f":"#b5451b",fontFamily:"'DM Serif Display',serif",letterSpacing:"-0.3px"}}>
+                color:total>=0?"#2d6a4f":"#b5451b",fontFamily:"'Inter',sans-serif",letterSpacing:"-0.3px"}}>
                 {total>=0?"+":""}{fmtS(total)}
               </div>
               <div style={{width:"21px",height:"21px",borderRadius:"50%",flexShrink:0,
@@ -682,9 +682,9 @@ function TreeView({txs,onEdit,entity,cards}){
                     display:"flex",alignItems:"center",gap:"10px",
                     padding:"9px 16px 9px 50px",cursor:"pointer",background:o2?"#faf8f4":C.white}}>
                     <div style={{width:"5px",height:"5px",borderRadius:"50%",background:m1.color,opacity:0.5,flexShrink:0}}/>
-                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{c2}</div>
+                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{c2}</div>
                     <div style={{fontSize:"13px",fontWeight:600,marginRight:"6px",
-                      color:t2>=0?"#2d6a4f":"#b5451b",fontFamily:"'DM Sans',sans-serif"}}>
+                      color:t2>=0?"#2d6a4f":"#b5451b",fontFamily:"'Inter',sans-serif"}}>
                       {t2>=0?"+":""}{fmtS(t2)}
                     </div>
                     <ChevronR size={11} color={C.inkLight}
@@ -700,24 +700,24 @@ function TreeView({txs,onEdit,entity,cards}){
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:"13px",fontWeight:500,color:C.ink,
                             overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                            display:"flex",alignItems:"center",gap:"5px",fontFamily:"'DM Sans',sans-serif"}}>
+                            display:"flex",alignItems:"center",gap:"5px",fontFamily:"'Inter',sans-serif"}}>
                             {tx.cat3&&<span style={{fontSize:"9px",background:m1.color+"14",color:m1.color,
                               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0}}>{tx.cat3}</span>}
                             <span>{tx.memo}</span>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px"}}>
-                            <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>{tx.date}</span>
+                            <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.date}</span>
                             {tx.isFixed&&<span style={{fontSize:"9px",background:"#fff8f0",color:"#b5451b",
-                              borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'DM Sans',sans-serif",
+                              borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
                               border:"1px solid #f4c5b2"}}>고정</span>}
                             {card&&<span style={{fontSize:"9px",background:card.color+"14",color:card.color,
-                              borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'DM Sans',sans-serif"}}>
+                              borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
                               {card.name}</span>}
                           </div>
                         </div>
                         <div style={{fontSize:"14px",fontWeight:600,flexShrink:0,
                           color:tx.type==="income"?"#2d6a4f":"#b5451b",
-                          fontFamily:"'DM Serif Display',serif",letterSpacing:"-0.2px"}}>
+                          fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
                           {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                         </div>
                         <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
@@ -789,31 +789,31 @@ function FixedView({txs, onDelete, year, month}){
         <div style={{flex:1,minWidth:0,paddingLeft:isScheduled?"4px":"0"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
-              fontFamily:"'DM Sans',sans-serif",overflow:"hidden",
+              fontFamily:"'Inter',sans-serif",overflow:"hidden",
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
             {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              fontFamily:"'DM Sans',sans-serif"}}>오늘</span>}
+              fontFamily:"'Inter',sans-serif"}}>오늘</span>}
             {isPast&&!isToday&&<span style={{fontSize:"9px",background:"#fff0ee",color:"#e07a5f",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              border:"1px solid #f4c5b2",fontFamily:"'DM Sans',sans-serif"}}>미발생</span>}
+              border:"1px solid #f4c5b2",fontFamily:"'Inter',sans-serif"}}>미발생</span>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-            <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>
+            <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
               {ent.label}
             </span>
             {isScheduled&&tx.fixedDay&&(
               <span style={{fontSize:"10px",color:isToday?"#b5451b":isPast?"#e07a5f":C.inkLight,
-                fontWeight:isToday||isPast?700:400,fontFamily:"'DM Sans',sans-serif"}}>
+                fontWeight:isToday||isPast?700:400,fontFamily:"'Inter',sans-serif"}}>
                 매월 {tx.fixedDay===31?"말일":`${tx.fixedDay}일`}
               </span>
             )}
             {!isScheduled&&(
-              <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>{tx.date}</span>
+              <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.date}</span>
             )}
           </div>
         </div>
-        <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"15px",
+        <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",
           color:tx.type==="income"?"#2d6a4f":"#b5451b",fontWeight:700,flexShrink:0,
           opacity:isScheduled?0.6:1}}>
           {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
@@ -831,7 +831,7 @@ function FixedView({txs, onDelete, year, month}){
   if(!fixedTemplates.length) return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
       <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📋</div>
-      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>고정지출이 없어요</div>
+      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>고정지출이 없어요</div>
       <div style={{fontSize:"12px",color:C.inkLight}}>거래 추가 시 고정지출 토글을 켜보세요</div>
     </div>
   );
@@ -844,10 +844,10 @@ function FixedView({txs, onDelete, year, month}){
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
             <div style={{fontSize:"10px",fontWeight:700,color:"#b5451b",letterSpacing:"0.12em",
-              textTransform:"uppercase",fontFamily:"'DM Sans',sans-serif"}}>
+              textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>
               이번 달 예정 ({scheduled.length}건)
             </div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"14px",color:"#b5451b",opacity:0.7}}>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b",opacity:0.7}}>
               -{fmtS(totalScheduled)}
             </div>
           </div>
@@ -862,10 +862,10 @@ function FixedView({txs, onDelete, year, month}){
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
             <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",
-              textTransform:"uppercase",fontFamily:"'DM Sans',sans-serif"}}>
+              textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>
               이번 달 발생 ({occurred.length}건)
             </div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"14px",color:"#b5451b"}}>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b"}}>
               -{fmtS(totalOccurred)}
             </div>
           </div>
@@ -880,16 +880,16 @@ function FixedView({txs, onDelete, year, month}){
         border:"1px solid #f4c5b2",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:"9px",fontWeight:700,color:"#b5451b",letterSpacing:"0.12em",
-            textTransform:"uppercase",marginBottom:"4px",fontFamily:"'DM Sans',sans-serif"}}>
+            textTransform:"uppercase",marginBottom:"4px",fontFamily:"'Inter',sans-serif"}}>
             이번 달 고정지출 예상 합계
           </div>
-          <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"22px",color:"#b5451b",letterSpacing:"-0.5px"}}>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"22px",color:"#b5451b",letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums"}}>
             -{fmtS(totalOccurred+totalScheduled)}
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:"10px",color:"#b5451b",opacity:0.6,fontFamily:"'DM Sans',sans-serif"}}>발생 -{fmtS(totalOccurred)}</div>
-          <div style={{fontSize:"10px",color:"#b5451b",opacity:0.4,fontFamily:"'DM Sans',sans-serif"}}>예정 -{fmtS(totalScheduled)}</div>
+          <div style={{fontSize:"10px",color:"#b5451b",opacity:0.6,fontFamily:"'Inter',sans-serif"}}>발생 -{fmtS(totalOccurred)}</div>
+          <div style={{fontSize:"10px",color:"#b5451b",opacity:0.4,fontFamily:"'Inter',sans-serif"}}>예정 -{fmtS(totalScheduled)}</div>
         </div>
       </div>
     </div>
@@ -929,12 +929,12 @@ function StatsView({txs,entity,cards}){
     }).sort((a,b)=>b.value-a.value);
   },[txs,cards]);
 
-  const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'DM Sans',sans-serif",fontSize:"12px"};
+  const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
   const totalExp=expense||1;
 
   if(!txs.length)return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
-      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"17px",color:C.inkMid}}>데이터가 없어요</div>
+      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid}}>데이터가 없어요</div>
     </div>
   );
 
@@ -949,8 +949,8 @@ function StatsView({txs,entity,cards}){
           {label:"저축률",val:`${savingsRate}%`,color:savingsRate>=0?"#1d4e89":"#831843",bg:"#f0f4ff"},
         ].map(({label,val,color,bg})=>(
           <div key={label} style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center"}}>
-            <div style={{fontSize:"9px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'DM Sans',sans-serif"}}>{label}</div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"15px",color,letterSpacing:"-0.3px",wordBreak:"keep-all"}}>{val}</div>
+            <div style={{fontSize:"9px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>{label}</div>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color,letterSpacing:"-0.3px",wordBreak:"keep-all"}}>{val}</div>
           </div>
         ))}
       </div>
@@ -962,7 +962,7 @@ function StatsView({txs,entity,cards}){
             flex:1,padding:"8px",border:"none",borderRadius:"8px",cursor:"pointer",
             fontWeight:statsTab===k?700:400,fontSize:"12px",transition:"all 0.15s",
             background:statsTab===k?C.ink:"transparent",color:statsTab===k?"#fff":C.inkLight,
-            fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+            fontFamily:"'Inter',sans-serif"}}>{l}</button>
         ))}
       </div>
 
@@ -970,14 +970,14 @@ function StatsView({txs,entity,cards}){
         <>
           {/* Donut */}
           <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'DM Sans',sans-serif"}}>지출 구성</div>
+            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>지출 구성</div>
             <ResponsiveContainer width="100%" height={170}>
               <PieChart>
                 <Pie data={byCat1} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
                   {byCat1.map((e,i)=><Cell key={i} fill={e.color}/>)}
                 </Pie>
                 <Tooltip formatter={v=>[fmt(v),"지출"]} contentStyle={tt}/>
-                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{v}</span>}/>
+                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -993,9 +993,9 @@ function StatsView({txs,entity,cards}){
                     style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
                     <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
                       <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
-                      <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{item.name}</div>
-                      <div style={{fontSize:"11px",color:item.color,fontWeight:700,fontFamily:"'DM Sans',sans-serif",marginRight:"6px"}}>{pct}%</div>
-                      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(item.value)}</div>
+                      <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{item.name}</div>
+                      <div style={{fontSize:"11px",color:item.color,fontWeight:700,fontFamily:"'Inter',sans-serif",marginRight:"6px"}}>{pct}%</div>
+                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(item.value)}</div>
                       <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
                     </div>
                     <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
@@ -1009,8 +1009,8 @@ function StatsView({txs,entity,cards}){
                         return(
                           <div key={s.name} style={{marginBottom:"8px"}}>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
-                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
                             </div>
                             <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
                               <div style={{width:`${sp}%`,height:"100%",background:item.color+"bb",borderRadius:"99px"}}/>
@@ -1031,14 +1031,14 @@ function StatsView({txs,entity,cards}){
         <>
           {/* Donut */}
           <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'DM Sans',sans-serif"}}>카드별 지출</div>
+            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>카드별 지출</div>
             <ResponsiveContainer width="100%" height={170}>
               <PieChart>
                 <Pie data={byCard} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
                   {byCard.map((e,i)=><Cell key={i} fill={e.color}/>)}
                 </Pie>
                 <Tooltip formatter={v=>[fmt(v),"지출"]} contentStyle={tt}/>
-                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{v}</span>}/>
+                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -1051,9 +1051,9 @@ function StatsView({txs,entity,cards}){
                 <div key={c.name} style={{background:C.white,borderRadius:"14px",padding:"13px 14px 10px",border:`1px solid ${C.border}`}}>
                   <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
                     <div style={{width:"9px",height:"9px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
-                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{c.name}</div>
-                    <div style={{fontSize:"11px",color:c.color,fontWeight:700,fontFamily:"'DM Sans',sans-serif",marginRight:"6px"}}>{pct}%</div>
-                    <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(c.value)}</div>
+                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{c.name}</div>
+                    <div style={{fontSize:"11px",color:c.color,fontWeight:700,fontFamily:"'Inter',sans-serif",marginRight:"6px"}}>{pct}%</div>
+                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b"}}>-{fmtS(c.value)}</div>
                   </div>
                   <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
                     <div style={{width:`${pct}%`,height:"100%",background:c.color,borderRadius:"99px"}}/>
@@ -1247,9 +1247,9 @@ function CoupangImport({ onRegister }) {
   };
 
   return (
-    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{fontFamily:"'Inter',sans-serif"}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"20px"}}>
-        <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"21px",color:C.ink}}>쿠팡 메일 가져오기</span>
+        <span style={{fontFamily:"'Inter',sans-serif",fontSize:"21px",color:C.ink}}>쿠팡 메일 가져오기</span>
         <span style={{fontSize:"11px",color:C.inkLight}}>Gmail → 파싱 → 등록</span>
       </div>
 
@@ -1265,14 +1265,14 @@ function CoupangImport({ onRegister }) {
               width:"100%",padding:"12px",background:C.ink,color:"#fff",
               border:"none",borderRadius:"11px",fontSize:"14px",fontWeight:700,
               cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
-              gap:"8px",fontFamily:"'DM Sans',sans-serif",
+              gap:"8px",fontFamily:"'Inter',sans-serif",
               boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
               <Mail size={14}/> Google 계정 연결
             </button>
             <button onClick={()=>setShowPaste(p=>!p)} style={{
               width:"100%",marginTop:"8px",padding:"9px",background:"none",
               border:`1px dashed ${C.border}`,borderRadius:"10px",fontSize:"12px",
-              color:C.inkLight,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+              color:C.inkLight,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
               직접 붙여넣기
             </button>
           </>
@@ -1281,7 +1281,7 @@ function CoupangImport({ onRegister }) {
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
               <div style={{fontSize:"12px",color:C.inkMid}}>Gmail 연결됨 ✓</div>
               <button onClick={()=>setGmailToken(null)} style={{fontSize:"11px",color:C.inkLight,
-                background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                background:"none",border:"none",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
                 연결 해제
               </button>
             </div>
@@ -1290,12 +1290,12 @@ function CoupangImport({ onRegister }) {
               <input type="date" value={since} onChange={e=>setSince(e.target.value)} max={until}
                 style={{flex:1,border:`1.5px solid ${C.border}`,borderRadius:"10px",padding:"9px 10px",
                   fontSize:"13px",fontWeight:600,color:C.ink,background:C.white,outline:"none",
-                  fontFamily:"'DM Sans',sans-serif"}}/>
+                  fontFamily:"'Inter',sans-serif"}}/>
               <span style={{fontSize:"12px",color:C.inkLight,flexShrink:0}}>~</span>
               <input type="date" value={until} onChange={e=>setUntil(e.target.value)} min={since} max={today}
                 style={{flex:1,border:`1.5px solid ${C.border}`,borderRadius:"10px",padding:"9px 10px",
                   fontSize:"13px",fontWeight:600,color:C.ink,background:C.white,outline:"none",
-                  fontFamily:"'DM Sans',sans-serif"}}/>
+                  fontFamily:"'Inter',sans-serif"}}/>
             </div>
             <button onClick={()=>fetchMails(null, false)} disabled={status==="loading"} style={{
               width:"100%",padding:"12px",
@@ -1303,7 +1303,7 @@ function CoupangImport({ onRegister }) {
               color:"#fff",border:"none",borderRadius:"11px",
               fontSize:"14px",fontWeight:700,cursor:status==="loading"?"not-allowed":"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-              fontFamily:"'DM Sans',sans-serif",boxShadow:status!=="loading"?"0 4px 14px rgba(0,0,0,0.2)":"none"}}>
+              fontFamily:"'Inter',sans-serif",boxShadow:status!=="loading"?"0 4px 14px rgba(0,0,0,0.2)":"none"}}>
               {status==="loading"
                 ?<><RefreshCw size={14} className="spin"/> 메일 읽는 중...</>
                 :<><Mail size={14}/> 쿠팡 메일 가져오기</>}
@@ -1313,7 +1313,7 @@ function CoupangImport({ onRegister }) {
                 onClick={()=>connectGmail(token=>fetchMails(token, true))}
                 style={{width:"100%",marginTop:"8px",padding:"9px",background:"none",
                   border:`1px dashed ${C.border}`,borderRadius:"10px",fontSize:"12px",
-                  color:C.inkMid,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",
+                  color:C.inkMid,cursor:"pointer",fontFamily:"'Inter',sans-serif",
                   display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"}}>
                 <Plus size={12}/> 다른 계정 추가
               </button>
@@ -1337,14 +1337,14 @@ function CoupangImport({ onRegister }) {
             rows={5}
             style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:"10px",
               padding:"10px 12px",fontSize:"12px",color:C.ink,background:C.white,
-              fontFamily:"'DM Sans',sans-serif",resize:"vertical",outline:"none",
+              fontFamily:"'Inter',sans-serif",resize:"vertical",outline:"none",
               lineHeight:1.6,boxSizing:"border-box"}}
           />
           <button onClick={parsePaste} style={{
             width:"100%",marginTop:"10px",padding:"12px",background:C.ink,color:"#fff",
             border:"none",borderRadius:"11px",fontSize:"14px",fontWeight:700,cursor:"pointer",
             display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-            fontFamily:"'DM Sans',sans-serif",boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
+            fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 14px rgba(0,0,0,0.2)"}}>
             <Mail size={14}/> 파싱하기
           </button>
         </div>
@@ -1382,7 +1382,7 @@ function CoupangImport({ onRegister }) {
               background:submitted?"#2d6a4f":C.ink,color:"#fff",border:"none",
               borderRadius:"12px",fontSize:"14px",fontWeight:700,cursor:"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-              fontFamily:"'DM Sans',sans-serif",transition:"all 0.3s",
+              fontFamily:"'Inter',sans-serif",transition:"all 0.3s",
               boxShadow:"0 4px 14px rgba(0,0,0,0.18)"}}>
               {submitted?<><Check size={14}/> 등록 완료!</>:<><ShoppingCart size={14}/> {toReg.length}건 한번에 등록</>}
             </button>
@@ -1414,7 +1414,7 @@ function CoupangImport({ onRegister }) {
                               style={{width:"76px",border:"none",background:"transparent",
                                 fontSize:"12px",fontWeight:700,
                                 color:parseInt(r.amountEdit)>0?C.ink:"#b5451b",
-                                outline:"none",fontFamily:"'DM Serif Display',serif"}}/>
+                                outline:"none",fontFamily:"'Inter',sans-serif"}}/>
                           </div>
                           <span style={{fontSize:"9px",fontWeight:700,
                             background:ent.color+"18",color:ent.color,
@@ -1434,7 +1434,7 @@ function CoupangImport({ onRegister }) {
                               background:sel?e.color:"transparent",
                               color:sel?"#fff":C.inkLight,
                               fontSize:"10px",fontWeight:sel?700:400,
-                              transition:"all 0.15s",fontFamily:"'DM Sans',sans-serif"}}>
+                              transition:"all 0.15s",fontFamily:"'Inter',sans-serif"}}>
                               {e.label}
                             </button>
                           );
@@ -1447,7 +1447,7 @@ function CoupangImport({ onRegister }) {
                           background:ent.color+"0e",cursor:"pointer",
                           color:ent.color,fontSize:"11px",fontWeight:600,
                           display:"flex",alignItems:"center",justifyContent:"center",gap:"4px",
-                          fontFamily:"'DM Sans',sans-serif"}}>
+                          fontFamily:"'Inter',sans-serif"}}>
                           <Check size={11}/> {ent.label} 지출로 등록
                         </button>
                       )}
@@ -1472,7 +1472,7 @@ function CoupangImport({ onRegister }) {
                     <button onClick={()=>setEnt(r.id,"personal")} style={{
                       background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
                       padding:"3px 8px",cursor:"pointer",fontSize:"10px",color:C.inkLight,
-                      fontFamily:"'DM Sans',sans-serif",flexShrink:0}}>되돌리기</button>
+                      fontFamily:"'Inter',sans-serif",flexShrink:0}}>되돌리기</button>
                   </div>
                 ))}
               </div>
@@ -1501,7 +1501,7 @@ function CoupangImport({ onRegister }) {
                           {r.date} · <span style={{color:ent.color,fontWeight:600}}>{ent.label}</span>
                         </div>
                       </div>
-                      <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"13px",color:C.mid,flexShrink:0}}>
+                      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"13px",color:C.mid,flexShrink:0}}>
                         -{(parseInt(r.amountEdit)||0).toLocaleString("ko-KR")}원
                       </div>
                       <button onClick={()=>undoDone(r.id)} style={{background:"none",border:"none",
@@ -1520,7 +1520,7 @@ function CoupangImport({ onRegister }) {
           {pending.filter(r=>r.entity!=="skip").length===0&&done.length>0&&(
             <div style={{textAlign:"center",padding:"24px",background:"#f0fdf4",
               borderRadius:"16px",border:"1px solid #b7e4c7"}}>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"18px",color:"#2d6a4f",marginBottom:"4px"}}>
+              <div style={{fontFamily:"'Inter',sans-serif",fontSize:"18px",color:"#2d6a4f",marginBottom:"4px"}}>
                 모두 처리했어요
               </div>
               <div style={{fontSize:"11px",color:"#2d6a4f",opacity:0.7}}>
@@ -1611,10 +1611,10 @@ function SuppliesView({ supplies, onChange }){
   const needAction = sorted.filter(s => daysUntil(s) <= 3);
 
   const FormContent = ({ isEdit }) => (
-    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{fontFamily:"'Inter',sans-serif"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-          <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"20px",color:C.ink}}>
+          <span style={{fontFamily:"'Inter',sans-serif",fontSize:"20px",color:C.ink}}>
             {isEdit?"소모품 수정":"소모품 추가"}
           </span>
         </div>
@@ -1640,7 +1640,7 @@ function SuppliesView({ supplies, onChange }){
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
                 border:`1.5px solid ${form.category===c?"#2d6a4f":C.border}`,
                 background:form.category===c?"#2d6a4f14":"#fff",
-                color:form.category===c?"#2d6a4f":C.inkMid,fontFamily:"'DM Sans',sans-serif"}}>{c}</button>
+                color:form.category===c?"#2d6a4f":C.inkMid,fontFamily:"'Inter',sans-serif"}}>{c}</button>
             ))}
           </div>
         </div>
@@ -1651,7 +1651,7 @@ function SuppliesView({ supplies, onChange }){
               <input type="number" value={form.cycle_days} onChange={e=>setForm(p=>({...p,cycle_days:e.target.value}))}
                 placeholder="14" min="1"
                 style={{flex:1,border:"none",background:"transparent",fontSize:"16px",fontWeight:700,
-                  color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'DM Serif Display',serif"}}/>
+                  color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
               <span style={{fontSize:"12px",color:C.inkLight}}>일</span>
             </div>
           </div>
@@ -1670,7 +1670,7 @@ function SuppliesView({ supplies, onChange }){
         width:"100%",padding:"14px",background:saving?"#9c8e82":"#2d6a4f",color:"#fff",border:"none",
         borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:saving?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-        fontFamily:"'DM Sans',sans-serif",boxShadow:"0 4px 18px #2d6a4f55"}}>
+        fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 18px #2d6a4f55"}}>
         {saving?<><RefreshCw size={15} className="spin"/> 저장 중...</>
           :isEdit?<><Check size={15}/> 저장하기</>:<><Plus size={15}/> 추가하기</>}
       </button>
@@ -1683,8 +1683,8 @@ function SuppliesView({ supplies, onChange }){
       {/* 액션 헤더 */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"18px",color:C.ink}}>소모품 관리</div>
-          <div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'DM Sans',sans-serif"}}>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"18px",color:C.ink}}>소모품 관리</div>
+          <div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>
             앤딩스터디카페 재고 주기 트래커
           </div>
         </div>
@@ -1694,7 +1694,7 @@ function SuppliesView({ supplies, onChange }){
         }} style={{
           background:"#2d6a4f",border:"none",borderRadius:"10px",padding:"9px 14px",
           color:"#fff",fontSize:"12px",fontWeight:600,cursor:"pointer",
-          display:"flex",alignItems:"center",gap:"5px",fontFamily:"'DM Sans',sans-serif",
+          display:"flex",alignItems:"center",gap:"5px",fontFamily:"'Inter',sans-serif",
           boxShadow:"0 3px 10px #2d6a4f44"}}>
           <Plus size={13}/> 추가
         </button>
@@ -1706,12 +1706,12 @@ function SuppliesView({ supplies, onChange }){
           border:"1px solid #f4c5b2",display:"flex",alignItems:"center",gap:"10px"}}>
           <AlertTriangle size={16} color="#b5451b"/>
           <div style={{flex:1}}>
-            <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",fontFamily:"'DM Sans',sans-serif"}}>
+            <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
               {needAction.filter(s=>daysUntil(s)<0).length>0
                 ? `${needAction.filter(s=>daysUntil(s)<0).length}개 구매 필요 · ${needAction.filter(s=>daysUntil(s)>=0).length>0?`${needAction.filter(s=>daysUntil(s)>=0).length}개 임박`:""}`
                 : `${needAction.length}개 구매 임박`}
             </div>
-            <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:"'DM Sans',sans-serif"}}>
+            <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>
               {needAction.map(s=>s.name).join(", ")}
             </div>
           </div>
@@ -1723,7 +1723,7 @@ function SuppliesView({ supplies, onChange }){
         ?<div style={{textAlign:"center",padding:"48px 20px",background:C.white,
             borderRadius:"20px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📦</div>
-          <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>소모품이 없어요</div>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>소모품이 없어요</div>
           <div style={{fontSize:"12px",color:C.inkLight}}>추가 버튼으로 소모품을 등록해보세요</div>
         </div>
         :sorted.map(s=>{
@@ -1736,17 +1736,17 @@ function SuppliesView({ supplies, onChange }){
               <div style={{display:"flex",alignItems:"flex-start",gap:"12px",marginBottom:"12px"}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:"7px",marginBottom:"3px"}}>
-                    <span style={{fontSize:"14px",fontWeight:700,color:C.ink,fontFamily:"'DM Sans',sans-serif"}}>{s.name}</span>
+                    <span style={{fontSize:"14px",fontWeight:700,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{s.name}</span>
                     <span style={{fontSize:"9px",background:st.bg,color:st.color,border:`1px solid ${st.border}`,
-                      borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'DM Sans',sans-serif",
+                      borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
                       display:"flex",alignItems:"center",gap:"3px"}}>
                       {st.icon}{st.label}
                     </span>
                   </div>
-                  <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>
+                  <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
                     {s.category} · 주기 {s.cycle_days}일 · 다음 구매 {next}
                   </div>
-                  {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'DM Sans',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
+                  {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
                 </div>
                 <div style={{display:"flex",gap:"4px",flexShrink:0}}>
                   <button onClick={()=>openEdit(s)} style={{background:"none",border:"none",cursor:"pointer",
@@ -1764,10 +1764,10 @@ function SuppliesView({ supplies, onChange }){
                     background:progress>=100?"#b5451b":progress>=80?"#b8860b":"#2d6a4f"}}/>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
-                  <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>
+                  <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
                     구매 후 {daysDiff(s.last_bought)}일 경과
                   </span>
-                  <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif"}}>
+                  <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
                     주기 {s.cycle_days}일
                   </span>
                 </div>
@@ -1779,7 +1779,7 @@ function SuppliesView({ supplies, onChange }){
                 border:`1.5px solid ${st.border}`,borderRadius:"10px",
                 color:st.color,fontSize:"12px",fontWeight:700,cursor:"pointer",
                 display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
-                fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s"}}
+                fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}
                 onMouseEnter={e=>e.currentTarget.style.background=st.color+"18"}
                 onMouseLeave={e=>e.currentTarget.style.background=st.bg}>
                 <ShoppingCart size={13}/> 오늘 구매 완료
@@ -1801,9 +1801,9 @@ function SuppliesView({ supplies, onChange }){
 /* ── Theme Picker ── */
 function ThemePicker({ current, onChange }) {
   return (
-    <div style={{fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{fontFamily:"'Inter',sans-serif"}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"22px"}}>
-        <span style={{fontFamily:"'DM Serif Display',serif",fontSize:"21px",color:C.ink}}>테마</span>
+        <span style={{fontFamily:"'Inter',sans-serif",fontSize:"21px",color:C.ink}}>테마</span>
         <span style={{fontSize:"11px",color:C.inkLight}}>Theme</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"10px"}}>
@@ -1817,7 +1817,7 @@ function ThemePicker({ current, onChange }) {
               display:"flex",alignItems:"center",gap:"12px",
               transition:"all 0.18s",
               boxShadow:sel?`0 4px 16px ${t.headerSolid}33`:"none",
-              fontFamily:"'DM Sans',sans-serif",
+              fontFamily:"'Inter',sans-serif",
             }}>
               {/* 미니 프리뷰 */}
               <div style={{width:"36px",height:"36px",borderRadius:"10px",flexShrink:0,
@@ -1972,18 +1972,18 @@ export default function App(){
       {/* Header */}
       <div style={{background:C.header,padding:"26px 20px 0",color:"#fff",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:"-40px",right:"-40px",width:"160px",height:"160px",borderRadius:"50%",background:"rgba(255,255,255,0.03)"}}/>
-        <div style={{maxWidth:"540px",margin:"0 auto",position:"relative"}}>
+        <div style={{maxWidth:"660px",margin:"0 auto",position:"relative"}}>
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"20px"}}>
             <div>
-              <div style={{fontSize:"9px",fontWeight:700,opacity:0.35,letterSpacing:"0.2em",marginBottom:"4px",fontFamily:"'DM Sans',sans-serif"}}>HOUSEHOLD BUDGET</div>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"25px",letterSpacing:"-0.5px",lineHeight:1}}>가계부</div>
+              <div style={{fontSize:"9px",fontWeight:700,opacity:0.35,letterSpacing:"0.2em",marginBottom:"4px",fontFamily:"'Inter',sans-serif"}}>HOUSEHOLD BUDGET</div>
+              <div style={{fontFamily:"'Inter',sans-serif",fontSize:"22px",fontWeight:700,letterSpacing:"-0.5px",lineHeight:1}}>가계부</div>
               <div style={{display:"flex",alignItems:"center",gap:"5px",marginTop:"4px"}}>
                 {online
-                  ?<><Wifi size={10} color="rgba(255,255,255,0.4)"/><span style={{fontSize:"10px",opacity:0.4,fontFamily:"'DM Sans',sans-serif"}}>Supabase 연결됨</span></>
+                  ?<><Wifi size={10} color="rgba(255,255,255,0.4)"/><span style={{fontSize:"10px",opacity:0.4,fontFamily:"'Inter',sans-serif"}}>Supabase 연결됨</span></>
                   :!isConfigured()
-                    ?<><WifiOff size={10} color="rgba(255,255,255,0.3)"/><span style={{fontSize:"10px",opacity:0.3,fontFamily:"'DM Sans',sans-serif"}}>로컬 모드</span></>
-                    :<><WifiOff size={10} color="#e07a5f"/><span style={{fontSize:"10px",color:"#e07a5f",fontFamily:"'DM Sans',sans-serif"}}>연결 오류</span></>
+                    ?<><WifiOff size={10} color="rgba(255,255,255,0.3)"/><span style={{fontSize:"10px",opacity:0.3,fontFamily:"'Inter',sans-serif"}}>로컬 모드</span></>
+                    :<><WifiOff size={10} color="#e07a5f"/><span style={{fontSize:"10px",color:"#e07a5f",fontFamily:"'Inter',sans-serif"}}>연결 오류</span></>
                 }
               </div>
             </div>
@@ -2023,7 +2023,7 @@ export default function App(){
                   flex:1,padding:"9px 4px",borderRadius:"10px",cursor:"pointer",border:"none",
                   background:sel?e.color:"rgba(255,255,255,0.07)",
                   color:sel?"#fff":"rgba(255,255,255,0.45)",
-                  fontFamily:"'DM Sans',sans-serif",fontSize:"11px",fontWeight:sel?700:400,
+                  fontFamily:"'Inter',sans-serif",fontSize:"11px",fontWeight:sel?700:400,
                   transition:"all 0.2s",boxShadow:sel?`0 3px 12px ${e.color}66`:"none"}}>
                   <div style={{lineHeight:1.3,padding:"1px 0"}}>{e.label}</div>
                 </button>
@@ -2037,8 +2037,8 @@ export default function App(){
               <ChevronLeft size={17}/>
             </button>
             <div style={{textAlign:"center",minWidth:"120px"}}>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"20px",letterSpacing:"-0.3px"}}>{MONTHS[month]} {year}</div>
-              <div style={{fontSize:"10px",opacity:0.35,fontFamily:"'DM Sans',sans-serif",marginTop:"1px"}}>{year}년 {MONTHS_KO[month]}</div>
+              <div style={{fontFamily:"'Inter',sans-serif",fontSize:"20px",letterSpacing:"-0.3px"}}>{MONTHS[month]} {year}</div>
+              <div style={{fontSize:"10px",opacity:0.35,fontFamily:"'Inter',sans-serif",marginTop:"1px"}}>{year}년 {MONTHS_KO[month]}</div>
             </div>
             <button onClick={nextMonth} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:"8px",padding:"7px",color:"rgba(255,255,255,0.45)",cursor:"pointer",display:"flex"}}>
               <ChevronRight size={17}/>
@@ -2058,8 +2058,8 @@ export default function App(){
             ].map((item,i)=>item===null
               ?<div key={i} style={{background:C.border,height:"32px",width:"1px"}}/>
               :<div key={i} style={{textAlign:"center"}}>
-                <div style={{fontSize:"9px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"5px",fontFamily:"'DM Sans',sans-serif"}}>{item.label}</div>
-                <div style={{fontFamily:"'DM Serif Display',serif",fontSize:"16px",color:item.color,letterSpacing:"-0.3px"}}>{item.sign}{fmtS(item.val)}</div>
+                <div style={{fontSize:"9px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"5px",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:"16px",color:item.color,letterSpacing:"-0.3px"}}>{item.sign}{fmtS(item.val)}</div>
               </div>
             )}
           </div>
@@ -2067,7 +2067,7 @@ export default function App(){
       </div>
 
       {/* Body */}
-      <div style={{maxWidth:"540px",margin:"0 auto",padding:"0 14px 16px",
+      <div style={{maxWidth:"660px",margin:"0 auto",padding:"0 14px 16px",
         background:C.paper,borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`}}>
 
         {!isConfigured()&&<SetupGuide/>}
@@ -2081,12 +2081,12 @@ export default function App(){
               fontWeight:tab===k?700:400,fontSize:"13px",
               color:tab===k?C.ink:C.inkLight,
               borderBottom:`2px solid ${tab===k?ent.color:"transparent"}`,
-              marginBottom:"-1px",fontFamily:"'DM Sans',sans-serif",transition:"all 0.2s"}}>{l}</button>
+              marginBottom:"-1px",fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}>{l}</button>
           ))}
         </div>
 
         {loading
-          ?<div style={{textAlign:"center",padding:"48px",color:C.inkLight,fontFamily:"'DM Sans',sans-serif",fontSize:"13px"}}>
+          ?<div style={{textAlign:"center",padding:"48px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
