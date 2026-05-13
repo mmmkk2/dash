@@ -245,8 +245,16 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
   const init=initial||{};
   const [entity,setEntity]=useState(init.entity||defaultEntity);
   const tree=TREES[entity];
-  const [cat1,setCat1]=useState(init.cat1||Object.keys(tree)[0]);
-  const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[Object.keys(tree)[0]].children)[0]||"");
+  function deriveGroup(c1){
+    if(!c1)return "지출";
+    if(c1.startsWith("지출"))return "지출";
+    if(c1.startsWith("저축"))return "저축";
+    return "수입";
+  }
+  const initCat1=init.cat1||(entity==="personal"?"지출-용돈":Object.keys(TREES[entity])[0]);
+  const [cat1,setCat1]=useState(initCat1);
+  const [group,setGroup]=useState(deriveGroup(initCat1));
+  const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[initCat1]?.children||{})[0]||"");
   const [cat3,setCat3]=useState(init.cat3||"");
   const [amount,setAmount]=useState(init.amount?String(init.amount):"");
   const [memo,setMemo]=useState(init.memo||"");
@@ -259,8 +267,14 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
 
   function pickEntity(e){
     setEntity(e);
-    const t=TREES[e];const k1=Object.keys(t)[0];
-    setCat1(k1);setCat2(Object.keys(t[k1].children)[0]||"");setCat3("");
+    const t=TREES[e];
+    const k1=e==="personal"?"지출-용돈":Object.keys(t)[0];
+    setCat1(k1);setGroup(deriveGroup(k1));setCat2(Object.keys(t[k1]?.children||{})[0]||"");setCat3("");
+  }
+  function pickGroup(g){
+    setGroup(g);
+    const k=g==="수입"?"수입":g==="저축"?"저축/투자고정":"지출-용돈";
+    setCat1(k);setCat2(Object.keys(tree[k]?.children||{})[0]||"");setCat3("");
   }
   function pickCat1(k){setCat1(k);setCat2(Object.keys(tree[k]?.children||{})[0]||"");setCat3("");}
 
@@ -316,21 +330,67 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
       </div>
 
       {/* CAT1 */}
-      <div style={{marginBottom:"14px"}}>
-        <SLabel>대분류</SLabel>
-        <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
-          {Object.entries(tree).map(([k,v])=>(
-            <button key={k} className="cat-btn" onClick={()=>pickCat1(k)} style={{
-              padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
-              fontFamily:"'DM Sans',sans-serif",
-              border:`1.5px solid ${cat1===k?v.color:C.border}`,
-              background:cat1===k?v.color:"#fff",color:cat1===k?"#fff":C.inkMid,
-              boxShadow:cat1===k?`0 2px 8px ${v.color}44`:"none"}}>
-              {k}
-            </button>
-          ))}
+      {entity==="personal"?(
+        <>
+          <div style={{marginBottom:"14px"}}>
+            <SLabel>대분류</SLabel>
+            <div style={{display:"flex",gap:"7px"}}>
+              {[["수입","#2d6a4f"],["저축","#1d4e89"],["지출","#b5451b"]].map(([g,gc])=>{
+                const sel=group===g;
+                return(
+                  <button key={g} className="cat-btn" onClick={()=>pickGroup(g)} style={{
+                    flex:1,padding:"9px 6px",borderRadius:"11px",cursor:"pointer",
+                    border:`1.5px solid ${sel?gc:C.border}`,
+                    background:sel?gc:"#fff",color:sel?"#fff":C.inkMid,
+                    fontFamily:"'DM Sans',sans-serif",fontWeight:700,fontSize:"13px",
+                    boxShadow:sel?`0 3px 12px ${gc}44`:"none"}}>
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {group!=="수입"&&(
+            <div style={{marginBottom:"14px"}}>
+              <SLabel>세분류</SLabel>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+                {(group==="지출"
+                  ?[["고정비","지출-고정비"],["세금","지출-세금"],["용돈","지출-용돈"],["이벤트","지출-이벤트"]]
+                  :[["고정","저축/투자고정"],["유동","저축/투자유동"]]
+                ).map(([label,k])=>{
+                  const v=tree[k]||{color:C.inkMid};const sel=cat1===k;
+                  return(
+                    <button key={k} className="cat-btn" onClick={()=>pickCat1(k)} style={{
+                      padding:"5px 14px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
+                      fontFamily:"'DM Sans',sans-serif",
+                      border:`1.5px solid ${sel?v.color:C.border}`,
+                      background:sel?v.color:"#fff",color:sel?"#fff":C.inkMid,
+                      boxShadow:sel?`0 2px 8px ${v.color}44`:"none"}}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      ):(
+        <div style={{marginBottom:"14px"}}>
+          <SLabel>대분류</SLabel>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+            {Object.entries(tree).map(([k,v])=>(
+              <button key={k} className="cat-btn" onClick={()=>pickCat1(k)} style={{
+                padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
+                fontFamily:"'DM Sans',sans-serif",
+                border:`1.5px solid ${cat1===k?v.color:C.border}`,
+                background:cat1===k?v.color:"#fff",color:cat1===k?"#fff":C.inkMid,
+                boxShadow:cat1===k?`0 2px 8px ${v.color}44`:"none"}}>
+                {k}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CAT2 */}
       {cat2keys.length>0&&(
@@ -1870,12 +1930,6 @@ export default function App(){
                 borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}>
                 <CreditCard size={14}/>
               </button>
-              <button onClick={()=>setModal("add")} style={{
-                background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
-                borderRadius:"10px",padding:"9px 16px",color:"#fff",fontSize:"13px",fontWeight:600,
-                cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontFamily:"'DM Sans',sans-serif"}}>
-                <PlusCircle size={14}/> 추가
-              </button>
             </div>
           </div>
 
@@ -1978,6 +2032,18 @@ export default function App(){
       <Modal open={modal==="theme"} onClose={()=>setModal(null)}>
         <ThemePicker current={themeKey} onChange={k=>{changeTheme(k);setModal(null);}}/>
       </Modal>
+
+      {/* FAB */}
+      <button onClick={()=>setModal("add")} style={{
+        position:"fixed",bottom:"24px",right:"24px",zIndex:200,
+        width:"56px",height:"56px",borderRadius:"50%",border:"none",
+        background:ent.color,color:"#fff",cursor:"pointer",
+        display:"flex",alignItems:"center",justifyContent:"center",
+        boxShadow:`0 4px 20px ${ent.color}88`,transition:"transform 0.15s,box-shadow 0.15s"}}
+        onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.08)";}}
+        onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";}}>
+        <Plus size={26}/>
+      </button>
     </div>
   );
 }
