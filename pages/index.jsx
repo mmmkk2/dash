@@ -14,8 +14,16 @@ const apps = [
     icon: '📦',
     title: '앤딩 비품관리',
     desc: 'Gmail 연동 · 구매이력 · 재고 현황',
-    bg: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+    bg: 'linear-gradient(135deg, #374151 0%, #4b5563 100%)',
     tag: '상도점 · 무인',
+  },
+  {
+    path: '/budget',
+    icon: '💰',
+    title: '가계부',
+    desc: '수입 · 지출 · 카드 관리 · 월별 통계',
+    bg: 'linear-gradient(135deg, #1e3a2f 0%, #2d5a42 100%)',
+    tag: '개인 재무',
   },
 ]
 
