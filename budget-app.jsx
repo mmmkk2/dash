@@ -794,49 +794,44 @@ function FlatListView({txs, onEdit, cards}){
 }
 
 /* ── Fixed View ── */
-function FixedView({txs, onDelete, year, month}){
+function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   const today = new Date();
   const todayDay = today.getDate();
+  const todayStr = today.toISOString().slice(0,10);
   const isCurrentMonth = today.getFullYear()===year && today.getMonth()===month;
-  const [fixedEntity, setFixedEntity] = useState("all");
 
-  // 모든 고정지출 템플릿: 가장 최근 등록된 것 기준으로 memo별 dedupe
+  // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
   const fixedTemplates = useMemo(()=>{
     const map={};
-    [...txs].filter(t=>t.isFixed).sort((a,b)=>b.date.localeCompare(a.date)).forEach(t=>{
-      if(!map[t.memo+t.entity]) map[t.memo+t.entity]=t;
+    [...txs].filter(t=>t.isFixed&&t.entity===entity).sort((a,b)=>b.date.localeCompare(a.date)).forEach(t=>{
+      if(!map[t.memo]) map[t.memo]=t;
     });
     return Object.values(map);
-  },[txs]);
+  },[txs,entity]);
 
-  const filteredTemplates = fixedEntity==="all"?fixedTemplates:fixedTemplates.filter(t=>t.entity===fixedEntity);
-
-  // 이번 달 실제 발생한 고정지출
+  // 이번 달 실제 발생한 고정지출 (현재 엔티티)
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   const thisMonthFixed = useMemo(()=>
-    txs.filter(t=>t.isFixed&&t.date.startsWith(monthKey)),
-  [txs,monthKey]);
+    txs.filter(t=>t.isFixed&&t.entity===entity&&t.date.startsWith(monthKey)),
+  [txs,entity,monthKey]);
 
   // 이번 달 아직 미발생인 예정 항목
   const scheduled = useMemo(()=>
-    filteredTemplates.filter(t=>{
-      const alreadyDone = thisMonthFixed.some(m=>m.memo===t.memo&&m.entity===t.entity);
+    fixedTemplates.filter(t=>{
+      const alreadyDone = thisMonthFixed.some(m=>m.memo===t.memo);
       return !alreadyDone && t.fixedDay;
     }).sort((a,b)=>a.fixedDay-b.fixedDay),
-  [filteredTemplates,thisMonthFixed]);
+  [fixedTemplates,thisMonthFixed]);
 
   // 이번 달 실제 발생 목록
   const occurred = useMemo(()=>
-    [...thisMonthFixed]
-      .filter(t=>fixedEntity==="all"||t.entity===fixedEntity)
-      .sort((a,b)=>a.date.localeCompare(b.date)),
-  [thisMonthFixed,fixedEntity]);
+    [...thisMonthFixed].sort((a,b)=>a.date.localeCompare(b.date)),
+  [thisMonthFixed]);
 
   const totalScheduled = scheduled.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const totalOccurred  = occurred.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
 
   const FixedCard = ({tx, isScheduled}) => {
-    const ent = ENTITIES[tx.entity]||{label:tx.entity,color:C.inkMid};
     const isPast = isScheduled && isCurrentMonth && tx.fixedDay < todayDay;
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
     const borderColor = isToday?"#b5451b":isPast?"#e07a5f":C.border;
@@ -863,9 +858,6 @@ function FixedView({txs, onDelete, year, month}){
               border:"1px solid #f4c5b2",fontFamily:"'Inter',sans-serif"}}>미발생</span>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-            <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-              {ent.label}
-            </span>
             {isScheduled&&tx.fixedDay&&(
               <span style={{fontSize:"10px",color:isToday?"#b5451b":isPast?"#e07a5f":C.inkLight,
                 fontWeight:isToday||isPast?700:400,fontFamily:"'Inter',sans-serif"}}>
@@ -882,11 +874,24 @@ function FixedView({txs, onDelete, year, month}){
           opacity:isScheduled?0.6:1}}>
           {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
         </div>
-        {!isScheduled&&(
-          <button onClick={()=>onDelete(tx.id)} style={{background:"none",border:"none",cursor:"pointer",
-            color:C.border,padding:"4px",flexShrink:0,borderRadius:"6px",display:"flex",transition:"color 0.15s"}}
-            onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
-            onMouseLeave={e=>e.currentTarget.style.color=C.border}><Trash2 size={14}/></button>
+        {isScheduled?(
+          <button onClick={()=>onRegister({...tx,id:Date.now(),date:todayStr,isFixed:true})}
+            style={{background:"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
+              padding:"5px 10px",cursor:"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
+              flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px"}}>
+            <Plus size={11}/> 등록
+          </button>
+        ):(
+          <div style={{display:"flex",gap:"2px",flexShrink:0}}>
+            <button onClick={()=>onEdit(tx)} style={{background:"none",border:"none",cursor:"pointer",
+              color:C.inkLight,padding:"4px",borderRadius:"6px",display:"flex",transition:"color 0.15s"}}
+              onMouseEnter={e=>e.currentTarget.style.color=C.ink}
+              onMouseLeave={e=>e.currentTarget.style.color=C.inkLight}><Pencil size={13}/></button>
+            <button onClick={()=>onDelete(tx.id)} style={{background:"none",border:"none",cursor:"pointer",
+              color:C.border,padding:"4px",flexShrink:0,borderRadius:"6px",display:"flex",transition:"color 0.15s"}}
+              onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+              onMouseLeave={e=>e.currentTarget.style.color=C.border}><Trash2 size={13}/></button>
+          </div>
         )}
       </div>
     );
@@ -900,25 +905,8 @@ function FixedView({txs, onDelete, year, month}){
     </div>
   );
 
-  const entityFilterTabs=[["all","전체"],...ENTITY_KEYS.map(ek=>[ek,ENTITIES[ek].label])];
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
-
-      {/* 엔티티 필터 */}
-      <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",border:`1px solid ${C.border}`,gap:"3px"}}>
-        {entityFilterTabs.map(([k,l])=>{
-          const ent=ENTITIES[k];const sel=fixedEntity===k;
-          const color=ent?ent.color:C.ink;
-          return(
-            <button key={k} onClick={()=>setFixedEntity(k)} style={{
-              flex:1,padding:"7px 4px",border:"none",borderRadius:"8px",cursor:"pointer",
-              fontWeight:sel?700:400,fontSize:"11px",transition:"all 0.15s",
-              background:sel?color:"transparent",color:sel?"#fff":C.inkLight,
-              fontFamily:"'Inter',sans-serif"}}>{l}</button>
-          );
-        })}
-      </div>
 
       {/* 예정 섹션 */}
       {scheduled.length>0&&(
@@ -1071,17 +1059,22 @@ function StatsView({txs,entity,cards}){
   const byProperty=useMemo(()=>{
     if(!isRealty)return[];
     const m={};
-    txs.filter(t=>t.type==="expense").forEach(t=>{
+    txs.forEach(t=>{
       const key=t.cat3||"미지정";
-      if(!m[key])m[key]={value:0,sub:{}};
-      m[key].value+=t.amount;
+      if(!m[key])m[key]={income:0,expense:0,sub:{}};
+      if(t.type==="income") m[key].income+=t.amount;
+      else m[key].expense+=t.amount;
       const sub=catDisplayName(t.cat1);
-      m[key].sub[sub]=(m[key].sub[sub]||0)+t.amount;
+      if(!m[key].sub[sub])m[key].sub[sub]={value:0,type:t.type};
+      m[key].sub[sub].value+=t.amount;
+      m[key].sub[sub].type=t.type;
     });
     return Object.entries(m).map(([name,d],i)=>({
-      name,value:d.value,color:PROP_COLORS[i%PROP_COLORS.length],
-      sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value),
-    })).sort((a,b)=>b.value-a.value);
+      name,income:d.income,expense:d.expense,net:d.income-d.expense,
+      color:PROP_COLORS[i%PROP_COLORS.length],
+      sub:Object.entries(d.sub).map(([n,s])=>({name:n,value:s.value,type:s.type}))
+        .sort((a,b)=>a.type===b.type?b.value-a.value:a.type==="income"?-1:1),
+    })).sort((a,b)=>(b.income-b.expense)-(a.income-a.expense));
   },[txs,isRealty]);
 
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
@@ -1092,10 +1085,10 @@ function StatsView({txs,entity,cards}){
     </div>
   );
 
-  const activeData = statsTab==="income"?byIncome:statsTab==="expense"?byExpense:statsTab==="property"?byProperty:byCard;
-  const activeTotal = statsTab==="income"?(totalIn||1):statsTab==="property"?(expense||1):(expense||1);
+  const activeData = statsTab==="income"?byIncome:statsTab==="expense"?byExpense:statsTab==="property"?[]:byCard;
+  const activeTotal = statsTab==="income"?(totalIn||1):(expense||1);
   const activeSign = statsTab==="income"?"+":" ";
-  const activeLabel = statsTab==="income"?"수입 구성":statsTab==="expense"?"지출 구성":statsTab==="property"?"물건별 지출":"카드별 지출";
+  const activeLabel = statsTab==="income"?"수입 구성":statsTab==="expense"?"지출 구성":"카드별 지출";
 
   const statsTabs=[["income","수입"],["expense","지출"],["card","카드"],...(isRealty?[["property","물건별"]]:[])]
 
@@ -1130,8 +1123,8 @@ function StatsView({txs,entity,cards}){
         ))}
       </div>
 
-      {/* Donut */}
-      {activeData.length>0&&(
+      {/* Donut (property 탭 제외) */}
+      {statsTab!=="property"&&activeData.length>0&&(
         <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>{activeLabel}</div>
           <ResponsiveContainer width="100%" height={170}>
@@ -1146,8 +1139,77 @@ function StatsView({txs,entity,cards}){
         </div>
       )}
 
-      {/* Breakdown bars */}
-      <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded}/>
+      {/* 물건별 브레이크다운 */}
+      {statsTab==="property"?(
+        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+          {byProperty.length===0&&(
+            <div style={{textAlign:"center",padding:"32px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>물건 태그가 없어요</div>
+          )}
+          {byProperty.map(item=>{
+            const isOpen=expanded===item.name;
+            const maxAbs=Math.max(...byProperty.map(p=>Math.max(p.income,p.expense)),1);
+            return(
+              <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
+                <button onClick={()=>setExpanded(isOpen?null:item.name)}
+                  style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"10px"}}>
+                    <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
+                    <div style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{item.name}</div>
+                    <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
+                      {item.income>0&&<span style={{fontSize:"11px",color:"#2d6a4f",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>+{fmtS(item.income)}</span>}
+                      {item.expense>0&&<span style={{fontSize:"11px",color:"#b5451b",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>-{fmtS(item.expense)}</span>}
+                      <span style={{fontSize:"13px",fontWeight:700,fontFamily:"'Inter',sans-serif",
+                        color:item.net>=0?"#1d4e89":"#831843",
+                        borderLeft:`1px solid ${C.border}`,paddingLeft:"8px"}}>
+                        {item.net>=0?"+":""}{fmtS(item.net)}
+                      </span>
+                    </div>
+                    <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
+                    {item.income>0&&(
+                      <div>
+                        <div style={{background:"#f0fdf4",borderRadius:"99px",height:"5px",overflow:"hidden"}}>
+                          <div style={{width:`${Math.round((item.income/maxAbs)*100)}%`,height:"100%",background:"#2d6a4f",borderRadius:"99px"}}/>
+                        </div>
+                      </div>
+                    )}
+                    {item.expense>0&&(
+                      <div>
+                        <div style={{background:"#fff5f0",borderRadius:"99px",height:"5px",overflow:"hidden"}}>
+                          <div style={{width:`${Math.round((item.expense/maxAbs)*100)}%`,height:"100%",background:"#b5451b",borderRadius:"99px"}}/>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </button>
+                {isOpen&&item.sub.length>0&&(
+                  <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 13px",background:C.paper}}>
+                    {item.sub.map(s=>(
+                      <div key={s.name} style={{marginBottom:"8px"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
+                          <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name}</span>
+                          <span style={{fontSize:"11px",fontFamily:"'Inter',sans-serif",fontWeight:600,
+                            color:s.type==="income"?"#2d6a4f":"#b5451b"}}>
+                            {s.type==="income"?"+":"-"}{fmtS(s.value)}
+                          </span>
+                        </div>
+                        <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
+                          <div style={{width:`${Math.round((s.value/Math.max(item.income,item.expense,1))*100)}%`,
+                            height:"100%",background:s.type==="income"?"#52b788bb":"#e07a5fbb",borderRadius:"99px"}}/>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ):(
+        /* Breakdown bars */
+        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded}/>
+      )}
     </div>
   );
 }
@@ -2195,7 +2257,7 @@ export default function App(){
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
              :tab==="stats"?<StatsView txs={viewTxs} entity={entity} cards={cards}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies}/>
-             :<FixedView txs={txs} onDelete={deleteTx} year={year} month={month}/>}
+             :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
         }
       </div>
