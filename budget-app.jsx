@@ -153,13 +153,13 @@ const TREE_CAFE = {
   "매입/원가":{ color:"#b5451b",accent:"#e07a5f",icon:"📦",children:{
     소모품:["음료재료","청소용품","사무용품","기타"],비품:["가구","전자기기","기타"],수수료:["결제수수료","플랫폼수수료","기타"],
   }},
-  운영비:{ color:"#4a1942",accent:"#9b5de5",icon:"🏪",children:{임차료:[],관리비:[],인터넷:[],전기세:[],수도세:[],보험:[],마케팅:["SNS광고","전단지","기타"],기타:[]}},
+  운영비:{ color:"#4a1942",accent:"#9b5de5",icon:"🏪",children:{임차료:[],관리비:[],인터넷:[],전기세:[],수도세:[],보험:[],기장료:[],마케팅:["SNS광고","전단지","기타"],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],소득세:[],기타:[]}},
 };
 const TREE_REALTY = {
   수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{매도가:[],임대수입:[],기타:[]}},
   취득비용:{ color:"#b5451b",accent:"#e07a5f",icon:"🏠",children:{취득가:[],취득세:[],등기비:[],중개수수료:[],기타:[]}},
-  보유비용:{ color:"#0077b6",accent:"#48cae4",icon:"📋",children:{대출이자:["주택담보대출","신용대출","기타"],관리비:[],수리비:[],재산세:[],종합부동산세:[],기타:[]}},
+  보유비용:{ color:"#0077b6",accent:"#48cae4",icon:"📋",children:{대출이자:["주택담보대출","신용대출","기타"],관리비:[],수리비:[],재산세:[],종합부동산세:[],기장료:[],기타:[]}},
   처분비용:{ color:"#4a1942",accent:"#9b5de5",icon:"📝",children:{양도세:[],중개수수료:[],명도비:[],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],종합소득세:[],기타:[]}},
 };
@@ -243,7 +243,7 @@ function SetupGuide(){
 }
 
 /* ── TxForm ── */
-function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,supplies=[]}){
+function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,supplies=[],propertyTags=[]}){
   const today=new Date().toISOString().slice(0,10);
   const init=initial||{};
   const [entity,setEntity]=useState(init.entity||defaultEntity);
@@ -424,7 +424,20 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
       {entity==="realty"?(
         <div style={{marginBottom:"8px"}}>
           <SLabel>물건 태그</SLabel>
-          <Inp value={cat3} onChange={e=>setCat3(e.target.value)} placeholder="예: 노원 아파트, 성북 빌라"/>
+          {propertyTags.length>0&&(
+            <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"7px"}}>
+              {propertyTags.map(k=>(
+                <button key={k} className="cat-btn" onClick={()=>setCat3(cat3===k?"":k)} style={{
+                  padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
+                  fontFamily:"'Inter',sans-serif",
+                  border:`1.5px solid ${cat3===k?m1.color:C.border}`,
+                  background:cat3===k?m1.color+"14":"#fff",color:cat3===k?m1.color:C.inkMid}}>
+                  {k}
+                </button>
+              ))}
+            </div>
+          )}
+          <Inp value={cat3} onChange={e=>setCat3(e.target.value)} placeholder="새 물건 태그 입력"/>
         </div>
       ):cat3list.length>0&&(
         <div style={{marginBottom:"8px"}}>
@@ -797,7 +810,6 @@ function FlatListView({txs, onEdit, cards}){
 function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   const today = new Date();
   const todayDay = today.getDate();
-  const todayStr = today.toISOString().slice(0,10);
   const isCurrentMonth = today.getFullYear()===year && today.getMonth()===month;
 
   // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
@@ -834,6 +846,10 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   const FixedCard = ({tx, isScheduled}) => {
     const isPast = isScheduled && isCurrentMonth && tx.fixedDay < todayDay;
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
+    const regDate = (() => {
+      const day = tx.fixedDay===31 ? new Date(year,month+1,0).getDate() : (tx.fixedDay||todayDay);
+      return `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    })();
     const borderColor = isToday?"#b5451b":isPast?"#e07a5f":C.border;
     const bgColor = isToday?"#fff8f0":isPast?"#fffaf8":C.white;
     return(
@@ -875,7 +891,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
           {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
         </div>
         {isScheduled?(
-          <button onClick={()=>onRegister({...tx,id:Date.now(),date:todayStr,isFixed:true})}
+          <button onClick={()=>onRegister({...tx,id:Date.now(),date:regDate,isFixed:true})}
             style={{background:"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
               padding:"5px 10px",cursor:"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
               flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px"}}>
@@ -1019,7 +1035,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
   );
 }
 
-function StatsView({txs,entity,cards}){
+function StatsView({txs,allEntityTxs,entity,cards}){
   const tree=TREES[entity]||TREE_PERSONAL;
   const isRealty=entity==="realty";
   const [statsTab,setStatsTab]=useState("expense");
@@ -1059,7 +1075,7 @@ function StatsView({txs,entity,cards}){
   const byProperty=useMemo(()=>{
     if(!isRealty)return[];
     const m={};
-    txs.forEach(t=>{
+    (allEntityTxs||txs).forEach(t=>{
       const key=t.cat3||"미지정";
       if(!m[key])m[key]={income:0,expense:0,sub:{}};
       if(t.type==="income") m[key].income+=t.amount;
@@ -1075,7 +1091,7 @@ function StatsView({txs,entity,cards}){
       sub:Object.entries(d.sub).map(([n,s])=>({name:n,value:s.value,type:s.type}))
         .sort((a,b)=>a.type===b.type?b.value-a.value:a.type==="income"?-1:1),
     })).sort((a,b)=>(b.income-b.expense)-(a.income-a.expense));
-  },[txs,isRealty]);
+  },[allEntityTxs,txs,isRealty]);
 
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
 
@@ -2122,6 +2138,8 @@ export default function App(){
 
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   const viewTxs=useMemo(()=>txs.filter(t=>t.date.startsWith(monthKey)&&t.entity===entity),[txs,monthKey,entity]);
+  const entityTxs=useMemo(()=>txs.filter(t=>t.entity===entity),[txs,entity]);
+  const realtyTags=useMemo(()=>[...new Set(txs.filter(t=>t.entity==="realty"&&t.cat3).map(t=>t.cat3))],[txs]);
   const income =useMemo(()=>viewTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const bal=income-expense;
@@ -2255,7 +2273,7 @@ export default function App(){
           </div>
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
-             :tab==="stats"?<StatsView txs={viewTxs} entity={entity} cards={cards}/>
+             :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
@@ -2263,10 +2281,10 @@ export default function App(){
       </div>
 
       <Modal open={modal==="add"} onClose={()=>setModal(null)}>
-        <TxForm onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies}/>
+        <TxForm onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>
       </Modal>
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
-        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies}/>}
+        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
       </Modal>
       <Modal open={modal==="cards"} onClose={()=>setModal(null)}>
         <CardSettings cards={cards} onChange={handleCards}/>
