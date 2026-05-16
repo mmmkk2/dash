@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, ChevronRight as ChevronR, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -243,7 +243,7 @@ function SetupGuide(){
 }
 
 /* ── TxForm ── */
-function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving}){
+function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,supplies=[]}){
   const today=new Date().toISOString().slice(0,10);
   const init=initial||{};
   const [entity,setEntity]=useState(init.entity||defaultEntity);
@@ -265,8 +265,13 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
   const [cardId,setCardId]=useState(init.cardId||"");
   const [isFixed,setIsFixed]=useState(init.isFixed||false);
   const [fixedDay,setFixedDay]=useState(init.fixedDay||"");
+  const [isSupply,setIsSupply]=useState(false);
+  const [supplyName,setSupplyName]=useState("");
+  const [supplyCat,setSupplyCat]=useState("소모품");
+  const [supplyCycle,setSupplyCycle]=useState("");
   const [err,setErr]=useState(false);
   const isEdit=!!initial;
+  const showSupplyToggle = entity==="cafe" && cat1==="매입/원가";
 
   function pickEntity(e){
     setEntity(e);
@@ -290,10 +295,13 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
     const num=parseInt(String(amount).replace(/,/g,""));
     if(!num||num<=0){setErr(true);setTimeout(()=>setErr(false),400);return;}
     const isIncome=cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축");
+    const supplyData=isSupply&&showSupplyToggle
+      ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,cycle_days:parseInt(supplyCycle)||30,last_bought:date}
+      :null;
     onSave({id:init.id||Date.now(),entity,cat1,cat2,cat3:cat3||"",
       amount:num,memo:memo.trim()||cat3||cat2,date,cardId,
       isFixed,fixedDay:isFixed&&fixedDay?parseInt(fixedDay):null,
-      type:isIncome?"income":"expense"});
+      type:isIncome?"income":"expense",supplyData});
   }
 
   return(
@@ -413,7 +421,12 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
       )}
 
       {/* CAT3 */}
-      {cat3list.length>0&&(
+      {entity==="realty"?(
+        <div style={{marginBottom:"8px"}}>
+          <SLabel>물건 태그</SLabel>
+          <Inp value={cat3} onChange={e=>setCat3(e.target.value)} placeholder="예: 노원 아파트, 성북 빌라"/>
+        </div>
+      ):cat3list.length>0&&(
         <div style={{marginBottom:"8px"}}>
           <SLabel>항목2</SLabel>
           <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
@@ -521,6 +534,80 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving})
         )}
       </div>
 
+      {/* Supply toggle — cafe + 매입/원가 only */}
+      {showSupplyToggle&&(
+        <div style={{marginBottom:"12px"}}>
+          <button onClick={()=>setIsSupply(f=>!f)} style={{
+            display:"flex",alignItems:"center",gap:"10px",width:"100%",
+            background:isSupply?"#f0fdf4":"#fff",
+            border:`1.5px solid ${isSupply?"#2d6a4f":C.border}`,
+            borderRadius:isSupply?"12px 12px 0 0":"12px",padding:"11px 14px",cursor:"pointer",transition:"all 0.2s"}}>
+            <div style={{width:"38px",height:"22px",borderRadius:"99px",flexShrink:0,
+              background:isSupply?"#2d6a4f":C.border,position:"relative",transition:"background 0.2s"}}>
+              <div style={{width:"16px",height:"16px",borderRadius:"50%",background:"#fff",
+                position:"absolute",top:"3px",left:isSupply?"19px":"3px",transition:"left 0.2s",
+                boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+            </div>
+            <div style={{flex:1,textAlign:"left"}}>
+              <div style={{fontSize:"13px",fontWeight:600,color:isSupply?"#2d6a4f":C.inkMid,fontFamily:"'Inter',sans-serif"}}>소모품 등록</div>
+              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
+                {isSupply?"소모품 탭에 자동 반영됩니다":"소모품 관리에 추가하려면 켜세요"}
+              </div>
+            </div>
+          </button>
+          {isSupply&&(
+            <div style={{background:"#f0fdf4",border:"1.5px solid #2d6a4f",borderTop:"1px solid #b7e4c7",
+              borderRadius:"0 0 12px 12px",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"10px"}}>
+              <div>
+                <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>소모품명</div>
+                <input value={supplyName} onChange={e=>setSupplyName(e.target.value)}
+                  placeholder={memo||cat2||"예: 원두, 화장지"}
+                  style={{width:"100%",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"8px 10px",
+                    fontSize:"13px",color:"#1a3020",outline:"none",background:"#fff",fontFamily:"'Inter',sans-serif",boxSizing:"border-box"}}/>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+                <div>
+                  <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>분류</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
+                    {SUPPLY_CATS.map(c=>(
+                      <button key={c} onClick={()=>setSupplyCat(c)} style={{
+                        padding:"3px 9px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                        border:`1.5px solid ${supplyCat===c?"#2d6a4f":"#b7e4c7"}`,
+                        background:supplyCat===c?"#2d6a4f":"#fff",
+                        color:supplyCat===c?"#fff":"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>{c}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>소진 주기 (일)</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
+                    {[7,14,30,60].map(d=>(
+                      <button key={d} onClick={()=>setSupplyCycle(String(d))} style={{
+                        padding:"3px 9px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                        border:`1.5px solid ${supplyCycle===String(d)?"#2d6a4f":"#b7e4c7"}`,
+                        background:supplyCycle===String(d)?"#2d6a4f":"#fff",
+                        color:supplyCycle===String(d)?"#fff":"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>{d}일</button>
+                    ))}
+                    <input type="number" value={supplyCycle} onChange={e=>setSupplyCycle(e.target.value)}
+                      placeholder="직접" min="1"
+                      style={{width:"52px",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"3px 7px",
+                        fontSize:"11px",color:"#1a3020",outline:"none",background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
+                  </div>
+                </div>
+              </div>
+              {/* 기존 소모품 매칭 표시 */}
+              {(()=>{const match=supplies.find(s=>s.name===(supplyName.trim()||memo.trim()||cat2));
+                return match?<div style={{fontSize:"11px",color:"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>
+                  ✓ 기존 소모품 &quot;{match.name}&quot;의 구매일이 업데이트됩니다
+                </div>:<div style={{fontSize:"11px",color:"#6a9070",fontFamily:"'Inter',sans-serif"}}>
+                  + 새 소모품으로 등록됩니다
+                </div>;
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Memo + Date */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"14px"}}>
         <div><SLabel>메모</SLabel><Inp value={memo} onChange={e=>setMemo(e.target.value)} placeholder="선택사항"/></div>
@@ -622,24 +709,18 @@ function CardSettings({cards,onChange,saving}){
   );
 }
 
-/* ── Tree View ── */
-function TreeView({txs,onEdit,entity,cards}){
-  const [open,setOpen]=useState({});
-  const toggle=k=>setOpen(p=>({...p,[k]:!p[k]}));
-  const tree=TREES[entity]||TREE_PERSONAL;
+
+/* ── Flat List View ── */
+function FlatListView({txs, onEdit, cards}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
 
-  const grouped=useMemo(()=>{
-    const t={};
+  const byDate=useMemo(()=>{
+    const m={};
     [...txs].sort((a,b)=>b.date.localeCompare(a.date)).forEach(tx=>{
-      if(!t[tx.cat1])t[tx.cat1]={total:0,sub:{}};
-      t[tx.cat1].total+=tx.type==="income"?tx.amount:-tx.amount;
-      const c2=tx.cat2||"기타";
-      if(!t[tx.cat1].sub[c2])t[tx.cat1].sub[c2]={total:0,items:[]};
-      t[tx.cat1].sub[c2].total+=tx.type==="income"?tx.amount:-tx.amount;
-      t[tx.cat1].sub[c2].items.push(tx);
+      if(!m[tx.date])m[tx.date]=[];
+      m[tx.date].push(tx);
     });
-    return t;
+    return m;
   },[txs]);
 
   if(!txs.length)return(
@@ -652,81 +733,56 @@ function TreeView({txs,onEdit,entity,cards}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-      {Object.entries(grouped).map(([c1,{total,sub}])=>{
-        const m1=tree[c1]||{color:C.inkMid,accent:C.inkLight,icon:"•"};
-        const o1=open[c1];
-        const cnt=Object.values(sub).reduce((s,c)=>s+c.items.length,0);
+      {Object.entries(byDate).map(([date,items])=>{
+        const dayIncome=items.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+        const dayExpense=items.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
         return(
-          <div key={c1} style={{background:C.white,borderRadius:"18px",overflow:"hidden",
-            border:`1px solid ${o1?m1.color+"33":C.border}`,
-            boxShadow:o1?`0 4px 20px ${m1.color}18`:"0 1px 4px rgba(0,0,0,0.04)",transition:"all 0.2s"}}>
-            <div className="tree-l1" onClick={()=>toggle(c1)} style={{display:"flex",alignItems:"center",gap:"12px",padding:"13px 16px",cursor:"pointer"}}>
-              <div style={{width:"4px",height:"36px",borderRadius:"99px",flexShrink:0,
-                background:`linear-gradient(180deg,${m1.color},${m1.accent})`}}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:"14px",fontWeight:600,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{c1}</div>
-                <div style={{fontSize:"11px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>{cnt}건</div>
-              </div>
-              <div style={{fontSize:"15px",fontWeight:700,marginRight:"6px",
-                color:total>=0?"#2d6a4f":"#b5451b",fontFamily:"'Inter',sans-serif",letterSpacing:"-0.3px"}}>
-                {total>=0?"+":""}{fmtS(total)}
-              </div>
-              <div style={{width:"21px",height:"21px",borderRadius:"50%",flexShrink:0,
-                background:o1?m1.color:C.cream,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}>
-                <ChevronR size={12} color={o1?"#fff":C.inkLight}
-                  style={{transform:o1?"rotate(90deg)":"rotate(0deg)",transition:"transform 0.2s"}}/>
+          <div key={date} style={{background:C.white,borderRadius:"16px",overflow:"hidden",border:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:"9px 16px 8px",background:C.paper,borderBottom:`1px solid ${C.border}`}}>
+              <div style={{fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:700,color:C.ink}}>{date}</div>
+              <div style={{display:"flex",gap:"10px"}}>
+                {dayIncome>0&&<span style={{fontSize:"11px",color:"#2d6a4f",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>+{fmtS(dayIncome)}</span>}
+                {dayExpense>0&&<span style={{fontSize:"11px",color:"#b5451b",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>-{fmtS(dayExpense)}</span>}
               </div>
             </div>
-            {o1&&Object.entries(sub).map(([c2,{total:t2,items}])=>{
-              const k2=`${c1}__${c2}`;const o2=open[k2];
+            {items.map((tx,idx)=>{
+              const card=tx.cardId?cardMap[tx.cardId]:null;
+              const tree=TREES[tx.entity]||TREE_PERSONAL;
+              const m1=tree[tx.cat1]||{color:C.inkMid,accent:C.inkLight};
               return(
-                <div key={c2} style={{borderTop:`1px solid ${C.border}`}}>
-                  <div className="tree-l2" onClick={()=>toggle(k2)} style={{
-                    display:"flex",alignItems:"center",gap:"10px",
-                    padding:"9px 16px 9px 50px",cursor:"pointer",background:o2?"#faf8f4":C.white}}>
-                    <div style={{width:"5px",height:"5px",borderRadius:"50%",background:m1.color,opacity:0.5,flexShrink:0}}/>
-                    <div style={{flex:1,fontSize:"13px",fontWeight:500,color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{c2}</div>
-                    <div style={{fontSize:"13px",fontWeight:600,marginRight:"6px",
-                      color:t2>=0?"#2d6a4f":"#b5451b",fontFamily:"'Inter',sans-serif"}}>
-                      {t2>=0?"+":""}{fmtS(t2)}
+                <div key={tx.id} className="tx-row" onClick={()=>onEdit(tx)}
+                  style={{display:"flex",alignItems:"center",gap:"10px",padding:"11px 16px",
+                    borderTop:idx>0?`1px solid ${C.border}`:"none",
+                    cursor:"pointer",transition:"background 0.15s"}}>
+                  <div style={{width:"3px",height:"36px",borderRadius:"99px",flexShrink:0,
+                    background:`linear-gradient(180deg,${m1.color},${m1.accent})`}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
+                      <span style={{fontSize:"10px",background:m1.color+"18",color:m1.color,
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+                        fontFamily:"'Inter',sans-serif"}}>{catDisplayName(tx.cat1)}</span>
+                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.cat2}</span>
+                      {tx.cat3&&<span style={{fontSize:"10px",background:m1.accent+"18",color:m1.color,
+                        borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
+                        fontFamily:"'Inter',sans-serif"}}>{tx.cat3}</span>}
                     </div>
-                    <ChevronR size={11} color={C.inkLight}
-                      style={{transform:o2?"rotate(90deg)":"rotate(0deg)",transition:"transform 0.2s",flexShrink:0}}/>
+                    <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif",
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px",flexWrap:"wrap"}}>
+                      {tx.isFixed&&<span style={{fontSize:"9px",background:"#fff8f0",color:"#b5451b",
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
+                        border:"1px solid #f4c5b2"}}>고정</span>}
+                      {card&&<span style={{fontSize:"9px",background:card.color+"14",color:card.color,
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{card.name}</span>}
+                    </div>
                   </div>
-                  {o2&&items.map(tx=>{
-                    const card=tx.cardId?cardMap[tx.cardId]:null;
-                    return(
-                      <div key={tx.id} className="tx-row" onClick={()=>onEdit(tx)}
-                        style={{display:"flex",alignItems:"center",gap:"10px",
-                          padding:"9px 16px 9px 65px",borderTop:`1px solid ${C.border}`,
-                          background:C.white,cursor:"pointer",transition:"background 0.15s"}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:"13px",fontWeight:500,color:C.ink,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                            display:"flex",alignItems:"center",gap:"5px",fontFamily:"'Inter',sans-serif"}}>
-                            {tx.cat3&&<span style={{fontSize:"9px",background:m1.color+"14",color:m1.color,
-                              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0}}>{tx.cat3}</span>}
-                            <span>{tx.memo}</span>
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px"}}>
-                            <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.date}</span>
-                            {tx.isFixed&&<span style={{fontSize:"9px",background:"#fff8f0",color:"#b5451b",
-                              borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
-                              border:"1px solid #f4c5b2"}}>고정</span>}
-                            {card&&<span style={{fontSize:"9px",background:card.color+"14",color:card.color,
-                              borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
-                              {card.name}</span>}
-                          </div>
-                        </div>
-                        <div style={{fontSize:"14px",fontWeight:600,flexShrink:0,
-                          color:tx.type==="income"?"#2d6a4f":"#b5451b",
-                          fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
-                          {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
-                        </div>
-                        <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
-                      </div>
-                    );
-                  })}
+                  <div style={{fontSize:"14px",fontWeight:700,flexShrink:0,
+                    color:tx.type==="income"?"#2d6a4f":"#b5451b",
+                    fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
+                    {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
+                  </div>
+                  <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
                 </div>
               );
             })}
@@ -742,6 +798,7 @@ function FixedView({txs, onDelete, year, month}){
   const today = new Date();
   const todayDay = today.getDate();
   const isCurrentMonth = today.getFullYear()===year && today.getMonth()===month;
+  const [fixedEntity, setFixedEntity] = useState("all");
 
   // 모든 고정지출 템플릿: 가장 최근 등록된 것 기준으로 memo별 dedupe
   const fixedTemplates = useMemo(()=>{
@@ -752,6 +809,8 @@ function FixedView({txs, onDelete, year, month}){
     return Object.values(map);
   },[txs]);
 
+  const filteredTemplates = fixedEntity==="all"?fixedTemplates:fixedTemplates.filter(t=>t.entity===fixedEntity);
+
   // 이번 달 실제 발생한 고정지출
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   const thisMonthFixed = useMemo(()=>
@@ -760,16 +819,18 @@ function FixedView({txs, onDelete, year, month}){
 
   // 이번 달 아직 미발생인 예정 항목
   const scheduled = useMemo(()=>
-    fixedTemplates.filter(t=>{
+    filteredTemplates.filter(t=>{
       const alreadyDone = thisMonthFixed.some(m=>m.memo===t.memo&&m.entity===t.entity);
       return !alreadyDone && t.fixedDay;
     }).sort((a,b)=>a.fixedDay-b.fixedDay),
-  [fixedTemplates,thisMonthFixed]);
+  [filteredTemplates,thisMonthFixed]);
 
   // 이번 달 실제 발생 목록
   const occurred = useMemo(()=>
-    [...thisMonthFixed].sort((a,b)=>a.date.localeCompare(b.date)),
-  [thisMonthFixed]);
+    [...thisMonthFixed]
+      .filter(t=>fixedEntity==="all"||t.entity===fixedEntity)
+      .sort((a,b)=>a.date.localeCompare(b.date)),
+  [thisMonthFixed,fixedEntity]);
 
   const totalScheduled = scheduled.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const totalOccurred  = occurred.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
@@ -839,8 +900,25 @@ function FixedView({txs, onDelete, year, month}){
     </div>
   );
 
+  const entityFilterTabs=[["all","전체"],...ENTITY_KEYS.map(ek=>[ek,ENTITIES[ek].label])];
+
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+
+      {/* 엔티티 필터 */}
+      <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",border:`1px solid ${C.border}`,gap:"3px"}}>
+        {entityFilterTabs.map(([k,l])=>{
+          const ent=ENTITIES[k];const sel=fixedEntity===k;
+          const color=ent?ent.color:C.ink;
+          return(
+            <button key={k} onClick={()=>setFixedEntity(k)} style={{
+              flex:1,padding:"7px 4px",border:"none",borderRadius:"8px",cursor:"pointer",
+              fontWeight:sel?700:400,fontSize:"11px",transition:"all 0.15s",
+              background:sel?color:"transparent",color:sel?"#fff":C.inkLight,
+              fontFamily:"'Inter',sans-serif"}}>{l}</button>
+          );
+        })}
+      </div>
 
       {/* 예정 섹션 */}
       {scheduled.length>0&&(
@@ -955,6 +1033,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
 
 function StatsView({txs,entity,cards}){
   const tree=TREES[entity]||TREE_PERSONAL;
+  const isRealty=entity==="realty";
   const [statsTab,setStatsTab]=useState("expense");
   const [expanded,setExpanded]=useState(null);
 
@@ -988,6 +1067,23 @@ function StatsView({txs,entity,cards}){
     }).sort((a,b)=>b.value-a.value);
   },[txs,cards]);
 
+  const PROP_COLORS=["#1d4e89","#4a90d9","#831843","#9b5de5","#2d6a4f","#b5451b","#b8860b","#0077b6"];
+  const byProperty=useMemo(()=>{
+    if(!isRealty)return[];
+    const m={};
+    txs.filter(t=>t.type==="expense").forEach(t=>{
+      const key=t.cat3||"미지정";
+      if(!m[key])m[key]={value:0,sub:{}};
+      m[key].value+=t.amount;
+      const sub=catDisplayName(t.cat1);
+      m[key].sub[sub]=(m[key].sub[sub]||0)+t.amount;
+    });
+    return Object.entries(m).map(([name,d],i)=>({
+      name,value:d.value,color:PROP_COLORS[i%PROP_COLORS.length],
+      sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value),
+    })).sort((a,b)=>b.value-a.value);
+  },[txs,isRealty]);
+
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
 
   if(!txs.length)return(
@@ -996,10 +1092,12 @@ function StatsView({txs,entity,cards}){
     </div>
   );
 
-  const activeData = statsTab==="income"?byIncome:statsTab==="expense"?byExpense:byCard;
-  const activeTotal = (statsTab==="income"?(totalIn||1):statsTab==="expense"?(expense||1):(expense||1));
+  const activeData = statsTab==="income"?byIncome:statsTab==="expense"?byExpense:statsTab==="property"?byProperty:byCard;
+  const activeTotal = statsTab==="income"?(totalIn||1):statsTab==="property"?(expense||1):(expense||1);
   const activeSign = statsTab==="income"?"+":" ";
-  const activeLabel = statsTab==="income"?"수입 구성":statsTab==="expense"?"지출 구성":"카드별 지출";
+  const activeLabel = statsTab==="income"?"수입 구성":statsTab==="expense"?"지출 구성":statsTab==="property"?"물건별 지출":"카드별 지출";
+
+  const statsTabs=[["income","수입"],["expense","지출"],["card","카드"],...(isRealty?[["property","물건별"]]:[])]
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
@@ -1023,7 +1121,7 @@ function StatsView({txs,entity,cards}){
 
       {/* Tab */}
       <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",border:`1px solid ${C.border}`,gap:"3px"}}>
-        {[["income","수입"],["expense","지출"],["card","카드"]].map(([k,l])=>(
+        {statsTabs.map(([k,l])=>(
           <button key={k} onClick={()=>{setStatsTab(k);setExpanded(null);}} style={{
             flex:1,padding:"8px",border:"none",borderRadius:"8px",cursor:"pointer",
             fontWeight:statsTab===k?700:400,fontSize:"12px",transition:"all 0.15s",
@@ -1890,18 +1988,36 @@ export default function App(){
 
   /* ── TX CRUD ── */
   async function addTx(tx){
+    const {supplyData,...txData}=tx;
     setSaving(true);
     try{
-      const [row]=await sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))});
+      const [row]=await sb("transactions",{method:"POST",body:JSON.stringify(txToRow(txData))});
       setTxs(p=>[rowToTx(row),...p]);
+      if(supplyData){
+        const existing=supplies.find(s=>s.name===supplyData.name);
+        if(existing){
+          await handleSupplies({...existing,last_bought:supplyData.last_bought},"update");
+        }else{
+          await handleSupplies({id:"s"+Date.now(),...supplyData},"add");
+        }
+      }
     }catch(e){console.error(e);}
     finally{setSaving(false);setModal(null);}
   }
   async function updateTx(tx){
+    const {supplyData,...txData}=tx;
     setSaving(true);
     try{
-      await sb(`transactions?id=eq.${tx.id}`,{method:"PATCH",body:JSON.stringify(txToRow(tx)),prefer:"return=minimal"});
-      setTxs(p=>p.map(t=>t.id===tx.id?tx:t));
+      await sb(`transactions?id=eq.${txData.id}`,{method:"PATCH",body:JSON.stringify(txToRow(txData)),prefer:"return=minimal"});
+      setTxs(p=>p.map(t=>t.id===txData.id?txData:t));
+      if(supplyData){
+        const existing=supplies.find(s=>s.name===supplyData.name);
+        if(existing){
+          await handleSupplies({...existing,last_bought:supplyData.last_bought},"update");
+        }else{
+          await handleSupplies({id:"s"+Date.now(),...supplyData},"add");
+        }
+      }
     }catch(e){console.error(e);}
     finally{setSaving(false);setModal(null);setEditTx(null);}
   }
@@ -2076,7 +2192,7 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {tab==="list"?<TreeView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} entity={entity} cards={cards}/>
+            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
              :tab==="stats"?<StatsView txs={viewTxs} entity={entity} cards={cards}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies}/>
              :<FixedView txs={txs} onDelete={deleteTx} year={year} month={month}/>}
@@ -2085,10 +2201,10 @@ export default function App(){
       </div>
 
       <Modal open={modal==="add"} onClose={()=>setModal(null)}>
-        <TxForm onSave={addTx} cards={cards} defaultEntity={entity} saving={saving}/>
+        <TxForm onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies}/>
       </Modal>
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
-        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} cards={cards} defaultEntity={entity} saving={saving}/>}
+        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies}/>}
       </Modal>
       <Modal open={modal==="cards"} onClose={()=>setModal(null)}>
         <CardSettings cards={cards} onChange={handleCards}/>
