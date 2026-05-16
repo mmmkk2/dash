@@ -811,6 +811,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   const today = new Date();
   const todayDay = today.getDate();
   const isCurrentMonth = today.getFullYear()===year && today.getMonth()===month;
+  const [registering, setRegistering] = useState(new Set());
 
   // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
   const fixedTemplates = useMemo(()=>{
@@ -821,18 +822,20 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     return Object.values(map);
   },[txs,entity]);
 
-  // 이번 달 실제 발생한 고정지출 (현재 엔티티)
+  // 이번 달 실제 발생한 고정지출 (현재 엔티티) — memo 기준 dedup
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
-  const thisMonthFixed = useMemo(()=>
-    txs.filter(t=>t.isFixed&&t.entity===entity&&t.date.startsWith(monthKey)),
-  [txs,entity,monthKey]);
+  const thisMonthFixed = useMemo(()=>{
+    const seen=new Set();
+    return [...txs]
+      .filter(t=>t.isFixed&&t.entity===entity&&t.date.startsWith(monthKey))
+      .sort((a,b)=>b.date.localeCompare(a.date))
+      .filter(t=>{ if(seen.has(t.memo))return false; seen.add(t.memo); return true; });
+  },[txs,entity,monthKey]);
 
-  // 이번 달 아직 미발생인 예정 항목
+  // 이번 달 아직 미발생인 예정 항목 (fixedDay 유무와 무관하게 표시)
   const scheduled = useMemo(()=>
-    fixedTemplates.filter(t=>{
-      const alreadyDone = thisMonthFixed.some(m=>m.memo===t.memo);
-      return !alreadyDone && t.fixedDay;
-    }).sort((a,b)=>a.fixedDay-b.fixedDay),
+    fixedTemplates.filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo))
+      .sort((a,b)=>(a.fixedDay||99)-(b.fixedDay||99)),
   [fixedTemplates,thisMonthFixed]);
 
   // 이번 달 실제 발생 목록
@@ -843,13 +846,22 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   const totalScheduled = scheduled.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const totalOccurred  = occurred.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
 
+  async function handleRegister(tx, regDate){
+    if(registering.has(tx.memo)) return;
+    setRegistering(p=>new Set(p).add(tx.memo));
+    try{ await onRegister({...tx, id:Date.now(), date:regDate, isFixed:true}); }
+    finally{ setRegistering(p=>{ const n=new Set(p); n.delete(tx.memo); return n; }); }
+  }
+
   const FixedCard = ({tx, isScheduled}) => {
-    const isPast = isScheduled && isCurrentMonth && tx.fixedDay < todayDay;
+    const isPast = isScheduled && isCurrentMonth && tx.fixedDay && tx.fixedDay < todayDay;
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
     const regDate = (() => {
-      const day = tx.fixedDay===31 ? new Date(year,month+1,0).getDate() : (tx.fixedDay||todayDay);
+      if(!tx.fixedDay) return `${year}-${String(month+1).padStart(2,"0")}-${String(todayDay).padStart(2,"0")}`;
+      const day = tx.fixedDay===31 ? new Date(year,month+1,0).getDate() : tx.fixedDay;
       return `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     })();
+    const isReg = registering.has(tx.memo);
     const borderColor = isToday?"#b5451b":isPast?"#e07a5f":C.border;
     const bgColor = isToday?"#fff8f0":isPast?"#fffaf8":C.white;
     return(
@@ -891,11 +903,12 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
           {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
         </div>
         {isScheduled?(
-          <button onClick={()=>onRegister({...tx,id:Date.now(),date:regDate,isFixed:true})}
-            style={{background:"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
-              padding:"5px 10px",cursor:"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
-              flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px"}}>
-            <Plus size={11}/> 등록
+          <button onClick={()=>handleRegister(tx,regDate)} disabled={isReg}
+            style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
+              padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
+              flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
+              opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
+            {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
           </button>
         ):(
           <div style={{display:"flex",gap:"2px",flexShrink:0}}>
