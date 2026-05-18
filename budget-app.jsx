@@ -123,7 +123,7 @@ const ENTITY_KEYS = Object.keys(ENTITIES);
 const TREE_PERSONAL = {
   수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💚",children:{
     급여:[],부업:[],임대료:[],카드캐시백:[],보험금:[],연말정산:[],환급:[],
-    외화매도:[],"중고거래/당근":[],"호텔 배당금":[],컨커:[],"대출이자-무이자":[],기타:[],
+    외화매도:[],"중고거래/당근":[],"호텔 배당금":[],컨커:[],"대출이자-무이자":[],서울런:[],서대문농아:[],기타:[],
   }},
   "저축/투자고정":{ color:"#1d4e89",accent:"#4a90d9",icon:"💙",children:{개인형irp:[],연금저축펀드:[],적금:[],주택청약:[]}},
   "저축/투자유동":{ color:"#0077b6",accent:"#48cae4",icon:"🩵",children:{ESPP:[],주식투자:[],"청약수수료(카드)":[]}},
@@ -1221,7 +1221,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
     const recentAmounts = useMemo(()=>
       [...txs].filter(t=>t.entity===entity&&t.memo===tx.memo&&t.isFixed)
-        .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3).map(t=>t.amount)
+        .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4).map(t=>t.amount)
     ,[txs,entity,tx.memo]);
     const avg = recentAmounts.length>=2
       ? Math.round(recentAmounts.reduce((s,a)=>s+a,0)/recentAmounts.length) : null;
