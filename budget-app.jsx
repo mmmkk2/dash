@@ -700,59 +700,64 @@ function CategorySettings({trees, onChange}){
   const ENTITY_LABELS={personal:"개인",cafe:"카페",realty:"부동산"};
   const [ent,setEnt]=useState("personal");
   const [openCat1,setOpenCat1]=useState(null);
-  const [adding,setAdding]=useState(null); // {level:"cat1"|"cat2"|"cat3", cat1?:str, cat2?:str}
+  const [adding,setAdding]=useState(null);
   const [addVal,setAddVal]=useState("");
-  const tree=trees[ent]||{};
+  const [draft,setDraft]=useState(()=>JSON.parse(JSON.stringify(trees[ent]||{})));
+  const [dirty,setDirty]=useState(false);
+  const tree=draft||{};
 
-  function save(next){
-    const updated={...trees,[ent]:next};
-    onChange(updated);
+  function switchEnt(k){
+    setEnt(k);setOpenCat1(null);setAdding(null);
+    setDraft(JSON.parse(JSON.stringify(trees[k]||{})));
+    setDirty(false);
+  }
+
+  function update(next){ setDraft(next); setDirty(true); }
+
+  function commit(){
+    onChange({...trees,[ent]:draft});
+    setDirty(false);
   }
 
   function addCat1(){
     const name=addVal.trim();
     if(!name||tree[name])return;
-    save({...tree,[name]:{color:"#888",accent:"#aaa",icon:"",children:{}}});
+    update({...tree,[name]:{color:"#888",accent:"#aaa",icon:"",children:{}}});
     setAdding(null);setAddVal("");
   }
   function delCat1(k){
     const next={...tree};delete next[k];
     if(openCat1===k)setOpenCat1(null);
-    save(next);
+    update(next);
   }
 
   function addCat2(cat1){
     const name=addVal.trim();
     if(!name)return;
-    const node=tree[cat1];
-    if(!node)return;
-    const children={...node.children,[name]:[]};
-    save({...tree,[cat1]:{...node,children}});
+    const node=tree[cat1];if(!node)return;
+    update({...tree,[cat1]:{...node,children:{...node.children,[name]:[]}}});
     setAdding(null);setAddVal("");
   }
   function delCat2(cat1,cat2){
-    const node=tree[cat1];
-    if(!node)return;
+    const node=tree[cat1];if(!node)return;
     const children={...node.children};delete children[cat2];
-    save({...tree,[cat1]:{...node,children}});
+    update({...tree,[cat1]:{...node,children}});
   }
 
   function addCat3(cat1,cat2){
     const name=addVal.trim();
     if(!name)return;
-    const node=tree[cat1];
-    if(!node)return;
+    const node=tree[cat1];if(!node)return;
     const list=[...(node.children[cat2]||[])];
     if(list.includes(name))return;
     list.push(name);
-    save({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+    update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
     setAdding(null);setAddVal("");
   }
   function delCat3(cat1,cat2,cat3){
-    const node=tree[cat1];
-    if(!node)return;
+    const node=tree[cat1];if(!node)return;
     const list=(node.children[cat2]||[]).filter(x=>x!==cat3);
-    save({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+    update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
   }
 
   const btnAdd={background:"#f5f7ff",border:"1px dashed #b0c4de",borderRadius:"8px",
@@ -770,7 +775,7 @@ function CategorySettings({trees, onChange}){
       {/* entity tabs */}
       <div style={{display:"flex",gap:"6px",marginBottom:"16px"}}>
         {Object.entries(ENTITY_LABELS).map(([k,v])=>(
-          <button key={k} onClick={()=>{setEnt(k);setOpenCat1(null);setAdding(null);}}
+          <button key={k} onClick={()=>switchEnt(k)}
             style={{padding:"6px 14px",borderRadius:"20px",border:"none",cursor:"pointer",
               fontSize:"12px",fontWeight:600,
               background:ent===k?C.ink:"#f0f0f0",color:ent===k?"#fff":C.inkMid}}>
@@ -891,6 +896,13 @@ function CategorySettings({trees, onChange}){
           </button>
         )}
       </div>
+      <button onClick={commit} disabled={!dirty}
+        style={{width:"100%",marginTop:"12px",padding:"12px",border:"none",borderRadius:"12px",
+          cursor:dirty?"pointer":"not-allowed",fontSize:"14px",fontWeight:700,
+          background:dirty?C.ink:"#e0e0e0",color:dirty?"#fff":"#aaa",
+          fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}>
+        {dirty?"저장하기":"변경사항 없음"}
+      </button>
     </div>
   );
 }
