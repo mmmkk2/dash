@@ -1749,26 +1749,27 @@ const SUPPLY_CATS = ["음료재료","소모품","청소","사무용품","비품"
 function SuppliesView({ supplies, onChange }){
   const today = new Date();
   const todayStr = today.toISOString().slice(0,10);
-  const [modal, setModal] = useState(null);  // null | "add" | {supply}
-  const [form, setForm] = useState({ name:"", category:"소모품", cycle_days:"", last_bought:todayStr, memo:"" });
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({ name:"", category:"소모품", cycle_days:"", base_amount:"", last_bought:todayStr, memo:"" });
   const [saving, setSaving] = useState(false);
+  const [buying, setBuying] = useState(null); // supply id
+  const [buyAmt, setBuyAmt] = useState("");
 
-  // 날짜 계산 헬퍼
-  const daysDiff = (dateStr) => {
-    const d = new Date(dateStr);
-    return Math.round((today - d) / 86400000);
+  const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
+
+  // 실제 소진 주기: 기준금액 대비 실구매금액 비례
+  const effectiveCycle = (s) => {
+    if(s.base_amount > 0 && s.last_amount > 0)
+      return Math.round(s.cycle_days * s.last_amount / s.base_amount);
+    return s.cycle_days;
   };
   const nextBuy = (s) => {
     const d = new Date(s.last_bought);
-    d.setDate(d.getDate() + s.cycle_days);
+    d.setDate(d.getDate() + effectiveCycle(s));
     return d.toISOString().slice(0,10);
   };
-  const daysUntil = (s) => {
-    const next = new Date(nextBuy(s));
-    return Math.round((next - today) / 86400000);
-  };
+  const daysUntil = (s) => Math.round((new Date(nextBuy(s)) - today) / 86400000);
 
-  // 상태별 정렬: 초과 → 임박(3일) → 여유
   const sorted = useMemo(() => [...supplies].sort((a,b) => daysUntil(a) - daysUntil(b)), [supplies]);
 
   const getStatus = (s) => {
@@ -1778,27 +1779,30 @@ function SuppliesView({ supplies, onChange }){
     return        { label:`${d}일 후`, color:"#2d6a4f", bg:"#f0fdf4", border:"#b7e4c7", icon:<Package size={11}/> };
   };
 
-  async function handleBought(s){
+  async function handleBought(s, amount){
     setSaving(true);
-    const updated = { ...s, last_bought: todayStr };
+    const updated = { ...s, last_bought: todayStr, last_amount: amount>0?amount:(s.last_amount||0) };
     await onChange(updated, "update");
     setSaving(false);
+    setBuying(null); setBuyAmt("");
   }
 
   async function handleAdd(){
     if(!form.name.trim()||!form.cycle_days) return;
     const s = { id:"s"+Date.now(), name:form.name.trim(), category:form.category,
-      cycle_days:parseInt(form.cycle_days), last_bought:form.last_bought, memo:form.memo.trim() };
+      cycle_days:parseInt(form.cycle_days), base_amount:parseInt(form.base_amount)||0,
+      last_amount:0, last_bought:form.last_bought, memo:form.memo.trim() };
     setSaving(true);
     await onChange(s, "add");
     setSaving(false);
     setModal(null);
-    setForm({ name:"", category:"소모품", cycle_days:"", last_bought:todayStr, memo:"" });
+    setForm({ name:"", category:"소모품", cycle_days:"", base_amount:"", last_bought:todayStr, memo:"" });
   }
 
   async function handleEdit(){
     const s = { ...modal, name:form.name.trim(), category:form.category,
-      cycle_days:parseInt(form.cycle_days), last_bought:form.last_bought, memo:form.memo.trim() };
+      cycle_days:parseInt(form.cycle_days), base_amount:parseInt(form.base_amount)||0,
+      last_bought:form.last_bought, memo:form.memo.trim() };
     setSaving(true);
     await onChange(s, "update");
     setSaving(false);
@@ -1813,7 +1817,8 @@ function SuppliesView({ supplies, onChange }){
   }
 
   function openEdit(s){
-    setForm({ name:s.name, category:s.category, cycle_days:String(s.cycle_days), last_bought:s.last_bought, memo:s.memo||"" });
+    setForm({ name:s.name, category:s.category, cycle_days:String(s.cycle_days),
+      base_amount:s.base_amount>0?String(s.base_amount):"", last_bought:s.last_bought, memo:s.memo||"" });
     setModal(s);
   }
 
@@ -1853,25 +1858,46 @@ function SuppliesView({ supplies, onChange }){
             ))}
           </div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-          <div>
-            <SLabel>평균 소진 주기 (일)</SLabel>
-            <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,borderRadius:"10px",background:C.white,padding:"0 12px"}}>
-              <input type="number" value={form.cycle_days} onChange={e=>setForm(p=>({...p,cycle_days:e.target.value}))}
-                placeholder="14" min="1"
-                style={{flex:1,border:"none",background:"transparent",fontSize:"16px",fontWeight:700,
-                  color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
-              <span style={{fontSize:"12px",color:C.inkLight}}>일</span>
+        {/* 기준 주기 + 기준 금액 */}
+        <div style={{background:"#f0fdf4",borderRadius:"12px",padding:"12px 14px",border:"1px solid #b7e4c7"}}>
+          <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.08em",marginBottom:"10px",fontFamily:"'Inter',sans-serif"}}>
+            소진 기준 — 아래 금액 구매 시 아래 일수만큼 소진
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
+            <div>
+              <SLabel>기준 구매금액 (원)</SLabel>
+              <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,borderRadius:"10px",background:C.white,padding:"0 12px"}}>
+                <input type="number" value={form.base_amount} onChange={e=>setForm(p=>({...p,base_amount:e.target.value}))}
+                  placeholder="50000" min="0"
+                  style={{flex:1,border:"none",background:"transparent",fontSize:"15px",fontWeight:700,
+                    color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                <span style={{fontSize:"12px",color:C.inkLight}}>원</span>
+              </div>
+            </div>
+            <div>
+              <SLabel>기준 소진 주기 (일)</SLabel>
+              <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,borderRadius:"10px",background:C.white,padding:"0 12px"}}>
+                <input type="number" value={form.cycle_days} onChange={e=>setForm(p=>({...p,cycle_days:e.target.value}))}
+                  placeholder="14" min="1"
+                  style={{flex:1,border:"none",background:"transparent",fontSize:"15px",fontWeight:700,
+                    color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                <span style={{fontSize:"12px",color:C.inkLight}}>일</span>
+              </div>
             </div>
           </div>
-          <div>
-            <SLabel>마지막 구매일</SLabel>
-            <Inp type="date" value={form.last_bought} onChange={e=>setForm(p=>({...p,last_bought:e.target.value}))}/>
-          </div>
+          {form.base_amount&&form.cycle_days&&(
+            <div style={{fontSize:"11px",color:"#2d6a4f",marginTop:"8px",fontFamily:"'Inter',sans-serif"}}>
+              예) {parseInt(form.base_amount)*2>0?`${(parseInt(form.base_amount)*2).toLocaleString("ko-KR")}원 구매 → ${parseInt(form.cycle_days)*2}일`:""}
+            </div>
+          )}
+        </div>
+        <div>
+          <SLabel>마지막 구매일</SLabel>
+          <Inp type="date" value={form.last_bought} onChange={e=>setForm(p=>({...p,last_bought:e.target.value}))}/>
         </div>
         <div>
           <SLabel>메모 (선택)</SLabel>
-          <Inp value={form.memo} onChange={e=>setForm(p=>({...p,memo:e.target.value}))} placeholder="구매처, 수량 등"/>
+          <Inp value={form.memo} onChange={e=>setForm(p=>({...p,memo:e.target.value}))} placeholder="구매처 등"/>
         </div>
       </div>
 
@@ -1937,7 +1963,7 @@ function SuppliesView({ supplies, onChange }){
         </div>
         :sorted.map(s=>{
           const st = getStatus(s);
-          const progress = Math.min(100, Math.max(0, (daysDiff(s.last_bought) / s.cycle_days) * 100));
+          const progress = Math.min(100, Math.max(0, (daysDiff(s.last_bought) / effectiveCycle(s)) * 100));
           const next = nextBuy(s);
           return(
             <div key={s.id} style={{background:C.white,borderRadius:"16px",padding:"14px 16px",
@@ -1977,22 +2003,49 @@ function SuppliesView({ supplies, onChange }){
                     구매 후 {daysDiff(s.last_bought)}일 경과
                   </span>
                   <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    주기 {s.cycle_days}일
+                    {effectiveCycle(s)!==s.cycle_days
+                      ?<>실질 {effectiveCycle(s)}일 <span style={{opacity:0.5}}>(기준 {s.cycle_days}일)</span></>
+                      :`주기 ${s.cycle_days}일`}
                   </span>
                 </div>
               </div>
 
-              {/* 구매 완료 버튼 */}
-              <button onClick={()=>handleBought(s)} disabled={saving} style={{
-                width:"100%",padding:"9px",background:st.bg,
-                border:`1.5px solid ${st.border}`,borderRadius:"10px",
-                color:st.color,fontSize:"12px",fontWeight:700,cursor:"pointer",
-                display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
-                fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}
-                onMouseEnter={e=>e.currentTarget.style.background=st.color+"18"}
-                onMouseLeave={e=>e.currentTarget.style.background=st.bg}>
-                <ShoppingCart size={13}/> 오늘 구매 완료
-              </button>
+              {/* 구매 완료 */}
+              {buying===s.id
+                ?<div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                  <div style={{flex:1,display:"flex",alignItems:"center",border:`1.5px solid #2d6a4f`,borderRadius:"10px",background:C.white,padding:"0 10px"}}>
+                    <input type="number" value={buyAmt} onChange={e=>setBuyAmt(e.target.value)}
+                      placeholder={s.base_amount>0?String(s.base_amount):"금액"}
+                      autoFocus
+                      style={{flex:1,border:"none",background:"transparent",fontSize:"14px",fontWeight:700,
+                        color:C.ink,padding:"8px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                    <span style={{fontSize:"11px",color:C.inkLight}}>원</span>
+                  </div>
+                  <button onClick={()=>handleBought(s, parseInt(buyAmt)||0)} disabled={saving}
+                    style={{padding:"9px 14px",background:"#2d6a4f",border:"none",borderRadius:"10px",
+                      color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                    완료
+                  </button>
+                  <button onClick={()=>{setBuying(null);setBuyAmt("");}}
+                    style={{padding:"9px 10px",background:C.cream,border:`1px solid ${C.border}`,borderRadius:"10px",
+                      color:C.inkLight,fontSize:"12px",cursor:"pointer",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                    취소
+                  </button>
+                </div>
+                :<button onClick={()=>{
+                    if(s.base_amount>0){setBuying(s.id);setBuyAmt(s.last_amount>0?String(s.last_amount):"");}
+                    else handleBought(s,0);
+                  }} disabled={saving} style={{
+                  width:"100%",padding:"9px",background:st.bg,
+                  border:`1.5px solid ${st.border}`,borderRadius:"10px",
+                  color:st.color,fontSize:"12px",fontWeight:700,cursor:"pointer",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
+                  fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background=st.color+"18"}
+                  onMouseLeave={e=>e.currentTarget.style.background=st.bg}>
+                  <ShoppingCart size={13}/> 오늘 구매 완료
+                </button>
+              }
             </div>
           );
         })
