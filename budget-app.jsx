@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -747,7 +747,7 @@ function CardSettings({cards,onChange,saving}){
 
 
 /* ── Flat List View ── */
-function FlatListView({txs, onEdit, cards}){
+function FlatListView({txs, onEdit, onDuplicate, cards}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
 
   const byDate=useMemo(()=>{
@@ -818,6 +818,11 @@ function FlatListView({txs, onEdit, cards}){
                     fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
+                  <button onClick={e=>{e.stopPropagation();onDuplicate(tx);}} style={{background:"none",border:"none",cursor:"pointer",color:C.border,padding:"2px",borderRadius:"4px",display:"flex",flexShrink:0,transition:"color 0.15s"}}
+                    onMouseEnter={e=>e.currentTarget.style.color=C.inkMid}
+                    onMouseLeave={e=>e.currentTarget.style.color=C.border}>
+                    <Copy size={12}/>
+                  </button>
                   <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
                 </div>
               );
@@ -855,34 +860,31 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
       .filter(t=>{ if(seen.has(t.memo))return false; seen.add(t.memo); return true; });
   },[txs,entity,monthKey]);
 
-  // 고정항목별 평균 납부 간격 계산 (일)
-  function avgFixedInterval(memo){
-    const history=[...txs]
-      .filter(t=>t.isFixed&&t.entity===entity&&t.memo===memo)
-      .sort((a,b)=>a.date.localeCompare(b.date));
-    if(history.length<2) return 30;
-    const intervals=[];
-    for(let i=1;i<history.length;i++){
-      const days=Math.round((new Date(history[i].date)-new Date(history[i-1].date))/86400000);
-      if(days>0) intervals.push(days);
-    }
-    return intervals.length?Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length):30;
+  // 격월 토글 — localStorage 저장
+  const BM_KEY="gagibu_bimonthly";
+  const [biMonthlySet,setBiMonthlySet]=useState(()=>{
+    try{return new Set(JSON.parse(localStorage.getItem(BM_KEY)||"[]"));}catch{return new Set();}
+  });
+  function isBiMonthly(memo){ return biMonthlySet.has(`${entity}:${memo}`); }
+  function toggleBiMonthly(memo){
+    const key=`${entity}:${memo}`;
+    const next=new Set(biMonthlySet);
+    if(next.has(key))next.delete(key);else next.add(key);
+    setBiMonthlySet(next);
+    localStorage.setItem(BM_KEY,JSON.stringify([...next]));
   }
 
-  // 격월 여부: 평균 간격 45일 초과
-  function isBiMonthly(memo){ return avgFixedInterval(memo)>45; }
-
-  // 격월 항목이 이번 달 예정인지: 마지막 납부로부터 평균간격 70% 이상 경과했을 때
+  // 격월 항목이 이번 달 예정인지: 마지막 납부가 이번 달 기준 45일 이내면 skip
   function isDueThisMonth(t){
     if(!isBiMonthly(t.memo)) return true;
     const history=[...txs]
-      .filter(tx=>tx.isFixed&&tx.entity===entity&&tx.memo===t.memo)
+      .filter(tx=>tx.entity===entity&&tx.memo===t.memo)
       .sort((a,b)=>b.date.localeCompare(a.date));
     if(!history.length) return true;
     const lastPaid=new Date(history[0].date);
     const viewStart=new Date(year,month,1);
     const daysSince=Math.round((viewStart-lastPaid)/86400000);
-    return daysSince>=avgFixedInterval(t.memo)*0.7;
+    return daysSince>=45;
   }
 
   // 이번 달 아직 미발생인 예정 항목 (fixedDay 유무와 무관하게 표시)
@@ -933,9 +935,12 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
               fontFamily:"'Inter',sans-serif",overflow:"hidden",
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
-            {biMonthly&&<span style={{fontSize:"9px",background:"#f0f4ff",color:"#1d4e89",
+            <button onClick={e=>{e.stopPropagation();toggleBiMonthly(tx.memo);}} style={{
+              fontSize:"9px",background:biMonthly?"#f0f4ff":"transparent",
+              color:biMonthly?"#1d4e89":C.border,
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              border:"1px solid #b0c4de",fontFamily:"'Inter',sans-serif"}}>격월</span>}
+              border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
+              fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>격월</button>
             {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               fontFamily:"'Inter',sans-serif"}}>오늘</span>}
@@ -2487,7 +2492,7 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
+            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
