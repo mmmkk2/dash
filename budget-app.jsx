@@ -855,11 +855,42 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
       .filter(t=>{ if(seen.has(t.memo))return false; seen.add(t.memo); return true; });
   },[txs,entity,monthKey]);
 
+  // 고정항목별 평균 납부 간격 계산 (일)
+  function avgFixedInterval(memo){
+    const history=[...txs]
+      .filter(t=>t.isFixed&&t.entity===entity&&t.memo===memo)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    if(history.length<2) return 30;
+    const intervals=[];
+    for(let i=1;i<history.length;i++){
+      const days=Math.round((new Date(history[i].date)-new Date(history[i-1].date))/86400000);
+      if(days>0) intervals.push(days);
+    }
+    return intervals.length?Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length):30;
+  }
+
+  // 격월 여부: 평균 간격 45일 초과
+  function isBiMonthly(memo){ return avgFixedInterval(memo)>45; }
+
+  // 격월 항목이 이번 달 예정인지: 마지막 납부로부터 평균간격 70% 이상 경과했을 때
+  function isDueThisMonth(t){
+    if(!isBiMonthly(t.memo)) return true;
+    const history=[...txs]
+      .filter(tx=>tx.isFixed&&tx.entity===entity&&tx.memo===t.memo)
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    if(!history.length) return true;
+    const lastPaid=new Date(history[0].date);
+    const viewStart=new Date(year,month,1);
+    const daysSince=Math.round((viewStart-lastPaid)/86400000);
+    return daysSince>=avgFixedInterval(t.memo)*0.7;
+  }
+
   // 이번 달 아직 미발생인 예정 항목 (fixedDay 유무와 무관하게 표시)
   const scheduled = useMemo(()=>
-    fixedTemplates.filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo))
+    fixedTemplates
+      .filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo)&&isDueThisMonth(t))
       .sort((a,b)=>(a.fixedDay||99)-(b.fixedDay||99)),
-  [fixedTemplates,thisMonthFixed]);
+  [fixedTemplates,thisMonthFixed,txs,year,month]);
 
   // 이번 달 실제 발생 목록
   const occurred = useMemo(()=>
@@ -877,6 +908,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   }
 
   const FixedCard = ({tx, isScheduled}) => {
+    const biMonthly = isBiMonthly(tx.memo);
     const isPast = isScheduled && isCurrentMonth && tx.fixedDay && tx.fixedDay < todayDay;
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
     const regDate = (() => {
@@ -901,6 +933,9 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
               fontFamily:"'Inter',sans-serif",overflow:"hidden",
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
+            {biMonthly&&<span style={{fontSize:"9px",background:"#f0f4ff",color:"#1d4e89",
+              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+              border:"1px solid #b0c4de",fontFamily:"'Inter',sans-serif"}}>격월</span>}
             {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               fontFamily:"'Inter',sans-serif"}}>오늘</span>}
@@ -1785,10 +1820,11 @@ function SuppliesView({ supplies, onChange, txs=[] }){
     };
   }
 
-  // 실질 소진 주기: 실측 평균 주기 × (실구매금액/기준금액)
+  // 실질 소진 주기: 실측 우선, 없으면 수동, 그것도 없으면 null
   const effectiveCycle = (s) => {
     const actual = computeActualCycle(s.name);
-    const base = actual ? actual.days : s.cycle_days;
+    const base = actual ? actual.days : (s.cycle_days||null);
+    if(!base) return null;
     if(s.base_amount>0 && s.last_amount>0)
       return Math.round(base * s.last_amount / s.base_amount);
     return base;
@@ -1796,19 +1832,32 @@ function SuppliesView({ supplies, onChange, txs=[] }){
 
   const actualCycleInfo = (s) => computeActualCycle(s.name);
   const nextBuy = (s) => {
+    const cyc = effectiveCycle(s);
+    if(!cyc) return null;
     const d = new Date(s.last_bought);
-    d.setDate(d.getDate() + effectiveCycle(s));
+    d.setDate(d.getDate() + cyc);
     return d.toISOString().slice(0,10);
   };
-  const daysUntil = (s) => Math.round((new Date(nextBuy(s)) - today) / 86400000);
+  const daysUntil = (s) => {
+    const n = nextBuy(s);
+    if(!n) return null;
+    return Math.round((new Date(n) - today) / 86400000);
+  };
 
-  const sorted = useMemo(() => [...supplies].sort((a,b) => daysUntil(a) - daysUntil(b)), [supplies]);
+  const sorted = useMemo(() => [...supplies].sort((a,b) => {
+    const da = daysUntil(a), db = daysUntil(b);
+    if(da===null && db===null) return 0;
+    if(da===null) return 1;
+    if(db===null) return -1;
+    return da - db;
+  }), [supplies]);
 
   const getStatus = (s) => {
     const d = daysUntil(s);
-    if (d < 0)  return { label:"구매 필요", color:"#b5451b", bg:"#fff8f0", border:"#f4c5b2", icon:<AlertTriangle size={11}/> };
-    if (d <= 3) return { label:`${d}일 후`, color:"#b8860b", bg:"#fffbf0", border:"#f0d080", icon:<Clock size={11}/> };
-    return        { label:`${d}일 후`, color:"#2d6a4f", bg:"#f0fdf4", border:"#b7e4c7", icon:<Package size={11}/> };
+    if(d===null) return { label:"이력 수집 중", color:C.inkLight, bg:C.cream, border:C.border, icon:<Package size={11}/> };
+    if (d < 0)   return { label:"구매 필요", color:"#b5451b", bg:"#fff8f0", border:"#f4c5b2", icon:<AlertTriangle size={11}/> };
+    if (d <= 3)  return { label:`${d}일 후`, color:"#b8860b", bg:"#fffbf0", border:"#f0d080", icon:<Clock size={11}/> };
+    return         { label:`${d}일 후`, color:"#2d6a4f", bg:"#f0fdf4", border:"#b7e4c7", icon:<Package size={11}/> };
   };
 
   async function handleBought(s, amount){
@@ -1820,9 +1869,9 @@ function SuppliesView({ supplies, onChange, txs=[] }){
   }
 
   async function handleAdd(){
-    if(!form.name.trim()||!form.cycle_days) return;
+    if(!form.name.trim()) return;
     const s = { id:"s"+Date.now(), name:form.name.trim(), category:form.category,
-      cycle_days:parseInt(form.cycle_days), base_amount:parseInt(form.base_amount)||0,
+      cycle_days:form.cycle_days?parseInt(form.cycle_days):null, base_amount:parseInt(form.base_amount)||0,
       last_amount:0, last_bought:form.last_bought, memo:form.memo.trim() };
     setSaving(true);
     await onChange(s, "add");
@@ -1833,7 +1882,7 @@ function SuppliesView({ supplies, onChange, txs=[] }){
 
   async function handleEdit(){
     const s = { ...modal, name:form.name.trim(), category:form.category,
-      cycle_days:parseInt(form.cycle_days), base_amount:parseInt(form.base_amount)||0,
+      cycle_days:form.cycle_days?parseInt(form.cycle_days):null, base_amount:parseInt(form.base_amount)||0,
       last_bought:form.last_bought, memo:form.memo.trim() };
     setSaving(true);
     await onChange(s, "update");
@@ -1849,12 +1898,12 @@ function SuppliesView({ supplies, onChange, txs=[] }){
   }
 
   function openEdit(s){
-    setForm({ name:s.name, category:s.category, cycle_days:String(s.cycle_days),
+    setForm({ name:s.name, category:s.category, cycle_days:s.cycle_days?String(s.cycle_days):"",
       base_amount:s.base_amount>0?String(s.base_amount):"", last_bought:s.last_bought, memo:s.memo||"" });
     setModal(s);
   }
 
-  const needAction = sorted.filter(s => daysUntil(s) <= 3);
+  const needAction = sorted.filter(s => { const d=daysUntil(s); return d!==null && d<=3; });
 
   const FormContent = ({ isEdit }) => (
     <div style={{fontFamily:"'Inter',sans-serif"}}>
@@ -1880,7 +1929,7 @@ function SuppliesView({ supplies, onChange, txs=[] }){
         </div>
         <div>
           <SLabel>카테고리</SLabel>
-          <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"7px"}}>
             {SUPPLY_CATS.map(c=>(
               <button key={c} onClick={()=>setForm(p=>({...p,category:c}))} style={{
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
@@ -1889,6 +1938,8 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                 color:form.category===c?"#2d6a4f":C.inkMid,fontFamily:"'Inter',sans-serif"}}>{c}</button>
             ))}
           </div>
+          <Inp value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
+            placeholder="직접 입력" style={{fontSize:"13px"}}/>
         </div>
         {/* 기준 주기 + 기준 금액 */}
         <div style={{background:"#f0fdf4",borderRadius:"12px",padding:"12px 14px",border:"1px solid #b7e4c7"}}>
@@ -1995,7 +2046,8 @@ function SuppliesView({ supplies, onChange, txs=[] }){
         </div>
         :sorted.map(s=>{
           const st = getStatus(s);
-          const progress = Math.min(100, Math.max(0, (daysDiff(s.last_bought) / effectiveCycle(s)) * 100));
+          const cyc = effectiveCycle(s);
+          const progress = cyc ? Math.min(100, Math.max(0, (daysDiff(s.last_bought) / cyc) * 100)) : null;
           const next = nextBuy(s);
           return(
             <div key={s.id} style={{background:C.white,borderRadius:"16px",padding:"14px 16px",
@@ -2011,8 +2063,8 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                     </span>
                   </div>
                   <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>실측 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:`설정 ${s.cycle_days}일`;})()}
-                    {" · 다음 구매 "}{next}
+                    {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>실측 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:s.cycle_days?`설정 ${s.cycle_days}일`:<span style={{opacity:0.5}}>주기 미설정</span>;})()}
+                    {next?<>{" · 다음 구매 "}{next}</>:""}
                   </div>
                   {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
                 </div>
@@ -2027,9 +2079,9 @@ function SuppliesView({ supplies, onChange, txs=[] }){
               {/* Progress bar */}
               <div style={{marginBottom:"10px"}}>
                 <div style={{height:"6px",background:C.cream,borderRadius:"99px",overflow:"hidden"}}>
-                  <div style={{height:"100%",borderRadius:"99px",transition:"width 0.5s",
+                  {progress!==null&&<div style={{height:"100%",borderRadius:"99px",transition:"width 0.5s",
                     width:`${progress}%`,
-                    background:progress>=100?"#b5451b":progress>=80?"#b8860b":"#2d6a4f"}}/>
+                    background:progress>=100?"#b5451b":progress>=80?"#b8860b":"#2d6a4f"}}/>}
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
                   <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
@@ -2039,9 +2091,10 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                     {(()=>{
                       const a=actualCycleInfo(s);
                       const eff=effectiveCycle(s);
-                      const base=a?a.days:s.cycle_days;
-                      if(eff!==base) return <>실질 {eff}일 <span style={{opacity:0.5}}>(기준 {base}일)</span></>;
-                      return a?`실측 ${a.days}일`:`설정 ${s.cycle_days}일`;
+                      if(!eff) return <span style={{color:C.inkLight,opacity:0.6}}>이력 수집 중</span>;
+                      const base=a?a.days:(s.cycle_days||null);
+                      if(base&&eff!==base) return <>실질 {eff}일 <span style={{opacity:0.5}}>(기준 {base}일)</span></>;
+                      return a?`실측 ${a.days}일`:(s.cycle_days?`설정 ${s.cycle_days}일`:"");
                     })()}
                   </span>
                 </div>
@@ -2157,6 +2210,7 @@ export default function App(){
   const now=new Date();
   const [year,  setYear]  =useState(now.getFullYear());
   const [month, setMonth] =useState(now.getMonth());
+  const [yearView, setYearView] =useState(false);
   const [entity,setEntity]=useState("personal");
   const [tab,   setTab]   =useState("list");
   const [modal, setModal] =useState(null);
@@ -2275,7 +2329,7 @@ export default function App(){
   }
 
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
-  const viewTxs=useMemo(()=>txs.filter(t=>t.date.startsWith(monthKey)&&t.entity===entity),[txs,monthKey,entity]);
+  const viewTxs=useMemo(()=>txs.filter(t=>(yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey))&&t.entity===entity),[txs,monthKey,year,yearView,entity]);
   const entityTxs=useMemo(()=>txs.filter(t=>t.entity===entity),[txs,entity]);
   const realtyTags=useMemo(()=>[...new Set(txs.filter(t=>t.entity==="realty"&&t.cat3).map(t=>t.cat3))],[txs]);
   const income =useMemo(()=>viewTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0),[viewTxs]);
@@ -2351,18 +2405,38 @@ export default function App(){
             })}
           </div>
 
-          {/* Month nav */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"16px",marginBottom:"20px"}}>
-            <button onClick={prevMonth} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:"8px",padding:"7px",color:"rgba(255,255,255,0.45)",cursor:"pointer",display:"flex"}}>
-              <ChevronLeft size={17}/>
-            </button>
-            <div style={{textAlign:"center",minWidth:"120px"}}>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:"20px",letterSpacing:"-0.3px"}}>{MONTHS[month]} {year}</div>
-              <div style={{fontSize:"10px",opacity:0.35,fontFamily:"'Inter',sans-serif",marginTop:"1px"}}>{year}년 {MONTHS_KO[month]}</div>
+          {/* Month/Year nav */}
+          <div style={{marginBottom:"20px"}}>
+            {/* 월/연간 토글 */}
+            <div style={{display:"flex",justifyContent:"center",marginBottom:"12px"}}>
+              <div style={{display:"flex",background:"rgba(255,255,255,0.08)",borderRadius:"10px",padding:"3px",gap:"2px"}}>
+                {[["월별",false],["연간",true]].map(([label,isYear])=>(
+                  <button key={label} onClick={()=>{setYearView(isYear);if(isYear&&tab==="fixed")setTab("stats");}} style={{
+                    padding:"5px 18px",border:"none",borderRadius:"8px",cursor:"pointer",
+                    fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:yearView===isYear?700:400,
+                    background:yearView===isYear?"rgba(255,255,255,0.18)":"transparent",
+                    color:yearView===isYear?"#fff":"rgba(255,255,255,0.45)",transition:"all 0.15s"}}>
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button onClick={nextMonth} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:"8px",padding:"7px",color:"rgba(255,255,255,0.45)",cursor:"pointer",display:"flex"}}>
-              <ChevronRight size={17}/>
-            </button>
+            {/* 네비게이터 */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"16px"}}>
+              <button onClick={yearView?()=>setYear(y=>y-1):prevMonth} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:"8px",padding:"7px",color:"rgba(255,255,255,0.45)",cursor:"pointer",display:"flex"}}>
+                <ChevronLeft size={17}/>
+              </button>
+              <div style={{textAlign:"center",minWidth:"120px"}}>
+                {yearView
+                  ?<div style={{fontFamily:"'Inter',sans-serif",fontSize:"22px",letterSpacing:"-0.3px"}}>{year}년</div>
+                  :<><div style={{fontFamily:"'Inter',sans-serif",fontSize:"20px",letterSpacing:"-0.3px"}}>{MONTHS[month]} {year}</div>
+                    <div style={{fontSize:"10px",opacity:0.35,fontFamily:"'Inter',sans-serif",marginTop:"1px"}}>{year}년 {MONTHS_KO[month]}</div></>
+                }
+              </div>
+              <button onClick={yearView?()=>setYear(y=>y+1):nextMonth} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:"8px",padding:"7px",color:"rgba(255,255,255,0.45)",cursor:"pointer",display:"flex"}}>
+                <ChevronRight size={17}/>
+              </button>
+            </div>
           </div>
 
           {/* Balance */}
@@ -2393,7 +2467,8 @@ export default function App(){
         {!isConfigured()&&<SetupGuide/>}
 
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
-          {[["list","내역"],["stats","통계"],["fixed","고정지출"],
+          {[["list","내역"],["stats","통계"],
+            ...(!yearView?[["fixed","고정지출"]]:[]),
             ...(entity==="cafe"?[["supplies","소모품"]]:[])
           ].map(([k,l])=>(
             <button key={k} onClick={()=>setTab(k)} style={{
