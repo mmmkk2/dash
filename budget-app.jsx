@@ -1344,7 +1344,40 @@ function catDisplayName(name){
 
 const SUB_COLORS=["#4a90d9","#52b788","#e07a5f","#9b5de5","#b8860b","#0077b6","#831843","#2d6a4f","#b5451b","#4a3f35","#c1440e","#48cae4"];
 
+function TxMiniList({txs, onEdit}){
+  if(!txs.length)return null;
+  return(
+    <div>
+      <div style={{padding:"8px 14px 4px",fontSize:"10px",fontWeight:700,
+        letterSpacing:"0.1em",color:C.inkLight,fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>
+        내역 {txs.length}건
+      </div>
+      {txs.map((t,i)=>(
+        <div key={t.id} onClick={()=>onEdit&&onEdit(t)}
+          style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 14px",
+            cursor:onEdit?"pointer":"default",borderTop:`1px solid ${C.border}`,transition:"background 0.1s"}}
+          onMouseEnter={e=>onEdit&&(e.currentTarget.style.background=C.cream)}
+          onMouseLeave={e=>onEdit&&(e.currentTarget.style.background="transparent")}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:"12px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif",
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
+            <div style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif",marginTop:"2px"}}>
+              {t.date}{t.cat2&&` · ${t.cat2}`}
+            </div>
+          </div>
+          <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,fontFamily:"'Inter',sans-serif",
+            color:t.type==="income"?"#2d6a4f":"#b5451b"}}>
+            {t.type==="income"?"+":"-"}{fmtS(t.amount)}
+          </div>
+          {onEdit&&<Pencil size={11} style={{color:C.border,flexShrink:0}}/>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
+  const [expandedSub,setExpandedSub]=useState(null);
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
   if(!data.length)return(
     <div style={{textAlign:"center",padding:"32px 20px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>내역이 없어요</div>
@@ -1355,11 +1388,9 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
         const pct=Math.round((item.value/total)*100);
         const isOpen=expanded===item.name;
         const subWithColors=item.sub.map((s,i)=>({...s,color:SUB_COLORS[i%SUB_COLORS.length]}));
-        const itemTxs=txs.filter(t=>catDisplayName(t.cat1)===item.name||t.cat1===item.rawName)
-          .sort((a,b)=>b.date.localeCompare(a.date));
         return(
           <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
-            <button onClick={()=>setExpanded(isOpen?null:item.name)}
+            <button onClick={()=>{setExpanded(isOpen?null:item.name);setExpandedSub(null);}}
               style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
               <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
                 <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
@@ -1374,7 +1405,6 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
             </button>
             {isOpen&&(
               <div style={{borderTop:`1px solid ${C.border}`,background:C.paper}}>
-                {/* 서브 차트 */}
                 {item.sub.length>0&&(
                   <div style={{padding:"4px 14px 10px"}}>
                     {subWithColors.length>1&&(
@@ -1390,54 +1420,34 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                     )}
                     {subWithColors.map((s)=>{
                       const sp=Math.round((s.value/item.value)*100);
+                      const subKey=`${item.name}::${s.name}`;
+                      const isSubOpen=expandedSub===subKey;
+                      const subTxs=txs.filter(t=>(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)
+                        .sort((a,b)=>b.date.localeCompare(a.date));
                       return(
-                        <div key={s.name} style={{marginBottom:"8px"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
-                              <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.color,flexShrink:0}}/>
-                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                        <div key={s.name} style={{marginBottom:"6px",borderRadius:"8px",
+                          border:`1px solid ${isSubOpen?s.color+"88":C.border}`,overflow:"hidden",
+                          background:isSubOpen?C.white:"transparent"}}>
+                          <div onClick={()=>setExpandedSub(isSubOpen?null:subKey)}
+                            style={{cursor:"pointer",padding:"7px 10px 5px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
+                                <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.color,flexShrink:0}}/>
+                                <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                              </div>
+                              <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                                <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                                <span style={{fontSize:"9px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
+                              </div>
                             </div>
-                            <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                            <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
+                              <div style={{width:`${sp}%`,height:"100%",background:s.color+"bb",borderRadius:"99px"}}/>
+                            </div>
                           </div>
-                          <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
-                            <div style={{width:`${sp}%`,height:"100%",background:s.color+"bb",borderRadius:"99px"}}/>
-                          </div>
+                          {isSubOpen&&<TxMiniList txs={subTxs} onEdit={onEdit}/>}
                         </div>
                       );
                     })}
-                  </div>
-                )}
-                {/* 실제 내역 */}
-                {itemTxs.length>0&&(
-                  <div style={{borderTop:`1px solid ${C.border}`}}>
-                    <div style={{padding:"8px 14px 4px",fontSize:"10px",fontWeight:700,
-                      letterSpacing:"0.1em",color:C.inkLight,fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>
-                      내역 {itemTxs.length}건
-                    </div>
-                    {itemTxs.map((t,i)=>(
-                      <div key={t.id} onClick={()=>onEdit&&onEdit(t)}
-                        style={{display:"flex",alignItems:"center",gap:"10px",
-                          padding:"9px 14px",cursor:onEdit?"pointer":"default",
-                          borderTop:i>0?`1px solid ${C.border}`:"none",
-                          transition:"background 0.1s"}}
-                        onMouseEnter={e=>onEdit&&(e.currentTarget.style.background=C.cream)}
-                        onMouseLeave={e=>onEdit&&(e.currentTarget.style.background="transparent")}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:"12px",fontWeight:500,color:C.ink,
-                            fontFamily:"'Inter',sans-serif",overflow:"hidden",
-                            textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
-                          <div style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif",marginTop:"2px"}}>
-                            {t.date}&nbsp;{t.cat2&&`· ${t.cat2}`}
-                          </div>
-                        </div>
-                        <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,
-                          color:t.type==="income"?"#2d6a4f":"#b5451b",
-                          fontFamily:"'Inter',sans-serif"}}>
-                          {t.type==="income"?"+":"-"}{fmtS(t.amount)}
-                        </div>
-                        {onEdit&&<Pencil size={11} style={{color:C.border,flexShrink:0}}/>}
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>
