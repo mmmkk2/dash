@@ -1219,6 +1219,12 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     const biMonthly = isBiMonthly(tx.memo);
     const isPast = isScheduled && isCurrentMonth && tx.fixedDay && tx.fixedDay < todayDay;
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
+    const recentAmounts = useMemo(()=>
+      [...txs].filter(t=>t.entity===entity&&t.memo===tx.memo&&t.isFixed)
+        .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3).map(t=>t.amount)
+    ,[txs,entity,tx.memo]);
+    const avg = recentAmounts.length>=2
+      ? Math.round(recentAmounts.reduce((s,a)=>s+a,0)/recentAmounts.length) : null;
     const regDate = (() => {
       if(!tx.fixedDay) return `${year}-${String(month+1).padStart(2,"0")}-${String(todayDay).padStart(2,"0")}`;
       const day = tx.fixedDay===31 ? new Date(year,month+1,0).getDate() : tx.fixedDay;
@@ -1266,10 +1272,17 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
             )}
           </div>
         </div>
-        <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",
-          color:tx.type==="income"?"#2d6a4f":"#b5451b",fontWeight:700,flexShrink:0,
-          opacity:isScheduled?0.6:1}}>
-          {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
+        <div style={{textAlign:"right",flexShrink:0}}>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",
+            color:tx.type==="income"?"#2d6a4f":"#b5451b",fontWeight:700,
+            opacity:isScheduled?0.6:1}}>
+            {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
+          </div>
+          {isScheduled&&avg&&avg!==tx.amount&&(
+            <div style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif",marginTop:"1px"}}>
+              평균 {fmtS(avg)}
+            </div>
+          )}
         </div>
         {isScheduled?(
           <button onClick={()=>handleRegister(tx,regDate)} disabled={isReg}
