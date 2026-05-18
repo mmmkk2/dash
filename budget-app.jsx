@@ -149,14 +149,14 @@ const TREE_PERSONAL = {
   "지출-이벤트":{ color:"#831843",accent:"#ec4899",icon:"💗",children:{이사:[],여행:[],미용:[],가족:["새벗돈","엄마","용돈","조카"]}},
 };
 const TREE_CAFE = {
-  매출:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{이용권수입:[],기타수입:[],무인키오스크:[],네이버예약:[]}},
+  매출:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{이용권수입:[],기타수입:[],무인키오스크:[],네이버예약:[],환불:["현금환불","카드환불","기타"]}},
   "매입/원가":{ color:"#b5451b",accent:"#e07a5f",icon:"📦",children:{
     식음료간식:["커피-원두","커피-믹스커피","차-아이스티","차-녹차","차-둥굴레차","차-보리차","물품-종이컵(소)","물품-종이컵(중)","물품-스틱","간식-오트밀","간식-쌀과자","간식-카페비스킷","간식-약과","간식-폴로","간식-맨톨캔디","간식-후르츠캔디","간식-커피캔디","간식-비타민캔디","기타"],
     "위생/청소용품":["핸드타올/티슈","롤화장지","비닐 봉투","손세정제액체","종량제봉투","물티슈","페브리즈","세제","소독제","방향제","기타"],
     "문구/사무":["복사용지A4","복사용지A3","보드마카","수정테이프","영수증용지","기타"],
     비품:["가구","전자기기","기타"],수수료:["결제수수료","플랫폼수수료","기타"],
   }},
-  운영비:{ color:"#4a1942",accent:"#9b5de5",icon:"🏪",children:{임차료:[],관리비:[],인터넷:[],전기세:[],수도세:[],보험:[],기장료:[],마케팅:["SNS광고","전단지","기타"],기타:[]}},
+  운영비:{ color:"#4a1942",accent:"#9b5de5",icon:"🏪",children:{임차료:[],관리비:[],인터넷:[],전기세:[],수도세:[],보험:[],기장료:[],청소인건비:[],정수기:[],프린트사용료:[],코보시스수수료:[],마케팅:["SNS광고","전단지","기타"],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],소득세:[],기타:[]}},
 };
 const TREE_REALTY = {
@@ -297,7 +297,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
   function submit(){
     const num=parseInt(String(amount).replace(/,/g,""));
     if(!num||num<=0){setErr(true);setTimeout(()=>setErr(false),400);return;}
-    const isIncome=cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축");
+    const isIncome=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"))&&cat2!=="환불";
     const supplyData=isSupply&&showSupplyToggle
       ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,
         cycle_days:parseInt(supplyCycle)||30,last_bought:date,
