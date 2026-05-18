@@ -675,7 +675,6 @@ function CategorySettings({trees, onChange}){
   const [openCat1,setOpenCat1]=useState(null);
   const [adding,setAdding]=useState(null); // {level:"cat1"|"cat2"|"cat3", cat1?:str, cat2?:str}
   const [addVal,setAddVal]=useState("");
-  const [addIcon,setAddIcon]=useState("💸");
   const tree=trees[ent]||{};
 
   function save(next){
@@ -686,8 +685,8 @@ function CategorySettings({trees, onChange}){
   function addCat1(){
     const name=addVal.trim();
     if(!name||tree[name])return;
-    save({...tree,[name]:{color:"#888",accent:"#aaa",icon:addIcon,children:{}}});
-    setAdding(null);setAddVal("");setAddIcon("💸");
+    save({...tree,[name]:{color:"#888",accent:"#aaa",icon:"",children:{}}});
+    setAdding(null);setAddVal("");
   }
   function delCat1(k){
     const next={...tree};delete next[k];
@@ -979,8 +978,12 @@ function FlatListView({txs, onEdit, cards, entity}){
 
   const propTags=useMemo(()=>{
     if(!isRealty)return[];
-    const tags=[...new Set(txs.map(t=>t.cat3||"미지정"))];
-    return tags.sort((a,b)=>a==="미지정"?1:b==="미지정"?-1:a.localeCompare(b,"ko"));
+    const totals={};
+    txs.forEach(t=>{
+      const k=t.cat3||"미지정";
+      totals[k]=(totals[k]||0)+t.amount;
+    });
+    return Object.keys(totals).sort((a,b)=>a==="미지정"?1:b==="미지정"?-1:totals[b]-totals[a]);
   },[txs,isRealty]);
 
   // tag filter 바뀌면 "전체" 로 리셋 (entity/txs 변경 시)
@@ -1011,21 +1014,16 @@ function FlatListView({txs, onEdit, cards, entity}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
       {isRealty&&propTags.length>0&&(
-        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",paddingBottom:"4px"}}>
-          {["전체",...propTags].map(tag=>{
-            const sel=tagFilter===tag;
-            return(
-              <button key={tag} onClick={()=>setTagFilter(tag)} style={{
-                padding:"5px 14px",borderRadius:"20px",cursor:"pointer",
-                fontSize:"12px",fontWeight:sel?700:500,
-                background:sel?C.ink:C.white,
-                color:sel?"#fff":C.inkMid,
-                border:sel?`1px solid ${C.ink}`:`1px solid ${C.border}`,
-                transition:"all 0.15s"}}>
-                {tag}
-              </button>
-            );
-          })}
+        <div style={{marginBottom:"4px"}}>
+          <select value={tagFilter} onChange={e=>setTagFilter(e.target.value)}
+            style={{width:"100%",padding:"9px 12px",borderRadius:"10px",border:`1px solid ${C.border}`,
+              background:C.white,color:C.ink,fontSize:"13px",fontWeight:600,
+              fontFamily:"'Inter',sans-serif",cursor:"pointer",outline:"none",
+              appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:"32px"}}>
+            <option value="전체">전체</option>
+            {propTags.map(tag=><option key={tag} value={tag}>{tag}</option>)}
+          </select>
         </div>
       )}
       {Object.entries(byDate).map(([date,items])=>{
