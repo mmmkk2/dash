@@ -971,10 +971,10 @@ function PropTagDropdown({tags, value, onChange}){
   const [open,setOpen]=useState(false);
   const all=["전체",...tags];
   return(
-    <div style={{position:"relative",marginBottom:"4px"}}>
+    <div style={{position:"relative",marginBottom:"4px",display:"inline-block",minWidth:"120px",maxWidth:"220px"}}>
       <button onClick={()=>setOpen(o=>!o)}
         style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-          width:"100%",padding:"9px 14px",borderRadius:"12px",cursor:"pointer",
+          width:"100%",padding:"7px 12px",borderRadius:"10px",cursor:"pointer",
           background:C.white,border:`1px solid ${value==="전체"?C.border:C.ink}`,
           fontFamily:"'Inter',sans-serif",fontSize:"13px",fontWeight:value==="전체"?400:600,
           color:value==="전체"?C.inkMid:C.ink,outline:"none"}}>
@@ -1344,7 +1344,7 @@ function catDisplayName(name){
 
 const SUB_COLORS=["#4a90d9","#52b788","#e07a5f","#9b5de5","#b8860b","#0077b6","#831843","#2d6a4f","#b5451b","#4a3f35","#c1440e","#48cae4"];
 
-function BreakdownList({data,total,sign,expanded,setExpanded}){
+function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
   if(!data.length)return(
     <div style={{textAlign:"center",padding:"32px 20px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>내역이 없어요</div>
@@ -1355,6 +1355,8 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
         const pct=Math.round((item.value/total)*100);
         const isOpen=expanded===item.name;
         const subWithColors=item.sub.map((s,i)=>({...s,color:SUB_COLORS[i%SUB_COLORS.length]}));
+        const itemTxs=txs.filter(t=>catDisplayName(t.cat1)===item.name||t.cat1===item.rawName)
+          .sort((a,b)=>b.date.localeCompare(a.date));
         return(
           <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
             <button onClick={()=>setExpanded(isOpen?null:item.name)}
@@ -1370,36 +1372,74 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
                 <div style={{width:`${pct}%`,height:"100%",background:item.color,borderRadius:"99px"}}/>
               </div>
             </button>
-            {isOpen&&item.sub.length>0&&(
-              <div style={{borderTop:`1px solid ${C.border}`,padding:"4px 14px 13px",background:C.paper}}>
-                {subWithColors.length>1&&(
-                  <ResponsiveContainer width="100%" height={140}>
-                    <PieChart>
-                      <Pie data={subWithColors} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={2}>
-                        {subWithColors.map((s,i)=><Cell key={i} fill={s.color}/>)}
-                      </Pie>
-                      <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
-                      <Legend iconType="circle" iconSize={6} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-                {subWithColors.map((s)=>{
-                  const sp=Math.round((s.value/item.value)*100);
-                  return(
-                    <div key={s.name} style={{marginBottom:"8px"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
-                          <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.color,flexShrink:0}}/>
-                          <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+            {isOpen&&(
+              <div style={{borderTop:`1px solid ${C.border}`,background:C.paper}}>
+                {/* 서브 차트 */}
+                {item.sub.length>0&&(
+                  <div style={{padding:"4px 14px 10px"}}>
+                    {subWithColors.length>1&&(
+                      <ResponsiveContainer width="100%" height={140}>
+                        <PieChart>
+                          <Pie data={subWithColors} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={2}>
+                            {subWithColors.map((s,i)=><Cell key={i} fill={s.color}/>)}
+                          </Pie>
+                          <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
+                          <Legend iconType="circle" iconSize={6} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                    {subWithColors.map((s)=>{
+                      const sp=Math.round((s.value/item.value)*100);
+                      return(
+                        <div key={s.name} style={{marginBottom:"8px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
+                              <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.color,flexShrink:0}}/>
+                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                            </div>
+                            <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                          </div>
+                          <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
+                            <div style={{width:`${sp}%`,height:"100%",background:s.color+"bb",borderRadius:"99px"}}/>
+                          </div>
                         </div>
-                        <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
-                      </div>
-                      <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
-                        <div style={{width:`${sp}%`,height:"100%",background:s.color+"bb",borderRadius:"99px"}}/>
-                      </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* 실제 내역 */}
+                {itemTxs.length>0&&(
+                  <div style={{borderTop:`1px solid ${C.border}`}}>
+                    <div style={{padding:"8px 14px 4px",fontSize:"10px",fontWeight:700,
+                      letterSpacing:"0.1em",color:C.inkLight,fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>
+                      내역 {itemTxs.length}건
                     </div>
-                  );
-                })}
+                    {itemTxs.map((t,i)=>(
+                      <div key={t.id} onClick={()=>onEdit&&onEdit(t)}
+                        style={{display:"flex",alignItems:"center",gap:"10px",
+                          padding:"9px 14px",cursor:onEdit?"pointer":"default",
+                          borderTop:i>0?`1px solid ${C.border}`:"none",
+                          transition:"background 0.1s"}}
+                        onMouseEnter={e=>onEdit&&(e.currentTarget.style.background=C.cream)}
+                        onMouseLeave={e=>onEdit&&(e.currentTarget.style.background="transparent")}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:"12px",fontWeight:500,color:C.ink,
+                            fontFamily:"'Inter',sans-serif",overflow:"hidden",
+                            textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
+                          <div style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif",marginTop:"2px"}}>
+                            {t.date}&nbsp;{t.cat2&&`· ${t.cat2}`}
+                          </div>
+                        </div>
+                        <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,
+                          color:t.type==="income"?"#2d6a4f":"#b5451b",
+                          fontFamily:"'Inter',sans-serif"}}>
+                          {t.type==="income"?"+":"-"}{fmtS(t.amount)}
+                        </div>
+                        {onEdit&&<Pencil size={11} style={{color:C.border,flexShrink:0}}/>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1409,7 +1449,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
   );
 }
 
-function StatsView({txs,allEntityTxs,entity,cards}){
+function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const tree=TREES[entity]||TREE_PERSONAL;
   const isRealty=entity==="realty";
   const [statsTab,setStatsTab]=useState("expense");
@@ -1602,7 +1642,7 @@ function StatsView({txs,allEntityTxs,entity,cards}){
         </div>
       ):(
         /* Breakdown bars */
-        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded}/>
+        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded} txs={txs} onEdit={onEdit}/>
       )}
 
       {/* 카페 월별 추이 */}
@@ -2825,7 +2865,7 @@ export default function App(){
           </div>
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity}/>
-             :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards}/>
+             :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
