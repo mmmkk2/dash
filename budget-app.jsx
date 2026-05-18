@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
    Supabase 프로젝트 생성 후 아래 두 값을 교체하세요.
@@ -246,7 +246,7 @@ function SetupGuide(){
 }
 
 /* ── TxForm ── */
-function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,supplies=[],propertyTags=[]}){
+function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="personal",saving,supplies=[],propertyTags=[]}){
   const today=new Date().toISOString().slice(0,10);
   const init=initial||{};
   const [entity,setEntity]=useState(init.entity||defaultEntity);
@@ -273,7 +273,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
   const [supplyCat,setSupplyCat]=useState("소모품");
   const [supplyCycle,setSupplyCycle]=useState("");
   const [err,setErr]=useState(false);
-  const isEdit=!!initial;
+  const isEdit=!!(initial?.id);
   const showSupplyToggle = entity==="cafe" && cat1==="매입/원가";
 
   function pickEntity(e){
@@ -316,11 +316,20 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
           <span style={{fontFamily:"'Inter',sans-serif",fontSize:"18px",fontWeight:700,color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
         </div>
         {isEdit&&(
-          <button onClick={onDelete} disabled={saving} style={{display:"flex",alignItems:"center",gap:"5px",
-            background:"#fff1ee",border:"1px solid #f4c5b2",borderRadius:"8px",
-            padding:"6px 12px",cursor:"pointer",color:"#b5451b",fontSize:"12px",fontWeight:600}}>
-            <Trash2 size={13}/> 삭제
-          </button>
+          <div style={{display:"flex",gap:"6px"}}>
+            {onDuplicate&&(
+              <button onClick={onDuplicate} disabled={saving} style={{display:"flex",alignItems:"center",gap:"5px",
+                background:"#f0f4ff",border:"1px solid #b0c4de",borderRadius:"8px",
+                padding:"6px 12px",cursor:"pointer",color:"#1d4e89",fontSize:"12px",fontWeight:600}}>
+                <Copy size={13}/> 복사
+              </button>
+            )}
+            <button onClick={onDelete} disabled={saving} style={{display:"flex",alignItems:"center",gap:"5px",
+              background:"#fff1ee",border:"1px solid #f4c5b2",borderRadius:"8px",
+              padding:"6px 12px",cursor:"pointer",color:"#b5451b",fontSize:"12px",fontWeight:600}}>
+              <Trash2 size={13}/> 삭제
+            </button>
+          </div>
         )}
       </div>
 
@@ -747,7 +756,7 @@ function CardSettings({cards,onChange,saving}){
 
 
 /* ── Flat List View ── */
-function FlatListView({txs, onEdit, onDuplicate, cards}){
+function FlatListView({txs, onEdit, cards}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
 
   const byDate=useMemo(()=>{
@@ -818,11 +827,6 @@ function FlatListView({txs, onEdit, onDuplicate, cards}){
                     fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
-                  <button onClick={e=>{e.stopPropagation();onDuplicate(tx);}} style={{background:"none",border:"none",cursor:"pointer",color:C.border,padding:"2px",borderRadius:"4px",display:"flex",flexShrink:0,transition:"color 0.15s"}}
-                    onMouseEnter={e=>e.currentTarget.style.color=C.inkMid}
-                    onMouseLeave={e=>e.currentTarget.style.color=C.border}>
-                    <Copy size={12}/>
-                  </button>
                   <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
                 </div>
               );
@@ -1320,6 +1324,42 @@ function StatsView({txs,allEntityTxs,entity,cards}){
         /* Breakdown bars */
         <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded}/>
       )}
+
+      {/* 카페 월별 추이 */}
+      {entity==="cafe"&&(()=>{
+        const src=allEntityTxs||txs;
+        const m={};
+        src.forEach(t=>{
+          const key=t.date.slice(0,7);
+          if(!m[key])m[key]={month:key,매출:0,고정비:0,변동비:0};
+          if(t.cat1==="매출"&&t.type==="income") m[key].매출+=t.amount;
+          if(t.cat1==="운영비") m[key].고정비+=t.amount;
+          if(t.cat1==="매입/원가") m[key].변동비+=t.amount;
+        });
+        const data=Object.values(m).sort((a,b)=>a.month.localeCompare(b.month))
+          .map(d=>({...d,순이익:d.매출-d.고정비-d.변동비,
+            label:d.month.slice(5)+"월"}));
+        if(data.length<2) return null;
+        const K=1000;
+        return(
+          <div style={{background:C.white,borderRadius:"18px",padding:"18px 8px 10px 4px",border:`1px solid ${C.border}`}}>
+            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"4px",fontFamily:"'Inter',sans-serif",paddingLeft:"14px"}}>월별 추이</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={data} margin={{top:8,right:16,left:0,bottom:0}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/>
+                <XAxis dataKey="label" tick={{fontSize:10,fontFamily:"'Inter',sans-serif",fill:C.inkLight}} tickLine={false} axisLine={false}/>
+                <YAxis tickFormatter={v=>`${Math.round(v/K)}k`} tick={{fontSize:10,fontFamily:"'Inter',sans-serif",fill:C.inkLight}} tickLine={false} axisLine={false} width={36}/>
+                <Tooltip formatter={(v,n)=>[fmt(v),n]} contentStyle={{background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"}}/>
+                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
+                <Line type="monotone" dataKey="매출" stroke="#1d4e89" strokeWidth={2} dot={false} activeDot={{r:4}}/>
+                <Line type="monotone" dataKey="고정비" stroke="#7ab3e0" strokeWidth={1.5} dot={false} activeDot={{r:4}}/>
+                <Line type="monotone" dataKey="변동비" stroke="#e07a5f" strokeWidth={1.5} dot={false} activeDot={{r:4}}/>
+                <Line type="monotone" dataKey="순이익" stroke="#f4a7b0" strokeWidth={1.5} dot={false} activeDot={{r:4}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -2500,11 +2540,11 @@ export default function App(){
         }
       </div>
 
-      <Modal open={modal==="add"} onClose={()=>setModal(null)}>
-        <TxForm onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>
+      <Modal open={modal==="add"} onClose={()=>{setModal(null);setEditTx(null);}}>
+        <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>
       </Modal>
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
-        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
+        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{const t=new Date().toISOString().slice(0,10);setEditTx({...editTx,id:null,date:t});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
       </Modal>
       <Modal open={modal==="cards"} onClose={()=>setModal(null)}>
         <CardSettings cards={cards} onChange={handleCards}/>
