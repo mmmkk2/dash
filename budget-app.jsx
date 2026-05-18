@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -254,7 +254,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
     if(c1.startsWith("저축"))return "저축";
     return "수입";
   }
-  const initCat1=init.cat1||(entity==="personal"?"지출-용돈":Object.keys(TREES[entity])[0]);
+  const initCat1=init.cat1||(entity==="personal"?"지출-용돈":entity==="cafe"?"매입/원가":entity==="realty"?"취득비용":Object.keys(TREES[entity])[0]);
   const [cat1,setCat1]=useState(initCat1);
   const [group,setGroup]=useState(deriveGroup(initCat1));
   const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[initCat1]?.children||{})[0]||"");
@@ -276,7 +276,7 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
   function pickEntity(e){
     setEntity(e);
     const t=TREES[e];
-    const k1=e==="personal"?"지출-용돈":Object.keys(t)[0];
+    const k1=e==="personal"?"지출-용돈":e==="cafe"?"매입/원가":e==="realty"?"취득비용":Object.keys(t)[0];
     setCat1(k1);setGroup(deriveGroup(k1));setCat2(Object.keys(t[k1]?.children||{})[0]||"");setCat3("");
   }
   function pickGroup(g){
@@ -646,6 +646,8 @@ function CardSettings({cards,onChange,saving}){
   const [newColor,setNewColor]=useState(CARD_COLORS[0]);
   const [editId,setEditId]=useState(null);
   const [editName,setEditName]=useState("");
+  const [dragIdx,setDragIdx]=useState(null);
+  const [dragOver,setDragOver]=useState(null);
 
   async function addCard(){
     if(!newName.trim())return;
@@ -660,6 +662,16 @@ function CardSettings({cards,onChange,saving}){
     await onChange(updated,"update",{id,name:editName});
     setEditId(null);
   }
+  function handleDragStart(i){setDragIdx(i);}
+  function handleDragOver(e,i){e.preventDefault();setDragOver(i);}
+  async function handleDrop(i){
+    if(dragIdx===null||dragIdx===i){setDragIdx(null);setDragOver(null);return;}
+    const reordered=[...cards];
+    const [moved]=reordered.splice(dragIdx,1);
+    reordered.splice(i,0,moved);
+    setDragIdx(null);setDragOver(null);
+    await onChange(reordered,"reorder",reordered);
+  }
 
   return(
     <div style={{fontFamily:"'Inter',sans-serif"}}>
@@ -668,9 +680,13 @@ function CardSettings({cards,onChange,saving}){
         <span style={{fontSize:"11px",color:C.inkLight}}>Cards</span>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"20px"}}>
-        {cards.map(c=>(
-          <div key={c.id} style={{display:"flex",alignItems:"center",gap:"10px",
-            background:C.white,borderRadius:"12px",padding:"11px 14px",border:`1px solid ${C.border}`}}>
+        {cards.map((c,i)=>(
+          <div key={c.id} draggable onDragStart={()=>handleDragStart(i)}
+            onDragOver={e=>handleDragOver(e,i)} onDrop={()=>handleDrop(i)} onDragEnd={()=>{setDragIdx(null);setDragOver(null);}}
+            style={{display:"flex",alignItems:"center",gap:"10px",
+              background:C.white,borderRadius:"12px",padding:"11px 14px",border:`1px solid ${dragOver===i?C.ink:C.border}`,
+              opacity:dragIdx===i?0.4:1,transition:"opacity 0.15s,border-color 0.15s",cursor:"default"}}>
+            <GripVertical size={14} style={{color:C.border,flexShrink:0,cursor:"grab"}}/>
             <div style={{width:"10px",height:"10px",borderRadius:"50%",flexShrink:0,background:c.color,marginRight:"2px"}}/>
             {editId===c.id
               ?<input value={editName} onChange={e=>setEditName(e.target.value)} autoFocus
@@ -2146,6 +2162,7 @@ export default function App(){
       if(op==="add")    await sb("cards",{method:"POST",body:JSON.stringify(cardToRow(payload))});
       if(op==="del")    await sb(`cards?id=eq.${payload.id}`,{method:"DELETE",prefer:"return=minimal"});
       if(op==="update") await sb(`cards?id=eq.${payload.id}`,{method:"PATCH",body:JSON.stringify({name:payload.name}),prefer:"return=minimal"});
+      if(op==="reorder") await Promise.all(payload.map((c,i)=>sb(`cards?id=eq.${c.id}`,{method:"PATCH",body:JSON.stringify({sort_order:i}),prefer:"return=minimal"})));
     }catch(e){console.error(e);}
   }
 
