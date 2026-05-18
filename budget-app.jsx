@@ -2222,7 +2222,10 @@ export default function App(){
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
   const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy"};
-  const [themeKey, setThemeKey] = useState(()=>localStorage.getItem(THEME_KEY)||"cream");
+  const [themeKey, setThemeKey] = useState(()=>ENTITY_THEME["personal"]);
+
+  // entity 변경 시 테마 동기화
+  useEffect(()=>{ setThemeKey(ENTITY_THEME[entity]||"cream"); }, [entity]);
 
   // C를 현재 테마로 동기화
   C = THEMES[themeKey] || THEMES.cream;
@@ -2230,7 +2233,6 @@ export default function App(){
   function changeTheme(key){
     setThemeKey(key);
     C = THEMES[key] || THEMES.cream;
-    localStorage.setItem(THEME_KEY, key);
   }
 
   /* ── DB 로드 ── */
