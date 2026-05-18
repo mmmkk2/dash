@@ -212,7 +212,7 @@ function Modal({open,onClose,children}){
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(26,20,16,0.6)",
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
-        background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px 36px",
+        background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px calc(36px + env(safe-area-inset-bottom))",
         width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"78vh",overflowY:"auto",
         boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`,borderBottom:"none"}}>
         <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
