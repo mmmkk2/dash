@@ -967,6 +967,48 @@ function CardSettings({cards,onChange,saving}){
 
 
 /* ── Flat List View ── */
+function PropTagDropdown({tags, value, onChange}){
+  const [open,setOpen]=useState(false);
+  const all=["전체",...tags];
+  return(
+    <div style={{position:"relative",marginBottom:"4px"}}>
+      <button onClick={()=>setOpen(o=>!o)}
+        style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+          width:"100%",padding:"9px 14px",borderRadius:"12px",cursor:"pointer",
+          background:C.white,border:`1px solid ${value==="전체"?C.border:C.ink}`,
+          fontFamily:"'Inter',sans-serif",fontSize:"13px",fontWeight:value==="전체"?400:600,
+          color:value==="전체"?C.inkMid:C.ink,outline:"none"}}>
+        <span>{value}</span>
+        <ChevronRight size={14} style={{color:C.inkLight,transform:open?"rotate(90deg)":"rotate(0deg)",transition:"transform 0.15s"}}/>
+      </button>
+      {open&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,zIndex:50,
+          background:C.white,border:`1px solid ${C.border}`,borderRadius:"12px",
+          boxShadow:"0 8px 24px rgba(0,0,0,0.10)",overflow:"hidden"}}>
+          {all.map(tag=>{
+            const sel=tag===value;
+            return(
+              <div key={tag} onClick={()=>{onChange(tag);setOpen(false);}}
+                style={{padding:"10px 14px",cursor:"pointer",fontSize:"13px",
+                  fontWeight:sel?600:400,
+                  color:sel?C.ink:C.inkMid,
+                  background:sel?C.cream:"transparent",
+                  fontFamily:"'Inter',sans-serif",
+                  borderBottom:`1px solid ${C.border}`,
+                  transition:"background 0.1s"}}
+                onMouseEnter={e=>!sel&&(e.currentTarget.style.background=C.cream)}
+                onMouseLeave={e=>!sel&&(e.currentTarget.style.background="transparent")}>
+                {tag}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {open&&<div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:40}}/>}
+    </div>
+  );
+}
+
 function FlatListView({txs, onEdit, cards, entity}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
   const isRealty=entity==="realty";
@@ -1010,17 +1052,7 @@ function FlatListView({txs, onEdit, cards, entity}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
       {isRealty&&propTags.length>0&&(
-        <div style={{marginBottom:"4px"}}>
-          <select value={tagFilter} onChange={e=>setTagFilter(e.target.value)}
-            style={{width:"100%",padding:"9px 12px",borderRadius:"10px",border:`1px solid ${C.border}`,
-              background:C.white,color:C.ink,fontSize:"13px",fontWeight:600,
-              fontFamily:"'Inter',sans-serif",cursor:"pointer",outline:"none",
-              appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-              backgroundRepeat:"no-repeat",backgroundPosition:"right 12px center",paddingRight:"32px"}}>
-            <option value="전체">전체</option>
-            {propTags.map(tag=><option key={tag} value={tag}>{tag}</option>)}
-          </select>
-        </div>
+        <PropTagDropdown tags={propTags} value={tagFilter} onChange={setTagFilter}/>
       )}
       {Object.entries(byDate).map(([date,items])=>{
         const dayIncome=items.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
