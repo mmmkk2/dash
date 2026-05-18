@@ -1189,9 +1189,8 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
       .sort((a,b)=>b.date.localeCompare(a.date));
     if(!history.length) return true;
     const lastPaid=new Date(history[0].date);
-    const viewStart=new Date(year,month,1);
-    const daysSince=Math.round((viewStart-lastPaid)/86400000);
-    return daysSince>=45;
+    const monthDiff=(year-lastPaid.getFullYear())*12+(month-lastPaid.getMonth());
+    return monthDiff>=2;
   }
 
   // 이번 달 아직 미발생인 예정 항목 (fixedDay 유무와 무관하게 표시)
