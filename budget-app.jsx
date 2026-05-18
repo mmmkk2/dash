@@ -1015,7 +1015,10 @@ function catDisplayName(name){
   return name.replace(/^지출-/,"").replace(/^저축\/투자/,"저축 ");
 }
 
+const SUB_COLORS=["#4a90d9","#52b788","#e07a5f","#9b5de5","#b8860b","#0077b6","#831843","#2d6a4f","#b5451b","#4a3f35","#c1440e","#48cae4"];
+
 function BreakdownList({data,total,sign,expanded,setExpanded}){
+  const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
   if(!data.length)return(
     <div style={{textAlign:"center",padding:"32px 20px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>내역이 없어요</div>
   );
@@ -1024,6 +1027,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
       {data.map((item)=>{
         const pct=Math.round((item.value/total)*100);
         const isOpen=expanded===item.name;
+        const subWithColors=item.sub.map((s,i)=>({...s,color:SUB_COLORS[i%SUB_COLORS.length]}));
         return(
           <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
             <button onClick={()=>setExpanded(isOpen?null:item.name)}
@@ -1040,17 +1044,31 @@ function BreakdownList({data,total,sign,expanded,setExpanded}){
               </div>
             </button>
             {isOpen&&item.sub.length>0&&(
-              <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 13px",background:C.paper}}>
-                {item.sub.map((s)=>{
+              <div style={{borderTop:`1px solid ${C.border}`,padding:"4px 14px 13px",background:C.paper}}>
+                {subWithColors.length>1&&(
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={subWithColors} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={2}>
+                        {subWithColors.map((s,i)=><Cell key={i} fill={s.color}/>)}
+                      </Pie>
+                      <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
+                      <Legend iconType="circle" iconSize={6} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{v}</span>}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+                {subWithColors.map((s)=>{
                   const sp=Math.round((s.value/item.value)*100);
                   return(
                     <div key={s.name} style={{marginBottom:"8px"}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-                        <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                        <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
+                          <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.color,flexShrink:0}}/>
+                          <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                        </div>
                         <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
                       </div>
                       <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
-                        <div style={{width:`${sp}%`,height:"100%",background:item.color+"bb",borderRadius:"99px"}}/>
+                        <div style={{width:`${sp}%`,height:"100%",background:s.color+"bb",borderRadius:"99px"}}/>
                       </div>
                     </div>
                   );
