@@ -762,7 +762,6 @@ function CategorySettings({trees, onChange}){
               {/* cat1 header */}
               <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",
                 background:C.cream,cursor:"pointer"}} onClick={()=>setOpenCat1(isOpen?null:cat1)}>
-                <span style={{fontSize:"15px"}}>{node.icon||"📁"}</span>
                 <span style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink}}>{cat1}</span>
                 <span style={{fontSize:"11px",color:C.inkLight,marginRight:"4px"}}>{Object.keys(node.children||{}).length}개</span>
                 <button onClick={e=>{e.stopPropagation();delCat1(cat1);}} style={btnDel}
@@ -849,9 +848,6 @@ function CategorySettings({trees, onChange}){
         {/* add cat1 */}
         {adding?.level==="cat1"?(
           <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-            <input value={addIcon} onChange={e=>setAddIcon(e.target.value)}
-              style={{width:"42px",textAlign:"center",border:`1px solid ${C.border}`,borderRadius:"8px",
-                padding:"6px 4px",fontSize:"16px",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
             <input autoFocus value={addVal} onChange={e=>setAddVal(e.target.value)}
               onKeyDown={e=>{if(e.key==="Enter")addCat1();if(e.key==="Escape"){setAdding(null);setAddVal("");}}}
               placeholder="대분류 이름" style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"8px",
@@ -862,7 +858,7 @@ function CategorySettings({trees, onChange}){
               borderRadius:"8px",padding:"7px 10px",color:C.inkLight,cursor:"pointer",fontSize:"12px"}}>취소</button>
           </div>
         ):(
-          <button onClick={()=>{setAdding({level:"cat1"});setAddVal("");setAddIcon("💸");}}
+          <button onClick={()=>{setAdding({level:"cat1"});setAddVal("");}}
             style={{...btnAdd,padding:"8px 14px",borderRadius:"10px",fontSize:"13px"}}>
             <Plus size={13}/>대분류 추가
           </button>
@@ -2687,9 +2683,9 @@ export default function App(){
               </button>
               <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"7px 10px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
-                fontSize:"12px",fontWeight:600,display:"flex",alignItems:"center",gap:"4px"}}>
-                <span style={{fontSize:"13px"}}>🗂</span>
+                borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
+                fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif"}}>
+                CAT
               </button>
               <button onClick={()=>setModal("cards")} style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
