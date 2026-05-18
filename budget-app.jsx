@@ -166,7 +166,17 @@ const TREE_REALTY = {
   처분비용:{ color:"#4a1942",accent:"#9b5de5",icon:"📝",children:{양도세:[],중개수수료:[],명도비:[],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],종합소득세:[],기타:[]}},
 };
-const TREES = { personal:TREE_PERSONAL, cafe:TREE_CAFE, realty:TREE_REALTY };
+const TREES_DEFAULT = { personal:TREE_PERSONAL, cafe:TREE_CAFE, realty:TREE_REALTY };
+const CAT_KEY = "gagibu_cats";
+function loadTrees(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(CAT_KEY));
+    if(saved) return saved;
+  }catch{}
+  return JSON.parse(JSON.stringify(TREES_DEFAULT));
+}
+// global mutable reference — updated by App and read by TxForm/etc via prop
+let TREES = loadTrees();
 
 const DEFAULT_CARDS = [
   {id:"c1",name:"삼성 iD 달달하린",color:"#1a1410"},
@@ -184,8 +194,9 @@ const CARD_COLORS = ["#1a1410","#1d4e89","#2d6a4f","#b5451b","#7b2d00","#4a1942"
 const fmt  = n => n.toLocaleString("ko-KR")+"원";
 const fmtS = n => {
   const abs=Math.abs(n);
-  if(abs>=100000000)return(n/100000000).toFixed(1)+"억";
-  if(abs>=10000)return(n/10000).toFixed(1)+"만";
+  const trunc1=(v)=>Math.trunc(v*10)/10;
+  if(abs>=100000000)return trunc1(n/100000000).toFixed(1)+"억";
+  if(abs>=10000)return trunc1(n/10000).toFixed(1)+"만";
   return n.toLocaleString("ko-KR");
 };
 const MONTHS    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -657,6 +668,211 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
 }
 
 /* ── Card Settings ── */
+/* ── CategorySettings ── */
+function CategorySettings({trees, onChange}){
+  const ENTITY_LABELS={personal:"개인",cafe:"카페",realty:"부동산"};
+  const [ent,setEnt]=useState("personal");
+  const [openCat1,setOpenCat1]=useState(null);
+  const [adding,setAdding]=useState(null); // {level:"cat1"|"cat2"|"cat3", cat1?:str, cat2?:str}
+  const [addVal,setAddVal]=useState("");
+  const [addIcon,setAddIcon]=useState("💸");
+  const tree=trees[ent]||{};
+
+  function save(next){
+    const updated={...trees,[ent]:next};
+    onChange(updated);
+  }
+
+  function addCat1(){
+    const name=addVal.trim();
+    if(!name||tree[name])return;
+    save({...tree,[name]:{color:"#888",accent:"#aaa",icon:addIcon,children:{}}});
+    setAdding(null);setAddVal("");setAddIcon("💸");
+  }
+  function delCat1(k){
+    const next={...tree};delete next[k];
+    if(openCat1===k)setOpenCat1(null);
+    save(next);
+  }
+
+  function addCat2(cat1){
+    const name=addVal.trim();
+    if(!name)return;
+    const node=tree[cat1];
+    if(!node)return;
+    const children={...node.children,[name]:[]};
+    save({...tree,[cat1]:{...node,children}});
+    setAdding(null);setAddVal("");
+  }
+  function delCat2(cat1,cat2){
+    const node=tree[cat1];
+    if(!node)return;
+    const children={...node.children};delete children[cat2];
+    save({...tree,[cat1]:{...node,children}});
+  }
+
+  function addCat3(cat1,cat2){
+    const name=addVal.trim();
+    if(!name)return;
+    const node=tree[cat1];
+    if(!node)return;
+    const list=[...(node.children[cat2]||[])];
+    if(list.includes(name))return;
+    list.push(name);
+    save({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+    setAdding(null);setAddVal("");
+  }
+  function delCat3(cat1,cat2,cat3){
+    const node=tree[cat1];
+    if(!node)return;
+    const list=(node.children[cat2]||[]).filter(x=>x!==cat3);
+    save({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+  }
+
+  const btnAdd={background:"#f5f7ff",border:"1px dashed #b0c4de",borderRadius:"8px",
+    padding:"4px 10px",cursor:"pointer",color:"#1d4e89",fontSize:"12px",fontWeight:600,
+    display:"flex",alignItems:"center",gap:"4px"};
+  const btnDel={background:"none",border:"none",cursor:"pointer",color:"#ccc",
+    padding:"2px 4px",borderRadius:"4px",display:"flex",alignItems:"center",
+    fontSize:"11px",lineHeight:1};
+
+  return(
+    <div style={{fontFamily:"'Inter',sans-serif",minWidth:"320px",maxWidth:"480px"}}>
+      <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"18px"}}>
+        <span style={{fontSize:"19px",fontWeight:700,color:C.ink}}>카테고리 관리</span>
+      </div>
+      {/* entity tabs */}
+      <div style={{display:"flex",gap:"6px",marginBottom:"16px"}}>
+        {Object.entries(ENTITY_LABELS).map(([k,v])=>(
+          <button key={k} onClick={()=>{setEnt(k);setOpenCat1(null);setAdding(null);}}
+            style={{padding:"6px 14px",borderRadius:"20px",border:"none",cursor:"pointer",
+              fontSize:"12px",fontWeight:600,
+              background:ent===k?C.ink:"#f0f0f0",color:ent===k?"#fff":C.inkMid}}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {/* cat1 list */}
+      <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"12px",maxHeight:"65vh",overflowY:"auto"}}>
+        {Object.keys(tree).map(cat1=>{
+          const node=tree[cat1];
+          const isOpen=openCat1===cat1;
+          return(
+            <div key={cat1} style={{border:`1px solid ${C.border}`,borderRadius:"12px",overflow:"hidden"}}>
+              {/* cat1 header */}
+              <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",
+                background:C.cream,cursor:"pointer"}} onClick={()=>setOpenCat1(isOpen?null:cat1)}>
+                <span style={{fontSize:"15px"}}>{node.icon||"📁"}</span>
+                <span style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink}}>{cat1}</span>
+                <span style={{fontSize:"11px",color:C.inkLight,marginRight:"4px"}}>{Object.keys(node.children||{}).length}개</span>
+                <button onClick={e=>{e.stopPropagation();delCat1(cat1);}} style={btnDel}
+                  onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+                  onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                  <Trash2 size={12}/>
+                </button>
+                <span style={{fontSize:"11px",color:C.inkLight}}>{isOpen?"▲":"▼"}</span>
+              </div>
+
+              {/* cat2 list */}
+              {isOpen&&(
+                <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:"10px"}}>
+                  {Object.entries(node.children||{}).map(([cat2,cat3list])=>(
+                    <div key={cat2}>
+                      {/* cat2 row */}
+                      <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
+                        <span style={{fontSize:"12px",fontWeight:600,color:C.inkMid,flex:1}}>▸ {cat2}</span>
+                        <button onClick={()=>{setAdding({level:"cat3",cat1,cat2});setAddVal("");}}
+                          style={btnAdd}><Plus size={11}/>cat3</button>
+                        <button onClick={()=>delCat2(cat1,cat2)} style={btnDel}
+                          onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+                          onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                          <Trash2 size={11}/>
+                        </button>
+                      </div>
+                      {/* cat3 chips */}
+                      {Array.isArray(cat3list)&&cat3list.length>0&&(
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"4px",paddingLeft:"12px"}}>
+                          {cat3list.map(cat3=>(
+                            <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px",
+                              background:"#fff",border:`1px solid ${C.border}`,borderRadius:"20px",
+                              padding:"3px 10px",fontSize:"11px",color:C.ink}}>
+                              {cat3}
+                              <button onClick={()=>delCat3(cat1,cat2,cat3)} style={{background:"none",border:"none",
+                                cursor:"pointer",color:"#ccc",padding:"0 0 0 2px",display:"flex",lineHeight:1}}
+                                onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+                                onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                                <X size={10}/>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {/* cat3 add inline */}
+                      {adding?.level==="cat3"&&adding.cat1===cat1&&adding.cat2===cat2&&(
+                        <div style={{display:"flex",gap:"6px",marginTop:"4px",paddingLeft:"12px"}}>
+                          <input autoFocus value={addVal} onChange={e=>setAddVal(e.target.value)}
+                            onKeyDown={e=>{if(e.key==="Enter")addCat3(cat1,cat2);if(e.key==="Escape"){setAdding(null);setAddVal("");}}}
+                            placeholder="항목 이름" style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"8px",
+                              padding:"5px 10px",fontSize:"12px",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                          <button onClick={()=>addCat3(cat1,cat2)} style={{background:C.ink,border:"none",
+                            borderRadius:"8px",padding:"5px 12px",color:"#fff",cursor:"pointer",fontSize:"12px",fontWeight:600}}>추가</button>
+                          <button onClick={()=>{setAdding(null);setAddVal("");}} style={{background:C.cream,border:`1px solid ${C.border}`,
+                            borderRadius:"8px",padding:"5px 10px",color:C.inkLight,cursor:"pointer",fontSize:"12px"}}>취소</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* add cat2 */}
+                  {adding?.level==="cat2"&&adding.cat1===cat1?(
+                    <div style={{display:"flex",gap:"6px",marginTop:"4px"}}>
+                      <input autoFocus value={addVal} onChange={e=>setAddVal(e.target.value)}
+                        onKeyDown={e=>{if(e.key==="Enter")addCat2(cat1);if(e.key==="Escape"){setAdding(null);setAddVal("");}}}
+                        placeholder="중분류 이름" style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"8px",
+                          padding:"5px 10px",fontSize:"12px",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                      <button onClick={()=>addCat2(cat1)} style={{background:C.ink,border:"none",
+                        borderRadius:"8px",padding:"5px 12px",color:"#fff",cursor:"pointer",fontSize:"12px",fontWeight:600}}>추가</button>
+                      <button onClick={()=>{setAdding(null);setAddVal("");}} style={{background:C.cream,border:`1px solid ${C.border}`,
+                        borderRadius:"8px",padding:"5px 10px",color:C.inkLight,cursor:"pointer",fontSize:"12px"}}>취소</button>
+                    </div>
+                  ):(
+                    <button onClick={()=>{setAdding({level:"cat2",cat1});setAddVal("");}} style={{...btnAdd,alignSelf:"flex-start"}}>
+                      <Plus size={11}/>중분류 추가
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* add cat1 */}
+        {adding?.level==="cat1"?(
+          <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+            <input value={addIcon} onChange={e=>setAddIcon(e.target.value)}
+              style={{width:"42px",textAlign:"center",border:`1px solid ${C.border}`,borderRadius:"8px",
+                padding:"6px 4px",fontSize:"16px",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+            <input autoFocus value={addVal} onChange={e=>setAddVal(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter")addCat1();if(e.key==="Escape"){setAdding(null);setAddVal("");}}}
+              placeholder="대분류 이름" style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"8px",
+                padding:"7px 10px",fontSize:"13px",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+            <button onClick={addCat1} style={{background:C.ink,border:"none",
+              borderRadius:"8px",padding:"7px 14px",color:"#fff",cursor:"pointer",fontSize:"13px",fontWeight:600}}>추가</button>
+            <button onClick={()=>{setAdding(null);setAddVal("");}} style={{background:C.cream,border:`1px solid ${C.border}`,
+              borderRadius:"8px",padding:"7px 10px",color:C.inkLight,cursor:"pointer",fontSize:"12px"}}>취소</button>
+          </div>
+        ):(
+          <button onClick={()=>{setAdding({level:"cat1"});setAddVal("");setAddIcon("💸");}}
+            style={{...btnAdd,padding:"8px 14px",borderRadius:"10px",fontSize:"13px"}}>
+            <Plus size={13}/>대분류 추가
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CardSettings({cards,onChange,saving}){
   const [newName,setNewName]=useState("");
   const [newColor,setNewColor]=useState(CARD_COLORS[0]);
@@ -756,17 +972,33 @@ function CardSettings({cards,onChange,saving}){
 
 
 /* ── Flat List View ── */
-function FlatListView({txs, onEdit, cards}){
+function FlatListView({txs, onEdit, cards, entity}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
+  const isRealty=entity==="realty";
+  const [tagFilter,setTagFilter]=useState("전체");
+
+  const propTags=useMemo(()=>{
+    if(!isRealty)return[];
+    const tags=[...new Set(txs.map(t=>t.cat3||"미지정"))];
+    return tags.sort((a,b)=>a==="미지정"?1:b==="미지정"?-1:a.localeCompare(b,"ko"));
+  },[txs,isRealty]);
+
+  // tag filter 바뀌면 "전체" 로 리셋 (entity/txs 변경 시)
+  useEffect(()=>setTagFilter("전체"),[entity]);
+
+  const filteredTxs=useMemo(()=>{
+    if(!isRealty||tagFilter==="전체")return txs;
+    return txs.filter(t=>(t.cat3||"미지정")===tagFilter);
+  },[txs,isRealty,tagFilter]);
 
   const byDate=useMemo(()=>{
     const m={};
-    [...txs].sort((a,b)=>b.date.localeCompare(a.date)).forEach(tx=>{
+    [...filteredTxs].sort((a,b)=>b.date.localeCompare(a.date)).forEach(tx=>{
       if(!m[tx.date])m[tx.date]=[];
       m[tx.date].push(tx);
     });
     return m;
-  },[txs]);
+  },[filteredTxs]);
 
   if(!txs.length)return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
@@ -778,6 +1010,23 @@ function FlatListView({txs, onEdit, cards}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+      {isRealty&&propTags.length>0&&(
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",paddingBottom:"4px"}}>
+          {["전체",...propTags].map(tag=>{
+            const sel=tagFilter===tag;
+            return(
+              <button key={tag} onClick={()=>setTagFilter(tag)} style={{
+                padding:"5px 12px",borderRadius:"20px",border:"none",cursor:"pointer",
+                fontSize:"12px",fontWeight:sel?700:500,
+                background:sel?C.ink:"rgba(255,255,255,0.12)",
+                color:sel?"#fff":"rgba(255,255,255,0.6)",
+                transition:"all 0.15s"}}>
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {Object.entries(byDate).map(([date,items])=>{
         const dayIncome=items.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
         const dayExpense=items.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
@@ -1188,7 +1437,11 @@ function StatsView({txs,allEntityTxs,entity,cards}){
       color:PROP_COLORS[i%PROP_COLORS.length],
       sub:Object.entries(d.sub).map(([n,s])=>({name:n,value:s.value,type:s.type}))
         .sort((a,b)=>a.type===b.type?b.value-a.value:a.type==="income"?-1:1),
-    })).sort((a,b)=>(b.income-b.expense)-(a.income-a.expense));
+    })).sort((a,b)=>{
+      if(a.name==="미지정")return 1;
+      if(b.name==="미지정")return -1;
+      return (b.income-b.expense)-(a.income-a.expense);
+    });
   },[allEntityTxs,txs,isRealty]);
 
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
@@ -2262,12 +2515,18 @@ export default function App(){
   const [editTx,setEditTx]=useState(null);
   const [txs,   setTxs]   =useState([]);
   const [cards, setCards] =useState(DEFAULT_CARDS);
+  const [trees, setTrees] =useState(loadTrees);
   const [supplies, setSupplies] = useState([]);
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
   const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy"};
   const [themeKey, setThemeKey] = useState(()=>ENTITY_THEME["personal"]);
+
+  // trees 변경 시 전역 TREES 동기화
+  useEffect(()=>{ TREES=trees; localStorage.setItem(CAT_KEY,JSON.stringify(trees)); }, [trees]);
+
+  function handleTrees(updated){ setTrees(updated); }
 
   // entity 변경 시 테마 동기화
   useEffect(()=>{ setThemeKey(ENTITY_THEME[entity]||"cream"); }, [entity]);
@@ -2427,6 +2686,12 @@ export default function App(){
                 fontSize:"13px",lineHeight:1}}>
                 {THEMES[themeKey].emoji}
               </button>
+              <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
+                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                borderRadius:"10px",padding:"7px 10px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
+                fontSize:"12px",fontWeight:600,display:"flex",alignItems:"center",gap:"4px"}}>
+                <span style={{fontSize:"13px"}}>🗂</span>
+              </button>
               <button onClick={()=>setModal("cards")} style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                 borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}>
@@ -2532,7 +2797,7 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards}/>
+            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
@@ -2546,6 +2811,9 @@ export default function App(){
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
         {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{const t=new Date().toISOString().slice(0,10);setEditTx({...editTx,id:null,date:t});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
       </Modal>
+      <Modal open={modal==="cats"} onClose={()=>setModal(null)}>
+        <CategorySettings trees={trees} onChange={handleTrees}/>
+      </Modal>
       <Modal open={modal==="cards"} onClose={()=>setModal(null)}>
         <CardSettings cards={cards} onChange={handleCards}/>
       </Modal>
@@ -2558,7 +2826,7 @@ export default function App(){
 
       {/* FAB */}
       <button onClick={()=>setModal("add")} style={{
-        position:"fixed",bottom:"24px",right:"24px",zIndex:200,
+        position:"fixed",bottom:"calc(24px + env(safe-area-inset-bottom))",right:"24px",zIndex:200,
         width:"56px",height:"56px",borderRadius:"50%",border:"none",
         background:ent.color,color:"#fff",cursor:"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",
