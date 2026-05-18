@@ -151,7 +151,10 @@ const TREE_PERSONAL = {
 const TREE_CAFE = {
   매출:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{이용권수입:[],기타수입:[],무인키오스크:[],네이버예약:[]}},
   "매입/원가":{ color:"#b5451b",accent:"#e07a5f",icon:"📦",children:{
-    소모품:["음료재료","청소용품","사무용품","기타"],비품:["가구","전자기기","기타"],수수료:["결제수수료","플랫폼수수료","기타"],
+    식음료간식:["커피-원두","커피-믹스커피","차-아이스티","차-녹차","차-둥굴레차","차-보리차","물품-종이컵(소)","물품-종이컵(중)","물품-스틱","간식-오트밀","간식-쌀과자","간식-카페비스킷","간식-약과","간식-폴로","간식-맨톨캔디","간식-후르츠캔디","간식-커피캔디","간식-비타민캔디","기타"],
+    "위생/청소용품":["핸드타올/티슈","롤화장지","비닐 봉투","손세정제액체","종량제봉투","물티슈","페브리즈","세제","소독제","방향제","기타"],
+    "문구/사무":["복사용지A4","복사용지A3","보드마카","수정테이프","영수증용지","기타"],
+    비품:["가구","전자기기","기타"],수수료:["결제수수료","플랫폼수수료","기타"],
   }},
   운영비:{ color:"#4a1942",accent:"#9b5de5",icon:"🏪",children:{임차료:[],관리비:[],인터넷:[],전기세:[],수도세:[],보험:[],기장료:[],마케팅:["SNS광고","전단지","기타"],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],소득세:[],기타:[]}},
@@ -296,7 +299,9 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
     if(!num||num<=0){setErr(true);setTimeout(()=>setErr(false),400);return;}
     const isIncome=cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축");
     const supplyData=isSupply&&showSupplyToggle
-      ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,cycle_days:parseInt(supplyCycle)||30,last_bought:date}
+      ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,
+        cycle_days:parseInt(supplyCycle)||30,last_bought:date,
+        last_amount:num,base_amount:num}
       :null;
     onSave({id:init.id||Date.now(),entity,cat1,cat2,cat3:cat3||"",
       amount:num,memo:memo.trim()||cat3||cat2,date,cardId,
@@ -592,7 +597,9 @@ function TxForm({initial,onSave,onDelete,cards,defaultEntity="personal",saving,s
                   </div>
                 </div>
                 <div>
-                  <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>소진 주기 (일)</div>
+                  <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
+                    이 금액으로 소진되는 주기
+                  </div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
                     {[7,14,30,60].map(d=>(
                       <button key={d} onClick={()=>setSupplyCycle(String(d))} style={{
@@ -1746,23 +1753,48 @@ function CoupangImport({ onRegister }) {
 /* ── Supplies View (앤딩 전용) ── */
 const SUPPLY_CATS = ["음료재료","소모품","청소","사무용품","비품","기타"];
 
-function SuppliesView({ supplies, onChange }){
+function SuppliesView({ supplies, onChange, txs=[] }){
   const today = new Date();
   const todayStr = today.toISOString().slice(0,10);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name:"", category:"소모품", cycle_days:"", base_amount:"", last_bought:todayStr, memo:"" });
   const [saving, setSaving] = useState(false);
-  const [buying, setBuying] = useState(null); // supply id
+  const [buying, setBuying] = useState(null);
   const [buyAmt, setBuyAmt] = useState("");
 
   const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
 
-  // 실제 소진 주기: 기준금액 대비 실구매금액 비례
+  // 실제 구매 간격을 거래 내역에서 계산
+  const cafeTxs = useMemo(()=>txs.filter(t=>t.entity==="cafe"&&t.type==="expense"),[txs]);
+
+  function computeActualCycle(name){
+    const norm = name.toLowerCase();
+    const matches = cafeTxs
+      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    if(matches.length<2) return null;
+    const intervals=[];
+    for(let i=1;i<matches.length;i++){
+      const days=Math.round((new Date(matches[i].date)-new Date(matches[i-1].date))/86400000);
+      if(days>0) intervals.push(days);
+    }
+    if(!intervals.length) return null;
+    return {
+      days: Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length),
+      count: matches.length,
+    };
+  }
+
+  // 실질 소진 주기: 실측 평균 주기 × (실구매금액/기준금액)
   const effectiveCycle = (s) => {
-    if(s.base_amount > 0 && s.last_amount > 0)
-      return Math.round(s.cycle_days * s.last_amount / s.base_amount);
-    return s.cycle_days;
+    const actual = computeActualCycle(s.name);
+    const base = actual ? actual.days : s.cycle_days;
+    if(s.base_amount>0 && s.last_amount>0)
+      return Math.round(base * s.last_amount / s.base_amount);
+    return base;
   };
+
+  const actualCycleInfo = (s) => computeActualCycle(s.name);
   const nextBuy = (s) => {
     const d = new Date(s.last_bought);
     d.setDate(d.getDate() + effectiveCycle(s));
@@ -1979,7 +2011,8 @@ function SuppliesView({ supplies, onChange }){
                     </span>
                   </div>
                   <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    {s.category} · 주기 {s.cycle_days}일 · 다음 구매 {next}
+                    {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>실측 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:`설정 ${s.cycle_days}일`;})()}
+                    {" · 다음 구매 "}{next}
                   </div>
                   {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
                 </div>
@@ -2003,9 +2036,13 @@ function SuppliesView({ supplies, onChange }){
                     구매 후 {daysDiff(s.last_bought)}일 경과
                   </span>
                   <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    {effectiveCycle(s)!==s.cycle_days
-                      ?<>실질 {effectiveCycle(s)}일 <span style={{opacity:0.5}}>(기준 {s.cycle_days}일)</span></>
-                      :`주기 ${s.cycle_days}일`}
+                    {(()=>{
+                      const a=actualCycleInfo(s);
+                      const eff=effectiveCycle(s);
+                      const base=a?a.days:s.cycle_days;
+                      if(eff!==base) return <>실질 {eff}일 <span style={{opacity:0.5}}>(기준 {base}일)</span></>;
+                      return a?`실측 ${a.days}일`:`설정 ${s.cycle_days}일`;
+                    })()}
                   </span>
                 </div>
               </div>
@@ -2174,7 +2211,7 @@ export default function App(){
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
-          await handleSupplies({...existing,last_bought:supplyData.last_bought},"update");
+          await handleSupplies({...existing,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
         }else{
           await handleSupplies({id:"s"+Date.now(),...supplyData},"add");
         }
@@ -2191,7 +2228,7 @@ export default function App(){
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
-          await handleSupplies({...existing,last_bought:supplyData.last_bought},"update");
+          await handleSupplies({...existing,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
         }else{
           await handleSupplies({id:"s"+Date.now(),...supplyData},"add");
         }
@@ -2375,7 +2412,7 @@ export default function App(){
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards}/>
-             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies}/>
+             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
         }
