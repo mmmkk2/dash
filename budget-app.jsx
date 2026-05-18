@@ -279,6 +279,9 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [cardId,setCardId]=useState(init.cardId||"");
   const [isFixed,setIsFixed]=useState(init.isFixed||false);
   const [fixedDay,setFixedDay]=useState(init.fixedDay||"");
+  const [isBiMonthly,setIsBiMonthly]=useState(()=>{
+    try{const s=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));return s.has(`${init.entity||defaultEntity}:${init.memo||""}`);}catch{return false;}
+  });
   const [isSupply,setIsSupply]=useState(false);
   const [supplyName,setSupplyName]=useState("");
   const [supplyCat,setSupplyCat]=useState("소모품");
@@ -314,8 +317,17 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         cycle_days:parseInt(supplyCycle)||30,last_bought:date,
         last_amount:num,base_amount:num}
       :null;
+    const finalMemo=memo.trim()||cat3||cat2;
+    // 격월 설정을 localStorage에 반영
+    try{
+      const bmKey="gagibu_bimonthly";
+      const key=`${entity}:${finalMemo}`;
+      const s=new Set(JSON.parse(localStorage.getItem(bmKey)||"[]"));
+      if(isFixed&&isBiMonthly)s.add(key); else s.delete(key);
+      localStorage.setItem(bmKey,JSON.stringify([...s]));
+    }catch{}
     onSave({id:init.id||Date.now(),entity,cat1,cat2,cat3:cat3||"",
-      amount:num,memo:memo.trim()||cat3||cat2,date,cardId,
+      amount:num,memo:finalMemo,date,cardId,
       isFixed,fixedDay:isFixed&&fixedDay?parseInt(fixedDay):null,
       type:isIncome?"income":"expense",supplyData});
   }
@@ -541,33 +553,48 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         </button>
         {isFixed&&(
           <div style={{background:"#fff8f0",border:"1.5px solid #b5451b",borderTop:"1px solid #f4c5b2",
-            borderRadius:"0 0 12px 12px",padding:"12px 14px",
-            display:"flex",alignItems:"center",gap:"10px"}}>
-            <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
-              매월 발생일
+            borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
+            {/* 매월 발생일 */}
+            <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px"}}>
+              <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                매월 발생일
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
+                {[1,5,10,15,20,25,"말일"].map(d=>{
+                  const label=d==="말일"?"말일":`${d}일`;
+                  const val=d==="말일"?31:d;
+                  const sel=parseInt(fixedDay)===val;
+                  return(
+                    <button key={d} onClick={()=>setFixedDay(sel?"":String(val))} style={{
+                      padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                      border:`1.5px solid ${sel?"#b5451b":"#f4c5b2"}`,
+                      background:sel?"#b5451b":"#fff",color:sel?"#fff":"#b5451b",
+                      fontFamily:"'Inter',sans-serif"}}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <input type="number" value={fixedDay==="31"?"":fixedDay}
+                onChange={e=>setFixedDay(e.target.value)} placeholder="직접입력"
+                min="1" max="31"
+                style={{width:"70px",border:"1.5px solid #f4c5b2",borderRadius:"8px",
+                  padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
+                  background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
             </div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
-              {[1,5,10,15,20,25,"말일"].map(d=>{
-                const label=d==="말일"?"말일":`${d}일`;
-                const val=d==="말일"?31:d;
-                const sel=parseInt(fixedDay)===val;
-                return(
-                  <button key={d} onClick={()=>setFixedDay(sel?"":String(val))} style={{
-                    padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
-                    border:`1.5px solid ${sel?"#b5451b":"#f4c5b2"}`,
-                    background:sel?"#b5451b":"#fff",color:sel?"#fff":"#b5451b",
-                    fontFamily:"'Inter',sans-serif"}}>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <input type="number" value={fixedDay==="31"?"":fixedDay}
-              onChange={e=>setFixedDay(e.target.value)} placeholder="직접입력"
-              min="1" max="31"
-              style={{width:"70px",border:"1.5px solid #f4c5b2",borderRadius:"8px",
-                padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
-                background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
+            {/* 격월 토글 */}
+            <button onClick={()=>setIsBiMonthly(b=>!b)} style={{
+              display:"flex",alignItems:"center",gap:"8px",background:"none",border:"none",cursor:"pointer",padding:"2px 0"}}>
+              <div style={{width:"32px",height:"18px",borderRadius:"99px",flexShrink:0,position:"relative",
+                background:isBiMonthly?"#b5451b":"#f4c5b2",transition:"background 0.2s"}}>
+                <div style={{width:"14px",height:"14px",borderRadius:"50%",background:"#fff",
+                  position:"absolute",top:"2px",transition:"left 0.2s",
+                  left:isBiMonthly?"16px":"2px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+              </div>
+              <span style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
+                격월 (두 달에 한 번)
+              </span>
+            </button>
           </div>
         )}
       </div>
@@ -1464,6 +1491,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const isRealty=entity==="realty";
   const [statsTab,setStatsTab]=useState("expense");
   const [expanded,setExpanded]=useState(null);
+  const [expandedPropSub,setExpandedPropSub]=useState(null);
 
   const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
   const saved=useMemo(()=>txs.filter(t=>t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
@@ -1628,22 +1656,38 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                   </div>
                 </button>
                 {isOpen&&item.sub.length>0&&(
-                  <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 13px",background:C.paper}}>
-                    {item.sub.map(s=>(
-                      <div key={s.name} style={{marginBottom:"8px"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
-                          <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name}</span>
-                          <span style={{fontSize:"11px",fontFamily:"'Inter',sans-serif",fontWeight:600,
-                            color:s.type==="income"?"#2d6a4f":"#b5451b"}}>
-                            {s.type==="income"?"+":"-"}{fmtS(s.value)}
-                          </span>
+                  <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px 10px",background:C.paper}}>
+                    {item.sub.map(s=>{
+                      const propSubKey=`${item.name}::${s.name}`;
+                      const isSubOpen=expandedPropSub===propSubKey;
+                      const subTxs=(allEntityTxs||txs).filter(t=>
+                        (t.cat3||"미지정")===item.name && catDisplayName(t.cat1)===s.name
+                      ).sort((a,b)=>b.date.localeCompare(a.date));
+                      return(
+                        <div key={s.name} style={{marginBottom:"6px",borderRadius:"8px",
+                          border:`1px solid ${isSubOpen?(s.type==="income"?"#52b78888":"#e07a5f88"):C.border}`,
+                          overflow:"hidden",background:isSubOpen?C.white:"transparent"}}>
+                          <div onClick={()=>setExpandedPropSub(isSubOpen?null:propSubKey)}
+                            style={{cursor:"pointer",padding:"7px 10px 5px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
+                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name}</span>
+                              <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                                <span style={{fontSize:"11px",fontFamily:"'Inter',sans-serif",fontWeight:600,
+                                  color:s.type==="income"?"#2d6a4f":"#b5451b"}}>
+                                  {s.type==="income"?"+":"-"}{fmtS(s.value)}
+                                </span>
+                                <span style={{fontSize:"9px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
+                              </div>
+                            </div>
+                            <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
+                              <div style={{width:`${Math.round((s.value/Math.max(item.income,item.expense,1))*100)}%`,
+                                height:"100%",background:s.type==="income"?"#52b788bb":"#e07a5fbb",borderRadius:"99px"}}/>
+                            </div>
+                          </div>
+                          {isSubOpen&&<TxMiniList txs={subTxs} onEdit={onEdit}/>}
                         </div>
-                        <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
-                          <div style={{width:`${Math.round((s.value/Math.max(item.income,item.expense,1))*100)}%`,
-                            height:"100%",background:s.type==="income"?"#52b788bb":"#e07a5fbb",borderRadius:"99px"}}/>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
