@@ -704,6 +704,7 @@ function CategorySettings({trees, onChange}){
   const [addVal,setAddVal]=useState("");
   const [draft,setDraft]=useState(()=>JSON.parse(JSON.stringify(trees[ent]||{})));
   const [dirty,setDirty]=useState(false);
+  const [editCat1,setEditCat1]=useState(null); // {key, val}
   const tree=draft||{};
 
   function switchEnt(k){
@@ -729,6 +730,14 @@ function CategorySettings({trees, onChange}){
     const next={...tree};delete next[k];
     if(openCat1===k)setOpenCat1(null);
     update(next);
+  }
+  function renameCat1(oldKey,newKey){
+    const name=newKey.trim();
+    if(!name||name===oldKey||tree[name])return;
+    const next=Object.fromEntries(Object.entries(tree).map(([k,v])=>[k===oldKey?name:k,v]));
+    if(openCat1===oldKey)setOpenCat1(name);
+    update(next);
+    setEditCat1(null);
   }
 
   function addCat2(cat1){
@@ -785,23 +794,51 @@ function CategorySettings({trees, onChange}){
       </div>
 
       {/* cat1 list */}
-      <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"12px",maxHeight:"65vh",overflowY:"auto"}}>
+      <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"12px"}}>
         {Object.keys(tree).map(cat1=>{
           const node=tree[cat1];
           const isOpen=openCat1===cat1;
+          const isEditing=editCat1?.key===cat1;
           return(
             <div key={cat1} style={{border:`1px solid ${C.border}`,borderRadius:"12px",overflow:"hidden"}}>
               {/* cat1 header */}
-              <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"10px 12px",
-                background:C.cream,cursor:"pointer"}} onClick={()=>setOpenCat1(isOpen?null:cat1)}>
-                <span style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink}}>{cat1}</span>
-                <span style={{fontSize:"11px",color:C.inkLight,marginRight:"4px"}}>{Object.keys(node.children||{}).length}개</span>
-                <button onClick={e=>{e.stopPropagation();delCat1(cat1);}} style={btnDel}
-                  onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
-                  onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
-                  <Trash2 size={12}/>
-                </button>
-                <span style={{fontSize:"11px",color:C.inkLight}}>{isOpen?"▲":"▼"}</span>
+              <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 12px",
+                background:C.cream}} onClick={()=>!isEditing&&setOpenCat1(isOpen?null:cat1)}>
+                {isEditing?(
+                  <input autoFocus value={editCat1.val}
+                    onChange={e=>setEditCat1({...editCat1,val:e.target.value})}
+                    onKeyDown={e=>{if(e.key==="Enter")renameCat1(cat1,editCat1.val);if(e.key==="Escape")setEditCat1(null);}}
+                    onClick={e=>e.stopPropagation()}
+                    style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"6px",padding:"4px 8px",
+                      fontSize:"13px",fontWeight:700,outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                ):(
+                  <span style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink,cursor:"pointer"}}>{cat1}</span>
+                )}
+                {isEditing?(
+                  <>
+                    <button onClick={e=>{e.stopPropagation();renameCat1(cat1,editCat1.val);}}
+                      style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"6px",
+                        padding:"3px 8px",cursor:"pointer",color:"#2d6a4f",fontSize:"11px",fontWeight:600}}>저장</button>
+                    <button onClick={e=>{e.stopPropagation();setEditCat1(null);}}
+                      style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
+                        padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"11px"}}>취소</button>
+                  </>
+                ):(
+                  <>
+                    <span style={{fontSize:"11px",color:C.inkLight,marginRight:"2px"}}>{Object.keys(node.children||{}).length}개</span>
+                    <button onClick={e=>{e.stopPropagation();setEditCat1({key:cat1,val:cat1});}} style={btnDel}
+                      onMouseEnter={e=>e.currentTarget.style.color=C.ink}
+                      onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                      <Pencil size={11}/>
+                    </button>
+                    <button onClick={e=>{e.stopPropagation();delCat1(cat1);}} style={btnDel}
+                      onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+                      onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                      <Trash2 size={12}/>
+                    </button>
+                    <span style={{fontSize:"11px",color:C.inkLight,cursor:"pointer"}}>{isOpen?"▲":"▼"}</span>
+                  </>
+                )}
               </div>
 
               {/* cat2 list */}
