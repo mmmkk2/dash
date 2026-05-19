@@ -705,6 +705,7 @@ function CategorySettings({trees, onChange}){
   const [draft,setDraft]=useState(()=>JSON.parse(JSON.stringify(trees[ent]||{})));
   const [dirty,setDirty]=useState(false);
   const [editCat1,setEditCat1]=useState(null); // {key, val}
+  const [editCat2,setEditCat2]=useState(null); // {cat1, key, val}
   const tree=draft||{};
 
   function switchEnt(k){
@@ -751,6 +752,14 @@ function CategorySettings({trees, onChange}){
     const node=tree[cat1];if(!node)return;
     const children={...node.children};delete children[cat2];
     update({...tree,[cat1]:{...node,children}});
+  }
+  function renameCat2(cat1,oldKey,newKey){
+    const name=newKey.trim();
+    if(!name||name===oldKey)return;
+    const node=tree[cat1];if(!node)return;
+    const children=Object.fromEntries(Object.entries(node.children).map(([k,v])=>[k===oldKey?name:k,v]));
+    update({...tree,[cat1]:{...node,children}});
+    setEditCat2(null);
   }
 
   function addCat3(cat1,cat2){
@@ -847,16 +856,38 @@ function CategorySettings({trees, onChange}){
                   {Object.entries(node.children||{}).map(([cat2,cat3list])=>(
                     <div key={cat2}>
                       {/* cat2 row */}
-                      <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
-                        <span style={{fontSize:"12px",fontWeight:600,color:C.inkMid,flex:1}}>▸ {cat2}</span>
-                        <button onClick={()=>{setAdding({level:"cat3",cat1,cat2});setAddVal("");}}
-                          style={btnAdd}><Plus size={11}/>cat3</button>
-                        <button onClick={()=>delCat2(cat1,cat2)} style={btnDel}
-                          onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
-                          onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
-                          <Trash2 size={11}/>
-                        </button>
-                      </div>
+                      {editCat2?.cat1===cat1&&editCat2?.key===cat2?(
+                        <div style={{display:"flex",gap:"6px",alignItems:"center",marginBottom:"6px"}}>
+                          <span style={{fontSize:"11px",color:C.inkLight}}>▸</span>
+                          <input autoFocus value={editCat2.val}
+                            onChange={e=>setEditCat2({...editCat2,val:e.target.value})}
+                            onKeyDown={e=>{if(e.key==="Enter")renameCat2(cat1,cat2,editCat2.val);if(e.key==="Escape")setEditCat2(null);}}
+                            style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"6px",padding:"4px 8px",
+                              fontSize:"12px",fontWeight:600,outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+                          <button onClick={()=>renameCat2(cat1,cat2,editCat2.val)}
+                            style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"6px",
+                              padding:"3px 8px",cursor:"pointer",color:"#2d6a4f",fontSize:"11px",fontWeight:600}}>저장</button>
+                          <button onClick={()=>setEditCat2(null)}
+                            style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
+                              padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"11px"}}>취소</button>
+                        </div>
+                      ):(
+                        <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
+                          <span style={{fontSize:"12px",fontWeight:600,color:C.inkMid,flex:1}}>▸ {cat2}</span>
+                          <button onClick={()=>{setAdding({level:"cat3",cat1,cat2});setAddVal("");}}
+                            style={btnAdd}><Plus size={11}/>소분류</button>
+                          <button onClick={()=>setEditCat2({cat1,key:cat2,val:cat2})} style={btnDel}
+                            onMouseEnter={e=>e.currentTarget.style.color=C.ink}
+                            onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                            <Pencil size={11}/>
+                          </button>
+                          <button onClick={()=>delCat2(cat1,cat2)} style={btnDel}
+                            onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+                            onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                            <Trash2 size={11}/>
+                          </button>
+                        </div>
+                      )}
                       {/* cat3 chips */}
                       {Array.isArray(cat3list)&&cat3list.length>0&&(
                         <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"4px",paddingLeft:"12px"}}>
