@@ -2514,10 +2514,23 @@ function SuppliesView({ supplies, onChange, txs=[] }){
   };
 
   const actualCycleInfo = (s) => computeActualCycle(s.name);
+
+  // 거래 이력 최신 구매일 vs DB last_bought 중 더 최근 날짜 사용
+  const effectiveLastBought = (s) => {
+    const norm = (s.name||"").toLowerCase();
+    const latest = cafeTxs
+      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .map(t=>t.date).sort().at(-1);
+    if(!latest) return s.last_bought;
+    return latest > (s.last_bought||"") ? latest : s.last_bought;
+  };
+
   const nextBuy = (s) => {
     const cyc = effectiveCycle(s);
     if(!cyc) return null;
-    const d = new Date(s.last_bought);
+    const base = effectiveLastBought(s);
+    if(!base) return null;
+    const d = new Date(base);
     d.setDate(d.getDate() + cyc);
     return d.toISOString().slice(0,10);
   };
@@ -2716,7 +2729,8 @@ function SuppliesView({ supplies, onChange, txs=[] }){
         :sorted.map(s=>{
           const st = getStatus(s);
           const cyc = effectiveCycle(s);
-          const progress = cyc ? Math.min(100, Math.max(0, (daysDiff(s.last_bought) / cyc) * 100)) : null;
+          const lastB = effectiveLastBought(s);
+          const progress = cyc ? Math.min(100, Math.max(0, (daysDiff(lastB) / cyc) * 100)) : null;
           const next = nextBuy(s);
           const isExpanded = expandedId === s.id;
           const norm = (s.name||"").toLowerCase();
@@ -2763,7 +2777,7 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
                     <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                      구매 후 {daysDiff(s.last_bought)}일 경과
+                      구매 후 {daysDiff(effectiveLastBought(s))}일 경과
                     </span>
                     <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
                       {(()=>{
