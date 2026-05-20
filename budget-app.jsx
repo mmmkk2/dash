@@ -311,7 +311,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   function submit(){
     const num=parseInt(String(amount).replace(/,/g,""));
     if(!num||num<=0){setErr(true);setTimeout(()=>setErr(false),400);return;}
-    const isIncome=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"))&&cat2!=="환불";
+    const isIncome=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"));
     const supplyData=isSupply&&showSupplyToggle
       ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,
         cycle_days:parseInt(supplyCycle)||30,last_bought:date,
@@ -805,7 +805,7 @@ function CategorySettings({trees, onChange}){
     fontSize:"11px",lineHeight:1};
 
   return(
-    <div style={{fontFamily:"'Inter',sans-serif",minWidth:"320px",maxWidth:"480px"}}>
+    <div style={{fontFamily:"'Inter',sans-serif",width:"100%"}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"18px"}}>
         <span style={{fontSize:"19px",fontWeight:700,color:C.ink}}>카테고리 관리</span>
       </div>
@@ -1577,29 +1577,31 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                       </ResponsiveContainer>
                     )}
                     {subWithColors.map((s)=>{
-                      const sp=Math.round((s.value/item.value)*100);
+                      const absVal=Math.abs(s.value);
+                      const sp=item.value>0?Math.round((absVal/item.value)*100):0;
                       const subKey=`${item.name}::${s.name}`;
                       const isSubOpen=expandedSub===subKey;
                       const subTxs=txs.filter(t=>(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)
                         .sort((a,b)=>b.date.localeCompare(a.date));
+                      const refundColor="#b5451b";
                       return(
                         <div key={s.name} style={{marginBottom:"6px",borderRadius:"8px",
-                          border:`1px solid ${isSubOpen?s.color+"88":C.border}`,overflow:"hidden",
+                          border:`1px solid ${isSubOpen?(s.isRefund?refundColor+"88":s.color+"88"):C.border}`,overflow:"hidden",
                           background:isSubOpen?C.white:"transparent"}}>
                           <div onClick={()=>setExpandedSub(isSubOpen?null:subKey)}
                             style={{cursor:"pointer",padding:"7px 10px 5px"}}>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
                               <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
-                                <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.color,flexShrink:0}}/>
-                                <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
+                                <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.isRefund?refundColor:s.color,flexShrink:0}}/>
+                                <span style={{fontSize:"11px",color:s.isRefund?refundColor:C.inkMid,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{s.name||"기타"}</span>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                                <span style={{fontSize:"11px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{fmtS(s.value)}&nbsp;·&nbsp;{sp}%</span>
+                                <span style={{fontSize:"11px",color:s.isRefund?refundColor:C.inkMid,fontFamily:"'Inter',sans-serif"}}>{s.isRefund?"-":""}{fmtS(absVal)}&nbsp;·&nbsp;{sp}%</span>
                                 <span style={{fontSize:"9px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
                               </div>
                             </div>
                             <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
-                              <div style={{width:`${sp}%`,height:"100%",background:s.color+"bb",borderRadius:"99px"}}/>
+                              <div style={{width:`${sp}%`,height:"100%",background:(s.isRefund?refundColor:s.color)+"bb",borderRadius:"99px"}}/>
                             </div>
                           </div>
                           {isSubOpen&&<TxMiniList txs={subTxs} onEdit={onEdit}/>}
@@ -1624,7 +1626,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const [expanded,setExpanded]=useState(null);
   const [expandedPropSub,setExpandedPropSub]=useState(null);
 
-  const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
+  const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0),[txs]);
   const saved=useMemo(()=>txs.filter(t=>t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
   const expense=useMemo(()=>txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0),[txs]);
   const totalIn=incomeAmt+saved;
@@ -1633,13 +1635,15 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   function buildBreakdown(filterFn){
     const m={};
     txs.filter(filterFn).forEach(t=>{
+      const isRefund=t.cat2==="환불";
+      const sign=isRefund?-1:1;
       if(!m[t.cat1])m[t.cat1]={value:0,sub:{}};
-      m[t.cat1].value+=t.amount;
-      m[t.cat1].sub[t.cat2]=(m[t.cat1].sub[t.cat2]||0)+t.amount;
+      m[t.cat1].value+=sign*t.amount;
+      m[t.cat1].sub[t.cat2]=(m[t.cat1].sub[t.cat2]||0)+sign*t.amount;
     });
     return Object.entries(m).map(([name,d])=>({
       name:catDisplayName(name),rawName:name,value:d.value,color:tree[name]?.color||C.inkMid,
-      sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value),
+      sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v,isRefund:n==="환불"})).sort((a,b)=>b.value-a.value),
     })).sort((a,b)=>b.value-a.value);
   }
 
