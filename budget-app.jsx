@@ -123,6 +123,7 @@ const ENTITIES = {
   realty:  { label:"부동산매매",   sub:"Real Estate",      color:"#1d4e89", accent:"#4a90d9" },
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
+const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
 
 const TREE_PERSONAL = {
   수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💚",children:{
@@ -2556,11 +2557,23 @@ function SuppliesView({ supplies, onChange, txs=[] }){
   }
 
   async function handleEdit(){
-    const s = { ...modal, name:form.name.trim(), category:form.category,
-      cycle_days:form.cycle_days?parseInt(form.cycle_days):null, base_amount:parseInt(form.base_amount)||0,
-      last_bought:form.last_bought, memo:form.memo.trim() };
+    // id만 modal에서 가져오고, 나머지는 form에서 명시적으로 구성
+    // (modal 전체 spread 시 created_at 등 DB 자동 필드가 섞여 PATCH 실패)
+    const s = {
+      id: modal.id,
+      name: form.name.trim(),
+      category: form.category,
+      cycle_days: form.cycle_days ? parseInt(form.cycle_days) : null,
+      base_amount: parseInt(form.base_amount) || 0,
+      last_bought: form.last_bought,
+      memo: form.memo.trim(),
+    };
     setSaving(true);
-    await onChange(s, "update");
+    try {
+      await onChange(s, "update");
+    } catch(e) {
+      console.error("supply edit failed", e);
+    }
     setSaving(false);
     setModal(null);
   }
@@ -2938,9 +2951,12 @@ export default function App(){
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
-          await handleSupplies({...existing,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
+          // existing 전체 spread 대신 id + 변경 필드만 전송 (DB 자동 필드 제거)
+          await handleSupplies({id:existing.id,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
         }else{
-          await handleSupplies({id:"s"+Date.now(),...supplyData},"add");
+          await handleSupplies({name:supplyData.name,category:supplyData.category,
+            cycle_days:null,base_amount:supplyData.base_amount||0,
+            last_amount:supplyData.last_amount||0,last_bought:supplyData.last_bought,memo:""},"add");
         }
       }
     }catch(e){console.error(e);}
@@ -2955,9 +2971,11 @@ export default function App(){
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
-          await handleSupplies({...existing,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
+          await handleSupplies({id:existing.id,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
         }else{
-          await handleSupplies({id:"s"+Date.now(),...supplyData},"add");
+          await handleSupplies({name:supplyData.name,category:supplyData.category,
+            cycle_days:null,base_amount:supplyData.base_amount||0,
+            last_amount:supplyData.last_amount||0,last_bought:supplyData.last_bought,memo:""},"add");
         }
       }
     }catch(e){console.error(e);}
