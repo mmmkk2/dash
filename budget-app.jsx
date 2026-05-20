@@ -2951,10 +2951,9 @@ export default function App(){
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
-          // existing 전체 spread 대신 id + 변경 필드만 전송 (DB 자동 필드 제거)
           await handleSupplies({id:existing.id,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
         }else{
-          await handleSupplies({name:supplyData.name,category:supplyData.category,
+          await handleSupplies({id:"s"+Date.now(),name:supplyData.name,category:supplyData.category,
             cycle_days:null,base_amount:supplyData.base_amount||0,
             last_amount:supplyData.last_amount||0,last_bought:supplyData.last_bought,memo:""},"add");
         }
@@ -2973,7 +2972,7 @@ export default function App(){
         if(existing){
           await handleSupplies({id:existing.id,last_bought:supplyData.last_bought,last_amount:supplyData.last_amount||0},"update");
         }else{
-          await handleSupplies({name:supplyData.name,category:supplyData.category,
+          await handleSupplies({id:"s"+Date.now(),name:supplyData.name,category:supplyData.category,
             cycle_days:null,base_amount:supplyData.base_amount||0,
             last_amount:supplyData.last_amount||0,last_bought:supplyData.last_bought,memo:""},"add");
         }
@@ -2991,21 +2990,31 @@ export default function App(){
   }
 
   /* ── Supply CRUD ── */
+  // DB 스키마에 확실히 있는 컬럼만 추출 (last_amount는 DB에 없을 수 있어 로컬 상태로만 관리)
+  function toDbSupply(p){
+    const safe={};
+    const cols=["id","name","category","cycle_days","base_amount","last_bought","memo"];
+    cols.forEach(k=>{if(k in p)safe[k]=p[k];});
+    return safe;
+  }
   async function handleSupplies(payload, op){
     try{
       if(op==="add"){
-        const [row]=await sb("supplies",{method:"POST",body:JSON.stringify(payload)});
-        setSupplies(p=>[...p,row]);
+        const dbPayload=toDbSupply(payload);
+        const [row]=await sb("supplies",{method:"POST",body:JSON.stringify(dbPayload)});
+        // DB row에 last_amount가 없으면 payload에서 보충
+        setSupplies(p=>[...p,{...payload,...row}]);
       }
       if(op==="update"){
-        await sb(`supplies?id=eq.${payload.id}`,{method:"PATCH",body:JSON.stringify(payload),prefer:"return=minimal"});
+        const dbPayload=toDbSupply(payload);
+        await sb(`supplies?id=eq.${payload.id}`,{method:"PATCH",body:JSON.stringify(dbPayload),prefer:"return=minimal"});
         setSupplies(p=>p.map(s=>s.id===payload.id?{...s,...payload}:s));
       }
       if(op==="delete"){
         await sb(`supplies?id=eq.${payload.id}`,{method:"DELETE",prefer:"return=minimal"});
         setSupplies(p=>p.filter(s=>s.id!==payload.id));
       }
-    }catch(e){console.error(e);}
+    }catch(e){console.error("handleSupplies error:",op,e);}
   }
 
   /* ── Card CRUD ── */
