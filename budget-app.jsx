@@ -334,6 +334,18 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const isEdit=!!(initial?.id);
   const showSupplyToggle = entity==="cafe" && cat1==="매입/원가";
 
+  // 항목이 바뀔 때 소모품 매칭되면 토글 자동 ON
+  useEffect(()=>{
+    if(!showSupplyToggle||!supplies.length) return;
+    const name=(cat3||cat2||"").toLowerCase();
+    const match=supplies.find(s=>(s.name||"").toLowerCase()===name);
+    if(match){
+      setIsSupply(true);
+      setSupplyName(match.name);
+      setSupplyCat(cat2||"소모품");
+    }
+  },[cat2,cat3]);
+
   function pickEntity(e){
     setEntity(e);
     const t=TREES[e];
