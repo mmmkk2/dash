@@ -704,12 +704,13 @@ function CategorySettings({trees, onChange}){
   const [addVal,setAddVal]=useState("");
   const [draft,setDraft]=useState(()=>JSON.parse(JSON.stringify(trees[ent]||{})));
   const [dirty,setDirty]=useState(false);
-  const [editCat1,setEditCat1]=useState(null); // {key, val}
-  const [editCat2,setEditCat2]=useState(null); // {cat1, key, val}
+  const [editCat1,setEditCat1]=useState(null);
+  const [editCat2,setEditCat2]=useState(null);
+  const [openCat2,setOpenCat2]=useState({}); // {`${cat1}::${cat2}`: bool}
   const tree=draft||{};
 
   function switchEnt(k){
-    setEnt(k);setOpenCat1(null);setAdding(null);
+    setEnt(k);setOpenCat1(null);setAdding(null);setEditCat1(null);setEditCat2(null);
     setDraft(JSON.parse(JSON.stringify(trees[k]||{})));
     setDirty(false);
   }
@@ -873,8 +874,13 @@ function CategorySettings({trees, onChange}){
                         </div>
                       ):(
                         <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
-                          <span style={{fontSize:"12px",fontWeight:600,color:C.inkMid,flex:1}}>▸ {cat2}</span>
-                          <button onClick={()=>{setAdding({level:"cat3",cat1,cat2});setAddVal("");}}
+                          <button onClick={()=>setOpenCat2(p=>({...p,[`${cat1}::${cat2}`]:!p[`${cat1}::${cat2}`]}))}
+                            style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:"4px",flex:1}}>
+                            <span style={{fontSize:"10px",color:C.inkLight}}>{openCat2[`${cat1}::${cat2}`]?"▼":"▶"}</span>
+                            <span style={{fontSize:"12px",fontWeight:600,color:C.inkMid}}>{cat2}</span>
+                            {cat3list.length>0&&<span style={{fontSize:"10px",color:C.inkLight}}>({cat3list.length})</span>}
+                          </button>
+                          <button onClick={()=>{setAdding({level:"cat3",cat1,cat2});setAddVal(""); setOpenCat2(p=>({...p,[`${cat1}::${cat2}`]:true}));}}
                             style={btnAdd}><Plus size={11}/>소분류</button>
                           <button onClick={()=>setEditCat2({cat1,key:cat2,val:cat2})} style={btnDel}
                             onMouseEnter={e=>e.currentTarget.style.color=C.ink}
@@ -889,7 +895,7 @@ function CategorySettings({trees, onChange}){
                         </div>
                       )}
                       {/* cat3 chips */}
-                      {Array.isArray(cat3list)&&cat3list.length>0&&(
+                      {openCat2[`${cat1}::${cat2}`]&&Array.isArray(cat3list)&&cat3list.length>0&&(
                         <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"4px",paddingLeft:"12px"}}>
                           {cat3list.map(cat3=>(
                             <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px",
