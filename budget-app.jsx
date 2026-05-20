@@ -645,7 +645,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       {/* Supply toggle — cafe + 매입/원가 only */}
       {showSupplyToggle&&(
         <div style={{marginBottom:"12px"}}>
-          <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(cat3||cat2||memo.trim()||"");}} style={{
+          <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(cat3||cat2||memo.trim()||"");if(next)setSupplyCat(cat2||"소모품");}} style={{
             display:"flex",alignItems:"center",gap:"10px",width:"100%",
             background:isSupply?"#f0fdf4":"#fff",
             border:`1.5px solid ${isSupply?"#2d6a4f":C.border}`,
@@ -673,19 +673,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   style={{width:"100%",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"8px 10px",
                     fontSize:"13px",color:"#1a3020",outline:"none",background:"#fff",fontFamily:"'Inter',sans-serif",boxSizing:"border-box"}}/>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-                <div>
-                  <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>분류</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
-                    {SUPPLY_CATS.map(c=>(
-                      <button key={c} onClick={()=>setSupplyCat(c)} style={{
-                        padding:"3px 9px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
-                        border:`1.5px solid ${supplyCat===c?"#2d6a4f":"#b7e4c7"}`,
-                        background:supplyCat===c?"#2d6a4f":"#fff",
-                        color:supplyCat===c?"#fff":"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>{c}</button>
-                    ))}
-                  </div>
-                </div>
+              <div>
                 <div>
                   <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
                     이 금액으로 소진되는 주기
@@ -2394,6 +2382,7 @@ function SuppliesView({ supplies, onChange, txs=[] }){
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name:"", category:"소모품", cycle_days:"", base_amount:"", last_bought:todayStr, memo:"" });
   const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
 
   const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
 
@@ -2640,57 +2629,88 @@ function SuppliesView({ supplies, onChange, txs=[] }){
           const cyc = effectiveCycle(s);
           const progress = cyc ? Math.min(100, Math.max(0, (daysDiff(s.last_bought) / cyc) * 100)) : null;
           const next = nextBuy(s);
+          const isExpanded = expandedId === s.id;
+          const norm = (s.name||"").toLowerCase();
+          const history = txs.filter(t=>
+            (t.memo||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm
+          ).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
           return(
-            <div key={s.id} style={{background:C.white,borderRadius:"16px",padding:"14px 16px",
-              border:`1px solid ${st.border}`,boxShadow:"0 1px 6px rgba(0,0,0,0.04)"}}>
-              <div style={{display:"flex",alignItems:"flex-start",gap:"12px",marginBottom:"12px"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"7px",marginBottom:"3px"}}>
-                    <span style={{fontSize:"14px",fontWeight:700,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{s.name}</span>
-                    <span style={{fontSize:"9px",background:st.bg,color:st.color,border:`1px solid ${st.border}`,
-                      borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
-                      display:"flex",alignItems:"center",gap:"3px"}}>
-                      {st.icon}{st.label}
+            <div key={s.id} style={{background:C.white,borderRadius:"16px",
+              border:`1px solid ${isExpanded?C.borderDark:st.border}`,boxShadow:"0 1px 6px rgba(0,0,0,0.04)",overflow:"hidden"}}>
+
+              {/* 카드 본문 — 클릭 시 이력 토글 */}
+              <div style={{padding:"14px 16px",cursor:"pointer"}} onClick={()=>setExpandedId(isExpanded?null:s.id)}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:"12px",marginBottom:"12px"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"7px",marginBottom:"3px"}}>
+                      <span style={{fontSize:"14px",fontWeight:700,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{s.name}</span>
+                      <span style={{fontSize:"9px",background:st.bg,color:st.color,border:`1px solid ${st.border}`,
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
+                        display:"flex",alignItems:"center",gap:"3px"}}>
+                        {st.icon}{st.label}
+                      </span>
+                    </div>
+                    <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
+                      {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>실측 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:s.cycle_days?`설정 ${s.cycle_days}일`:<span style={{opacity:0.5}}>주기 미설정</span>;})()}
+                      {next?<>{" · 다음 구매 "}{next}</>:""}
+                    </div>
+                    {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
+                  </div>
+                  <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
+                    <button onClick={e=>{e.stopPropagation();openEdit(s);}} style={{background:"none",border:"none",cursor:"pointer",
+                      color:C.inkLight,padding:"4px",borderRadius:"6px",display:"flex"}}>
+                      <Pencil size={13}/>
+                    </button>
+                    <span style={{fontSize:"10px",color:C.inkLight}}>{isExpanded?"▲":"▼"}</span>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div>
+                  <div style={{height:"6px",background:C.cream,borderRadius:"99px",overflow:"hidden"}}>
+                    {progress!==null&&<div style={{height:"100%",borderRadius:"99px",transition:"width 0.5s",
+                      width:`${progress}%`,
+                      background:progress>=100?"#b5451b":progress>=80?"#b8860b":"#2d6a4f"}}/>}
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
+                    <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
+                      구매 후 {daysDiff(s.last_bought)}일 경과
+                    </span>
+                    <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
+                      {(()=>{
+                        const a=actualCycleInfo(s);
+                        const eff=effectiveCycle(s);
+                        if(!eff) return <span style={{color:C.inkLight,opacity:0.6}}>이력 수집 중</span>;
+                        const base=a?a.days:(s.cycle_days||null);
+                        if(base&&eff!==base) return <>실질 {eff}일 <span style={{opacity:0.5}}>(기준 {base}일)</span></>;
+                        return a?`실측 ${a.days}일`:(s.cycle_days?`설정 ${s.cycle_days}일`:"");
+                      })()}
                     </span>
                   </div>
-                  <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>실측 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:s.cycle_days?`설정 ${s.cycle_days}일`:<span style={{opacity:0.5}}>주기 미설정</span>;})()}
-                    {next?<>{" · 다음 구매 "}{next}</>:""}
-                  </div>
-                  {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
-                </div>
-                <div style={{display:"flex",gap:"4px",flexShrink:0}}>
-                  <button onClick={()=>openEdit(s)} style={{background:"none",border:"none",cursor:"pointer",
-                    color:C.inkLight,padding:"4px",borderRadius:"6px",display:"flex"}}>
-                    <Pencil size={13}/>
-                  </button>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div style={{marginBottom:"10px"}}>
-                <div style={{height:"6px",background:C.cream,borderRadius:"99px",overflow:"hidden"}}>
-                  {progress!==null&&<div style={{height:"100%",borderRadius:"99px",transition:"width 0.5s",
-                    width:`${progress}%`,
-                    background:progress>=100?"#b5451b":progress>=80?"#b8860b":"#2d6a4f"}}/>}
+              {/* 구매 이력 */}
+              {isExpanded&&(
+                <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 16px",background:C.cream}}>
+                  <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.1em",marginBottom:"8px",fontFamily:"'Inter',sans-serif"}}>구매 이력</div>
+                  {history.length===0
+                    ?<div style={{fontSize:"12px",color:C.inkLight,fontFamily:"'Inter',sans-serif",padding:"8px 0"}}>거래 내역이 없어요</div>
+                    :history.map(t=>(
+                      <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                        padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                        <div>
+                          <span style={{fontSize:"12px",color:C.ink,fontFamily:"'Inter',sans-serif"}}>{t.date}</span>
+                          {t.memo&&t.memo!==s.name&&<span style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif",marginLeft:"6px"}}>{t.memo}</span>}
+                        </div>
+                        <span style={{fontSize:"12px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
+                          {fmtS(t.amount)}
+                        </span>
+                      </div>
+                    ))
+                  }
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
-                  <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    구매 후 {daysDiff(s.last_bought)}일 경과
-                  </span>
-                  <span style={{fontSize:"9px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                    {(()=>{
-                      const a=actualCycleInfo(s);
-                      const eff=effectiveCycle(s);
-                      if(!eff) return <span style={{color:C.inkLight,opacity:0.6}}>이력 수집 중</span>;
-                      const base=a?a.days:(s.cycle_days||null);
-                      if(base&&eff!==base) return <>실질 {eff}일 <span style={{opacity:0.5}}>(기준 {base}일)</span></>;
-                      return a?`실측 ${a.days}일`:(s.cycle_days?`설정 ${s.cycle_days}일`:"");
-                    })()}
-                  </span>
-                </div>
-              </div>
-
+              )}
             </div>
           );
         })
