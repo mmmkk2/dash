@@ -339,7 +339,6 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [isSupply,setIsSupply]=useState(false);
   const [supplyName,setSupplyName]=useState("");
   const [supplyCat,setSupplyCat]=useState("소모품");
-  const [supplyCycle,setSupplyCycle]=useState("");
   const [err,setErr]=useState(false);
   const isEdit=!!(initial?.id);
   const showSupplyToggle = entity==="cafe" && cat1==="매입/원가";
@@ -380,7 +379,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
     const isIncome=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"));
     const supplyData=isSupply&&showSupplyToggle
       ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,
-        cycle_days:parseInt(supplyCycle)||30,last_bought:date,
+        cycle_days:null,last_bought:date,
         last_amount:num,base_amount:num}
       :null;
     if(vendor.trim()) saveVendor(vendor.trim());
@@ -708,26 +707,6 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   style={{width:"100%",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"8px 10px",
                     fontSize:"13px",color:"#1a3020",outline:"none",background:"#fff",fontFamily:"'Inter',sans-serif",boxSizing:"border-box"}}/>
               </div>
-              <div>
-                <div>
-                  <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
-                    이 금액으로 소진되는 주기
-                  </div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
-                    {[7,14,30,60].map(d=>(
-                      <button key={d} onClick={()=>setSupplyCycle(String(d))} style={{
-                        padding:"3px 9px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
-                        border:`1.5px solid ${supplyCycle===String(d)?"#2d6a4f":"#b7e4c7"}`,
-                        background:supplyCycle===String(d)?"#2d6a4f":"#fff",
-                        color:supplyCycle===String(d)?"#fff":"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>{d}일</button>
-                    ))}
-                    <input type="number" value={supplyCycle} onChange={e=>setSupplyCycle(e.target.value)}
-                      placeholder="직접" min="1"
-                      style={{width:"52px",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"3px 7px",
-                        fontSize:"11px",color:"#1a3020",outline:"none",background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
-                  </div>
-                </div>
-              </div>
               {/* 기존 소모품 매칭 표시 */}
               {(()=>{const match=supplies.find(s=>s.name===(supplyName.trim()||memo.trim()||cat2));
                 return match?<div style={{fontSize:"11px",color:"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>
@@ -798,6 +777,7 @@ function CategorySettings({trees, onChange}){
   const [dirty,setDirty]=useState(false);
   const [editCat1,setEditCat1]=useState(null);
   const [editCat2,setEditCat2]=useState(null);
+  const [editCat3,setEditCat3]=useState(null); // {cat1,cat2,name,val}
   const [openCat2,setOpenCat2]=useState({});
   const [dragCat1,setDragCat1]=useState(null);
   const [dragOverCat1,setDragOverCat1]=useState(null);
@@ -887,6 +867,13 @@ function CategorySettings({trees, onChange}){
     const node=tree[cat1];if(!node)return;
     const list=(node.children[cat2]||[]).filter(x=>x!==cat3);
     update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+  }
+  function renameCat3(cat1,cat2,oldName,newName){
+    const n=newName.trim();if(!n||n===oldName)return setEditCat3(null);
+    const node=tree[cat1];if(!node)return;
+    const list=(node.children[cat2]||[]).map(x=>x===oldName?n:x);
+    update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+    setEditCat3(null);
   }
 
   const btnAdd={background:"#f5f7ff",border:"1px dashed #b0c4de",borderRadius:"8px",
@@ -1022,19 +1009,43 @@ function CategorySettings({trees, onChange}){
                       {/* cat3 chips */}
                       {openCat2[`${cat1}::${cat2}`]&&Array.isArray(cat3list)&&cat3list.length>0&&(
                         <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"4px",paddingLeft:"12px"}}>
-                          {cat3list.map(cat3=>(
-                            <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px",
-                              background:"#fff",border:`1px solid ${C.border}`,borderRadius:"20px",
-                              padding:"3px 10px",fontSize:"11px",color:C.ink}}>
-                              {cat3}
-                              <button onClick={()=>delCat3(cat1,cat2,cat3)} style={{background:"none",border:"none",
-                                cursor:"pointer",color:"#ccc",padding:"0 0 0 2px",display:"flex",lineHeight:1}}
-                                onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
-                                onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
-                                <X size={10}/>
-                              </button>
-                            </span>
-                          ))}
+                          {cat3list.map(cat3=>{
+                            const isEditingThis=editCat3?.cat1===cat1&&editCat3?.cat2===cat2&&editCat3?.name===cat3;
+                            return isEditingThis?(
+                              <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px"}}>
+                                <input autoFocus value={editCat3.val}
+                                  onChange={e=>setEditCat3({...editCat3,val:e.target.value})}
+                                  onKeyDown={e=>{if(e.key==="Enter")renameCat3(cat1,cat2,cat3,editCat3.val);if(e.key==="Escape")setEditCat3(null);}}
+                                  style={{border:`1px solid ${C.border}`,borderRadius:"20px",padding:"3px 8px",
+                                    fontSize:"11px",outline:"none",fontFamily:"'Inter',sans-serif",width:"90px"}}/>
+                                <button onClick={()=>renameCat3(cat1,cat2,cat3,editCat3.val)}
+                                  style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"6px",
+                                    padding:"2px 6px",cursor:"pointer",color:"#2d6a4f",fontSize:"10px",fontWeight:600}}>저장</button>
+                                <button onClick={()=>setEditCat3(null)}
+                                  style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
+                                    padding:"2px 6px",cursor:"pointer",color:C.inkLight,fontSize:"10px"}}>취소</button>
+                              </span>
+                            ):(
+                              <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px",
+                                background:"#fff",border:`1px solid ${C.border}`,borderRadius:"20px",
+                                padding:"3px 10px",fontSize:"11px",color:C.ink}}>
+                                {cat3}
+                                <button onClick={()=>setEditCat3({cat1,cat2,name:cat3,val:cat3})}
+                                  style={{background:"none",border:"none",cursor:"pointer",color:"#ccc",
+                                    padding:"0 0 0 1px",display:"flex",lineHeight:1}}
+                                  onMouseEnter={e=>e.currentTarget.style.color=C.inkMid}
+                                  onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                                  <Pencil size={9}/>
+                                </button>
+                                <button onClick={()=>delCat3(cat1,cat2,cat3)} style={{background:"none",border:"none",
+                                  cursor:"pointer",color:"#ccc",padding:"0 0 0 1px",display:"flex",lineHeight:1}}
+                                  onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
+                                  onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
+                                  <X size={10}/>
+                                </button>
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                       {/* cat3 add inline */}
@@ -2475,14 +2486,13 @@ function SuppliesView({ supplies, onChange, txs=[] }){
     };
   }
 
-  // 실질 소진 주기: 실측 우선, 없으면 수동, 그것도 없으면 null
+  // 실질 소진 주기: 구매 이력 기반 자동 계산, 금액 비율로 보정
   const effectiveCycle = (s) => {
     const actual = computeActualCycle(s.name);
-    const base = actual ? actual.days : (s.cycle_days||null);
-    if(!base) return null;
+    if(!actual) return null;
     if(s.base_amount>0 && s.last_amount>0)
-      return Math.round(base * s.last_amount / s.base_amount);
-    return base;
+      return Math.round(actual.days * s.last_amount / s.base_amount);
+    return actual.days;
   };
 
   const actualCycleInfo = (s) => computeActualCycle(s.name);
@@ -2589,38 +2599,19 @@ function SuppliesView({ supplies, onChange, txs=[] }){
           <Inp value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
             placeholder="직접 입력" style={{fontSize:"13px"}}/>
         </div>
-        {/* 기준 주기 + 기준 금액 */}
+        {/* 기준 금액 */}
         <div style={{background:"#f0fdf4",borderRadius:"12px",padding:"12px 14px",border:"1px solid #b7e4c7"}}>
           <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.08em",marginBottom:"10px",fontFamily:"'Inter',sans-serif"}}>
-            소진 기준 — 아래 금액 구매 시 아래 일수만큼 소진
+            소진 주기는 구매 이력으로 자동 계산됩니다
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
-            <div>
-              <SLabel>기준 구매금액 (원)</SLabel>
-              <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,borderRadius:"10px",background:C.white,padding:"0 12px"}}>
-                <input type="number" value={form.base_amount} onChange={e=>setForm(p=>({...p,base_amount:e.target.value}))}
-                  placeholder="50000" min="0"
-                  style={{flex:1,border:"none",background:"transparent",fontSize:"15px",fontWeight:700,
-                    color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
-                <span style={{fontSize:"12px",color:C.inkLight}}>원</span>
-              </div>
-            </div>
-            <div>
-              <SLabel>기준 소진 주기 (일)</SLabel>
-              <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,borderRadius:"10px",background:C.white,padding:"0 12px"}}>
-                <input type="number" value={form.cycle_days} onChange={e=>setForm(p=>({...p,cycle_days:e.target.value}))}
-                  placeholder="14" min="1"
-                  style={{flex:1,border:"none",background:"transparent",fontSize:"15px",fontWeight:700,
-                    color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
-                <span style={{fontSize:"12px",color:C.inkLight}}>일</span>
-              </div>
-            </div>
+          <SLabel>기준 구매금액 (원) — 금액이 다를 때 주기 보정용</SLabel>
+          <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${C.border}`,borderRadius:"10px",background:C.white,padding:"0 12px"}}>
+            <input type="number" value={form.base_amount} onChange={e=>setForm(p=>({...p,base_amount:e.target.value}))}
+              placeholder="50000" min="0"
+              style={{flex:1,border:"none",background:"transparent",fontSize:"15px",fontWeight:700,
+                color:C.ink,padding:"10px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+            <span style={{fontSize:"12px",color:C.inkLight}}>원</span>
           </div>
-          {form.base_amount&&form.cycle_days&&(
-            <div style={{fontSize:"11px",color:"#2d6a4f",marginTop:"8px",fontFamily:"'Inter',sans-serif"}}>
-              예) {parseInt(form.base_amount)*2>0?`${(parseInt(form.base_amount)*2).toLocaleString("ko-KR")}원 구매 → ${parseInt(form.cycle_days)*2}일`:""}
-            </div>
-          )}
         </div>
         <div>
           <SLabel>마지막 구매일</SLabel>
@@ -2719,7 +2710,7 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                       </span>
                     </div>
                     <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>
-                      {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>실측 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:s.cycle_days?`설정 ${s.cycle_days}일`:<span style={{opacity:0.5}}>주기 미설정</span>;})()}
+                      {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>평균 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:<span style={{opacity:0.5}}>이력 부족</span>;})()}
                       {next?<>{" · 다음 구매 "}{next}</>:""}
                     </div>
                     {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
@@ -2749,9 +2740,8 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                         const a=actualCycleInfo(s);
                         const eff=effectiveCycle(s);
                         if(!eff) return <span style={{color:C.inkLight,opacity:0.6}}>이력 수집 중</span>;
-                        const base=a?a.days:(s.cycle_days||null);
-                        if(base&&eff!==base) return <>실질 {eff}일 <span style={{opacity:0.5}}>(기준 {base}일)</span></>;
-                        return a?`실측 ${a.days}일`:(s.cycle_days?`설정 ${s.cycle_days}일`:"");
+                        if(a&&eff!==a.days) return <>실질 {eff}일 <span style={{opacity:0.5}}>(평균 {a.days}일)</span></>;
+                        return a?`평균 ${a.days}일`:"";
                       })()}
                     </span>
                   </div>
