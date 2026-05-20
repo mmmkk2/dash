@@ -1461,11 +1461,11 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
               onMouseEnter={e=>e.currentTarget.style.color=C.ink}
               onMouseLeave={e=>e.currentTarget.style.color=C.inkLight}><Pencil size={13}/></button>
             <button onClick={()=>onDelete(tx.id)}
-              style={{background:"#f0f4ff",border:"1px solid #b0c4de",borderRadius:"8px",
-                padding:"5px 9px",cursor:"pointer",color:"#1d4e89",fontSize:"11px",fontWeight:600,
+              style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
+                padding:"3px 7px",cursor:"pointer",color:C.inkLight,fontSize:"10px",
                 fontFamily:"'Inter',sans-serif",transition:"all 0.15s"}}
               title="발생 취소 → 예정으로 복귀">
-              ↩ 예정으로
+              ↩예정
             </button>
           </div>
         )}
