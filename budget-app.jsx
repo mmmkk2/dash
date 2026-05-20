@@ -1455,15 +1455,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
             {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
           </button>
         ):(
-          <div style={{display:"flex",gap:"2px",flexShrink:0}}>
+          <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
             <button onClick={()=>onEdit(tx)} style={{background:"none",border:"none",cursor:"pointer",
               color:C.inkLight,padding:"4px",borderRadius:"6px",display:"flex",transition:"color 0.15s"}}
               onMouseEnter={e=>e.currentTarget.style.color=C.ink}
               onMouseLeave={e=>e.currentTarget.style.color=C.inkLight}><Pencil size={13}/></button>
-            <button onClick={()=>onDelete(tx.id)} style={{background:"none",border:"none",cursor:"pointer",
-              color:C.border,padding:"4px",flexShrink:0,borderRadius:"6px",display:"flex",transition:"color 0.15s"}}
-              onMouseEnter={e=>e.currentTarget.style.color="#e07a5f"}
-              onMouseLeave={e=>e.currentTarget.style.color=C.border}><Trash2 size={13}/></button>
+            <button onClick={()=>onDelete(tx.id)}
+              style={{background:"#f0f4ff",border:"1px solid #b0c4de",borderRadius:"8px",
+                padding:"5px 9px",cursor:"pointer",color:"#1d4e89",fontSize:"11px",fontWeight:600,
+                fontFamily:"'Inter',sans-serif",transition:"all 0.15s"}}
+              title="발생 취소 → 예정으로 복귀">
+              ↩ 예정으로
+            </button>
           </div>
         )}
       </div>
