@@ -645,7 +645,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       {/* Supply toggle — cafe + 매입/원가 only */}
       {showSupplyToggle&&(
         <div style={{marginBottom:"12px"}}>
-          <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(memo.trim()||cat2||"");}} style={{
+          <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(cat2||memo.trim()||"");}} style={{
             display:"flex",alignItems:"center",gap:"10px",width:"100%",
             background:isSupply?"#f0fdf4":"#fff",
             border:`1.5px solid ${isSupply?"#2d6a4f":C.border}`,
@@ -2875,7 +2875,8 @@ export default function App(){
     }finally{setLoading(false);}
   },[]);
 
-  useEffect(()=>{fetchAll();},[fetchAll]);
+  // session 확정 후에만 fetch (토큰 미세팅 상태로 호출하는 타이밍 버그 방지)
+  useEffect(()=>{if(session)fetchAll();},[session]);
 
   /* ── TX CRUD ── */
   async function addTx(tx){
