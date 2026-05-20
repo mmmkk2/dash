@@ -645,7 +645,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       {/* Supply toggle — cafe + 매입/원가 only */}
       {showSupplyToggle&&(
         <div style={{marginBottom:"12px"}}>
-          <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(cat2||memo.trim()||"");}} style={{
+          <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(cat3||cat2||memo.trim()||"");}} style={{
             display:"flex",alignItems:"center",gap:"10px",width:"100%",
             background:isSupply?"#f0fdf4":"#fff",
             border:`1.5px solid ${isSupply?"#2d6a4f":C.border}`,
@@ -2394,8 +2394,6 @@ function SuppliesView({ supplies, onChange, txs=[] }){
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name:"", category:"소모품", cycle_days:"", base_amount:"", last_bought:todayStr, memo:"" });
   const [saving, setSaving] = useState(false);
-  const [buying, setBuying] = useState(null);
-  const [buyAmt, setBuyAmt] = useState("");
 
   const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
 
@@ -2460,13 +2458,6 @@ function SuppliesView({ supplies, onChange, txs=[] }){
     return         { label:`${d}일 후`, color:"#2d6a4f", bg:"#f0fdf4", border:"#b7e4c7", icon:<Package size={11}/> };
   };
 
-  async function handleBought(s, amount){
-    setSaving(true);
-    const updated = { ...s, last_bought: todayStr, last_amount: amount>0?amount:(s.last_amount||0) };
-    await onChange(updated, "update");
-    setSaving(false);
-    setBuying(null); setBuyAmt("");
-  }
 
   async function handleAdd(){
     if(!form.name.trim()) return;
@@ -2700,42 +2691,6 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                 </div>
               </div>
 
-              {/* 구매 완료 */}
-              {buying===s.id
-                ?<div style={{display:"flex",gap:"6px",alignItems:"center"}}>
-                  <div style={{flex:1,display:"flex",alignItems:"center",border:`1.5px solid #2d6a4f`,borderRadius:"10px",background:C.white,padding:"0 10px"}}>
-                    <input type="number" value={buyAmt} onChange={e=>setBuyAmt(e.target.value)}
-                      placeholder={s.base_amount>0?String(s.base_amount):"금액"}
-                      autoFocus
-                      style={{flex:1,border:"none",background:"transparent",fontSize:"14px",fontWeight:700,
-                        color:C.ink,padding:"8px 0",outline:"none",fontFamily:"'Inter',sans-serif"}}/>
-                    <span style={{fontSize:"11px",color:C.inkLight}}>원</span>
-                  </div>
-                  <button onClick={()=>handleBought(s, parseInt(buyAmt)||0)} disabled={saving}
-                    style={{padding:"9px 14px",background:"#2d6a4f",border:"none",borderRadius:"10px",
-                      color:"#fff",fontSize:"12px",fontWeight:700,cursor:"pointer",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
-                    완료
-                  </button>
-                  <button onClick={()=>{setBuying(null);setBuyAmt("");}}
-                    style={{padding:"9px 10px",background:C.cream,border:`1px solid ${C.border}`,borderRadius:"10px",
-                      color:C.inkLight,fontSize:"12px",cursor:"pointer",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
-                    취소
-                  </button>
-                </div>
-                :<button onClick={()=>{
-                    if(s.base_amount>0){setBuying(s.id);setBuyAmt(s.last_amount>0?String(s.last_amount):"");}
-                    else handleBought(s,0);
-                  }} disabled={saving} style={{
-                  width:"100%",padding:"9px",background:st.bg,
-                  border:`1.5px solid ${st.border}`,borderRadius:"10px",
-                  color:st.color,fontSize:"12px",fontWeight:700,cursor:"pointer",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",
-                  fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}
-                  onMouseEnter={e=>e.currentTarget.style.background=st.color+"18"}
-                  onMouseLeave={e=>e.currentTarget.style.background=st.bg}>
-                  <ShoppingCart size={13}/> 오늘 구매 완료
-                </button>
-              }
             </div>
           );
         })
