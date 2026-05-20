@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
@@ -9,11 +10,14 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, L
 const SUPABASE_URL    = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON   = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON);
+let _authToken = SUPABASE_ANON;
+
 const sb = async (path, opts={}) => {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
       "apikey": SUPABASE_ANON,
-      "Authorization": `Bearer ${SUPABASE_ANON}`,
+      "Authorization": `Bearer ${_authToken}`,
       "Content-Type": "application/json",
       "Prefer": opts.prefer || "return=representation",
     },
@@ -198,6 +202,51 @@ const MONTHS_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월
 
 /* ── Supabase 연결 상태 확인 ── */
 const isConfigured = () => !SUPABASE_URL.includes("your-project");
+
+/* ── LoginScreen ── */
+function LoginScreen({onLogin}){
+  const [email,setEmail]=useState("");
+  const [pw,setPw]=useState("");
+  const [err,setErr]=useState("");
+  const [loading,setLoading]=useState(false);
+
+  async function handleSubmit(e){
+    e.preventDefault();
+    setErr("");
+    setLoading(true);
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pw});
+    setLoading(false);
+    if(error){setErr("이메일 또는 비밀번호가 올바르지 않습니다.");return;}
+    onLogin(data.session);
+  }
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f5f0e8",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+      <div style={{background:"#fff",borderRadius:"24px",padding:"40px 32px",width:"100%",maxWidth:"360px",
+        boxShadow:"0 8px 40px rgba(0,0,0,0.10)"}}>
+        <div style={{textAlign:"center",marginBottom:"32px"}}>
+          <div style={{fontSize:"28px",fontWeight:800,color:"#3d2b20",fontFamily:"'Inter',sans-serif",letterSpacing:"-0.5px"}}>가계부</div>
+          <div style={{fontSize:"12px",color:"#9c8e82",marginTop:"4px",fontFamily:"'Inter',sans-serif"}}>로그인 후 이용하세요</div>
+        </div>
+        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+          <input type="email" placeholder="이메일" value={email} onChange={e=>setEmail(e.target.value)} required
+            style={{padding:"13px 16px",borderRadius:"12px",border:"1px solid #e8e0d4",fontSize:"14px",
+              outline:"none",fontFamily:"'Inter',sans-serif",background:"#faf8f4"}}/>
+          <input type="password" placeholder="비밀번호" value={pw} onChange={e=>setPw(e.target.value)} required
+            style={{padding:"13px 16px",borderRadius:"12px",border:"1px solid #e8e0d4",fontSize:"14px",
+              outline:"none",fontFamily:"'Inter',sans-serif",background:"#faf8f4"}}/>
+          {err&&<div style={{fontSize:"12px",color:"#b5451b",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>{err}</div>}
+          <button type="submit" disabled={loading}
+            style={{padding:"14px",borderRadius:"12px",border:"none",background:"#3d2b20",color:"#fff",
+              fontSize:"14px",fontWeight:700,cursor:"pointer",fontFamily:"'Inter',sans-serif",marginTop:"4px",
+              opacity:loading?0.6:1}}>
+            {loading?"로그인 중…":"로그인"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 /* ── Modal ── */
 function Modal({open,onClose,children}){
@@ -2772,6 +2821,20 @@ export default function App(){
   const [online, setOnline] =useState(isConfigured());
   const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy"};
   const [themeKey, setThemeKey] = useState(()=>ENTITY_THEME["personal"]);
+  const [session,setSession]=useState(undefined); // undefined=로딩중, null=미로그인
+
+  // auth 초기화
+  useEffect(()=>{
+    supabaseClient.auth.getSession().then(({data:{session}})=>{
+      _authToken=session?.access_token||SUPABASE_ANON;
+      setSession(session||null);
+    });
+    const {data:{subscription}}=supabaseClient.auth.onAuthStateChange((_,session)=>{
+      _authToken=session?.access_token||SUPABASE_ANON;
+      setSession(session||null);
+    });
+    return ()=>subscription.unsubscribe();
+  },[]);
 
   // trees 변경 시 전역 TREES 동기화
   useEffect(()=>{ TREES=trees; localStorage.setItem(CAT_KEY,JSON.stringify(trees)); }, [trees]);
@@ -2896,6 +2959,17 @@ export default function App(){
   function prevMonth(){if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);}
   function nextMonth(){if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}
 
+  async function handleLogout(){
+    await supabaseClient.auth.signOut();
+  }
+
+  if(session===undefined)return(
+    <div style={{minHeight:"100vh",background:"#f5f0e8",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"13px",color:"#9c8e82"}}>로딩 중…</div>
+    </div>
+  );
+  if(!session)return <LoginScreen onLogin={s=>{_authToken=s.access_token;setSession(s);}}/>;
+
   return(
     <div style={{minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
 
@@ -2946,6 +3020,12 @@ export default function App(){
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                 borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}>
                 <CreditCard size={14}/>
+              </button>
+              <button onClick={handleLogout} title="로그아웃" style={{
+                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
+                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
+                OUT
               </button>
             </div>
           </div>
