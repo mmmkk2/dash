@@ -320,7 +320,12 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[initCat1]?.children||{})[0]||"");
   const [cat3,setCat3]=useState(init.cat3||"");
   const [amount,setAmount]=useState(init.amount?Number(init.amount).toLocaleString("ko-KR"):"");
-  const [memo,setMemo]=useState(init.memo||"");
+  // memo에 "구매처 · 메모" 형식으로 저장된 경우 분리
+  const _memoRaw=init.memo||"";
+  const _dotIdx=_memoRaw.indexOf(" · ");
+  const _initVendor=_dotIdx>0?_memoRaw.slice(0,_dotIdx):"";
+  const _initMemo=_dotIdx>0?_memoRaw.slice(_dotIdx+3):_memoRaw;
+  const [memo,setMemo]=useState(_initMemo);
   const [date,setDate]=useState(init.date||today);
   const [cardId,setCardId]=useState(init.cardId||"");
   const [isFixed,setIsFixed]=useState(init.isFixed||false);
@@ -328,7 +333,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [isBiMonthly,setIsBiMonthly]=useState(()=>{
     try{const s=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));return s.has(`${init.entity||defaultEntity}:${init.memo||""}`);}catch{return false;}
   });
-  const [vendor,setVendor]=useState(init.vendor||"");
+  const [vendor,setVendor]=useState(_initVendor);
   const [vendorOpen,setVendorOpen]=useState(false);
   const [knownVendors]=useState(()=>loadVendors());
   const [isSupply,setIsSupply]=useState(false);
@@ -3034,11 +3039,6 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",gap:"6px"}}>
-              <button onClick={fetchAll} disabled={loading} style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}>
-                <RefreshCw size={14} className={loading?"spin":""}/>
-              </button>
               <button onClick={()=>setModal("import")} style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                 borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}
