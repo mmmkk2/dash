@@ -172,6 +172,9 @@ const TREE_REALTY = {
 };
 const TREES_DEFAULT = { personal:TREE_PERSONAL, cafe:TREE_CAFE, realty:TREE_REALTY };
 const CAT_KEY = "gagibu_cats";
+const VENDOR_KEY = "gagibu_vendors";
+function loadVendors(){ try{return JSON.parse(localStorage.getItem(VENDOR_KEY)||"[]");}catch{return[];} }
+function saveVendor(v){ if(!v)return; const list=[...new Set([v,...loadVendors()])].slice(0,30); localStorage.setItem(VENDOR_KEY,JSON.stringify(list)); }
 function loadTrees(){
   try{
     const saved=JSON.parse(localStorage.getItem(CAT_KEY));
@@ -326,6 +329,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
     try{const s=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));return s.has(`${init.entity||defaultEntity}:${init.memo||""}`);}catch{return false;}
   });
   const [vendor,setVendor]=useState(init.vendor||"");
+  const [vendorOpen,setVendorOpen]=useState(false);
+  const [knownVendors]=useState(()=>loadVendors());
   const [isSupply,setIsSupply]=useState(false);
   const [supplyName,setSupplyName]=useState("");
   const [supplyCat,setSupplyCat]=useState("소모품");
@@ -373,6 +378,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         cycle_days:parseInt(supplyCycle)||30,last_bought:date,
         last_amount:num,base_amount:num}
       :null;
+    if(vendor.trim()) saveVendor(vendor.trim());
     const finalMemo=[vendor.trim(),memo.trim()||cat3||cat2].filter(Boolean).join(" · ");
     // 격월 설정을 localStorage에 반영
     try{
@@ -732,7 +738,29 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
 
       {/* 구매처 + 날짜 */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"10px"}}>
-        <div><SLabel>구매처</SLabel><Inp value={vendor} onChange={e=>setVendor(e.target.value)} placeholder="예: 쿠팡, 마트"/></div>
+        <div style={{position:"relative"}}>
+          <SLabel>구매처</SLabel>
+          <Inp value={vendor} onChange={e=>setVendor(e.target.value)}
+            placeholder="예: 쿠팡, 마트"
+            onFocus={()=>setVendorOpen(true)}
+            onBlur={()=>setTimeout(()=>setVendorOpen(false),150)}/>
+          {vendorOpen&&knownVendors.length>0&&(
+            <div style={{position:"absolute",top:"100%",left:0,right:0,zIndex:50,
+              background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px",
+              boxShadow:"0 4px 16px rgba(0,0,0,0.10)",marginTop:"3px",
+              maxHeight:"160px",overflowY:"auto"}}>
+              {knownVendors.filter(v=>!vendor||v.toLowerCase().includes(vendor.toLowerCase())).map(v=>(
+                <div key={v} onMouseDown={()=>setVendor(v)}
+                  style={{padding:"9px 14px",fontSize:"13px",color:C.ink,cursor:"pointer",
+                    fontFamily:"'Inter',sans-serif",borderBottom:`1px solid ${C.border}`}}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.cream}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  {v}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <div><SLabel>날짜</SLabel><Inp type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
       </div>
       {/* 메모 */}
