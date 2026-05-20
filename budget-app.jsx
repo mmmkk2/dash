@@ -325,6 +325,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [isBiMonthly,setIsBiMonthly]=useState(()=>{
     try{const s=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));return s.has(`${init.entity||defaultEntity}:${init.memo||""}`);}catch{return false;}
   });
+  const [vendor,setVendor]=useState(init.vendor||"");
   const [isSupply,setIsSupply]=useState(false);
   const [supplyName,setSupplyName]=useState("");
   const [supplyCat,setSupplyCat]=useState("소모품");
@@ -360,7 +361,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         cycle_days:parseInt(supplyCycle)||30,last_bought:date,
         last_amount:num,base_amount:num}
       :null;
-    const finalMemo=memo.trim()||cat3||cat2;
+    const finalMemo=[vendor.trim(),memo.trim()||cat3||cat2].filter(Boolean).join(" · ");
     // 격월 설정을 localStorage에 반영
     try{
       const bmKey="gagibu_bimonthly";
@@ -706,10 +707,14 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         </div>
       )}
 
-      {/* Memo + Date */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"14px"}}>
-        <div><SLabel>메모</SLabel><Inp value={memo} onChange={e=>setMemo(e.target.value)} placeholder="선택사항"/></div>
+      {/* 구매처 + 날짜 */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px",marginBottom:"10px"}}>
+        <div><SLabel>구매처</SLabel><Inp value={vendor} onChange={e=>setVendor(e.target.value)} placeholder="예: 쿠팡, 마트"/></div>
         <div><SLabel>날짜</SLabel><Inp type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
+      </div>
+      {/* 메모 */}
+      <div style={{marginBottom:"14px"}}>
+        <SLabel>메모</SLabel><Inp value={memo} onChange={e=>setMemo(e.target.value)} placeholder="선택사항"/>
       </div>
 
       <button className="add-btn" onClick={submit} disabled={saving} style={{
