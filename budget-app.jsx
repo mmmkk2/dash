@@ -643,6 +643,17 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         )}
       </div>
 
+      {/* 소모품 매칭 안내 (토글 off 상태에서도 표시) */}
+      {showSupplyToggle&&!isSupply&&(()=>{
+        const name=(cat3||cat2||memo.trim()||"").toLowerCase();
+        const match=supplies.find(s=>(s.name||"").toLowerCase()===name);
+        return match?<div style={{marginBottom:"8px",padding:"7px 12px",borderRadius:"8px",
+          background:"#f0fdf4",border:"1px solid #b7e4c7",
+          fontSize:"11px",color:"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>
+          소모품 <b>{match.name}</b> 과 연결됩니다 — 토글을 켜면 구매일이 업데이트돼요
+        </div>:null;
+      })()}
+
       {/* Supply toggle — cafe + 매입/원가 only */}
       {showSupplyToggle&&(
         <div style={{marginBottom:"12px"}}>
@@ -1191,7 +1202,7 @@ function PropTagDropdown({tags, value, onChange}){
   );
 }
 
-function FlatListView({txs, onEdit, cards, entity}){
+function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
   const isRealty=entity==="realty";
   const [tagFilter,setTagFilter]=useState("전체");
@@ -1253,6 +1264,10 @@ function FlatListView({txs, onEdit, cards, entity}){
               const card=tx.cardId?cardMap[tx.cardId]:null;
               const tree=TREES[tx.entity]||TREE_PERSONAL;
               const m1=tree[tx.cat1]||{color:C.inkMid,accent:C.inkLight};
+              const memoLower=(tx.memo||"").toLowerCase();
+              const linkedSupply=supplies.find(s=>(s.name||"").toLowerCase()===memoLower
+                ||(s.name||"").toLowerCase()===(tx.cat3||"").toLowerCase()
+                ||(s.name||"").toLowerCase()===(tx.cat2||"").toLowerCase());
               return(
                 <div key={tx.id} className="tx-row" onClick={()=>onEdit(tx)}
                   style={{display:"flex",alignItems:"center",gap:"10px",padding:"11px 16px",
@@ -1269,6 +1284,9 @@ function FlatListView({txs, onEdit, cards, entity}){
                       {tx.cat3&&<span style={{fontSize:"10px",background:m1.accent+"18",color:m1.color,
                         borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
                         fontFamily:"'Inter',sans-serif"}}>{tx.cat3}</span>}
+                      {linkedSupply&&<span style={{fontSize:"9px",background:"#f0fdf4",color:"#2d6a4f",
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+                        border:"1px solid #b7e4c7",fontFamily:"'Inter',sans-serif"}}>소모품</span>}
                     </div>
                     <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif",
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
@@ -3111,7 +3129,7 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity}/>
+            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
