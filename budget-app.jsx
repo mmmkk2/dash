@@ -783,6 +783,8 @@ function CategorySettings({trees, onChange}){
   const [dragOverCat1,setDragOverCat1]=useState(null);
   const [dragCat2,setDragCat2]=useState(null); // {cat1,idx}
   const [dragOverCat2,setDragOverCat2]=useState(null); // {cat1,idx}
+  const [dragCat3,setDragCat3]=useState(null); // {cat1,cat2,idx}
+  const [dragOverCat3,setDragOverCat3]=useState(null); // {cat1,cat2,idx}
   const tree=draft||{};
 
   function reorderCat1(fromKey,toKey){
@@ -797,6 +799,12 @@ function CategorySettings({trees, onChange}){
     const entries=Object.entries(node.children);
     const [m]=entries.splice(fromIdx,1);entries.splice(toIdx,0,m);
     update({...tree,[cat1]:{...node,children:Object.fromEntries(entries)}});
+  }
+  function reorderCat3(cat1,cat2,fromIdx,toIdx){
+    const node=tree[cat1];if(!node)return;
+    const list=[...(node.children[cat2]||[])];
+    const [m]=list.splice(fromIdx,1);list.splice(toIdx,0,m);
+    update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
   }
 
   function switchEnt(k){
@@ -1009,8 +1017,10 @@ function CategorySettings({trees, onChange}){
                       {/* cat3 chips */}
                       {openCat2[`${cat1}::${cat2}`]&&Array.isArray(cat3list)&&cat3list.length>0&&(
                         <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"4px",paddingLeft:"12px"}}>
-                          {cat3list.map(cat3=>{
+                          {cat3list.map((cat3,cat3Idx)=>{
                             const isEditingThis=editCat3?.cat1===cat1&&editCat3?.cat2===cat2&&editCat3?.name===cat3;
+                            const isDragging=dragCat3?.cat1===cat1&&dragCat3?.cat2===cat2&&dragCat3?.idx===cat3Idx;
+                            const isDragOver=dragOverCat3?.cat1===cat1&&dragOverCat3?.cat2===cat2&&dragOverCat3?.idx===cat3Idx;
                             return isEditingThis?(
                               <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px"}}>
                                 <input autoFocus value={editCat3.val}
@@ -1026,9 +1036,16 @@ function CategorySettings({trees, onChange}){
                                     padding:"2px 6px",cursor:"pointer",color:C.inkLight,fontSize:"10px"}}>취소</button>
                               </span>
                             ):(
-                              <span key={cat3} style={{display:"inline-flex",alignItems:"center",gap:"3px",
-                                background:"#fff",border:`1px solid ${C.border}`,borderRadius:"20px",
-                                padding:"3px 10px",fontSize:"11px",color:C.ink}}>
+                              <span key={cat3} draggable
+                                onDragStart={e=>{e.stopPropagation();setDragCat3({cat1,cat2,idx:cat3Idx});}}
+                                onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOverCat3({cat1,cat2,idx:cat3Idx});}}
+                                onDrop={e=>{e.stopPropagation();if(dragCat3&&dragCat3.cat1===cat1&&dragCat3.cat2===cat2&&dragCat3.idx!==cat3Idx)reorderCat3(cat1,cat2,dragCat3.idx,cat3Idx);setDragCat3(null);setDragOverCat3(null);}}
+                                onDragEnd={()=>{setDragCat3(null);setDragOverCat3(null);}}
+                                style={{display:"inline-flex",alignItems:"center",gap:"3px",
+                                  background:"#fff",border:`1px solid ${isDragOver?C.ink:C.border}`,borderRadius:"20px",
+                                  padding:"3px 10px 3px 6px",fontSize:"11px",color:C.ink,
+                                  opacity:isDragging?0.4:1,cursor:"grab"}}>
+                                <GripVertical size={9} style={{color:C.border,flexShrink:0}}/>
                                 {cat3}
                                 <button onClick={()=>setEditCat3({cat1,cat2,name:cat3,val:cat3})}
                                   style={{background:"none",border:"none",cursor:"pointer",color:"#ccc",
