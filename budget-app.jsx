@@ -706,8 +706,26 @@ function CategorySettings({trees, onChange}){
   const [dirty,setDirty]=useState(false);
   const [editCat1,setEditCat1]=useState(null);
   const [editCat2,setEditCat2]=useState(null);
-  const [openCat2,setOpenCat2]=useState({}); // {`${cat1}::${cat2}`: bool}
+  const [openCat2,setOpenCat2]=useState({});
+  const [dragCat1,setDragCat1]=useState(null);
+  const [dragOverCat1,setDragOverCat1]=useState(null);
+  const [dragCat2,setDragCat2]=useState(null); // {cat1,idx}
+  const [dragOverCat2,setDragOverCat2]=useState(null); // {cat1,idx}
   const tree=draft||{};
+
+  function reorderCat1(fromKey,toKey){
+    const entries=Object.entries(tree);
+    const fi=entries.findIndex(([k])=>k===fromKey);
+    const ti=entries.findIndex(([k])=>k===toKey);
+    const r=[...entries];const [m]=r.splice(fi,1);r.splice(ti,0,m);
+    update(Object.fromEntries(r));
+  }
+  function reorderCat2(cat1,fromIdx,toIdx){
+    const node=tree[cat1];if(!node)return;
+    const entries=Object.entries(node.children);
+    const [m]=entries.splice(fromIdx,1);entries.splice(toIdx,0,m);
+    update({...tree,[cat1]:{...node,children:Object.fromEntries(entries)}});
+  }
 
   function switchEnt(k){
     setEnt(k);setOpenCat1(null);setAdding(null);setEditCat1(null);setEditCat2(null);
@@ -810,10 +828,17 @@ function CategorySettings({trees, onChange}){
           const isOpen=openCat1===cat1;
           const isEditing=editCat1?.key===cat1;
           return(
-            <div key={cat1} style={{border:`1px solid ${C.border}`,borderRadius:"12px",overflow:"hidden"}}>
+            <div key={cat1} draggable
+              onDragStart={()=>setDragCat1(cat1)}
+              onDragOver={e=>{e.preventDefault();setDragOverCat1(cat1);}}
+              onDrop={()=>{if(dragCat1&&dragCat1!==cat1)reorderCat1(dragCat1,cat1);setDragCat1(null);setDragOverCat1(null);}}
+              onDragEnd={()=>{setDragCat1(null);setDragOverCat1(null);}}
+              style={{border:`1px solid ${dragOverCat1===cat1?C.ink:C.border}`,borderRadius:"12px",overflow:"hidden",
+                opacity:dragCat1===cat1?0.4:1,transition:"opacity 0.15s,border-color 0.15s"}}>
               {/* cat1 header */}
               <div style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 12px",
                 background:C.cream}} onClick={()=>!isEditing&&setOpenCat1(isOpen?null:cat1)}>
+                <GripVertical size={13} style={{color:C.border,flexShrink:0,cursor:"grab"}}/>
                 {isEditing?(
                   <input autoFocus value={editCat1.val}
                     onChange={e=>setEditCat1({...editCat1,val:e.target.value})}
@@ -854,8 +879,15 @@ function CategorySettings({trees, onChange}){
               {/* cat2 list */}
               {isOpen&&(
                 <div style={{padding:"10px 12px",display:"flex",flexDirection:"column",gap:"10px"}}>
-                  {Object.entries(node.children||{}).map(([cat2,cat3list])=>(
-                    <div key={cat2}>
+                  {Object.entries(node.children||{}).map(([cat2,cat3list],cat2Idx)=>(
+                    <div key={cat2} draggable
+                      onDragStart={e=>{e.stopPropagation();setDragCat2({cat1,idx:cat2Idx});}}
+                      onDragOver={e=>{e.preventDefault();e.stopPropagation();setDragOverCat2({cat1,idx:cat2Idx});}}
+                      onDrop={e=>{e.stopPropagation();if(dragCat2&&dragCat2.cat1===cat1&&dragCat2.idx!==cat2Idx)reorderCat2(cat1,dragCat2.idx,cat2Idx);setDragCat2(null);setDragOverCat2(null);}}
+                      onDragEnd={e=>{e.stopPropagation();setDragCat2(null);setDragOverCat2(null);}}
+                      style={{opacity:dragCat2?.cat1===cat1&&dragCat2?.idx===cat2Idx?0.4:1,
+                        border:`1px solid ${dragOverCat2?.cat1===cat1&&dragOverCat2?.idx===cat2Idx?C.ink:"transparent"}`,
+                        borderRadius:"8px",transition:"opacity 0.15s,border-color 0.15s"}}>
                       {/* cat2 row */}
                       {editCat2?.cat1===cat1&&editCat2?.key===cat2?(
                         <div style={{display:"flex",gap:"6px",alignItems:"center",marginBottom:"6px"}}>
@@ -874,6 +906,7 @@ function CategorySettings({trees, onChange}){
                         </div>
                       ):(
                         <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
+                          <GripVertical size={12} style={{color:C.border,flexShrink:0,cursor:"grab"}}/>
                           <button onClick={()=>setOpenCat2(p=>({...p,[`${cat1}::${cat2}`]:!p[`${cat1}::${cat2}`]}))}
                             style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:"4px",flex:1}}>
                             <span style={{fontSize:"10px",color:C.inkLight}}>{openCat2[`${cat1}::${cat2}`]?"▼":"▶"}</span>
@@ -3042,6 +3075,12 @@ export default function App(){
       <Modal open={modal==="theme"} onClose={()=>setModal(null)}>
         <ThemePicker current={themeKey} onChange={k=>{changeTheme(k);setModal(null);}}/>
       </Modal>
+
+      {/* FAB */}
+      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:"10px",color:C.inkLight,
+        fontFamily:"'Inter',sans-serif",opacity:0.5}}>
+        built {__BUILD_TIME__}
+      </div>
 
       {/* FAB */}
       <button onClick={()=>setModal("add")} style={{
