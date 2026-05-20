@@ -192,13 +192,7 @@ const DEFAULT_CARDS = [
 const CARD_COLORS = ["#1a1410","#1d4e89","#2d6a4f","#b5451b","#7b2d00","#4a1942","#0077b6","#831843","#b8860b","#4a3f35"];
 
 const fmt  = n => n.toLocaleString("ko-KR")+"원";
-const fmtS = n => {
-  const abs=Math.abs(n);
-  const trunc1=(v)=>Math.trunc(v*10)/10;
-  if(abs>=100000000)return trunc1(n/100000000).toFixed(1)+"억";
-  if(abs>=10000)return trunc1(n/10000).toFixed(1)+"만";
-  return n.toLocaleString("ko-KR");
-};
+const fmtS = n => n.toLocaleString("ko-KR");
 const MONTHS    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONTHS_KO = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 
