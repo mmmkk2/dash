@@ -2995,6 +2995,8 @@ export default function App(){
     const safe={};
     const cols=["id","name","category","cycle_days","base_amount","last_bought","memo"];
     cols.forEach(k=>{if(k in p)safe[k]=p[k];});
+    // cycle_days NOT NULL 제약 대응: null이면 30(기본값)으로 대체
+    if(safe.cycle_days==null) safe.cycle_days=30;
     return safe;
   }
   async function handleSupplies(payload, op){
