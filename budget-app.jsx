@@ -1290,6 +1290,8 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
   const isRealty=entity==="realty";
   const [tagFilter,setTagFilter]=useState("전체");
   const [search,setSearch]=useState("");
+  const [searchOpen,setSearchOpen]=useState(false);
+  const searchRef=useRef(null);
 
   const propTags=useMemo(()=>{
     if(!isRealty)return[];
@@ -1301,7 +1303,7 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
     return Object.keys(totals).sort((a,b)=>a==="미지정"?1:b==="미지정"?-1:totals[b]-totals[a]);
   },[txs,isRealty]);
 
-  useEffect(()=>{setTagFilter("전체");setSearch("");},[entity]);
+  useEffect(()=>{setTagFilter("전체");setSearch("");setSearchOpen(false);},[entity]);
 
   const filteredTxs=useMemo(()=>{
     let list=txs;
@@ -1338,27 +1340,35 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+      {/* 검색 토글 버튼 */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
+        <button onClick={()=>{setSearchOpen(o=>{if(o){setSearch("");return false;}return true;});setTimeout(()=>searchRef.current?.focus(),50);}}
+          style={{display:"flex",alignItems:"center",gap:"5px",background:searchOpen||search?C.ink:C.white,
+            border:`1.5px solid ${searchOpen||search?C.ink:C.border}`,borderRadius:"99px",
+            padding:"5px 12px",cursor:"pointer",color:searchOpen||search?"#fff":C.inkLight,
+            fontSize:"12px",fontWeight:600,fontFamily:"'Inter',sans-serif",transition:"all 0.18s"}}>
+          <span style={{fontSize:"12px"}}>🔍</span>
+          {search?`"${search}"`:searchOpen?"닫기":"검색"}
+        </button>
+      </div>
       {/* 검색창 */}
-      <div style={{position:"relative"}}>
-        <input
-          type="text"
-          value={search}
-          onChange={e=>setSearch(e.target.value)}
-          placeholder="메모, 카테고리, 금액 검색..."
-          style={{width:"100%",border:`1.5px solid ${search?C.borderDark:C.border}`,borderRadius:"12px",
-            padding:"10px 36px 10px 14px",fontSize:"13px",color:C.ink,outline:"none",
-            background:C.white,boxSizing:"border-box",fontFamily:"'Inter',sans-serif",
-            transition:"border-color 0.2s"}}
-        />
-        {search
-          ?<button onClick={()=>setSearch("")} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",
+      {searchOpen&&(
+        <div style={{position:"relative"}}>
+          <input ref={searchRef}
+            type="text"
+            value={search}
+            onChange={e=>setSearch(e.target.value)}
+            placeholder="메모, 카테고리, 금액 검색..."
+            style={{width:"100%",border:`1.5px solid ${search?C.borderDark:C.border}`,borderRadius:"12px",
+              padding:"10px 36px 10px 14px",fontSize:"13px",color:C.ink,outline:"none",
+              background:C.white,boxSizing:"border-box",fontFamily:"'Inter',sans-serif"}}
+          />
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",
               background:"none",border:"none",cursor:"pointer",color:C.inkLight,display:"flex",padding:"2px"}}>
               <X size={15}/>
-            </button>
-          :<span style={{position:"absolute",right:"12px",top:"50%",transform:"translateY(-50%)",
-              color:C.inkLight,fontSize:"13px",pointerEvents:"none"}}>🔍</span>
-        }
-      </div>
+            </button>}
+        </div>
+      )}
       {search&&<div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif",paddingLeft:"2px"}}>
         {filteredTxs.length}건 검색됨
       </div>}
