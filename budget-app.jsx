@@ -817,17 +817,19 @@ function CategorySettings({trees, onChange}){
     update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
   }
 
+  const [renameOps,setRenameOps]=useState([]);
+
   function switchEnt(k){
     setEnt(k);setOpenCat1(null);setAdding(null);setEditCat1(null);setEditCat2(null);
     setDraft(JSON.parse(JSON.stringify(trees[k]||{})));
-    setDirty(false);
+    setDirty(false);setRenameOps([]);
   }
 
   function update(next){ setDraft(next); setDirty(true); }
 
   function commit(){
-    onChange({...trees,[ent]:draft});
-    setDirty(false);
+    onChange({...trees,[ent]:draft}, renameOps);
+    setDirty(false);setRenameOps([]);
   }
 
   function addCat1(){
@@ -848,6 +850,7 @@ function CategorySettings({trees, onChange}){
     if(openCat1===oldKey)setOpenCat1(name);
     update(next);
     setEditCat1(null);
+    setRenameOps(ops=>[...ops,{level:"cat1",entity:ent,old:oldKey,new:name}]);
   }
 
   function addCat2(cat1){
@@ -869,6 +872,7 @@ function CategorySettings({trees, onChange}){
     const children=Object.fromEntries(Object.entries(node.children).map(([k,v])=>[k===oldKey?name:k,v]));
     update({...tree,[cat1]:{...node,children}});
     setEditCat2(null);
+    setRenameOps(ops=>[...ops,{level:"cat2",entity:ent,cat1,old:oldKey,new:name}]);
   }
 
   function addCat3(cat1,cat2){
@@ -891,6 +895,7 @@ function CategorySettings({trees, onChange}){
     const node=tree[cat1];if(!node)return;
     const list=(node.children[cat2]||[]).map(x=>x===oldName?n:x);
     update({...tree,[cat1]:{...node,children:{...node.children,[cat2]:list}}});
+    setRenameOps(ops=>[...ops,{level:"cat3",entity:ent,cat1,cat2,old:oldName,new:n}]);
     setEditCat3(null);
   }
 
@@ -2935,207 +2940,6 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
   );
 }
 
-/* ── Vendor Stats View ── */
-function VendorStatsView({ txs=[], cards=[], onEdit }){
-  const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
-  const [entityFilter,setEntityFilter]=useState("all");
-  const [cardFilter,setCardFilter]=useState("all");
-  const [range,setRange]=useState("3m");
-  const [sort,setSort]=useState("amount");
-  const [typeFilter,setTypeFilter]=useState("expense");
-  const [expandedVendor,setExpandedVendor]=useState(null);
-
-  const rangeStart=useMemo(()=>{
-    if(range==="all")return null;
-    const d=new Date();
-    if(range==="1m")d.setMonth(d.getMonth()-1);
-    if(range==="3m")d.setMonth(d.getMonth()-3);
-    if(range==="6m")d.setMonth(d.getMonth()-6);
-    if(range==="1y")d.setFullYear(d.getFullYear()-1);
-    return d.toISOString().slice(0,10);
-  },[range]);
-
-  function extractVendor(memo){
-    const idx=(memo||"").indexOf(" · ");
-    return idx>0?memo.slice(0,idx):(memo||"").trim()||"미입력";
-  }
-  function extractSubMemo(memo){
-    const idx=(memo||"").indexOf(" · ");
-    return idx>0?memo.slice(idx+3):"";
-  }
-
-  const filtered=useMemo(()=>txs.filter(t=>{
-    if(entityFilter!=="all"&&t.entity!==entityFilter)return false;
-    if(cardFilter!=="all"&&t.cardId!==cardFilter)return false;
-    if(typeFilter!=="all"&&t.type!==typeFilter)return false;
-    if(rangeStart&&t.date<rangeStart)return false;
-    return true;
-  }),[txs,entityFilter,cardFilter,typeFilter,rangeStart]);
-
-  const vendorGroups=useMemo(()=>{
-    const map={};
-    filtered.forEach(t=>{
-      const v=extractVendor(t.memo);
-      if(!map[v])map[v]={name:v,total:0,count:0,txs:[],lastDate:""};
-      map[v].total+=t.amount;
-      map[v].count+=1;
-      map[v].txs.push(t);
-      if(t.date>map[v].lastDate)map[v].lastDate=t.date;
-    });
-    return Object.values(map).sort((a,b)=>{
-      if(sort==="amount")return b.total-a.total;
-      if(sort==="count")return b.count-a.count;
-      return b.lastDate.localeCompare(a.lastDate);
-    });
-  },[filtered,sort]);
-
-  const totalAmount=useMemo(()=>filtered.reduce((s,t)=>s+t.amount,0),[filtered]);
-
-  const ENTITY_COLORS={personal:"#6b5c4e",cafe:"#2d6a4f",realty:"#1d4e89"};
-  const ENTITY_LABELS={personal:"개인",cafe:"카페",realty:"부동산"};
-
-  const chipBtn=(active,color,label,onClick)=>(
-    <button onClick={onClick} style={{
-      padding:"4px 11px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
-      fontFamily:"'Inter',sans-serif",transition:"all 0.15s",
-      border:`1.5px solid ${active?color:C.border}`,
-      background:active?color:C.white,color:active?"#fff":C.inkMid}}>
-      {label}
-    </button>
-  );
-
-  return(
-    <div style={{fontFamily:"'Inter',sans-serif",display:"flex",flexDirection:"column",gap:"10px"}}>
-      <div style={{fontSize:"16px",fontWeight:700,color:C.ink}}>거래처 통계</div>
-
-      {/* 기간 */}
-      <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-        {[["1m","1개월"],["3m","3개월"],["6m","6개월"],["1y","1년"],["all","전체"]].map(([k,l])=>
-          chipBtn(range===k,C.ink,l,()=>setRange(k))
-        )}
-      </div>
-
-      {/* 주체 */}
-      <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-        {chipBtn(entityFilter==="all","#4a4a4a","전체",()=>setEntityFilter("all"))}
-        {Object.entries(ENTITY_COLORS).map(([k,col])=>
-          chipBtn(entityFilter===k,col,ENTITY_LABELS[k],()=>setEntityFilter(k))
-        )}
-      </div>
-
-      {/* 수입/지출 */}
-      <div style={{display:"flex",gap:"5px",alignItems:"center",flexWrap:"wrap"}}>
-        {chipBtn(typeFilter==="expense","#b5451b","지출",()=>setTypeFilter("expense"))}
-        {chipBtn(typeFilter==="income","#2d6a4f","수입",()=>setTypeFilter("income"))}
-        {chipBtn(typeFilter==="all",C.inkMid,"전체",()=>setTypeFilter("all"))}
-        <div style={{width:"1px",height:"14px",background:C.border,margin:"0 2px"}}/>
-        {chipBtn(cardFilter==="all",C.inkMid,"전체카드",()=>setCardFilter("all"))}
-        {cards.map(c=>chipBtn(cardFilter===c.id,c.color,c.name,()=>setCardFilter(cardFilter===c.id?"all":c.id)))}
-      </div>
-
-      {/* 요약 + 정렬 */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{fontSize:"11px",color:C.inkLight}}>
-          {vendorGroups.length}개 거래처 · 합계 {fmt(totalAmount)}
-        </div>
-        <div style={{display:"flex",gap:"4px"}}>
-          {[["amount","금액순"],["count","건수순"],["recent","최근순"]].map(([k,l])=>(
-            <button key={k} onClick={()=>setSort(k)} style={{
-              padding:"3px 9px",borderRadius:"99px",cursor:"pointer",
-              fontSize:"10px",fontWeight:600,fontFamily:"'Inter',sans-serif",
-              border:`1px solid ${sort===k?C.ink:C.border}`,
-              background:sort===k?C.ink:C.white,color:sort===k?"#fff":C.inkLight}}>
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 거래처 목록 */}
-      {vendorGroups.length===0
-        ?<div style={{textAlign:"center",padding:"48px 20px",background:C.white,
-            borderRadius:"16px",border:`1px solid ${C.border}`}}>
-          <div style={{fontSize:"13px",color:C.inkLight}}>해당 기간 내역이 없어요</div>
-        </div>
-        :vendorGroups.map(g=>{
-          const isExp=expandedVendor===g.name;
-          const pct=totalAmount>0?g.total/totalAmount*100:0;
-          return(
-            <div key={g.name} style={{background:C.white,borderRadius:"14px",
-              border:`1px solid ${isExp?C.borderDark:C.border}`,overflow:"hidden",
-              boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-              <div onClick={()=>setExpandedVendor(isExp?null:g.name)}
-                style={{padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:"12px"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",alignItems:"baseline",gap:"7px",marginBottom:"5px",flexWrap:"wrap"}}>
-                    <span style={{fontSize:"13px",fontWeight:700,color:C.ink}}>{g.name}</span>
-                    <span style={{fontSize:"10px",color:C.inkLight}}>{g.count}건 · {g.lastDate}</span>
-                    {/* 주체 분포 뱃지 */}
-                    {(()=>{
-                      const entMap={};
-                      g.txs.forEach(t=>{entMap[t.entity]=(entMap[t.entity]||0)+1;});
-                      return Object.entries(entMap).map(([e,n])=>(
-                        <span key={e} style={{fontSize:"9px",fontWeight:700,
-                          background:ENTITY_COLORS[e]+"18",color:ENTITY_COLORS[e],
-                          borderRadius:"4px",padding:"1px 5px"}}>{ENTITY_LABELS[e]} {n}</span>
-                      ));
-                    })()}
-                  </div>
-                  <div style={{height:"4px",background:C.cream,borderRadius:"99px",overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${pct}%`,background:"#1d4e89",
-                      borderRadius:"99px",transition:"width 0.4s"}}/>
-                  </div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontSize:"14px",fontWeight:700,color:C.ink,fontFamily:"'Inter',sans-serif"}}>{fmtS(g.total)}</div>
-                  <div style={{fontSize:"10px",color:C.inkLight}}>{pct.toFixed(1)}%</div>
-                </div>
-                <span style={{fontSize:"10px",color:C.inkLight,flexShrink:0}}>{isExp?"▲":"▼"}</span>
-              </div>
-
-              {isExp&&(
-                <div style={{borderTop:`1px solid ${C.border}`,background:C.cream,padding:"6px 14px"}}>
-                  {[...g.txs].sort((a,b)=>b.date.localeCompare(a.date)).map(t=>{
-                    const card=t.cardId?cardMap[t.cardId]:null;
-                    const sub=extractSubMemo(t.memo);
-                    const ent=ENTITIES[t.entity]||ENTITY_ALL;
-                    return(
-                      <div key={t.id} className="tx-row" onClick={()=>onEdit(t)}
-                        style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 0",
-                          borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:"flex",gap:"4px",alignItems:"center",marginBottom:"2px",flexWrap:"wrap"}}>
-                            <span style={{fontSize:"9px",fontWeight:700,
-                              background:ENTITY_COLORS[t.entity]+"18",color:ENTITY_COLORS[t.entity],
-                              borderRadius:"4px",padding:"1px 5px"}}>{ent.label}</span>
-                            <span style={{fontSize:"10px",color:C.inkLight}}>{t.cat2}{t.cat3?` · ${t.cat3}`:""}</span>
-                          </div>
-                          <div style={{fontSize:"12px",color:C.inkMid,fontFamily:"'Inter',sans-serif"}}>
-                            {t.date}
-                            {sub&&<span style={{color:C.inkLight,marginLeft:"6px",fontSize:"11px"}}>{sub}</span>}
-                          </div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontSize:"13px",fontWeight:600,fontFamily:"'Inter',sans-serif",
-                            color:t.type==="income"?"#2d6a4f":"#b5451b"}}>
-                            {t.type==="income"?"+":"-"}{fmtS(t.amount)}
-                          </div>
-                          {card&&<div style={{fontSize:"9px",color:card.color,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{card.name}</div>}
-                        </div>
-                        <Pencil size={11} style={{color:C.inkLight,flexShrink:0}}/>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })
-      }
-    </div>
-  );
-}
-
 /* ── Theme Picker ── */
 function ThemePicker({ current, onChange }) {
   return (
@@ -3228,7 +3032,35 @@ export default function App(){
   // trees 변경 시 전역 TREES 동기화
   useEffect(()=>{ TREES=trees; localStorage.setItem(CAT_KEY,JSON.stringify(trees)); }, [trees]);
 
-  function handleTrees(updated){ setTrees(updated); }
+  async function handleTrees(updated, renameOps=[]){
+    setTrees(updated);
+    if(!renameOps.length) return;
+    // 로컬 state를 ops 순서대로 일괄 반영
+    setTxs(prev=>{
+      let result=[...prev];
+      for(const op of renameOps){
+        result=result.map(t=>{
+          if(t.entity!==op.entity) return t;
+          if(op.level==="cat1"&&t.cat1===op.old) return {...t,cat1:op.new};
+          if(op.level==="cat2"&&t.cat1===op.cat1&&t.cat2===op.old) return {...t,cat2:op.new};
+          if(op.level==="cat3"&&t.cat1===op.cat1&&t.cat2===op.cat2&&t.cat3===op.old) return {...t,cat3:op.new};
+          return t;
+        });
+      }
+      return result;
+    });
+    // DB 순차 PATCH
+    for(const op of renameOps){
+      try{
+        const patch={};
+        let filter=`entity=eq.${op.entity}`;
+        if(op.level==="cat1"){patch.cat1=op.new;filter+=`&cat1=eq.${encodeURIComponent(op.old)}`;}
+        else if(op.level==="cat2"){patch.cat2=op.new;filter+=`&cat1=eq.${encodeURIComponent(op.cat1)}&cat2=eq.${encodeURIComponent(op.old)}`;}
+        else if(op.level==="cat3"){patch.cat3=op.new;filter+=`&cat1=eq.${encodeURIComponent(op.cat1)}&cat2=eq.${encodeURIComponent(op.cat2)}&cat3=eq.${encodeURIComponent(op.old)}`;}
+        await sb(`transactions?${filter}`,{method:"PATCH",body:JSON.stringify(patch),prefer:"return=minimal"});
+      }catch(e){console.error("category rename batch failed",op,e);}
+    }
+  }
 
   // entity 변경 시 테마 동기화
   useEffect(()=>{ setThemeKey(ENTITY_THEME[entity]||"cream"); }, [entity]);
@@ -3504,7 +3336,7 @@ export default function App(){
         {!isConfigured()&&<SetupGuide/>}
 
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
-          {[["list","내역"],["stats","통계"],["vendor","거래처"],
+          {[["list","내역"],["stats","통계"],
             ...(!yearView?[["fixed","고정지출"]]:[]),
             ...(entity==="cafe"?[["supplies","소모품"]]:[])
           ].map(([k,l])=>(
@@ -3524,8 +3356,7 @@ export default function App(){
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
-             :tab==="vendor"?<VendorStatsView txs={txs} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
-             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
+:tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
         }
