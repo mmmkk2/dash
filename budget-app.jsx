@@ -1280,6 +1280,7 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
   const isRealty=entity==="realty";
   const [tagFilter,setTagFilter]=useState("전체");
+  const [search,setSearch]=useState("");
 
   const propTags=useMemo(()=>{
     if(!isRealty)return[];
@@ -1291,13 +1292,23 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
     return Object.keys(totals).sort((a,b)=>a==="미지정"?1:b==="미지정"?-1:totals[b]-totals[a]);
   },[txs,isRealty]);
 
-  // tag filter 바뀌면 "전체" 로 리셋 (entity/txs 변경 시)
-  useEffect(()=>setTagFilter("전체"),[entity]);
+  useEffect(()=>{setTagFilter("전체");setSearch("");},[entity]);
 
   const filteredTxs=useMemo(()=>{
-    if(!isRealty||tagFilter==="전체")return txs;
-    return txs.filter(t=>(t.cat3||"미지정")===tagFilter);
-  },[txs,isRealty,tagFilter]);
+    let list=txs;
+    if(isRealty&&tagFilter!=="전체") list=list.filter(t=>(t.cat3||"미지정")===tagFilter);
+    if(search.trim()){
+      const q=search.trim().toLowerCase();
+      list=list.filter(t=>
+        (t.memo||"").toLowerCase().includes(q)||
+        (t.cat1||"").toLowerCase().includes(q)||
+        (t.cat2||"").toLowerCase().includes(q)||
+        (t.cat3||"").toLowerCase().includes(q)||
+        String(t.amount).includes(q)
+      );
+    }
+    return list;
+  },[txs,isRealty,tagFilter,search]);
 
   const byDate=useMemo(()=>{
     const m={};
@@ -1318,8 +1329,38 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+      {/* 검색창 */}
+      <div style={{position:"relative"}}>
+        <input
+          type="text"
+          value={search}
+          onChange={e=>setSearch(e.target.value)}
+          placeholder="메모, 카테고리, 금액 검색..."
+          style={{width:"100%",border:`1.5px solid ${search?C.borderDark:C.border}`,borderRadius:"12px",
+            padding:"10px 36px 10px 14px",fontSize:"13px",color:C.ink,outline:"none",
+            background:C.white,boxSizing:"border-box",fontFamily:"'Inter',sans-serif",
+            transition:"border-color 0.2s"}}
+        />
+        {search
+          ?<button onClick={()=>setSearch("")} style={{position:"absolute",right:"10px",top:"50%",transform:"translateY(-50%)",
+              background:"none",border:"none",cursor:"pointer",color:C.inkLight,display:"flex",padding:"2px"}}>
+              <X size={15}/>
+            </button>
+          :<span style={{position:"absolute",right:"12px",top:"50%",transform:"translateY(-50%)",
+              color:C.inkLight,fontSize:"13px",pointerEvents:"none"}}>🔍</span>
+        }
+      </div>
+      {search&&<div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif",paddingLeft:"2px"}}>
+        {filteredTxs.length}건 검색됨
+      </div>}
       {isRealty&&propTags.length>0&&(
         <PropTagDropdown tags={propTags} value={tagFilter} onChange={setTagFilter}/>
+      )}
+      {filteredTxs.length===0&&search&&(
+        <div style={{textAlign:"center",padding:"40px 20px",background:C.white,borderRadius:"16px",border:`1px solid ${C.border}`}}>
+          <div style={{fontSize:"28px",marginBottom:"8px",opacity:0.3}}>🔍</div>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color:C.inkMid}}>&ldquo;{search}&rdquo; 결과 없음</div>
+        </div>
       )}
       {Object.entries(byDate).map(([date,items])=>{
         const dayIncome=items.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
