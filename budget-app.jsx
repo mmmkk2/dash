@@ -3178,13 +3178,7 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",gap:"6px"}}>
-              <button onClick={()=>setModal("import")} style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}
-                title="쿠팡 메일 가져오기">
-                <Mail size={14}/>
-              </button>
-              <button onClick={()=>setModal("theme")} title="테마 변경" style={{
+<button onClick={()=>setModal("theme")} title="테마 변경" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                 borderRadius:"10px",padding:"7px 10px",color:"rgba(255,255,255,0.6)",
                 cursor:"pointer",display:"flex",alignItems:"center",
