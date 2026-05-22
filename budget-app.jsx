@@ -2473,13 +2473,14 @@ function CoupangImport({ onRegister }) {
 /* ── Supplies View (앤딩 전용) ── */
 const SUPPLY_CATS = ["음료재료","소모품","청소","사무용품","비품","기타"];
 
-function SuppliesView({ supplies, onChange, txs=[] }){
+function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, cards=[] }){
   const today = new Date();
   const todayStr = today.toISOString().slice(0,10);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ name:"", category:"소모품", cycle_days:"", base_amount:"", last_bought:todayStr, memo:"" });
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [editingTx, setEditingTx] = useState(null);
 
   const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
 
@@ -2799,15 +2800,18 @@ function SuppliesView({ supplies, onChange, txs=[] }){
                   {history.length===0
                     ?<div style={{fontSize:"12px",color:C.inkLight,fontFamily:"'Inter',sans-serif",padding:"8px 0"}}>거래 내역이 없어요</div>
                     :history.map(t=>(
-                      <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                        padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                      <div key={t.id} className="tx-row" onClick={()=>setEditingTx(t)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                        padding:"6px 0",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}>
                         <div>
                           <span style={{fontSize:"12px",color:C.ink,fontFamily:"'Inter',sans-serif"}}>{t.date}</span>
                           {t.memo&&t.memo!==s.name&&<span style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif",marginLeft:"6px"}}>{t.memo}</span>}
                         </div>
-                        <span style={{fontSize:"12px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
-                          {fmtS(t.amount)}
-                        </span>
+                        <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                          <span style={{fontSize:"12px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
+                            {fmtS(t.amount)}
+                          </span>
+                          <Pencil size={11} style={{color:C.inkLight,flexShrink:0}}/>
+                        </div>
                       </div>
                     ))
                   }
@@ -2818,10 +2822,25 @@ function SuppliesView({ supplies, onChange, txs=[] }){
         })
       }
 
-      {/* 모달 */}
+      {/* 소모품 추가/수정 모달 */}
       <Modal open={!!modal} onClose={()=>setModal(null)}>
         {modal==="add"?<FormContent isEdit={false}/>
           :modal?<FormContent isEdit={true}/>:null}
+      </Modal>
+
+      {/* 이력 거래 수정 모달 */}
+      <Modal open={!!editingTx} onClose={()=>setEditingTx(null)}>
+        {editingTx&&onEditTx&&(
+          <TxForm
+            initial={editingTx}
+            onSave={tx=>{onEditTx(tx);setEditingTx(null);}}
+            onDelete={()=>{onDeleteTx(editingTx.id);setEditingTx(null);}}
+            cards={cards}
+            defaultEntity={editingTx.entity||"cafe"}
+            saving={false}
+            supplies={supplies}
+          />
+        )}
       </Modal>
     </div>
   );
@@ -3221,7 +3240,7 @@ export default function App(){
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
-             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs}/>
+             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
         }
