@@ -746,7 +746,16 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             </div>
           )}
         </div>
-        <div><SLabel>날짜</SLabel><Inp type="date" value={date} onChange={e=>setDate(e.target.value)}/></div>
+        <div>
+          <SLabel>날짜</SLabel>
+          <div style={{display:"flex",gap:"5px",alignItems:"center"}}>
+            <Inp type="date" value={date} onChange={e=>setDate(e.target.value)} style={{flex:1}}/>
+            {date!==today&&<button onClick={()=>setDate(today)} style={{
+              flexShrink:0,padding:"6px 9px",border:`1.5px solid ${C.border}`,borderRadius:"8px",
+              background:C.white,color:C.inkLight,cursor:"pointer",fontSize:"10px",fontWeight:600,
+              fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>오늘</button>}
+          </div>
+        </div>
       </div>
       {/* 메모 */}
       <div style={{marginBottom:"14px"}}>
@@ -3302,7 +3311,7 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
+            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
              :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
@@ -3314,7 +3323,7 @@ export default function App(){
         <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>
       </Modal>
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
-        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{const t=new Date().toISOString().slice(0,10);setEditTx({...editTx,id:null,date:t});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
+        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{setEditTx({...editTx,id:null});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
       </Modal>
       <Modal open={modal==="cats"} onClose={()=>setModal(null)}>
         <CategorySettings trees={trees} onChange={handleTrees}/>
