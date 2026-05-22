@@ -2514,7 +2514,7 @@ function CoupangImport({ onRegister }) {
 /* ── Supplies View (앤딩 전용) ── */
 const SUPPLY_CATS = ["음료재료","소모품","청소","사무용품","비품","기타"];
 
-function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, cards=[] }){
+function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddTx, cards=[] }){
   const today = new Date();
   const todayStr = today.toISOString().slice(0,10);
   const [modal, setModal] = useState(null);
@@ -2522,6 +2522,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, cards=
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [editingTx, setEditingTx] = useState(null);
+  const [buyingTx, setBuyingTx] = useState(null);
 
   const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
 
@@ -2802,6 +2803,20 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, cards=
                     {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{s.memo}</div>}
                   </div>
                   <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
+                    <button onClick={e=>{
+                      e.stopPropagation();
+                      const last = history[0];
+                      const pre = last
+                        ? {...last, id:null, date:todayStr}
+                        : {id:null, date:todayStr, entity:"cafe", cat1:"매입/원가",
+                           cat2:s.category||"소모품", cat3:"", memo:s.name,
+                           amount:s.base_amount||s.last_amount||"", cardId:"", isFixed:false, type:"expense"};
+                      setBuyingTx(pre);
+                    }} style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"8px",
+                      padding:"4px 10px",cursor:"pointer",color:"#2d6a4f",fontSize:"11px",fontWeight:600,
+                      display:"flex",alignItems:"center",gap:"4px",fontFamily:"'Inter',sans-serif"}}>
+                      <Plus size={11}/> 오늘 구매
+                    </button>
                     <button onClick={e=>{e.stopPropagation();openEdit(s);}} style={{background:"none",border:"none",cursor:"pointer",
                       color:C.inkLight,padding:"4px",borderRadius:"6px",display:"flex"}}>
                       <Pencil size={13}/>
@@ -2878,6 +2893,20 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, cards=
             onDelete={()=>{onDeleteTx(editingTx.id);setEditingTx(null);}}
             cards={cards}
             defaultEntity={editingTx.entity||"cafe"}
+            saving={false}
+            supplies={supplies}
+          />
+        )}
+      </Modal>
+
+      {/* 오늘 구매 모달 */}
+      <Modal open={!!buyingTx} onClose={()=>setBuyingTx(null)}>
+        {buyingTx&&onAddTx&&(
+          <TxForm
+            initial={buyingTx}
+            onSave={tx=>{onAddTx(tx);setBuyingTx(null);}}
+            cards={cards}
+            defaultEntity="cafe"
             saving={false}
             supplies={supplies}
           />
@@ -3281,7 +3310,7 @@ export default function App(){
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null,date:new Date().toISOString().slice(0,10)});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
-             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
+             :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
           </div>
         }
