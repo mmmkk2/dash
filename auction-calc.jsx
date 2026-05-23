@@ -328,19 +328,32 @@ import { supabase } from "./src/lib/supabase";
         const scenarios = [...profit.sellScenarios].sort((a,b)=>a-b).map(sell => ({sell, ...calcProfit(sell)}));
         const now = new Date();
         const name = `${activeProp.name} · ${now.toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"})} ${now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}`;
+        const existing = savedSnaps.find(s => s.propName === activeProp.name);
         if (user) {
-          const { data, error } = await supabase.from("auction_snapshots").insert({
-            name, prop_name:activeProp.name, bid_price:profit.bidPrice,
-            hold_months:profit.holdMonths, tax_label:taxLabel, scenarios,
-          }).select().single();
-          if (!error && data) {
-            const snap = { id:data.id, name:data.name, savedAt:data.saved_at, propName:data.prop_name, bidPrice:data.bid_price, holdMonths:data.hold_months, taxLabel:data.tax_label, scenarios:data.scenarios };
-            const next = [snap, ...savedSnaps];
-            setSavedSnaps(next); saveSnapshots(next);
+          if (existing) {
+            const { data, error } = await supabase.from("auction_snapshots")
+              .update({ name, bid_price:profit.bidPrice, hold_months:profit.holdMonths, tax_label:taxLabel, scenarios, saved_at:now.toISOString() })
+              .eq("id", existing.id).select().single();
+            if (!error && data) {
+              const snap = { id:data.id, name:data.name, savedAt:data.saved_at, propName:data.prop_name, bidPrice:data.bid_price, holdMonths:data.hold_months, taxLabel:data.tax_label, scenarios:data.scenarios };
+              const next = savedSnaps.map(s => s.id === existing.id ? snap : s);
+              setSavedSnaps(next); saveSnapshots(next);
+            }
+          } else {
+            const { data, error } = await supabase.from("auction_snapshots")
+              .insert({ name, prop_name:activeProp.name, bid_price:profit.bidPrice, hold_months:profit.holdMonths, tax_label:taxLabel, scenarios })
+              .select().single();
+            if (!error && data) {
+              const snap = { id:data.id, name:data.name, savedAt:data.saved_at, propName:data.prop_name, bidPrice:data.bid_price, holdMonths:data.hold_months, taxLabel:data.tax_label, scenarios:data.scenarios };
+              const next = [snap, ...savedSnaps];
+              setSavedSnaps(next); saveSnapshots(next);
+            }
           }
         } else {
-          const snap = { id:uid(), name, savedAt:now.toISOString(), propName:activeProp.name, bidPrice:profit.bidPrice, holdMonths:profit.holdMonths, taxLabel, scenarios };
-          const next = [snap, ...savedSnaps];
+          const snap = { id:existing?.id||uid(), name, savedAt:now.toISOString(), propName:activeProp.name, bidPrice:profit.bidPrice, holdMonths:profit.holdMonths, taxLabel, scenarios };
+          const next = existing
+            ? savedSnaps.map(s => s.propName === activeProp.name ? snap : s)
+            : [snap, ...savedSnaps];
           setSavedSnaps(next); saveSnapshots(next);
         }
       }
