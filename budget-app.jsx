@@ -2083,7 +2083,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                       const isSubOpen=expandedPropSub===propSubKey;
                       const subTxs=(allEntityTxs||txs).filter(t=>
                         (t.cat3||"미지정")===item.name && catDisplayName(t.cat1)===s.name
-                      ).sort((a,b)=>b.date.localeCompare(a.date));
+                      ).sort((a,b)=>b.amount-a.amount);
                       return(
                         <div key={s.name} style={{marginBottom:"6px",borderRadius:"8px",
                           border:`1px solid ${isSubOpen?(s.type==="income"?"#52b78888":"#e07a5f88"):C.border}`,
