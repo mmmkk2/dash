@@ -93,16 +93,20 @@ import { supabase } from "./src/lib/supabase";
       const prepay = calcPrepay(loan.prepayTiers, loan.amount, months);
       return { interest, prepay, total: interest+prepay };
     }
-    function calcTaxAuto(gain) {
+    function calcTaxAuto(gain, baseIncome=0) {
       if (gain <= 0) return { tax:0, effectiveRate:0 };
       const widths = [14000000,36000000,62000000,90000000,150000000,300000000,500000000,Infinity];
       const rates  = [0.06,0.15,0.24,0.35,0.38,0.40,0.42,0.45];
-      let tax=0, prev=0;
-      for (let i=0; i<widths.length; i++) {
-        if (gain <= prev) break;
-        tax += (Math.min(gain, prev+widths[i]) - prev) * rates[i];
-        prev += widths[i];
+      function taxOn(income) {
+        let t=0, prev=0;
+        for (let i=0; i<widths.length; i++) {
+          if (income <= prev) break;
+          t += (Math.min(income, prev+widths[i]) - prev) * rates[i];
+          prev += widths[i];
+        }
+        return t;
       }
+      const tax = taxOn(baseIncome + gain) - taxOn(baseIncome);
       return { tax: tax*1.1, effectiveRate: (tax/gain)*100 };
     }
     function calcTaxBracket(gain, idx) {
@@ -152,8 +156,8 @@ import { supabase } from "./src/lib/supabase";
       try { localStorage.setItem("auction-props", JSON.stringify({properties, activeId})); } catch {}
     }
     function loadTax() {
-      try { const s = localStorage.getItem("auction-tax"); if (s) return JSON.parse(s); } catch {}
-      return { taxMode:"auto", taxBracketIdx:2, open:false };
+      try { const s = localStorage.getItem("auction-tax"); if (s) return { taxMode:"auto", taxBracketIdx:2, open:false, salary:0, businessIncome:0, ...JSON.parse(s) }; } catch {}
+      return { taxMode:"auto", taxBracketIdx:2, open:false, salary:0, businessIncome:0 };
     }
     function saveTax(t) {
       try { localStorage.setItem("auction-tax", JSON.stringify(t)); } catch {}
@@ -288,7 +292,9 @@ import { supabase } from "./src/lib/supabase";
       }
 
       function calcTaxForGain(gain) {
-        return tax.taxMode==="bracket" ? calcTaxBracket(gain, tax.taxBracketIdx) : calcTaxAuto(gain);
+        if (tax.taxMode==="bracket") return calcTaxBracket(gain, tax.taxBracketIdx);
+        const baseIncome = (tax.salary||0) + (tax.businessIncome||0);
+        return calcTaxAuto(gain, baseIncome);
       }
 
       function calcProfit(sellPrice) {
@@ -301,16 +307,21 @@ import { supabase } from "./src/lib/supabase";
         const eviction = profit.evictionCost||0;
         const mgmt = profit.mgmtCost||0;
         const expenses = acqTax + profit.legalFee + profit.interior + agentFee + lr.total + extraTotal + eviction + mgmt;
+        // 예정신고: 취득세+법무비+중개비 공제, 15% 고정 (지방세 포함 16.5%)
+        const prepayTaxBase = Math.max(grossGain - acqTax - profit.legalFee - agentFee, 0);
+        const prepayTax = prepayTaxBase * 0.15 * 1.1;
+        // 종소세: 전체 비용 공제 후 현재 세율
         const taxableGain = Math.max(grossGain - expenses, 0);
         const {tax:incomeTax, effectiveRate} = calcTaxForGain(taxableGain);
         const totalCost = expenses + incomeTax;
         const netProfit = grossGain - totalCost;
-        return {grossGain, acqTax, legalFee:profit.legalFee, interior:profit.interior, agentFee, interest:lr.interest, prepay:lr.prepay, incomeTax, effectiveRate, extraTotal, eviction, mgmt, expenses, totalCost, netProfit, taxableGain};
+        return {grossGain, acqTax, legalFee:profit.legalFee, interior:profit.interior, agentFee, interest:lr.interest, prepay:lr.prepay, prepayTax, prepayTaxBase, incomeTax, effectiveRate, extraTotal, eviction, mgmt, expenses, totalCost, netProfit, taxableGain};
       }
 
+      const baseIncome = (tax.salary||0) + (tax.businessIncome||0);
       const taxLabel = tax.taxMode==="bracket"
         ? `종소세 ${(TAX_BRACKETS[tax.taxBracketIdx].rate*100).toFixed(0)}%구간`
-        : "종소세 누진";
+        : baseIncome > 0 ? "종소세 누진 (타소득 합산)" : "종소세 누진";
 
       // ── 스냅샷 저장/삭제/이름변경 ──
       async function saveSnap() {
@@ -641,7 +652,9 @@ import { supabase } from "./src/lib/supabase";
                         {tax.open ? "매매사업자 기준 · 필요경비 차감 후 과세"
                           : tax.taxMode==="bracket"
                             ? `구간 선택: ${(TAX_BRACKETS[tax.taxBracketIdx].rate*100).toFixed(0)}% → 지방세 포함 ${(TAX_BRACKETS[tax.taxBracketIdx].rate*110).toFixed(1)}%`
-                            : "누진 자동계산"}
+                            : ((tax.salary||0)+(tax.businessIncome||0))>0
+                              ? `누진 자동계산 · 타소득 ${fmt((tax.salary||0)+(tax.businessIncome||0))}원 합산`
+                              : "누진 자동계산"}
                       </div>
                     </div>
                     <span style={{fontSize:13,color:C.accent,marginLeft:8}}>{tax.open?"▼":"▶"}</span>
@@ -649,8 +662,27 @@ import { supabase } from "./src/lib/supabase";
                 </button>
                 {tax.open&&(
                   <div style={{marginTop:14}}>
+                    {/* 타소득 입력 */}
+                    <div style={{marginBottom:14,padding:"12px",background:`${C.accent}08`,borderRadius:10,border:`1px solid ${C.accent}20`}}>
+                      <div style={{fontSize:10,fontWeight:700,color:C.accent,marginBottom:10}}>타소득 합산 (종소세 누진 계산에 반영)</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                        <div>
+                          <span style={lbl}>근로소득 연봉</span>
+                          <NumInput value={tax.salary||0} onChange={v=>updateTax(t=>({...t,salary:v}))} style={inp} />
+                        </div>
+                        <div>
+                          <span style={lbl}>사업소득</span>
+                          <NumInput value={tax.businessIncome||0} onChange={v=>updateTax(t=>({...t,businessIncome:v}))} style={inp} />
+                        </div>
+                      </div>
+                      {((tax.salary||0)+(tax.businessIncome||0))>0 && (
+                        <div style={{fontSize:10,color:C.sub,marginTop:8}}>
+                          합산 타소득 {fmt((tax.salary||0)+(tax.businessIncome||0))}원 → 부동산 이익은 이 금액 위 구간부터 과세
+                        </div>
+                      )}
+                    </div>
                     <div style={{display:"flex",gap:6,marginBottom:14}}>
-                      {[{id:"auto",label:"누진 자동계산",desc:"이익 전체에 누진세"},{id:"bracket",label:"구간 직접 선택",desc:"타소득으로 이미 해당 구간 진입 시"}].map(m=>(
+                      {[{id:"auto",label:"누진 자동계산",desc:"타소득 합산 누진세"},{id:"bracket",label:"구간 직접 선택",desc:"구간 수동 지정"}].map(m=>(
                         <button key={m.id} onClick={()=>updateTax(t=>({...t,taxMode:m.id}))}
                           style={{flex:1,padding:"9px 8px",borderRadius:10,border:"1.5px solid",cursor:"pointer",fontFamily:"inherit",textAlign:"left",
                             background:tax.taxMode===m.id?C.surface:"transparent",
@@ -679,7 +711,7 @@ import { supabase } from "./src/lib/supabase";
                     )}
                     {tax.taxMode==="auto"&&(
                       <div style={{fontSize:10,color:C.sub,padding:"8px 10px",background:`${C.accent}10`,borderRadius:7}}>
-                        💡 이 매물 이익만 단독 신고 시 적합. 타소득 합산 시 실제 세율 높아질 수 있음.
+                        💡 타소득을 입력하면 해당 금액 이후 구간부터 누진세 적용. 미입력 시 이 매물 이익만으로 계산.
                       </div>
                     )}
                   </div>
@@ -789,14 +821,28 @@ import { supabase } from "./src/lib/supabase";
                         </div>
                       </div>
                       <div style={{background:C.accentBg,borderRadius:10,padding:"12px 14px",marginBottom:8,border:`1px solid ${C.accent}20`}}>
-                        <div style={{fontSize:9,color:C.accent,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600,marginBottom:8}}>세금</div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                          <span style={{fontSize:11,color:C.sub}}>{tLabel}+지방세</span>
-                          <span style={{fontSize:12,fontWeight:600,color:C.text}}>{fmt(r.incomeTax)}</span>
+                        <div style={{fontSize:9,color:C.accent,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600,marginBottom:10}}>세금</div>
+                        {/* 예정신고 */}
+                        <div style={{marginBottom:8,paddingBottom:8,borderBottom:`1px dashed ${C.accent}20`}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                            <span style={{fontSize:11,color:C.sub,fontWeight:600}}>예정신고 (15%구간+지방세)</span>
+                            <span style={{fontSize:12,fontWeight:700,color:C.text}}>{fmt(r.prepayTax)}</span>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:10,color:C.muted}}>과세표준 (취득세+법무비+중개비 공제)</span>
+                            <span style={{fontSize:10,color:C.muted}}>{fmt(r.prepayTaxBase)}원</span>
+                          </div>
                         </div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:6,borderTop:`1px solid ${C.accent}20`}}>
-                          <span style={{fontSize:11,color:C.accent,fontWeight:600}}>과세표준</span>
-                          <span style={{fontSize:12,fontWeight:700,color:C.accent}}>{fmt(r.taxableGain)}원</span>
+                        {/* 종소세 */}
+                        <div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                            <span style={{fontSize:11,color:C.accent,fontWeight:600}}>{tLabel}+지방세</span>
+                            <span style={{fontSize:12,fontWeight:700,color:C.accent}}>{fmt(r.incomeTax)}</span>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:10,color:C.muted}}>과세표준 (전체비용 공제)</span>
+                            <span style={{fontSize:10,color:C.muted}}>{fmt(r.taxableGain)}원</span>
+                          </div>
                         </div>
                       </div>
                       <div style={{background:isPos?C.greenBg:C.redBg,borderRadius:10,padding:"12px 14px",border:`1px solid ${isPos?"#c2e0ce":"#f0c8c8"}`}}>
