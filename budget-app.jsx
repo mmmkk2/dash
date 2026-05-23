@@ -168,7 +168,7 @@ const TREE_REALTY = {
   수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{매도가:[],임대수입:[],기타:[]}},
   취득비용:{ color:"#b5451b",accent:"#e07a5f",icon:"🏠",children:{취득가:[],취득세:[],등기비:[],중개수수료:[],기타:[]}},
   보유비용:{ color:"#0077b6",accent:"#48cae4",icon:"📋",children:{대출이자:["주택담보대출","신용대출","기타"],관리비:[],수리비:[],재산세:[],종합부동산세:[],기장료:[],기타:[]}},
-  처분비용:{ color:"#4a1942",accent:"#9b5de5",icon:"📝",children:{양도세:[],중개수수료:[],명도비:[],기타:[]}},
+  처분비용:{ color:"#4a1942",accent:"#9b5de5",icon:"📝",children:{양도세:[],중개수수료:[],명도비:[],종합소득세:[],지방세:[],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],종합소득세:[],기타:[]}},
 };
 const TREES_DEFAULT = { personal:TREE_PERSONAL, cafe:TREE_CAFE, realty:TREE_REALTY };
@@ -179,7 +179,13 @@ function saveVendor(v){ if(!v)return; const list=[...new Set([v,...loadVendors()
 function loadTrees(){
   try{
     const saved=JSON.parse(localStorage.getItem(CAT_KEY));
-    if(saved) return saved;
+    if(saved){
+      // 처분비용에 종합소득세/지방세 없으면 추가
+      const rc = saved.realty?.처분비용?.children;
+      if(rc && !("종합소득세" in rc)) rc["종합소득세"] = [];
+      if(rc && !("지방세" in rc)) rc["지방세"] = [];
+      return saved;
+    }
   }catch{}
   return JSON.parse(JSON.stringify(TREES_DEFAULT));
 }
