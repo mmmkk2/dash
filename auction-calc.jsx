@@ -385,7 +385,7 @@ import { supabase } from "./src/lib/supabase";
 
       return (
         <div style={{fontFamily:"'Apple SD Gothic Neo','Noto Sans KR',sans-serif", background:C.bg, minHeight:"100vh", color:C.text}}>
-          <div style={{maxWidth:480, margin:"0 auto", padding:"20px 16px 40px"}}>
+          <div style={{maxWidth:660, margin:"0 auto", padding:"20px 16px 40px"}}>
 
           {/* 헤더 */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
@@ -1006,6 +1006,10 @@ import { supabase } from "./src/lib/supabase";
               }
             </div>
           )}
+
+          <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:"10px",color:C.muted,fontFamily:"'Inter',sans-serif",opacity:0.5}}>
+            built {__BUILD_TIME__}
+          </div>
 
           </div>
 
