@@ -33,12 +33,26 @@ const rowToTx = r => ({
   id: r.id, entity: r.entity, cat1: r.cat1, cat2: r.cat2, cat3: r.cat3||"",
   amount: r.amount, memo: r.memo, date: r.date, cardId: r.card_id||"",
   isFixed: r.is_fixed||false, fixedDay: r.fixed_day||null, type: r.type,
+  images: r.images||[],
 });
 const txToRow = t => ({
   id: t.id, entity: t.entity, cat1: t.cat1, cat2: t.cat2, cat3: t.cat3||"",
   amount: t.amount, memo: t.memo, date: t.date, card_id: t.cardId||"",
   is_fixed: t.isFixed||false, fixed_day: t.fixedDay||null, type: t.type,
+  images: t.images||[],
 });
+function getTxImageUrl(path){ return `${SUPABASE_URL}/storage/v1/object/public/tx-images/${path}`; }
+async function uploadTxImage(txId, file){
+  const ext=file.name.split(".").pop()||"jpg";
+  const path=`${txId}/${Date.now()}.${ext}`;
+  const {error}=await supabaseClient.storage.from("tx-images").upload(path,file,{upsert:false});
+  if(error)throw error;
+  return path;
+}
+async function deleteTxImages(paths){
+  if(!paths||!paths.length)return;
+  await supabaseClient.storage.from("tx-images").remove(paths);
+}
 const rowToCard = r => ({ id: r.id, name: r.name, color: r.color });
 const cardToRow = c => ({ id: c.id, name: c.name, color: c.color, sort_order: c.sortOrder||0 });
 
@@ -326,6 +340,10 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [group,setGroup]=useState(deriveGroup(initCat1));
   const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[initCat1]?.children||{})[0]||"");
   const [cat3,setCat3]=useState(init.cat3||"");
+  const [pendingImages,setPendingImages]=useState([]); // {file, preview}
+  const [existingImages,setExistingImages]=useState(init.images||[]);
+  const [uploadingImages,setUploadingImages]=useState(false);
+  const imgInputRef=useRef(null);
   const [amount,setAmount]=useState(init.amount?Number(init.amount).toLocaleString("ko-KR"):"");
   // memo에 "구매처 · 메모" 형식으로 저장된 경우 분리
   const _memoRaw=init.memo||"";
@@ -380,7 +398,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const m1=tree[cat1]||{color:C.inkMid,accent:C.inkLight};
   const ent=ENTITIES[entity];
 
-  function submit(){
+  async function submit(){
     const num=parseInt(String(amount).replace(/,/g,""));
     if(!num||num<=0){setErr(true);setTimeout(()=>setErr(false),400);return;}
     const isIncome=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"));
@@ -391,7 +409,6 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       :null;
     if(vendor.trim()) saveVendor(vendor.trim());
     const finalMemo=[vendor.trim(),memo.trim()||cat3||cat2].filter(Boolean).join(" · ");
-    // 격월 설정을 localStorage에 반영
     try{
       const bmKey="gagibu_bimonthly";
       const key=`${entity}:${finalMemo}`;
@@ -399,10 +416,20 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       if(isFixed&&isBiMonthly)s.add(key); else s.delete(key);
       localStorage.setItem(bmKey,JSON.stringify([...s]));
     }catch{}
-    onSave({id:init.id||Date.now(),entity,cat1,cat2,cat3:cat3||"",
+    const txId=init.id||Date.now();
+    let uploadedPaths=[];
+    if(pendingImages.length>0){
+      setUploadingImages(true);
+      try{
+        uploadedPaths=await Promise.all(pendingImages.map(img=>uploadTxImage(txId,img.file)));
+      }catch(e){console.error("image upload failed",e);}
+      finally{setUploadingImages(false);}
+    }
+    onSave({id:txId,entity,cat1,cat2,cat3:cat3||"",
       amount:num,memo:finalMemo,date,cardId,
       isFixed,fixedDay:isFixed&&fixedDay?parseInt(fixedDay):null,
-      type:isIncome?"income":"expense",supplyData});
+      type:isIncome?"income":"expense",supplyData,
+      images:[...existingImages,...uploadedPaths]});
   }
 
   return(
@@ -571,6 +598,52 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           </div>
         );
       })()}
+
+      {/* 이미지 첨부 (부동산만) */}
+      {entity==="realty"&&(
+        <div style={{marginBottom:"12px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"7px"}}>
+            <SLabel style={{marginBottom:0}}>영수증/사진</SLabel>
+            <button type="button" onClick={()=>imgInputRef.current?.click()}
+              style={{display:"flex",alignItems:"center",gap:"4px",fontSize:"11px",fontWeight:600,
+                color:"#1d4e89",background:"#e8f0fb",border:"none",borderRadius:"8px",
+                padding:"4px 10px",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+              📎 첨부
+            </button>
+          </div>
+          <input ref={imgInputRef} type="file" accept="image/*" multiple style={{display:"none"}}
+            onChange={e=>{
+              const files=Array.from(e.target.files||[]);
+              const newImgs=files.map(f=>({file:f,preview:URL.createObjectURL(f)}));
+              setPendingImages(p=>[...p,...newImgs]);
+              e.target.value="";
+            }}/>
+          {(existingImages.length>0||pendingImages.length>0)&&(
+            <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+              {existingImages.map((path,i)=>(
+                <div key={path} style={{position:"relative",width:64,height:64}}>
+                  <img src={getTxImageUrl(path)} alt=""
+                    style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1px solid ${C.border}`}}/>
+                  <button type="button" onClick={()=>setExistingImages(p=>p.filter((_,j)=>j!==i))}
+                    style={{position:"absolute",top:-5,right:-5,width:18,height:18,borderRadius:"50%",
+                      background:"#b5451b",color:"#fff",border:"none",cursor:"pointer",
+                      fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>×</button>
+                </div>
+              ))}
+              {pendingImages.map((img,i)=>(
+                <div key={i} style={{position:"relative",width:64,height:64}}>
+                  <img src={img.preview} alt=""
+                    style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1.5px dashed ${C.border}`}}/>
+                  <button type="button" onClick={()=>setPendingImages(p=>p.filter((_,j)=>j!==i))}
+                    style={{position:"absolute",top:-5,right:-5,width:18,height:18,borderRadius:"50%",
+                      background:"#b5451b",color:"#fff",border:"none",cursor:"pointer",
+                      fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Amount */}
       <div style={{marginBottom:"12px"}}>
@@ -774,14 +847,16 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         <SLabel>메모</SLabel><Inp value={memo} onChange={e=>setMemo(e.target.value)} placeholder="선택사항"/>
       </div>
 
-      <button className="add-btn" onClick={submit} disabled={saving} style={{
-        width:"100%",padding:"13px",background:saving?"#9c8e82":ent.color,color:"#fff",border:"none",
-        borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:saving?"not-allowed":"pointer",
+      <button className="add-btn" onClick={submit} disabled={saving||uploadingImages} style={{
+        width:"100%",padding:"13px",background:(saving||uploadingImages)?"#9c8e82":ent.color,color:"#fff",border:"none",
+        borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:(saving||uploadingImages)?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
         fontFamily:"'Inter',sans-serif",boxShadow:`0 4px 18px ${ent.color}55`,transition:"all 0.2s"}}>
-        {saving
-          ? <><RefreshCw size={16} className="spin"/> 저장 중...</>
-          : isEdit?<><Check size={16}/> 저장하기</>:<><PlusCircle size={16}/> 추가하기</>}
+        {uploadingImages
+          ? <><RefreshCw size={16} className="spin"/> 이미지 업로드 중...</>
+          : saving
+            ? <><RefreshCw size={16} className="spin"/> 저장 중...</>
+            : isEdit?<><Check size={16}/> 저장하기</>:<><PlusCircle size={16}/> 추가하기</>}
       </button>
     </div>
   );
@@ -1438,6 +1513,8 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
                       {linkedSupply&&<span style={{fontSize:"9px",background:"#f0fdf4",color:"#2d6a4f",
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         border:"1px solid #b7e4c7",fontFamily:"'Inter',sans-serif"}}>소모품</span>}
+                      {tx.images&&tx.images.length>0&&<span style={{fontSize:"9px",color:"#1d4e89",
+                        fontFamily:"'Inter',sans-serif"}}>📷 {tx.images.length}</span>}
                     </div>
                     <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif",
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
@@ -1833,6 +1910,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const [statsTab,setStatsTab]=useState("expense");
   const [expanded,setExpanded]=useState(null);
   const [expandedPropSub,setExpandedPropSub]=useState(null);
+  const [lightbox,setLightbox]=useState(null);
 
   const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0),[txs]);
   const saved=useMemo(()=>txs.filter(t=>t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
@@ -1888,7 +1966,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
     })).sort((a,b)=>{
       if(a.name==="미지정")return 1;
       if(b.name==="미지정")return -1;
-      return (b.income-b.expense)-(a.income-a.expense);
+      return (b.income+b.expense)-(a.income+a.expense);
     });
   },[allEntityTxs,txs,isRealty]);
 
@@ -2033,6 +2111,31 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                     })}
                   </div>
                 )}
+                {/* 물건별 이미지 갤러리 */}
+                {isOpen&&(()=>{
+                  const propImgs=(allEntityTxs||txs)
+                    .filter(t=>(t.cat3||"미지정")===item.name&&t.images&&t.images.length>0)
+                    .flatMap(t=>t.images.map(path=>({path,date:t.date,memo:t.memo})));
+                  if(!propImgs.length)return null;
+                  return(
+                    <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px",background:C.paper}}>
+                      <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,
+                        fontFamily:"'Inter',sans-serif",marginBottom:"8px",letterSpacing:"0.05em"}}>
+                        📷 사진 ({propImgs.length})
+                      </div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+                        {propImgs.map((img,i)=>(
+                          <button key={i} type="button" onClick={()=>setLightbox(getTxImageUrl(img.path))}
+                            style={{padding:0,border:"none",background:"none",cursor:"pointer",borderRadius:"8px",overflow:"hidden"}}>
+                            <img src={getTxImageUrl(img.path)} alt={img.memo}
+                              style={{width:72,height:72,objectFit:"cover",borderRadius:"8px",
+                                border:`1px solid ${C.border}`,display:"block"}}/>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -2077,6 +2180,21 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
           </div>
         );
       })()}
+
+      {/* 이미지 라이트박스 */}
+      {lightbox&&(
+        <div onClick={()=>setLightbox(null)}
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:1000,
+            display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+          <img src={lightbox} alt="" onClick={e=>e.stopPropagation()}
+            style={{maxWidth:"100%",maxHeight:"90vh",objectFit:"contain",borderRadius:"10px",
+              boxShadow:"0 8px 40px rgba(0,0,0,0.6)"}}/>
+          <button onClick={()=>setLightbox(null)}
+            style={{position:"fixed",top:16,right:16,background:"rgba(255,255,255,0.15)",
+              border:"none",color:"#fff",borderRadius:"50%",width:36,height:36,
+              fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -3150,6 +3268,8 @@ export default function App(){
   async function deleteTx(id){
     setSaving(true);
     try{
+      const tx=txs.find(t=>t.id===id);
+      if(tx?.images?.length) await deleteTxImages(tx.images).catch(()=>{});
       await sb(`transactions?id=eq.${id}`,{method:"DELETE",prefer:"return=minimal"});
       setTxs(p=>p.filter(t=>t.id!==id));
     }catch(e){console.error(e);}

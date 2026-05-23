@@ -1,5 +1,12 @@
 -- ① Supabase SQL Editor에서 이 파일 전체 실행
 
+-- 이미지 첨부 기능 (기존 DB에 아래 실행)
+-- alter table transactions add column if not exists images jsonb default '[]';
+-- insert into storage.buckets (id, name, public) values ('tx-images', 'tx-images', true) on conflict (id) do nothing;
+-- create policy "tx-images read"   on storage.objects for select using (bucket_id = 'tx-images');
+-- create policy "tx-images insert" on storage.objects for insert with check (bucket_id = 'tx-images');
+-- create policy "tx-images delete" on storage.objects for delete using (bucket_id = 'tx-images');
+
 -- 거래 내역
 create table if not exists transactions (
   id          bigint primary key,
