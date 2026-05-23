@@ -531,38 +531,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       )}
 
       {/* CAT3 */}
-      {entity==="realty"?(
-        <div style={{marginBottom:"8px"}}>
-          <SLabel>물건 태그</SLabel>
-          {cat3list.length>0&&(
-            <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"7px"}}>
-              {cat3list.map(k=>(
-                <button key={k} className="cat-btn" onClick={()=>setCat3(cat3===k?"":k)} style={{
-                  padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
-                  fontFamily:"'Inter',sans-serif",
-                  border:`1.5px solid ${cat3===k?m1.accent:C.border}`,
-                  background:cat3===k?m1.accent+"18":C.cream,color:cat3===k?m1.color:C.inkLight}}>
-                  {k}
-                </button>
-              ))}
-            </div>
-          )}
-          {propertyTags.filter(k=>!cat3list.includes(k)).length>0&&(
-            <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"7px"}}>
-              {propertyTags.filter(k=>!cat3list.includes(k)).map(k=>(
-                <button key={k} className="cat-btn" onClick={()=>setCat3(cat3===k?"":k)} style={{
-                  padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
-                  fontFamily:"'Inter',sans-serif",
-                  border:`1.5px solid ${cat3===k?m1.color:C.border}`,
-                  background:cat3===k?m1.color+"14":"#fff",color:cat3===k?m1.color:C.inkMid}}>
-                  {k}
-                </button>
-              ))}
-            </div>
-          )}
-          <Inp value={cat3} onChange={e=>setCat3(e.target.value)} placeholder="새 물건 태그 입력"/>
-        </div>
-      ):cat3list.length>0&&(
+      {cat3list.length>0&&(
         <div style={{marginBottom:"8px"}}>
           <SLabel>항목2</SLabel>
           <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
@@ -578,6 +547,30 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           </div>
         </div>
       )}
+      {entity==="realty"&&(()=>{
+        // 트리 전체의 cat3list 값을 수집해 물건 태그에서 제외
+        const allSubcats=new Set(Object.values(tree).flatMap(n=>Object.values(n.children||{}).flatMap(v=>Array.isArray(v)?v:[])));
+        const realPropTags=propertyTags.filter(k=>!allSubcats.has(k));
+        return (
+          <div style={{marginBottom:"8px"}}>
+            <SLabel>물건 태그</SLabel>
+            {realPropTags.length>0&&(
+              <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"7px"}}>
+                {realPropTags.map(k=>(
+                  <button key={k} className="cat-btn" onClick={()=>setCat3(cat3===k?"":k)} style={{
+                    padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
+                    fontFamily:"'Inter',sans-serif",
+                    border:`1.5px solid ${cat3===k?m1.color:C.border}`,
+                    background:cat3===k?m1.color+"14":"#fff",color:cat3===k?m1.color:C.inkMid}}>
+                    {k}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Inp value={cat3list.includes(cat3)?"":cat3} onChange={e=>setCat3(e.target.value)} placeholder="새 물건 태그 입력"/>
+          </div>
+        );
+      })()}
 
       {/* Amount */}
       <div style={{marginBottom:"12px"}}>
