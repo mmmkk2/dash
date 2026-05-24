@@ -67,9 +67,18 @@ async function fetchUSDKRW() {
   throw new Error("rate fetch failed");
 }
 
+async function fetchRateOnDate(date) {
+  const res = await fetch(`https://api.frankfurter.app/${date}?from=USD&to=KRW`);
+  if (!res.ok) throw new Error("rate fetch failed");
+  const data = await res.json();
+  const krw = data?.rates?.KRW;
+  if (!krw) throw new Error("no rate");
+  return krw;
+}
+
 /* ── DB field mapping ── */
-const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null, institution: s.institution || null, account_suffix: s.accountSuffix || null });
-const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null, institution: s.institution || "", accountSuffix: s.account_suffix || "" });
+const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null, purchase_rate: s.purchaseRate ?? null, institution: s.institution || null, account_suffix: s.accountSuffix || null });
+const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null, purchaseRate: s.purchase_rate != null ? Number(s.purchase_rate) : null, institution: s.institution || "", accountSuffix: s.account_suffix || "" });
 const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date, institution: a.institution || null, account_suffix: a.accountSuffix || null });
 const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date, institution: a.institution || "", accountSuffix: a.account_suffix || "" });
 
@@ -120,11 +129,23 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
   const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
   const [avgPrice,     setAvgPrice]     = useState(init.avgPrice     ? Number(init.avgPrice).toLocaleString(market === "US" ? "en-US" : "ko-KR") : "");
   const [purchaseDate,  setPurchaseDate]  = useState(init.purchaseDate  || "");
+  const [purchaseRate,  setPurchaseRate]  = useState(init.purchaseRate  ? String(init.purchaseRate) : "");
   const [institution,   setInstitution]   = useState(init.institution   || "");
   const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
   const [nameFetching,  setNameFetching]  = useState(false);
+  const [rateFetching,  setRateFetching]  = useState(false);
   const [err, setErr] = useState(false);
   const isEdit = !!onDelete;
+
+  async function lookupRate(date) {
+    if (!date || market !== "US") return;
+    setRateFetching(true);
+    try {
+      const r = await fetchRateOnDate(date);
+      setPurchaseRate(String(Math.round(r)));
+    } catch {}
+    finally { setRateFetching(false); }
+  }
 
   async function lookupTicker(raw) {
     const t = raw.trim();
@@ -150,7 +171,8 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
     if (!ticker.trim() || !sh || sh <= 0 || !ap || ap <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
+    const pr = purchaseRate ? parseFloat(purchaseRate) : null;
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" ? pr : null, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
   }
 
   return (
@@ -159,7 +181,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
         <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "종목 수정" : "종목 추가"}</span>
         {isEdit && (
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, institution: institution.trim(), accountSuffix: accountSuffix.trim() })}
+            <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" && purchaseRate ? parseFloat(purchaseRate) : null, institution: institution.trim(), accountSuffix: accountSuffix.trim() })}
               style={{ display: "flex", alignItems: "center", gap: 5, background: "#f0f4ff", border: "1px solid #c7d4f4", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#1d4e89", fontSize: 12, fontWeight: 600 }}>
               <Copy size={13} /> 복사
             </button>
@@ -224,16 +246,31 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
       </div>
 
       {/* Purchase Date (optional) */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: market === "US" ? 12 : 20 }}>
         <SLabel>매입일자 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)}
+          <input type="date" value={purchaseDate}
+            onChange={e => { setPurchaseDate(e.target.value); lookupRate(e.target.value); }}
             style={{ flex: 1, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: purchaseDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
           {purchaseDate && (
-            <button onClick={() => setPurchaseDate("")} style={{ background: "none", border: "none", cursor: "pointer", color: C.inkLight, display: "flex", padding: 4 }}><X size={15} /></button>
+            <button onClick={() => { setPurchaseDate(""); setPurchaseRate(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.inkLight, display: "flex", padding: 4 }}><X size={15} /></button>
           )}
         </div>
       </div>
+
+      {market === "US" && (
+        <div style={{ marginBottom: 20 }}>
+          <SLabel>매입 환율 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(USD/KRW, 선택)</span></SLabel>
+          <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "0 12px", background: rateFetching ? C.cream : C.white }}>
+            <span style={{ fontSize: 12, color: C.inkLight, marginRight: 6 }}>1 USD =</span>
+            <input type="text" inputMode="numeric" value={rateFetching ? "" : purchaseRate}
+              onChange={e => setPurchaseRate(e.target.value.replace(/[^0-9.]/g, ""))}
+              placeholder={rateFetching ? "조회 중…" : purchaseDate ? "자동 조회됨" : "매입일자 입력 시 자동"}
+              style={{ flex: 1, border: "none", background: "transparent", fontSize: 14, fontWeight: 600, color: C.ink, padding: "9px 0", outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+            <span style={{ fontSize: 12, color: C.inkLight }}>원</span>
+          </div>
+        </div>
+      )}
 
       <button onClick={submit} disabled={saving} style={{
         width: "100%", padding: 13, borderRadius: 12, border: "none",
@@ -394,12 +431,16 @@ export default function AssetsApp() {
     Promise.all([
       sb("assets?select=*&order=id"),
       sb("stocks?select=*&order=id"),
-      sb("settings?select=*&key=eq.cats"),
+      sb("settings?select=*"),
     ]).then(([dbAssets, dbStocks, dbSettings]) => {
       if (dbAssets) setAssets(dbAssets.map(fromDbAsset));
       if (dbStocks) {
         const loaded = dbStocks.map(fromDbStock);
         setStocks(loaded);
+        // DB에 저장된 현재가를 prices에 반영
+        const savedPrices = {};
+        loaded.forEach(s => { if (s.currentPrice != null) savedPrices[s.id] = s.currentPrice; });
+        setPrices(savedPrices);
         // 종목명이 티커와 같으면 백그라운드에서 실명으로 자동 갱신
         loaded.filter(s => s.name === s.ticker).forEach(async s => {
           const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
@@ -413,8 +454,11 @@ export default function AssetsApp() {
           } catch {}
         });
       }
-      const dbCats = dbSettings?.[0]?.value;
-      if (dbCats?.length) setCats(dbCats);
+      if (dbSettings) {
+        const byKey = Object.fromEntries(dbSettings.map(r => [r.key, r.value]));
+        if (byKey.cats?.length) setCats(byKey.cats);
+        if (byKey.usdKrw)      setUsdKrw(byKey.usdKrw);
+      }
     }).catch(e => console.error("[DB load]", e))
       .finally(() => setDbLoading(false));
   }, []);
@@ -427,7 +471,11 @@ export default function AssetsApp() {
     const newPrices = {};
     let rate = usdKrw;
 
-    try { rate = await fetchUSDKRW(); setUsdKrw(rate); } catch {}
+    try {
+      rate = await fetchUSDKRW();
+      setUsdKrw(rate);
+      if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "usdKrw", value: rate }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
+    } catch {}
 
     const results = await Promise.allSettled(
       stocks.map(async s => {
@@ -442,19 +490,13 @@ export default function AssetsApp() {
     if (isConfigured()) {
       const ts = new Date().toISOString();
       Object.entries(newPrices).forEach(([id, p]) =>
-        sb(`stocks?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ current_price: p, last_fetched: ts }) }).catch(() => {})
+        sb(`stocks?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ current_price: p, last_fetched: ts }), prefer: "return=minimal" }).catch(() => {})
       );
     }
     const now = new Date().toLocaleString("ko-KR");
     setLastSync(now);
     setFetching(false);
   }, [stocks, usdKrw]);
-
-  useEffect(() => {
-    const saved = {};
-    stocks.forEach(s => { if (s.currentPrice) saved[s.id] = s.currentPrice; });
-    setPrices(saved);
-  }, []);
 
   /* ── Stock value calc ── */
   const rate = usdKrw || 1380;
@@ -468,7 +510,7 @@ export default function AssetsApp() {
   const stockCost = useMemo(() =>
     stocks.reduce((sum, s) => {
       const val = s.avgPrice * s.shares;
-      return sum + (s.market === "US" ? Math.round(val * rate) : val);
+      return sum + (s.market === "US" ? Math.round(val * (s.purchaseRate ?? rate)) : val);
     }, 0), [stocks, rate]);
 
   const stockGain = stockValue - stockCost;
@@ -611,7 +653,7 @@ export default function AssetsApp() {
                   const p = prices[s.id] ?? s.currentPrice;
                   const hasPrice = p != null;
                   const valueKrw = hasPrice ? (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares) : null;
-                  const costKrw  = s.market === "US" ? Math.round(s.avgPrice * s.shares * rate) : s.avgPrice * s.shares;
+                  const costKrw  = s.market === "US" ? Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate)) : s.avgPrice * s.shares;
                   const gainKrw  = valueKrw != null ? valueKrw - costKrw : null;
                   const gainPct  = gainKrw != null && costKrw > 0 ? ((gainKrw / costKrw) * 100).toFixed(2) : null;
                   const isPos    = gainKrw != null && gainKrw >= 0;
@@ -654,7 +696,7 @@ export default function AssetsApp() {
                       </button>
 
                       {isOpen && (() => {
-                        const costUsd  = s.market === "US" ? s.avgPrice * s.shares : costKrw / rate;
+                        const costUsd  = s.market === "US" ? s.avgPrice * s.shares : costKrw / (s.purchaseRate ?? rate);
                         const valueUsd = hasPrice ? (s.market === "US" ? p * s.shares : valueKrw / rate) : null;
                         const gainUsd  = valueUsd != null ? valueUsd - costUsd : null;
                         const fu = n => "$" + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -690,7 +732,8 @@ export default function AssetsApp() {
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                               <div style={{ fontSize: 10, color: C.inkLight }}>
                                 현재가 {hasPrice ? fmtPrice(p, s.market === "US" ? "USD" : "KRW") : "미조회"}
-                                {s.market === "US" && <span style={{ marginLeft: 6 }}>· 1 USD = {rate.toLocaleString("ko-KR")}원</span>}
+                                {s.market === "US" && <span style={{ marginLeft: 6 }}>· 현재 {rate.toLocaleString("ko-KR")}원</span>}
+                                {s.market === "US" && s.purchaseRate && <span style={{ marginLeft: 6 }}>· 매입 {s.purchaseRate.toLocaleString("ko-KR")}원</span>}
                               </div>
                               <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
                                 <Pencil size={12} /> 수정
