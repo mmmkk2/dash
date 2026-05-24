@@ -29,6 +29,10 @@ create table if not exists stocks (
 );
 alter table stocks disable row level security;
 
+-- stocks 테이블에 기관/계좌 컬럼 추가 (기존 DB에 아래 실행)
+-- alter table stocks add column if not exists institution    text default null;
+-- alter table stocks add column if not exists account_suffix text default null;
+
 -- 이미지 첨부 기능 (기존 DB에 아래 실행)
 -- alter table transactions add column if not exists images jsonb default '[]';
 -- insert into storage.buckets (id, name, public) values ('tx-images', 'tx-images', true) on conflict (id) do nothing;

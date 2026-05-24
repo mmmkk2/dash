@@ -5,7 +5,6 @@ import { supabase } from "./src/lib/supabase";
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const CAT_KEY    = "my_asset_cats_v1";
 
 const _fl = document.createElement("link");
 _fl.rel = "stylesheet";
@@ -67,12 +66,6 @@ async function fetchUSDKRW() {
   }
   throw new Error("rate fetch failed");
 }
-
-/* ── Storage ── */
-function load(key, def) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
-}
-function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 /* ── DB field mapping ── */
 const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null, institution: s.institution || null, account_suffix: s.accountSuffix || null });
@@ -381,20 +374,18 @@ function CatSettings({ cats, onChange }) {
 export default function AssetsApp() {
   const [assets,   setAssets]   = useState([]);
   const [stocks,   setStocks]   = useState([]);
-  const [cats,     setCats]     = useState(() => load(CAT_KEY, DEFAULT_CATS));
-  const [usdKrw,   setUsdKrw]   = useState(() => load("my_usdkrw", null));
+  const [cats,     setCats]     = useState(DEFAULT_CATS);
+  const [usdKrw,   setUsdKrw]   = useState(null);
   const [prices,   setPrices]   = useState({});
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState(0);
-  const [lastSync, setLastSync] = useState(() => load("my_stocks_lastsync", null));
+  const [lastSync, setLastSync] = useState(null);
   const [modal,    setModal]    = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [tab,      setTab]      = useState("stock");
   const [expanded, setExpanded] = useState(null);
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
-
-  useEffect(() => { save(CAT_KEY, cats); }, [cats]);
 
   /* ── Supabase: initial load ── */
   useEffect(() => {
@@ -435,7 +426,7 @@ export default function AssetsApp() {
     const newPrices = {};
     let rate = usdKrw;
 
-    try { rate = await fetchUSDKRW(); setUsdKrw(rate); save("my_usdkrw", rate); } catch {}
+    try { rate = await fetchUSDKRW(); setUsdKrw(rate); } catch {}
 
     const results = await Promise.allSettled(
       stocks.map(async s => {
@@ -454,7 +445,7 @@ export default function AssetsApp() {
       );
     }
     const now = new Date().toLocaleString("ko-KR");
-    setLastSync(now); save("my_stocks_lastsync", now);
+    setLastSync(now);
     setFetching(false);
   }, [stocks, usdKrw]);
 
