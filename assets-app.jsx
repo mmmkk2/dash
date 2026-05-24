@@ -124,7 +124,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
   const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
   const [nameFetching,  setNameFetching]  = useState(false);
   const [err, setErr] = useState(false);
-  const isEdit = !!initial;
+  const isEdit = !!onDelete;
 
   async function lookupTicker(raw) {
     const t = raw.trim();
@@ -386,6 +386,7 @@ export default function AssetsApp() {
   const [expanded, setExpanded] = useState(null);
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
+  const [addInitial, setAddInitial] = useState(null);
 
   /* ── Supabase: initial load ── */
   useEffect(() => {
@@ -487,7 +488,7 @@ export default function AssetsApp() {
   }, [assets, stockValue, cats]);
 
   /* ── CRUD: stocks ── */
-  const markSaved = () => { const t = new Date().toLocaleString("ko-KR"); setLastSaved(t); save("my_assets_lastsaved", t); };
+  const markSaved = () => setLastSaved(new Date().toLocaleString("ko-KR"));
   const upsertStock = s => isConfigured() && sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertStock]", e));
   const upsertAsset = a => isConfigured() && sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertAsset]", e));
 
@@ -652,28 +653,52 @@ export default function AssetsApp() {
                         {isOpen ? <ChevronUp size={13} color={C.inkLight} /> : <ChevronDown size={13} color={C.inkLight} />}
                       </button>
 
-                      {isOpen && (
-                        <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", background: C.paper }}>
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 12 }}>
-                            {[
-                              { label: "현재가", val: hasPrice ? fmtPrice(p, s.market === "US" ? "USD" : "KRW") : "미조회" },
-                              { label: "수익금(원)", val: gainKrw != null ? (gainKrw >= 0 ? "+" : "") + fmtS(gainKrw) : "—" },
-                              { label: "원화평가", val: valueKrw != null ? fmtS(valueKrw) : "—" },
-                            ].map(({ label, val }) => (
-                              <div key={label} style={{ textAlign: "center", background: C.white, borderRadius: 8, padding: "8px 4px" }}>
-                                <div style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{val}</div>
+                      {isOpen && (() => {
+                        const costUsd  = s.market === "US" ? s.avgPrice * s.shares : costKrw / rate;
+                        const valueUsd = hasPrice ? (s.market === "US" ? p * s.shares : valueKrw / rate) : null;
+                        const gainUsd  = valueUsd != null ? valueUsd - costUsd : null;
+                        const fu = n => "$" + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+                        const rows = [
+                          { label: "원금", krw: costKrw,  usd: costUsd  },
+                          { label: "수익", krw: gainKrw,  usd: gainUsd,  isGain: true },
+                          { label: "전체", krw: valueKrw, usd: valueUsd },
+                        ];
+                        return (
+                          <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", background: C.paper }}>
+                            <div style={{ background: C.white, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "5px 12px", borderBottom: `1px solid ${C.border}` }}>
+                                <span />
+                                <span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>원화</span>
+                                <span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>달러</span>
                               </div>
-                            ))}
+                              {rows.map(({ label, krw, usd, isGain }, i) => {
+                                const color = isGain ? (krw == null ? C.inkLight : krw >= 0 ? "#2d6a4f" : "#b5451b") : C.ink;
+                                const pfx = isGain && krw != null ? (krw >= 0 ? "+" : "−") : "";
+                                return (
+                                  <div key={label} style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "9px 12px", borderBottom: i < 2 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: C.inkLight }}>{label}</span>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                      {krw != null ? pfx + fmtS(Math.abs(krw)) : "—"}
+                                    </span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: isGain ? color : C.inkMid, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                                      {usd != null ? pfx + fu(usd) : "—"}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <div style={{ fontSize: 10, color: C.inkLight }}>
+                                현재가 {hasPrice ? fmtPrice(p, s.market === "US" ? "USD" : "KRW") : "미조회"}
+                                {s.market === "US" && <span style={{ marginLeft: 6 }}>· 1 USD = {rate.toLocaleString("ko-KR")}원</span>}
+                              </div>
+                              <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
+                                <Pencil size={12} /> 수정
+                              </button>
+                            </div>
                           </div>
-                          {s.market === "US" && (
-                            <div style={{ fontSize: 10, color: C.inkLight, marginBottom: 10 }}>환율 적용: 1 USD = {rate.toLocaleString("ko-KR")}원</div>
-                          )}
-                          <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
-                            <Pencil size={12} /> 수정
-                          </button>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -771,11 +796,11 @@ export default function AssetsApp() {
       </button>}
 
       {/* Modals */}
-      <Modal open={modal === "addStock"}  onClose={() => setModal(null)}>
-        <StockForm onSave={addStock} saving={false} />
+      <Modal open={modal === "addStock"} onClose={() => { setModal(null); setAddInitial(null); }}>
+        <StockForm initial={addInitial} onSave={addStock} saving={false} />
       </Modal>
       <Modal open={modal === "editStock" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { addStock(s); setEditItem(null); }} saving={false} />}
+        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { setAddInitial(s); setModal("addStock"); setEditItem(null); }} saving={false} />}
       </Modal>
       <Modal open={modal === "addAsset"}  onClose={() => setModal(null)}>
         <AssetForm cats={cats} onSave={addAsset} saving={false} />
@@ -785,7 +810,7 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
-          setCats(c); save(CAT_KEY, c);
+          setCats(c);
           if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "cats", value: c }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
         }} />
       </Modal>
