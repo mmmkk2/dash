@@ -3164,6 +3164,7 @@ export default function App(){
 
   async function handleTrees(updated, renameOps=[]){
     setTrees(updated);
+    if(isConfigured()) sb("settings",{method:"POST",body:JSON.stringify({key:"trees",value:updated}),prefer:"resolution=merge-duplicates,return=minimal"}).catch(()=>{});
     if(!renameOps.length) return;
     // 로컬 state를 ops 순서대로 일괄 반영
     setTxs(prev=>{
@@ -3208,14 +3209,23 @@ export default function App(){
     if(!isConfigured())return;
     setLoading(true);
     try{
-      const [rows, cardRows, supplyRows] = await Promise.all([
+      const [rows, cardRows, supplyRows, settingsRows] = await Promise.all([
         sb("transactions?select=*&order=date.desc"),
         sb("cards?select=*&order=sort_order.asc"),
         sb("supplies?select=*&order=created_at.asc"),
+        sb("settings?select=*&key=eq.trees"),
       ]);
       setTxs(rows.map(rowToTx));
       if(cardRows.length) setCards(cardRows.map(rowToCard));
       setSupplies(supplyRows);
+      const dbTrees = settingsRows?.[0]?.value;
+      if(dbTrees){
+        TREES=dbTrees; setTrees(dbTrees);
+      } else {
+        // Supabase에 카테고리가 없으면 현재 기기의 localStorage 카테고리를 업로드
+        const localTrees = loadTrees();
+        sb("settings",{method:"POST",body:JSON.stringify({key:"trees",value:localTrees}),prefer:"resolution=merge-duplicates,return=minimal"}).catch(()=>{});
+      }
       setOnline(true);
     }catch(e){
       console.error(e);

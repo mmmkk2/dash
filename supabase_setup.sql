@@ -57,6 +57,13 @@ insert into supplies (id, name, category, cycle_days, last_bought) values
   ('s4', '화장지', '소모품', 20, current_date::text)
 on conflict (id) do nothing;
 
+-- 앱 설정 (카테고리 트리 등 기기 간 동기화)
+create table if not exists settings (
+  key   text primary key,
+  value jsonb not null
+);
+alter table settings disable row level security;
+
 -- 경매 스냅샷 (매매사업자 경매 계산기)
 create table if not exists auction_snapshots (
   id          uuid primary key default gen_random_uuid(),
