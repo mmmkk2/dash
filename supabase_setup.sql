@@ -3,6 +3,10 @@
 -- stocks 테이블에 매입일자 컬럼 추가 (기존 DB에 아래 실행)
 -- alter table stocks add column if not exists purchase_date text default null;
 
+-- assets 테이블에 기관/계좌 컬럼 추가 (기존 DB에 아래 실행)
+-- alter table assets add column if not exists institution text default null;
+-- alter table assets add column if not exists account_suffix text default null;
+
 -- 이미지 첨부 기능 (기존 DB에 아래 실행)
 -- alter table transactions add column if not exists images jsonb default '[]';
 -- insert into storage.buckets (id, name, public) values ('tx-images', 'tx-images', true) on conflict (id) do nothing;

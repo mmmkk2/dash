@@ -78,8 +78,8 @@ function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 /* ── DB field mapping ── */
 const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null });
 const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null });
-const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date });
-const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date });
+const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date, institution: a.institution || null, account_suffix: a.accountSuffix || null });
+const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date, institution: a.institution || "", accountSuffix: a.account_suffix || "" });
 
 function isConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.includes("여기에"));
@@ -223,12 +223,14 @@ function StockForm({ initial, onSave, onDelete, saving }) {
 /* ── Asset Form ── */
 function AssetForm({ initial, cats, onSave, onDelete, saving }) {
   const init = initial || {};
-  const [name,   setName]   = useState(init.name   || "");
-  const [cat,    setCat]    = useState(init.cat     || cats.find(c => c.key !== "주식")?.key || "기타");
-  const [amount, setAmount] = useState(init.amount  ? Number(init.amount).toLocaleString("ko-KR") : "");
-  const [memo,   setMemo]   = useState(init.memo    || "");
-  const [date,   setDate]   = useState(init.date    || new Date().toISOString().slice(0, 10));
-  const [err,    setErr]    = useState(false);
+  const [name,          setName]          = useState(init.name          || "");
+  const [cat,           setCat]           = useState(init.cat           || cats.find(c => c.key !== "주식")?.key || "기타");
+  const [amount,        setAmount]        = useState(init.amount        ? Number(init.amount).toLocaleString("ko-KR") : "");
+  const [memo,          setMemo]          = useState(init.memo          || "");
+  const [date,          setDate]          = useState(init.date          || new Date().toISOString().slice(0, 10));
+  const [institution,   setInstitution]   = useState(init.institution   || "");
+  const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
+  const [err,           setErr]           = useState(false);
   const isEdit = !!initial;
 
   const nonStockCats = cats.filter(c => c.key !== "주식");
@@ -236,7 +238,7 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
   function submit() {
     const num = parseInt(String(amount).replace(/,/g, ""));
     if (!name.trim() || !num || num <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
-    onSave({ id: init.id || Date.now(), name: name.trim(), cat, amount: num, memo: memo.trim(), date });
+    onSave({ id: init.id || Date.now(), name: name.trim(), cat, amount: num, memo: memo.trim(), date, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
   }
 
   const catObj = cats.find(c => c.key === cat) || { color: C.inkMid };
@@ -273,6 +275,20 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
             placeholder="0"
             style={{ flex: 1, border: "none", background: "transparent", fontSize: 20, fontWeight: 700, color: C.ink, padding: "10px 0", outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
           <span style={{ color: C.inkLight, fontSize: 13 }}>원</span>
+        </div>
+      </div>
+
+      {/* Institution + Account */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div>
+          <SLabel>기관 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="국민은행, 미래에셋…"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums", letterSpacing: "0.05em" }} />
         </div>
       </div>
 
@@ -648,7 +664,14 @@ export default function AssetsApp() {
                       <button onClick={() => setExpanded(isOpen ? null : a.id)} style={{ width: "100%", background: "none", border: "none", padding: "13px 16px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 6, height: 36, borderRadius: 3, background: color, flexShrink: 0 }} />
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.ink, marginBottom: 2 }}>{a.name}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{a.name}</span>
+                            {a.institution && (
+                              <span style={{ fontSize: 10, fontWeight: 600, color: color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 5, padding: "1px 6px", letterSpacing: "0.02em" }}>
+                                {a.institution}{a.accountSuffix ? ` ···${a.accountSuffix}` : ""}
+                              </span>
+                            )}
+                          </div>
                           <div style={{ fontSize: 11, color: C.inkLight }}>{a.cat} · {a.date}</div>
                         </div>
                         <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
