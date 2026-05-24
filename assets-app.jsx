@@ -141,6 +141,10 @@ function StockForm({ initial, onSave, onDelete, saving }) {
     finally { setNameFetching(false); }
   }
 
+  useEffect(() => {
+    if (isEdit && init.ticker && init.name === init.ticker) lookupTicker(init.ticker);
+  }, []);
+
   function submit() {
     const sh = parseFloat(String(shares).replace(/,/g, ""));
     const ap = parseFloat(String(avgPrice).replace(/,/g, ""));
