@@ -402,28 +402,19 @@ export default function AssetsApp() {
       sb("stocks?select=*&order=id"),
       sb("settings?select=*&key=eq.cats"),
     ]).then(([dbAssets, dbStocks, dbSettings]) => {
-      // localStorage 우선 — DB에만 있는 항목(다른 기기에서 추가)만 병합
+      // DB 우선 — localStorage에만 있는 항목(저장 실패분)은 DB에 upsert 후 병합
       if (dbAssets !== null) {
-        const local = load(ASSET_KEY, []);
-        const localIds = new Set(local.map(a => String(a.id)));
-        const dbOnly = dbAssets.filter(a => !localIds.has(String(a.id))).map(fromDbAsset);
-        const merged = [...local, ...dbOnly];
-        setAssets(merged);
-        // localStorage에만 있는 항목 DB에 동기화
-        local.forEach(a => sb(`assets?id=eq.${a.id}`, { method: "PATCH", body: JSON.stringify(toDbAsset(a)), prefer: "return=minimal" }).catch(() =>
-          sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "return=minimal" }).catch(() => {})
-        ));
+        const dbIds = new Set(dbAssets.map(a => String(a.id)));
+        const localOnly = load(ASSET_KEY, []).filter(a => !dbIds.has(String(a.id)));
+        setAssets([...dbAssets.map(fromDbAsset), ...localOnly]);
+        localOnly.forEach(a => upsertAsset(a));
       }
       if (dbStocks !== null) {
-        const local = load(STOCK_KEY, []);
-        const localIds = new Set(local.map(s => String(s.id)));
-        const dbOnly = dbStocks.filter(s => !localIds.has(String(s.id))).map(fromDbStock);
-        const merged = [...local, ...dbOnly];
+        const dbIds = new Set(dbStocks.map(s => String(s.id)));
+        const localOnly = load(STOCK_KEY, []).filter(s => !dbIds.has(String(s.id)));
+        const merged = [...dbStocks.map(fromDbStock), ...localOnly];
         setStocks(merged);
-        // localStorage에만 있는 항목 DB에 동기화
-        local.forEach(s => sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify(toDbStock(s)), prefer: "return=minimal" }).catch(() =>
-          sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "return=minimal" }).catch(() => {})
-        ));
+        localOnly.forEach(s => upsertStock(s));
         // 종목명이 티커와 같으면 백그라운드에서 실명으로 자동 갱신
         merged.filter(s => s.name === s.ticker).forEach(async s => {
           const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
