@@ -137,7 +137,7 @@ function StockForm({ initial, onSave, onDelete, saving }) {
     if (!ticker.trim() || !sh || sh <= 0 || !ap || ap <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null });
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null });
   }
 
   return (
@@ -173,7 +173,7 @@ function StockForm({ initial, onSave, onDelete, saving }) {
       </div>
 
       {/* Shares + AvgPrice */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         <div>
           <SLabel>보유수량</SLabel>
           <input type="text" inputMode="decimal" value={shares} onChange={e => setShares(e.target.value)} placeholder="0"
@@ -185,6 +185,18 @@ function StockForm({ initial, onSave, onDelete, saving }) {
             onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ""); setAvgPrice(raw); }}
             placeholder={market === "US" ? "150.00" : "70,000"}
             style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(String(avgPrice).replace(/,/g,"")) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+        </div>
+      </div>
+
+      {/* Purchase Date (optional) */}
+      <div style={{ marginBottom: 20 }}>
+        <SLabel>매입일자 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)}
+            style={{ flex: 1, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: purchaseDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+          {purchaseDate && (
+            <button onClick={() => setPurchaseDate("")} style={{ background: "none", border: "none", cursor: "pointer", color: C.inkLight, display: "flex", padding: 4 }}><X size={15} /></button>
+          )}
         </div>
       </div>
 
@@ -541,6 +553,7 @@ export default function AssetsApp() {
                           </div>
                           <div style={{ fontSize: 11, color: C.inkLight }}>
                             {s.shares}주 · 평균단가 {fmtPrice(s.avgPrice, s.market === "US" ? "USD" : "KRW")}
+                            {s.purchaseDate && <span style={{ marginLeft: 6 }}>· {s.purchaseDate}</span>}
                           </div>
                         </div>
                         <div style={{ textAlign: "right" }}>
