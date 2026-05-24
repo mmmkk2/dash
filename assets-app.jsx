@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, TrendingUp, TrendingDown, Copy } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { supabase } from "./src/lib/supabase";
 
@@ -116,7 +116,7 @@ function Modal({ open, onClose, children }) {
 }
 
 /* ── Stock Form ── */
-function StockForm({ initial, onSave, onDelete, saving }) {
+function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
   const init = initial || {};
   const [ticker,       setTicker]       = useState(init.ticker       || "");
   const [name,         setName]         = useState(init.name         || "");
@@ -161,7 +161,15 @@ function StockForm({ initial, onSave, onDelete, saving }) {
     <div style={{ fontFamily: F }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "종목 수정" : "종목 추가"}</span>
-        {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
+        {isEdit && (
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, institution: institution.trim(), accountSuffix: accountSuffix.trim() })}
+              style={{ display: "flex", alignItems: "center", gap: 5, background: "#f0f4ff", border: "1px solid #c7d4f4", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#1d4e89", fontSize: 12, fontWeight: 600 }}>
+              <Copy size={13} /> 복사
+            </button>
+            <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>
+          </div>
+        )}
       </div>
 
       {/* Market */}
@@ -781,7 +789,7 @@ export default function AssetsApp() {
         <StockForm onSave={addStock} saving={saving} />
       </Modal>
       <Modal open={modal === "editStock" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} saving={saving} />}
+        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { addStock(s); setEditItem(null); }} saving={saving} />}
       </Modal>
       <Modal open={modal === "addAsset"}  onClose={() => setModal(null)}>
         <AssetForm cats={cats} onSave={addAsset} saving={saving} />
