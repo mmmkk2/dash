@@ -33,12 +33,14 @@ const rowToTx = r => ({
   id: r.id, entity: r.entity, cat1: r.cat1, cat2: r.cat2, cat3: r.cat3||"",
   amount: r.amount, memo: r.memo, date: r.date, cardId: r.card_id||"",
   isFixed: r.is_fixed||false, fixedDay: r.fixed_day||null, type: r.type,
+  fixedStartDate: r.fixed_start_date||null, fixedEndDate: r.fixed_end_date||null,
   images: r.images||[],
 });
 const txToRow = t => ({
   id: t.id, entity: t.entity, cat1: t.cat1, cat2: t.cat2, cat3: t.cat3||"",
   amount: t.amount, memo: t.memo, date: t.date, card_id: t.cardId||"",
   is_fixed: t.isFixed||false, fixed_day: t.fixedDay||null, type: t.type,
+  fixed_start_date: t.fixedStartDate||null, fixed_end_date: t.fixedEndDate||null,
   images: t.images||[],
 });
 function getTxImageUrl(path){ return `${SUPABASE_URL}/storage/v1/object/public/tx-images/${path}`; }
@@ -355,6 +357,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [cardId,setCardId]=useState(init.cardId||"");
   const [isFixed,setIsFixed]=useState(init.isFixed||false);
   const [fixedDay,setFixedDay]=useState(init.fixedDay||"");
+  const [fixedStartDate,setFixedStartDate]=useState(init.fixedStartDate||"");
+  const [fixedEndDate,setFixedEndDate]=useState(init.fixedEndDate||"");
   const [isBiMonthly,setIsBiMonthly]=useState(()=>{
     try{const s=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));return s.has(`${init.entity||defaultEntity}:${init.memo||""}`);}catch{return false;}
   });

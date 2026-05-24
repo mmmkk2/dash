@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { supabase } from "./src/lib/supabase";
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -87,8 +88,10 @@ function isConfigured() {
 
 async function sb(path, opts = {}) {
   if (!SUPABASE_URL || !SUPABASE_ANON) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}`, "Content-Type": "application/json", Prefer: opts.prefer || "" },
+    headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json", Prefer: opts.prefer || "" },
     ...opts,
   });
   if (!res.ok) throw new Error(await res.text());
@@ -392,7 +395,21 @@ export default function AssetsApp() {
       sb("settings?select=*&key=eq.cats"),
     ]).then(([dbAssets, dbStocks, dbSettings]) => {
       if (dbAssets !== null) setAssets(dbAssets.map(fromDbAsset));
-      if (dbStocks !== null) setStocks(dbStocks.map(fromDbStock));
+      if (dbStocks !== null) {
+        const loaded = dbStocks.map(fromDbStock);
+        setStocks(loaded);
+        loaded.filter(s => s.name === s.ticker).forEach(async s => {
+          const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
+          try {
+            const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+            if (!res.ok) return;
+            const { name } = await res.json();
+            if (!name) return;
+            setStocks(prev => prev.map(x => x.id === s.id ? { ...x, name } : x));
+            sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify({ name }) }).catch(() => {});
+          } catch {}
+        });
+      }
       const dbCats = dbSettings?.[0]?.value;
       if (dbCats?.length) setCats(dbCats);
     }).catch(() => {});
