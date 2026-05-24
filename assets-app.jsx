@@ -90,11 +90,16 @@ async function sb(path, opts = {}) {
   if (!SUPABASE_URL || !SUPABASE_ANON) return null;
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token || SUPABASE_ANON;
+  const { prefer, ...fetchOpts } = opts;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json", Prefer: opts.prefer || "" },
-    ...opts,
+    headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${token}`, "Content-Type": "application/json", Prefer: prefer || "" },
+    ...fetchOpts,
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const msg = await res.text();
+    console.error(`[Supabase] ${opts.method || "GET"} ${path} →`, res.status, msg);
+    throw new Error(msg);
+  }
   return res.json().catch(() => null);
 }
 
@@ -387,8 +392,9 @@ export default function AssetsApp() {
   const [modal,   setModal]   = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [tab,     setTab]     = useState("stock");  // "stock" | "asset"
-  const [saving,  setSaving]  = useState(false);
-  const [expanded, setExpanded] = useState(null);
+  const [saving,    setSaving]    = useState(false);
+  const [expanded,  setExpanded]  = useState(null);
+  const [lastSaved, setLastSaved] = useState(() => load("my_assets_lastsaved", null));
 
   useEffect(() => { save(ASSET_KEY, assets); }, [assets]);
   useEffect(() => { save(STOCK_KEY, stocks); }, [stocks]);
@@ -502,8 +508,9 @@ export default function AssetsApp() {
   }, [assets, stockValue, cats]);
 
   /* ── CRUD: stocks ── */
-  const upsertStock = s => isConfigured() && sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
-  const upsertAsset = a => isConfigured() && sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
+  const markSaved = () => { const t = new Date().toLocaleString("ko-KR"); setLastSaved(t); save("my_assets_lastsaved", t); };
+  const upsertStock = s => isConfigured() && sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertStock]", e));
+  const upsertAsset = a => isConfigured() && sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertAsset]", e));
 
   function addStock(s)    { setStocks(p => [...p, s]); setModal(null); upsertStock(s); }
   function updateStock(s) { setStocks(p => p.map(x => x.id === s.id ? s : x)); setModal(null); setEditItem(null); upsertStock(s); }
@@ -549,6 +556,7 @@ export default function AssetsApp() {
               USD/KRW {rate.toLocaleString("ko-KR")}원
               {lastSync && <span style={{ marginLeft: 8 }}>· {lastSync} 기준</span>}
               {fetchErr > 0 && <span style={{ marginLeft: 8, color: "#f4a261", opacity: 1 }}>· {fetchErr}종목 조회 실패</span>}
+              {lastSaved && <span style={{ marginLeft: 8, opacity: 0.7 }}>· 저장 {lastSaved}</span>}
             </div>
             <button onClick={refreshPrices} disabled={fetching} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, padding: "6px 12px", color: "#fff", fontSize: 11, fontWeight: 600, cursor: fetching ? "not-allowed" : "pointer" }}>
               <RefreshCw size={12} className={fetching ? "spin" : ""} />
