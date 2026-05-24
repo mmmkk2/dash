@@ -394,19 +394,28 @@ export default function AssetsApp() {
       sb("stocks?select=*&order=id"),
       sb("settings?select=*&key=eq.cats"),
     ]).then(([dbAssets, dbStocks, dbSettings]) => {
-      // DB 데이터와 localStorage 병합 — DB에 없는 항목은 DB에 올리고 유지
+      // localStorage 우선 — DB에만 있는 항목(다른 기기에서 추가)만 병합
       if (dbAssets !== null) {
-        const dbIds = new Set(dbAssets.map(a => String(a.id)));
-        const localOnly = load(ASSET_KEY, []).filter(a => !dbIds.has(String(a.id)));
-        setAssets([...dbAssets.map(fromDbAsset), ...localOnly]);
-        localOnly.forEach(a => sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "return=minimal" }).catch(() => {}));
+        const local = load(ASSET_KEY, []);
+        const localIds = new Set(local.map(a => String(a.id)));
+        const dbOnly = dbAssets.filter(a => !localIds.has(String(a.id))).map(fromDbAsset);
+        const merged = [...local, ...dbOnly];
+        setAssets(merged);
+        // localStorage에만 있는 항목 DB에 동기화
+        local.forEach(a => sb(`assets?id=eq.${a.id}`, { method: "PATCH", body: JSON.stringify(toDbAsset(a)), prefer: "return=minimal" }).catch(() =>
+          sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "return=minimal" }).catch(() => {})
+        ));
       }
       if (dbStocks !== null) {
-        const dbIds = new Set(dbStocks.map(s => String(s.id)));
-        const localOnly = load(STOCK_KEY, []).filter(s => !dbIds.has(String(s.id)));
-        const merged = [...dbStocks.map(fromDbStock), ...localOnly];
+        const local = load(STOCK_KEY, []);
+        const localIds = new Set(local.map(s => String(s.id)));
+        const dbOnly = dbStocks.filter(s => !localIds.has(String(s.id))).map(fromDbStock);
+        const merged = [...local, ...dbOnly];
         setStocks(merged);
-        localOnly.forEach(s => sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "return=minimal" }).catch(() => {}));
+        // localStorage에만 있는 항목 DB에 동기화
+        local.forEach(s => sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify(toDbStock(s)), prefer: "return=minimal" }).catch(() =>
+          sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "return=minimal" }).catch(() => {})
+        ));
         // 종목명이 티커와 같으면 백그라운드에서 실명으로 자동 갱신
         merged.filter(s => s.name === s.ticker).forEach(async s => {
           const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
@@ -494,13 +503,16 @@ export default function AssetsApp() {
   }, [assets, stockValue, cats]);
 
   /* ── CRUD: stocks ── */
-  function addStock(s)    { setStocks(p => [...p, s]); setModal(null); if (isConfigured()) sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)) }).catch(() => {}); }
-  function updateStock(s) { setStocks(p => p.map(x => x.id === s.id ? s : x)); setModal(null); setEditItem(null); if (isConfigured()) sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify(toDbStock(s)) }).catch(() => {}); }
+  const upsertStock = s => isConfigured() && sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
+  const upsertAsset = a => isConfigured() && sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
+
+  function addStock(s)    { setStocks(p => [...p, s]); setModal(null); upsertStock(s); }
+  function updateStock(s) { setStocks(p => p.map(x => x.id === s.id ? s : x)); setModal(null); setEditItem(null); upsertStock(s); }
   function deleteStock(id){ setStocks(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`stocks?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
 
   /* ── CRUD: assets ── */
-  function addAsset(a)    { setAssets(p => [...p, a]); setModal(null); if (isConfigured()) sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)) }).catch(() => {}); }
-  function updateAsset(a) { setAssets(p => p.map(x => x.id === a.id ? a : x)); setModal(null); setEditItem(null); if (isConfigured()) sb(`assets?id=eq.${a.id}`, { method: "PATCH", body: JSON.stringify(toDbAsset(a)) }).catch(() => {}); }
+  function addAsset(a)    { setAssets(p => [...p, a]); setModal(null); upsertAsset(a); }
+  function updateAsset(a) { setAssets(p => p.map(x => x.id === a.id ? a : x)); setModal(null); setEditItem(null); upsertAsset(a); }
   function deleteAsset(id){ setAssets(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`assets?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
 
   const catColor = key => cats.find(c => c.key === key)?.color || C.inkMid;
