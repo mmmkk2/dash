@@ -44,13 +44,17 @@ const F = "'Inter',sans-serif";
 
 /* ── Yahoo Finance price fetch ── */
 async function fetchYahoo(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("fetch failed");
-  const data = await res.json();
-  const meta = data?.chart?.result?.[0]?.meta;
-  if (!meta) throw new Error("no data");
-  return meta.regularMarketPrice ?? meta.previousClose ?? null;
+  // query2 has more permissive CORS headers than query1
+  for (const host of ["query2", "query1"]) {
+    try {
+      const res = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (meta) return meta.regularMarketPrice ?? meta.previousClose ?? null;
+    } catch {}
+  }
+  throw new Error("fetch failed");
 }
 
 async function fetchStockPrice(ticker, market) {
@@ -59,6 +63,16 @@ async function fetchStockPrice(ticker, market) {
 }
 
 async function fetchUSDKRW() {
+  // open.er-api.com: free, no key, CORS-enabled
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    if (res.ok) {
+      const data = await res.json();
+      const krw = data?.rates?.KRW;
+      if (krw) return krw;
+    }
+  } catch {}
+  // fallback to Yahoo Finance
   return fetchYahoo("USDKRW=X");
 }
 
@@ -67,6 +81,12 @@ function load(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
 }
 function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+/* ── DB field mapping ── */
+const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null });
+const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null });
+const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date });
+const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date });
 
 function isConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.includes("여기에"));
@@ -294,6 +314,7 @@ export default function AssetsApp() {
   const [usdKrw,  setUsdKrw]  = useState(() => load("my_usdkrw", null));
   const [prices,  setPrices]  = useState({});   // { [id]: currentPrice }
   const [fetching, setFetching] = useState(false);
+  const [fetchErr, setFetchErr] = useState(0);
   const [lastSync, setLastSync] = useState(() => load("my_stocks_lastsync", null));
   const [modal,   setModal]   = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -305,25 +326,47 @@ export default function AssetsApp() {
   useEffect(() => { save(STOCK_KEY, stocks); }, [stocks]);
   useEffect(() => { save(CAT_KEY, cats); }, [cats]);
 
+  /* ── Supabase: initial load ── */
+  useEffect(() => {
+    if (!isConfigured()) return;
+    Promise.all([
+      sb("assets?select=*&order=id"),
+      sb("stocks?select=*&order=id"),
+      sb("settings?select=*&key=eq.cats"),
+    ]).then(([dbAssets, dbStocks, dbSettings]) => {
+      if (dbAssets !== null) setAssets(dbAssets.map(fromDbAsset));
+      if (dbStocks !== null) setStocks(dbStocks.map(fromDbStock));
+      const dbCats = dbSettings?.[0]?.value;
+      if (dbCats?.length) setCats(dbCats);
+    }).catch(() => {});
+  }, []);
+
   /* ── Price refresh ── */
   const refreshPrices = useCallback(async () => {
     if (!stocks.length) return;
     setFetching(true);
+    setFetchErr(0);
     const newPrices = {};
     let rate = usdKrw;
 
     try { rate = await fetchUSDKRW(); setUsdKrw(rate); save("my_usdkrw", rate); } catch {}
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       stocks.map(async s => {
-        try {
-          const p = await fetchStockPrice(s.ticker, s.market);
-          if (p) newPrices[s.id] = p;
-        } catch {}
+        const p = await fetchStockPrice(s.ticker, s.market);
+        if (p) newPrices[s.id] = p;
       })
     );
+    const errCount = results.filter(r => r.status === "rejected").length;
+    setFetchErr(errCount);
     setPrices(prev => ({ ...prev, ...newPrices }));
     setStocks(prev => prev.map(s => newPrices[s.id] != null ? { ...s, currentPrice: newPrices[s.id], lastFetched: new Date().toISOString() } : s));
+    if (isConfigured()) {
+      const ts = new Date().toISOString();
+      Object.entries(newPrices).forEach(([id, p]) =>
+        sb(`stocks?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ current_price: p, last_fetched: ts }) }).catch(() => {})
+      );
+    }
     const now = new Date().toLocaleString("ko-KR");
     setLastSync(now); save("my_stocks_lastsync", now);
     setFetching(false);
@@ -367,14 +410,14 @@ export default function AssetsApp() {
   }, [assets, stockValue, cats]);
 
   /* ── CRUD: stocks ── */
-  function addStock(s) { setStocks(p => [...p, s]); setModal(null); }
-  function updateStock(s) { setStocks(p => p.map(x => x.id === s.id ? s : x)); setModal(null); setEditItem(null); }
-  function deleteStock(id) { setStocks(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); }
+  function addStock(s)    { setStocks(p => [...p, s]); setModal(null); if (isConfigured()) sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)) }).catch(() => {}); }
+  function updateStock(s) { setStocks(p => p.map(x => x.id === s.id ? s : x)); setModal(null); setEditItem(null); if (isConfigured()) sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify(toDbStock(s)) }).catch(() => {}); }
+  function deleteStock(id){ setStocks(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`stocks?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
 
   /* ── CRUD: assets ── */
-  function addAsset(a) { setAssets(p => [...p, a]); setModal(null); }
-  function updateAsset(a) { setAssets(p => p.map(x => x.id === a.id ? a : x)); setModal(null); setEditItem(null); }
-  function deleteAsset(id) { setAssets(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); }
+  function addAsset(a)    { setAssets(p => [...p, a]); setModal(null); if (isConfigured()) sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)) }).catch(() => {}); }
+  function updateAsset(a) { setAssets(p => p.map(x => x.id === a.id ? a : x)); setModal(null); setEditItem(null); if (isConfigured()) sb(`assets?id=eq.${a.id}`, { method: "PATCH", body: JSON.stringify(toDbAsset(a)) }).catch(() => {}); }
+  function deleteAsset(id){ setAssets(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`assets?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
 
   const catColor = key => cats.find(c => c.key === key)?.color || C.inkMid;
   const tt = { background: C.paper, border: `1px solid ${C.border}`, borderRadius: 10, fontFamily: F, fontSize: 12 };
@@ -410,6 +453,7 @@ export default function AssetsApp() {
             <div style={{ fontSize: 11, opacity: 0.45 }}>
               USD/KRW {rate.toLocaleString("ko-KR")}원
               {lastSync && <span style={{ marginLeft: 8 }}>· {lastSync} 기준</span>}
+              {fetchErr > 0 && <span style={{ marginLeft: 8, color: "#f4a261", opacity: 1 }}>· {fetchErr}종목 조회 실패</span>}
             </div>
             <button onClick={refreshPrices} disabled={fetching} style={{ display: "flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, padding: "6px 12px", color: "#fff", fontSize: 11, fontWeight: 600, cursor: fetching ? "not-allowed" : "pointer" }}>
               <RefreshCw size={12} className={fetching ? "spin" : ""} />
@@ -636,7 +680,10 @@ export default function AssetsApp() {
         {editItem && <AssetForm initial={editItem} cats={cats} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={saving} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
-        <CatSettings cats={cats} onChange={c => { setCats(c); save(CAT_KEY, c); }} />
+        <CatSettings cats={cats} onChange={c => {
+          setCats(c); save(CAT_KEY, c);
+          if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "cats", value: c }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
+        }} />
       </Modal>
     </div>
   );
