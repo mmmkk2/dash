@@ -83,8 +83,8 @@ function load(key, def) {
 function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 /* ── DB field mapping ── */
-const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null });
-const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null });
+const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null });
+const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null });
 const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date });
 const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date });
 
@@ -122,11 +122,12 @@ function Modal({ open, onClose, children }) {
 /* ── Stock Form ── */
 function StockForm({ initial, onSave, onDelete, saving }) {
   const init = initial || {};
-  const [ticker,    setTicker]   = useState(init.ticker   || "");
-  const [name,      setName]     = useState(init.name     || "");
-  const [market,    setMarket]   = useState(init.market   || "KR");
-  const [shares,    setShares]   = useState(init.shares   ? String(init.shares)   : "");
-  const [avgPrice,  setAvgPrice] = useState(init.avgPrice ? Number(init.avgPrice).toLocaleString(market === "US" ? "en-US" : "ko-KR") : "");
+  const [ticker,       setTicker]       = useState(init.ticker       || "");
+  const [name,         setName]         = useState(init.name         || "");
+  const [market,       setMarket]       = useState(init.market       || "KR");
+  const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
+  const [avgPrice,     setAvgPrice]     = useState(init.avgPrice     ? Number(init.avgPrice).toLocaleString(market === "US" ? "en-US" : "ko-KR") : "");
+  const [purchaseDate, setPurchaseDate] = useState(init.purchaseDate || "");
   const [err, setErr] = useState(false);
   const isEdit = !!initial;
 
