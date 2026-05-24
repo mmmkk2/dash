@@ -121,8 +121,23 @@ function StockForm({ initial, onSave, onDelete, saving }) {
   const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
   const [avgPrice,     setAvgPrice]     = useState(init.avgPrice     ? Number(init.avgPrice).toLocaleString(market === "US" ? "en-US" : "ko-KR") : "");
   const [purchaseDate, setPurchaseDate] = useState(init.purchaseDate || "");
+  const [nameFetching, setNameFetching] = useState(false);
   const [err, setErr] = useState(false);
   const isEdit = !!initial;
+
+  async function lookupTicker(raw) {
+    const t = raw.trim();
+    if (!t) return;
+    const sym = market === "KR" ? `${t}.KS` : t.toUpperCase();
+    setNameFetching(true);
+    try {
+      const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+      if (!res.ok) return;
+      const { name: fetchedName } = await res.json();
+      if (fetchedName) setName(fetchedName);
+    } catch {}
+    finally { setNameFetching(false); }
+  }
 
   function submit() {
     const sh = parseFloat(String(shares).replace(/,/g, ""));
@@ -155,13 +170,13 @@ function StockForm({ initial, onSave, onDelete, saving }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 12 }}>
         <div>
           <SLabel>티커</SLabel>
-          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder={market === "KR" ? "005930" : "AAPL"}
+          <input value={ticker} onChange={e => setTicker(e.target.value)} onBlur={e => lookupTicker(e.target.value)} placeholder={market === "KR" ? "005930" : "AAPL"}
             style={{ width: "100%", border: `1.5px solid ${err && !ticker.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
         </div>
         <div>
           <SLabel>종목명</SLabel>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder={market === "KR" ? "삼성전자" : "Apple Inc."}
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+          <input value={nameFetching ? "" : name} onChange={e => setName(e.target.value)} placeholder={nameFetching ? "조회 중…" : market === "KR" ? "삼성전자" : "Apple Inc."}
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: nameFetching ? C.cream : C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
 

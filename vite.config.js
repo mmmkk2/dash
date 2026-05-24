@@ -24,8 +24,9 @@ const devStockApi = {
           const meta = data?.chart?.result?.[0]?.meta;
           if (meta) {
             const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
+            const name  = meta.shortName ?? meta.longName ?? null;
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ price }));
+            res.end(JSON.stringify({ price, name }));
             return;
           }
         } catch {}

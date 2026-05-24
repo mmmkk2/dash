@@ -16,7 +16,8 @@ export default async function handler(req, res) {
       const meta = data?.chart?.result?.[0]?.meta;
       if (meta) {
         const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
-        res.status(200).json({ price });
+        const name  = meta.shortName ?? meta.longName ?? null;
+        res.status(200).json({ price, name });
         return;
       }
     } catch {}
