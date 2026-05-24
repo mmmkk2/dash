@@ -415,7 +415,7 @@ function CatSettings({ cats, onChange }) {
 /* ── Vesting Form (RSU) ── */
 function VestingForm({ initial, onSave, onDelete }) {
   const init = initial || {};
-  const [ticker,       setTicker]       = useState(init.ticker       || "UBS");
+  const [ticker,       setTicker]       = useState(init.ticker       || "AMAT");
   const [name,         setName]         = useState(init.name         || "");
   const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
   const [vestDate,     setVestDate]     = useState(init.vestDate     || "");
@@ -442,7 +442,7 @@ function VestingForm({ initial, onSave, onDelete }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 12 }}>
         <div><SLabel>티커</SLabel>
-          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="UBS"
+          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="AMAT"
             style={{ width: "100%", border: `1.5px solid ${err && !ticker.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
         </div>
         <div><SLabel>그랜트명</SLabel>
@@ -516,7 +516,7 @@ function VestCompleteForm({ item, currentPrice, onComplete, onClose }) {
 /* ── ESPP Offering Form ── */
 function EsppForm({ initial, onSave, onDelete }) {
   const init = initial || {};
-  const [ticker,       setTicker]       = useState(init.ticker       || "UBS");
+  const [ticker,       setTicker]       = useState(init.ticker       || "AMAT");
   const [name,         setName]         = useState(init.name         || "");
   const [startDate,    setStartDate]    = useState(init.startDate    || "");
   const [endDate,      setEndDate]      = useState(init.endDate      || "");
@@ -544,7 +544,7 @@ function EsppForm({ initial, onSave, onDelete }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 12 }}>
         <div><SLabel>티커</SLabel>
-          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="UBS"
+          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="AMAT"
             style={{ width: "100%", border: `1.5px solid ${err && !ticker.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
         </div>
         <div><SLabel>오퍼링 이름</SLabel>
@@ -552,28 +552,31 @@ function EsppForm({ initial, onSave, onDelete }) {
             style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-        <div><SLabel>오퍼링 시작일</SLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+        <div><SLabel>오퍼링 시작일 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 적립 시작일</span></SLabel>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
             style={{ width: "100%", border: `1.5px solid ${err && !startDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: startDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
-        <div><SLabel>구매 예정일</SLabel>
+        <div><SLabel>구매일 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 실제 주식 매입일</span></SLabel>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
             style={{ width: "100%", border: `1.5px solid ${err && !endDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: endDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
+      <div style={{ background: C.paper, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 12px", marginBottom: 10, fontSize: 11, color: C.inkLight, lineHeight: 1.5 }}>
+        💡 ESPP는 오퍼링 시작일과 구매일 중 낮은 주가에 할인율 적용하여 매입합니다
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
-        <div><SLabel>시작일 주가 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(USD)</span></SLabel>
-          <input type="text" inputMode="decimal" value={startPrice} onChange={e => setStartPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00"
+        <div><SLabel>시작일 주가 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(USD, 선택)</span></SLabel>
+          <input type="text" inputMode="decimal" value={startPrice} onChange={e => setStartPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="175.00"
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
-        <div><SLabel>월 적립액 (원)</SLabel>
+        <div><SLabel>월 급여공제액 (원)</SLabel>
           <input type="text" inputMode="numeric" value={monthlyKrw}
             onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ""); setMonthlyKrw(raw ? Number(raw).toLocaleString("ko-KR") : ""); }}
             placeholder="500,000"
             style={{ width: "100%", border: `1.5px solid ${err && !parseInt(String(monthlyKrw).replace(/,/g,"")) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
-        <div><SLabel>할인율 (%)</SLabel>
+        <div><SLabel>할인율 (%) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>보통 15%</span></SLabel>
           <input type="text" inputMode="decimal" value={discountPct} onChange={e => setDiscountPct(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="15"
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
@@ -613,6 +616,218 @@ function EsppCompleteForm({ item, currentPrice, rate, onComplete }) {
       )}
       <button onClick={() => { const vp = parseFloat(purchasePrice); if (!vp) { setErr(true); setTimeout(() => setErr(false), 400); return; } onComplete(vp, estShares); }}
         style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#1d4e89", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>주식에 등록</button>
+    </div>
+  );
+}
+
+/* ── Vesting Batch Form (RSU 일괄 입력) ── */
+function VestingBatchForm({ onSave }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [ticker,          setTicker]        = useState("AMAT");
+  const [grantName,       setGrantName]     = useState("");
+  const [awardYear,       setAwardYear]     = useState(String(new Date().getFullYear()));
+  const [totalShares,     setTotalShares]   = useState("");
+  const [grantPrice,      setGrantPrice]    = useState("");
+  const [institution,     setInstitution]   = useState("UBS");
+  const [accountSuffix,   setAccountSuffix] = useState("");
+  const [rows,            setRows]          = useState([]); // {date, shares, vested, vestPrice}
+  const [bulkVestPrice,   setBulkVestPrice] = useState(""); // 완료 항목 일괄 베스팅가
+  const [autoPortfolio,   setAutoPortfolio] = useState(true);
+  const [generated,       setGenerated]     = useState(false);
+  const [saving,          setSaving]        = useState(false);
+  const [err,             setErr]           = useState(false);
+
+  function generateSchedule() {
+    const year  = parseInt(awardYear);
+    const total = parseInt(totalShares);
+    if (!year || year < 2000 || !total || total <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
+    const startYear = year + 2;
+    const dates = [];
+    for (let i = 0; i < 13; i++) {
+      const month = [1, 4, 7, 10][i % 4];
+      const y     = startYear + Math.floor(i / 4);
+      dates.push(`${y}-${String(month).padStart(2, "0")}-01`);
+    }
+    const base = Math.floor(total / 13);
+    const rem  = total % 13;
+    setRows(dates.map((date, i) => ({ date, shares: String(base + (i < rem ? 1 : 0)), vested: date < today, vestPrice: "" })));
+    setGenerated(true);
+  }
+
+  const toggleVested  = i  => setRows(p => p.map((r, j) => j === i ? { ...r, vested: !r.vested } : r));
+  const setRowShares  = (i, v) => setRows(p => p.map((r, j) => j === i ? { ...r, shares: v } : r));
+  const setRowVPrice  = (i, v) => setRows(p => p.map((r, j) => j === i ? { ...r, vestPrice: v } : r));
+
+  // 완료 항목 전체에 일괄 베스팅가 적용
+  const applyBulkVestPrice = () => {
+    const v = bulkVestPrice.replace(/[^0-9.]/g, "");
+    if (!v) return;
+    setRows(p => p.map(r => r.vested ? { ...r, vestPrice: v } : r));
+  };
+
+  const rowTotal    = rows.reduce((s, r) => s + (parseInt(r.shares) || 0), 0);
+  const vestedCount = rows.filter(r => r.vested).length;
+  const pendingCount= rows.length - vestedCount;
+
+  async function saveAll() {
+    if (!grantName.trim() || !ticker.trim() || rows.length === 0) return;
+    setSaving(true);
+    const base = Date.now();
+    const gp   = grantPrice ? parseFloat(grantPrice) : null;
+    const tkr  = ticker.trim().toUpperCase();
+    const nm   = grantName.trim();
+    const inst = institution.trim();
+    const acc  = accountSuffix.trim();
+    const vestings = rows.map((r, i) => ({
+      id: base + i, type: "RSU", ticker: tkr, name: nm,
+      shares: parseInt(r.shares) || 0, vestDate: r.date,
+      grantPrice: gp, vestPrice: r.vestPrice ? parseFloat(r.vestPrice) : null,
+      vested: r.vested, institution: inst, accountSuffix: acc, memo: "",
+    }));
+    // 포트폴리오 자동 등록: vested + vestPrice 있는 행
+    const stocksToAdd = autoPortfolio
+      ? rows.filter(r => r.vested && r.vestPrice && parseFloat(r.vestPrice) > 0 && parseInt(r.shares) > 0)
+          .map((r, i) => ({
+            id: base + 1000 + i, ticker: tkr, name: tkr, market: "US",
+            shares: parseInt(r.shares), avgPrice: parseFloat(r.vestPrice),
+            currentPrice: null, lastFetched: null,
+            purchaseDate: r.date, purchaseRate: null,
+            institution: inst, accountSuffix: acc,
+          }))
+      : [];
+    await onSave(vestings, stocksToAdd);
+    setSaving(false);
+  }
+
+  const startYear = parseInt(awardYear) + 2;
+
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>RSU 일괄 입력</div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
+        <div><SLabel>티커</SLabel>
+          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="AMAT"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
+        </div>
+        <div><SLabel>그랜트 ID <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— UBS의 Grant ID (예: AMK1066155)</span></SLabel>
+          <input value={grantName} onChange={e => setGrantName(e.target.value)} placeholder="AMK1066155"
+            style={{ width: "100%", border: `1.5px solid ${err && !grantName.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+        <div><SLabel>어워드 연도</SLabel>
+          <input type="text" inputMode="numeric" value={awardYear} onChange={e => { setAwardYear(e.target.value.replace(/\D/g, "")); setGenerated(false); }} placeholder="2025"
+            style={{ width: "100%", border: `1.5px solid ${err && !parseInt(awardYear) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>총 부여 주수</SLabel>
+          <input type="text" inputMode="numeric" value={totalShares} onChange={e => { setTotalShares(e.target.value.replace(/\D/g, "")); setGenerated(false); }} placeholder="55"
+            style={{ width: "100%", border: `1.5px solid ${err && !parseInt(totalShares) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>부여가 USD <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="175.00"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <button onClick={generateSchedule}
+            style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+            일정 생성
+          </button>
+        </div>
+      </div>
+      {parseInt(awardYear) > 2000 && (
+        <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 10, paddingLeft: 2 }}>
+          {awardYear}년 12월 어워드 → {startYear}-01-01 ~ {startYear + 3}-01-01 · 분기별 13회
+        </div>
+      )}
+
+      {generated && rows.length > 0 && (<>
+        {/* 완료 항목 일괄 베스팅가 */}
+        {vestedCount > 0 && (
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 8 }}>
+            <div style={{ flex: 1 }}>
+              <SLabel>완료 항목 베스팅가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— Cost/Other Basis 값 입력 후 일괄 적용</span></SLabel>
+              <input type="text" inputMode="decimal" value={bulkVestPrice}
+                onChange={e => setBulkVestPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+                placeholder="256.99"
+                style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+            </div>
+            <button onClick={applyBulkVestPrice}
+              style={{ padding: "10px 14px", borderRadius: 10, border: `1.5px solid #2d6a4f`, background: "#fff", color: "#2d6a4f", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: F, whiteSpace: "nowrap", marginBottom: 0 }}>
+              완료 항목에<br/>일괄 적용
+            </button>
+          </div>
+        )}
+
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 76px 68px", gap: 0, padding: "4px 6px", background: C.paper, borderRadius: "10px 10px 0 0", border: `1px solid ${C.border}` }}>
+            <div />
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase" }}>베스팅일</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", textAlign: "center" }}>베스팅가$</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", textAlign: "right", paddingRight: 8 }}>주수</div>
+          </div>
+          <div style={{ maxHeight: 260, overflowY: "auto", border: `1px solid ${C.border}`, borderTop: "none" }}>
+            {rows.map((row, i) => (
+              <div key={i} onClick={() => toggleVested(i)}
+                style={{ display: "grid", gridTemplateColumns: "28px 1fr 76px 68px", background: row.vested ? "#2d6a4f0a" : (i % 2 === 0 ? C.white : C.paper), borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : "none", alignItems: "center", cursor: "pointer" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingLeft: 6 }}>
+                  <div style={{ width: 15, height: 15, borderRadius: 4, background: row.vested ? "#2d6a4f" : C.white, border: `2px solid ${row.vested ? "#2d6a4f" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {row.vested && <Check size={8} color="#fff" />}
+                  </div>
+                </div>
+                <div style={{ padding: "7px 4px", fontSize: 12, color: row.vested ? C.inkMid : C.ink, fontVariantNumeric: "tabular-nums" }}>{row.date}</div>
+                <div style={{ padding: "3px 4px" }} onClick={e => e.stopPropagation()}>
+                  {row.vested
+                    ? <input type="text" inputMode="decimal" value={row.vestPrice}
+                        onChange={e => setRowVPrice(i, e.target.value.replace(/[^0-9.]/g, ""))}
+                        placeholder="—"
+                        style={{ width: "100%", border: `1.5px solid ${row.vestPrice ? "#2d6a4f50" : C.border}`, borderRadius: 6, padding: "3px 5px", fontSize: 12, fontWeight: 700, color: "#2d6a4f", background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textAlign: "right" }} />
+                    : <div style={{ textAlign: "center", fontSize: 11, color: C.inkLight }}>—</div>
+                  }
+                </div>
+                <div style={{ padding: "3px 8px 3px 4px" }} onClick={e => e.stopPropagation()}>
+                  <input type="text" inputMode="numeric" value={row.shares}
+                    onChange={e => setRowShares(i, e.target.value.replace(/\D/g, ""))}
+                    style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 6, padding: "3px 5px", fontSize: 12, fontWeight: 700, color: row.vested ? C.inkMid : C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textAlign: "right" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 12px", background: rowTotal === parseInt(totalShares) ? "#2d6a4f15" : "#e07a5f15", border: `1px solid ${C.border}`, borderTop: "none", borderRadius: "0 0 10px 10px", fontSize: 12, fontWeight: 700 }}>
+            <span style={{ color: C.inkMid }}>합계</span>
+            <span style={{ color: rowTotal === parseInt(totalShares) ? "#2d6a4f" : "#b5451b" }}>{rowTotal}주 / {totalShares}주</span>
+          </div>
+        </div>
+      </>)}
+
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div><SLabel>기관 (증권사)</SLabel>
+          <input value={institution} onChange={e => setInstitution(e.target.value)}
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} inputMode="numeric"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+
+      {generated && vestedCount > 0 && (
+        <button onClick={() => setAutoPortfolio(v => !v)}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: autoPortfolio ? "#2d6a4f18" : C.paper, border: `1.5px solid ${autoPortfolio ? "#2d6a4f" : C.border}`, borderRadius: 10, padding: "10px 14px", cursor: "pointer", marginBottom: 12, textAlign: "left" }}>
+          <div style={{ width: 17, height: 17, borderRadius: 5, background: autoPortfolio ? "#2d6a4f" : C.white, border: `2px solid ${autoPortfolio ? "#2d6a4f" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {autoPortfolio && <Check size={10} color="#fff" />}
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: autoPortfolio ? "#2d6a4f" : C.inkMid }}>완료 항목 보유주식에 자동 등록</div>
+            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>베스팅가가 입력된 완료 항목을 포트폴리오에 추가 (베스팅가 = 취득단가)</div>
+          </div>
+        </button>
+      )}
+
+      <button onClick={saveAll} disabled={saving || !generated || rows.length === 0}
+        style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: generated ? "#2d6a4f" : C.border, color: "#fff", fontSize: 15, fontWeight: 700, cursor: generated ? "pointer" : "default", fontFamily: F, opacity: saving ? 0.6 : 1, boxShadow: generated ? "0 4px 18px #2d6a4f55" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <Check size={16} /> {saving ? "저장 중…" : generated ? `전체 저장 (완료 ${vestedCount} + 예정 ${pendingCount}건)` : "일정을 먼저 생성하세요"}
+      </button>
     </div>
   );
 }
@@ -771,6 +986,18 @@ export default function AssetsApp() {
   /* ── CRUD: vestings ── */
   const upsertVesting = v => isConfigured() && sb("vesting_schedule", { method: "POST", body: JSON.stringify(toDbVesting(v)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertVesting]", e));
   function addVesting(v)    { setVestings(p => [...p, v]); setModal(null); upsertVesting(v); }
+  async function addBatchVestings(vs, stocksToAdd = []) {
+    setVestings(p => [...p, ...vs]);
+    if (stocksToAdd.length > 0) setStocks(p => [...p, ...stocksToAdd]);
+    setModal(null);
+    if (isConfigured()) {
+      await sb("vesting_schedule", { method: "POST", body: JSON.stringify(vs.map(toDbVesting)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(e => console.error("[batchVesting]", e));
+      if (stocksToAdd.length > 0) {
+        await sb("stocks", { method: "POST", body: JSON.stringify(stocksToAdd.map(toDbStock)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(e => console.error("[batchStocks]", e));
+      }
+      markSaved();
+    }
+  }
   function updateVesting(v) { setVestings(p => p.map(x => x.id === v.id ? v : x)); setModal(null); setEditItem(null); upsertVesting(v); }
   function deleteVesting(id){ setVestings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`vesting_schedule?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
   function vestComplete(item, vestPrice, addToPortfolio) {
@@ -1211,6 +1438,9 @@ export default function AssetsApp() {
           <button onClick={() => setModal("addVesting")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2d6a4f", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #2d6a4f66" }}>
             <Plus size={15} /> RSU
           </button>
+          <button onClick={() => setModal("batchVesting")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#4a3728", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #4a372855" }}>
+            <Plus size={15} /> RSU 일괄
+          </button>
         </div>
       )}
 
@@ -1235,6 +1465,9 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "addVesting"} onClose={() => setModal(null)}>
         <VestingForm onSave={addVesting} />
+      </Modal>
+      <Modal open={modal === "batchVesting"} onClose={() => setModal(null)}>
+        <VestingBatchForm onSave={addBatchVestings} />
       </Modal>
       <Modal open={modal === "editVesting" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <VestingForm initial={editItem} onSave={updateVesting} onDelete={() => deleteVesting(editItem.id)} />}
