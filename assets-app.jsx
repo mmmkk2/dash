@@ -82,6 +82,10 @@ const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.
 const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date, institution: a.institution || null, account_suffix: a.accountSuffix || null });
 const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date, institution: a.institution || "", accountSuffix: a.account_suffix || "" });
 const fromDbSnap  = s => ({ id: s.id, date: s.recorded_at, total: Number(s.total), stockVal: Number(s.stock_val), assetVal: Number(s.asset_val) });
+const toDbVesting   = v => ({ id: v.id, type: v.type, ticker: v.ticker, name: v.name, shares: v.shares, vest_date: v.vestDate, grant_price: v.grantPrice ?? null, vest_price: v.vestPrice ?? null, vested: v.vested ?? false, institution: v.institution || null, account_suffix: v.accountSuffix || null, memo: v.memo || "" });
+const fromDbVesting = v => ({ id: v.id, type: v.type, ticker: v.ticker, name: v.name, shares: Number(v.shares), vestDate: v.vest_date, grantPrice: v.grant_price != null ? Number(v.grant_price) : null, vestPrice: v.vest_price != null ? Number(v.vest_price) : null, vested: v.vested ?? false, institution: v.institution || "", accountSuffix: v.account_suffix || "", memo: v.memo || "" });
+const toDbOffering  = o => ({ id: o.id, ticker: o.ticker, name: o.name, start_date: o.startDate, end_date: o.endDate, start_price: o.startPrice ?? null, monthly_krw: o.monthlyKrw ?? null, discount_pct: o.discountPct ?? 15, institution: o.institution || null, account_suffix: o.accountSuffix || null, memo: o.memo || "" });
+const fromDbOffering= o => ({ id: o.id, ticker: o.ticker, name: o.name, startDate: o.start_date, endDate: o.end_date, startPrice: o.start_price != null ? Number(o.start_price) : null, monthlyKrw: o.monthly_krw != null ? Number(o.monthly_krw) : null, discountPct: o.discount_pct != null ? Number(o.discount_pct) : 15, institution: o.institution || "", accountSuffix: o.account_suffix || "", memo: o.memo || "" });
 
 function isConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.includes("여기에"));
@@ -408,6 +412,211 @@ function CatSettings({ cats, onChange }) {
   );
 }
 
+/* ── Vesting Form (RSU) ── */
+function VestingForm({ initial, onSave, onDelete }) {
+  const init = initial || {};
+  const [ticker,       setTicker]       = useState(init.ticker       || "UBS");
+  const [name,         setName]         = useState(init.name         || "");
+  const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
+  const [vestDate,     setVestDate]     = useState(init.vestDate     || "");
+  const [grantPrice,   setGrantPrice]   = useState(init.grantPrice   ? String(init.grantPrice) : "");
+  const [institution,  setInstitution]  = useState(init.institution  || "UBS");
+  const [accountSuffix,setAccountSuffix]= useState(init.accountSuffix|| "");
+  const [memo,         setMemo]         = useState(init.memo         || "");
+  const [err, setErr] = useState(false);
+  const isEdit = !!onDelete;
+
+  function submit() {
+    const sh = parseFloat(shares);
+    if (!ticker.trim() || !name.trim() || !sh || sh <= 0 || !vestDate) {
+      setErr(true); setTimeout(() => setErr(false), 400); return;
+    }
+    onSave({ id: init.id || Date.now(), type: "RSU", ticker: ticker.trim().toUpperCase(), name: name.trim(), shares: sh, vestDate, grantPrice: grantPrice ? parseFloat(grantPrice) : null, vestPrice: init.vestPrice ?? null, vested: false, institution: institution.trim(), accountSuffix: accountSuffix.trim(), memo: memo.trim() });
+  }
+
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "RSU 수정" : "RSU 추가"}</span>
+        {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 12 }}>
+        <div><SLabel>티커</SLabel>
+          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="UBS"
+            style={{ width: "100%", border: `1.5px solid ${err && !ticker.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
+        </div>
+        <div><SLabel>그랜트명</SLabel>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="2024 Annual RSU Grant"
+            style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div><SLabel>베스팅 주수</SLabel>
+          <input type="text" inputMode="decimal" value={shares} onChange={e => setShares(e.target.value)} placeholder="50"
+            style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(shares) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>베스팅일</SLabel>
+          <input type="date" value={vestDate} onChange={e => setVestDate(e.target.value)}
+            style={{ width: "100%", border: `1.5px solid ${err && !vestDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: vestDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div><SLabel>부여가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ marginBottom: 20 }}><SLabel>메모 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="퍼포먼스 보너스 등"
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #2d6a4f55", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
+      </button>
+    </div>
+  );
+}
+
+/* ── Vest Complete Form ── */
+function VestCompleteForm({ item, currentPrice, onComplete, onClose }) {
+  const [vestPrice, setVestPrice] = useState(currentPrice ? String(currentPrice.toFixed(2)) : "");
+  const [addToStocks, setAddToStocks] = useState(true);
+  const [err, setErr] = useState(false);
+
+  function submit() {
+    const vp = parseFloat(vestPrice);
+    if (!vp || vp <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
+    onComplete(vp, addToStocks);
+  }
+
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 6 }}>베스팅 완료 처리</div>
+      <div style={{ fontSize: 13, color: C.inkMid, marginBottom: 20 }}>{item.name} · {item.shares}주 · {item.vestDate}</div>
+      <div style={{ marginBottom: 16 }}>
+        <SLabel>베스팅 시점 주가 (USD)</SLabel>
+        <input type="text" inputMode="decimal" value={vestPrice} onChange={e => setVestPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00" autoFocus
+          style={{ width: "100%", border: `1.5px solid ${err ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <button onClick={() => setAddToStocks(v => !v)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: addToStocks ? "#2d6a4f18" : C.paper, border: `1.5px solid ${addToStocks ? "#2d6a4f" : C.border}`, borderRadius: 10, padding: "11px 14px", cursor: "pointer", marginBottom: 18, textAlign: "left" }}>
+        <div style={{ width: 18, height: 18, borderRadius: 5, background: addToStocks ? "#2d6a4f" : C.white, border: `2px solid ${addToStocks ? "#2d6a4f" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          {addToStocks && <Check size={11} color="#fff" />}
+        </div>
+        <span style={{ fontSize: 13, fontWeight: 600, color: addToStocks ? "#2d6a4f" : C.inkMid }}>보유주식에 자동 등록 (베스팅가를 매입가로)</span>
+      </button>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>완료 처리</button>
+    </div>
+  );
+}
+
+/* ── ESPP Offering Form ── */
+function EsppForm({ initial, onSave, onDelete }) {
+  const init = initial || {};
+  const [ticker,       setTicker]       = useState(init.ticker       || "UBS");
+  const [name,         setName]         = useState(init.name         || "");
+  const [startDate,    setStartDate]    = useState(init.startDate    || "");
+  const [endDate,      setEndDate]      = useState(init.endDate      || "");
+  const [startPrice,   setStartPrice]   = useState(init.startPrice   ? String(init.startPrice) : "");
+  const [monthlyKrw,   setMonthlyKrw]   = useState(init.monthlyKrw   ? Number(init.monthlyKrw).toLocaleString("ko-KR") : "");
+  const [discountPct,  setDiscountPct]  = useState(init.discountPct  ? String(init.discountPct) : "15");
+  const [institution,  setInstitution]  = useState(init.institution  || "UBS");
+  const [accountSuffix,setAccountSuffix]= useState(init.accountSuffix|| "");
+  const [err, setErr] = useState(false);
+  const isEdit = !!onDelete;
+
+  function submit() {
+    const mk = parseInt(String(monthlyKrw).replace(/,/g, ""));
+    if (!ticker.trim() || !name.trim() || !startDate || !endDate || !mk || mk <= 0) {
+      setErr(true); setTimeout(() => setErr(false), 400); return;
+    }
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim(), startDate, endDate, startPrice: startPrice ? parseFloat(startPrice) : null, monthlyKrw: mk, discountPct: parseFloat(discountPct) || 15, institution: institution.trim(), accountSuffix: accountSuffix.trim(), memo: "" });
+  }
+
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "ESPP 수정" : "ESPP 추가"}</span>
+        {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 12 }}>
+        <div><SLabel>티커</SLabel>
+          <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="UBS"
+            style={{ width: "100%", border: `1.5px solid ${err && !ticker.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
+        </div>
+        <div><SLabel>오퍼링 이름</SLabel>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="2024 ESPP H1"
+            style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div><SLabel>오퍼링 시작일</SLabel>
+          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+            style={{ width: "100%", border: `1.5px solid ${err && !startDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: startDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>구매 예정일</SLabel>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+            style={{ width: "100%", border: `1.5px solid ${err && !endDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: endDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+        <div><SLabel>시작일 주가 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(USD)</span></SLabel>
+          <input type="text" inputMode="decimal" value={startPrice} onChange={e => setStartPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>월 적립액 (원)</SLabel>
+          <input type="text" inputMode="numeric" value={monthlyKrw}
+            onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ""); setMonthlyKrw(raw ? Number(raw).toLocaleString("ko-KR") : ""); }}
+            placeholder="500,000"
+            style={{ width: "100%", border: `1.5px solid ${err && !parseInt(String(monthlyKrw).replace(/,/g,"")) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>할인율 (%)</SLabel>
+          <input type="text" inputMode="decimal" value={discountPct} onChange={e => setDiscountPct(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="15"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#1d4e89", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #1d4e8955", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
+      </button>
+    </div>
+  );
+}
+
+/* ── ESPP Complete Form ── */
+function EsppCompleteForm({ item, currentPrice, rate, onComplete }) {
+  const offerBase = item.startPrice && currentPrice ? Math.min(item.startPrice, currentPrice) : (item.startPrice || currentPrice || 0);
+  const calcPrice = offerBase ? offerBase * (1 - (item.discountPct || 15) / 100) : 0;
+  const [purchasePrice, setPurchasePrice] = useState(calcPrice ? calcPrice.toFixed(2) : "");
+  const start = new Date(item.startDate), end = new Date(item.endDate);
+  const months = Math.max(1, Math.round((end - start) / (30.44 * 86400000)));
+  const totalKrw = (item.monthlyKrw || 0) * months;
+  const pp = parseFloat(purchasePrice);
+  const estShares = pp && rate ? Math.floor(totalKrw / (pp * rate)) : 0;
+  const [err, setErr] = useState(false);
+
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 6 }}>ESPP 구매 완료</div>
+      <div style={{ fontSize: 13, color: C.inkMid, marginBottom: 20 }}>{item.name} · {item.startDate} ~ {item.endDate}</div>
+      <div style={{ marginBottom: 16 }}>
+        <SLabel>실제 매입가 (USD)</SLabel>
+        <input type="text" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value.replace(/[^0-9.]/g, ""))} autoFocus
+          style={{ width: "100%", border: `1.5px solid ${err ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      {estShares > 0 && (
+        <div style={{ background: "#1d4e8910", border: "1px solid #1d4e8930", borderRadius: 10, padding: "10px 14px", marginBottom: 18, fontSize: 13, color: "#1d4e89", fontWeight: 600 }}>
+          예상 매입 주수: {estShares}주 ({fmtS(totalKrw)} ÷ ${pp?.toFixed(2)} × {rate?.toLocaleString("ko-KR")}원)
+        </div>
+      )}
+      <button onClick={() => { const vp = parseFloat(purchasePrice); if (!vp) { setErr(true); setTimeout(() => setErr(false), 400); return; } onComplete(vp, estShares); }}
+        style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#1d4e89", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>주식에 등록</button>
+    </div>
+  );
+}
+
 /* ── Main ── */
 export default function AssetsApp() {
   const [assets,   setAssets]   = useState([]);
@@ -425,7 +634,10 @@ export default function AssetsApp() {
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
   const [addInitial, setAddInitial] = useState(null);
-  const [snapshots, setSnapshots] = useState([]);
+  const [snapshots,     setSnapshots]     = useState([]);
+  const [vestings,      setVestings]      = useState([]);
+  const [offerings,     setOfferings]     = useState([]);
+  const [vestingPrices, setVestingPrices] = useState({});
   const snapshotsRef = useRef([]);
   useEffect(() => { snapshotsRef.current = snapshots; }, [snapshots]);
 
@@ -437,7 +649,9 @@ export default function AssetsApp() {
       sb("stocks?select=*&order=id"),
       sb("settings?select=*"),
       sb("asset_snapshots?select=*&order=recorded_at&limit=60"),
-    ]).then(([dbAssets, dbStocks, dbSettings, dbSnaps]) => {
+      sb("vesting_schedule?select=*&order=vest_date"),
+      sb("espp_offerings?select=*&order=end_date"),
+    ]).then(([dbAssets, dbStocks, dbSettings, dbSnaps, dbVestings, dbOfferings]) => {
       if (dbAssets) setAssets(dbAssets.map(fromDbAsset));
       if (dbStocks) {
         const loaded = dbStocks.map(fromDbStock);
@@ -464,7 +678,9 @@ export default function AssetsApp() {
         if (byKey.cats?.length) setCats(byKey.cats);
         if (byKey.usdKrw)      setUsdKrw(byKey.usdKrw);
       }
-      if (dbSnaps) setSnapshots(dbSnaps.map(fromDbSnap));
+      if (dbSnaps)     setSnapshots(dbSnaps.map(fromDbSnap));
+      if (dbVestings)  setVestings(dbVestings.map(fromDbVesting));
+      if (dbOfferings) setOfferings(dbOfferings.map(fromDbOffering));
     }).catch(e => console.error("[DB load]", e))
       .finally(() => setDbLoading(false));
   }, []);
@@ -499,10 +715,20 @@ export default function AssetsApp() {
         sb(`stocks?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ current_price: p, last_fetched: ts }), prefer: "return=minimal" }).catch(() => {})
       );
     }
+    // vesting 티커 시세도 갱신
+    const vtickers = [...new Set([...vestings.filter(v => !v.vested).map(v => v.ticker), ...offerings.map(o => o.ticker)])];
+    if (vtickers.length) {
+      const vprices = {};
+      await Promise.allSettled(vtickers.map(async t => {
+        const p = await fetchStockPrice(t, "US");
+        if (p) vprices[t.toUpperCase()] = p;
+      }));
+      setVestingPrices(prev => ({ ...prev, ...vprices }));
+    }
     const now = new Date().toLocaleString("ko-KR");
     setLastSync(now);
     setFetching(false);
-  }, [stocks, usdKrw]);
+  }, [stocks, usdKrw, vestings, offerings]);
 
   /* ── Stock value calc ── */
   const rate = usdKrw || 1380;
@@ -534,6 +760,41 @@ export default function AssetsApp() {
       .map(c => ({ name: c.key, value: m[c.key], color: c.color }))
       .sort((a, b) => b.value - a.value);
   }, [assets, stockValue, cats]);
+
+  /* ── unvested RSU 예상가치 ── */
+  const unvestedValue = useMemo(() =>
+    vestings.filter(v => !v.vested).reduce((sum, v) => {
+      const p = vestingPrices[v.ticker.toUpperCase()];
+      return p ? sum + Math.round(p * v.shares * rate) : sum;
+    }, 0), [vestings, vestingPrices, rate]);
+
+  /* ── CRUD: vestings ── */
+  const upsertVesting = v => isConfigured() && sb("vesting_schedule", { method: "POST", body: JSON.stringify(toDbVesting(v)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertVesting]", e));
+  function addVesting(v)    { setVestings(p => [...p, v]); setModal(null); upsertVesting(v); }
+  function updateVesting(v) { setVestings(p => p.map(x => x.id === v.id ? v : x)); setModal(null); setEditItem(null); upsertVesting(v); }
+  function deleteVesting(id){ setVestings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`vesting_schedule?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
+  function vestComplete(item, vestPrice, addToPortfolio) {
+    const updated = { ...item, vestPrice, vested: true };
+    setVestings(p => p.map(x => x.id === item.id ? updated : x));
+    sb(`vesting_schedule?id=eq.${item.id}`, { method: "PATCH", body: JSON.stringify({ vest_price: vestPrice, vested: true }), prefer: "return=minimal" }).catch(() => {});
+    if (addToPortfolio) {
+      const stock = { id: Date.now(), ticker: item.ticker, name: item.ticker, market: "US", shares: item.shares, avgPrice: vestPrice, currentPrice: null, lastFetched: null, purchaseDate: item.vestDate, purchaseRate: rate || null, institution: item.institution, accountSuffix: item.accountSuffix };
+      addStock(stock);
+    } else { setModal(null); setEditItem(null); }
+  }
+
+  /* ── CRUD: offerings ── */
+  const upsertOffering = o => isConfigured() && sb("espp_offerings", { method: "POST", body: JSON.stringify(toDbOffering(o)), prefer: "resolution=merge-duplicates,return=minimal" }).then(markSaved).catch(e => console.error("[upsertOffering]", e));
+  function addOffering(o)    { setOfferings(p => [...p, o]); setModal(null); upsertOffering(o); }
+  function updateOffering(o) { setOfferings(p => p.map(x => x.id === o.id ? o : x)); setModal(null); setEditItem(null); upsertOffering(o); }
+  function deleteOffering(id){ setOfferings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`espp_offerings?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
+  function esppComplete(item, purchasePrice, shares) {
+    deleteOffering(item.id);
+    if (shares > 0 && purchasePrice > 0) {
+      const stock = { id: Date.now(), ticker: item.ticker, name: `${item.ticker} (ESPP)`, market: "US", shares, avgPrice: purchasePrice, currentPrice: null, lastFetched: null, purchaseDate: item.endDate, purchaseRate: rate || null, institution: item.institution, accountSuffix: item.accountSuffix };
+      addStock(stock);
+    }
+  }
 
   /* ── CRUD: stocks ── */
   const markSaved = () => setLastSaved(new Date().toLocaleString("ko-KR"));
@@ -572,9 +833,10 @@ export default function AssetsApp() {
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", fontVariantNumeric: "tabular-nums" }}>
               {fmtS(total)}<span style={{ fontSize: 14, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
             </div>
-            <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+            <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
               <div style={{ fontSize: 11, opacity: 0.5 }}>주식 {fmtS(stockValue)}</div>
               <div style={{ fontSize: 11, opacity: 0.5 }}>기타자산 {fmtS(assetTotal)}</div>
+              {unvestedValue > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>미확정 RSU {fmtS(unvestedValue)}</div>}
             </div>
           </div>
 
@@ -613,7 +875,7 @@ export default function AssetsApp() {
 
         {/* Tab */}
         <div style={{ display: "flex", background: C.white, borderRadius: 10, padding: 3, border: `1px solid ${C.border}`, gap: 3, marginBottom: 14 }}>
-          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"]].map(([k, l]) => (
+          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["vest", "📋 예정"]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: tab === k ? 700 : 400, fontSize: 13, background: tab === k ? C.ink : "transparent", color: tab === k ? "#fff" : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
           ))}
         </div>
@@ -828,21 +1090,129 @@ export default function AssetsApp() {
             )}
           </>
         )}
+
+        {/* ── 예정 탭 (RSU + ESPP) ── */}
+        {!dbLoading && tab === "vest" && (
+          <>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>RSU 베스팅 일정</div>
+            {vestings.filter(v => !v.vested).length === 0 ? (
+              <div style={{ textAlign: "center", padding: "32px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14 }}>
+                <div style={{ fontSize: 14, color: C.inkMid }}>베스팅 일정을 추가해보세요</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                {vestings.filter(v => !v.vested).sort((a, b) => a.vestDate.localeCompare(b.vestDate)).map(v => {
+                  const daysLeft = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
+                  const vp = vestingPrices[v.ticker.toUpperCase()];
+                  const valueKrw = vp ? Math.round(vp * v.shares * rate) : null;
+                  const dColor = daysLeft < 0 ? C.inkLight : daysLeft < 30 ? "#b5451b" : daysLeft < 90 ? "#e07a5f" : "#2d6a4f";
+                  return (
+                    <div key={v.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, padding: "13px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                        <div style={{ width: 44, flexShrink: 0, textAlign: "center", paddingTop: 2 }}>
+                          <div style={{ fontSize: daysLeft < 0 ? 11 : 16, fontWeight: 800, color: dColor, fontVariantNumeric: "tabular-nums" }}>
+                            {daysLeft < 0 ? "지남" : `D-${daysLeft}`}
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{v.name}</span>
+                            <span style={{ fontSize: 10, background: C.cream, borderRadius: 4, padding: "1px 5px", color: C.inkLight, fontWeight: 600 }}>{v.ticker}</span>
+                            {v.institution && <span style={{ fontSize: 10, color: "#2d6a4f", background: "#2d6a4f18", border: "1px solid #2d6a4f44", borderRadius: 5, padding: "1px 6px", fontWeight: 600 }}>{v.institution}{v.accountSuffix ? ` ···${v.accountSuffix}` : ""}</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.inkLight }}>
+                            {v.vestDate} · {v.shares}주{v.grantPrice ? ` · 부여가 $${v.grantPrice.toFixed(2)}` : ""}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{valueKrw ? fmtS(valueKrw) : "—"}</div>
+                          {vp && <div style={{ fontSize: 10, color: C.inkLight }}>${vp.toFixed(2)}</div>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                        <button onClick={() => { setEditItem(v); setModal("editVesting"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.inkMid, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={11} /> 수정</button>
+                        <button onClick={() => { setEditItem(v); setModal("vestComplete"); }} style={{ background: "#2d6a4f", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700 }}>✓ 베스팅 완료</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>ESPP 오퍼링</div>
+            {offerings.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "32px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 14, color: C.inkMid }}>ESPP 오퍼링을 추가해보세요</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {offerings.map(o => {
+                  const op = vestingPrices[o.ticker.toUpperCase()];
+                  const base = o.startPrice && op ? Math.min(o.startPrice, op) : (o.startPrice || op);
+                  const purchasePrice = base ? base * (1 - (o.discountPct || 15) / 100) : null;
+                  const months = Math.max(1, Math.round((new Date(o.endDate) - new Date(o.startDate)) / (30.44 * 86400000)));
+                  const totalKrw = o.monthlyKrw ? o.monthlyKrw * months : null;
+                  const estShares = totalKrw && purchasePrice ? Math.floor(totalKrw / (purchasePrice * rate)) : null;
+                  const daysLeft = Math.ceil((new Date(o.endDate) - new Date()) / 86400000);
+                  return (
+                    <div key={o.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, padding: "13px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{o.name}</span>
+                        <span style={{ fontSize: 10, background: C.cream, borderRadius: 4, padding: "1px 5px", color: C.inkLight, fontWeight: 600 }}>{o.ticker}</span>
+                        {daysLeft > 0 && <span style={{ fontSize: 10, background: "#1d4e8918", border: "1px solid #1d4e8944", borderRadius: 5, padding: "1px 6px", color: "#1d4e89", fontWeight: 600 }}>D-{daysLeft}</span>}
+                        {daysLeft <= 0 && <span style={{ fontSize: 10, background: "#f5f0e8", borderRadius: 5, padding: "1px 6px", color: C.inkLight, fontWeight: 600 }}>완료 대기</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 10 }}>{o.startDate} ~ {o.endDate} · {months}개월 · 할인 {o.discountPct}%</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 10 }}>
+                        {[
+                          { label: "월 적립", val: o.monthlyKrw ? fmtS(o.monthlyKrw) : "—" },
+                          { label: "예상 매입가", val: purchasePrice ? `$${purchasePrice.toFixed(2)}` : "—" },
+                          { label: "예상 주수", val: estShares ? `${estShares}주` : "—" },
+                        ].map(({ label, val }) => (
+                          <div key={label} style={{ background: C.paper, borderRadius: 8, padding: "6px 8px" }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 3 }}>{label}</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={() => { setEditItem(o); setModal("editOffering"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.inkMid, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={11} /> 수정</button>
+                        <button onClick={() => { setEditItem(o); setModal("esppComplete"); }} style={{ background: "#1d4e89", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700 }}>✓ 구매 완료</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* FAB */}
-      {!dbLoading && <button onClick={() => setModal(tab === "stock" ? "addStock" : "addAsset")} style={{
-        position: "fixed", bottom: 24, right: 24, zIndex: 200,
-        width: 56, height: 56, borderRadius: "50%", border: "none",
-        background: tab === "stock" ? "#2d6a4f" : "#234080", color: "#fff", cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: `0 4px 20px ${tab === "stock" ? "#2d6a4f88" : "#23408088"}`,
-        transition: "transform 0.15s, background 0.2s",
-      }}
-        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-        <Plus size={26} />
-      </button>}
+      {!dbLoading && tab !== "vest" && (
+        <button onClick={() => setModal(tab === "stock" ? "addStock" : "addAsset")} style={{
+          position: "fixed", bottom: 24, right: 24, zIndex: 200,
+          width: 56, height: 56, borderRadius: "50%", border: "none",
+          background: tab === "stock" ? "#2d6a4f" : "#234080", color: "#fff", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: `0 4px 20px ${tab === "stock" ? "#2d6a4f88" : "#23408088"}`,
+          transition: "transform 0.15s",
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+          <Plus size={26} />
+        </button>
+      )}
+      {!dbLoading && tab === "vest" && (
+        <div style={{ position: "fixed", bottom: 24, right: 16, zIndex: 200, display: "flex", gap: 8 }}>
+          <button onClick={() => setModal("addOffering")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#1d4e89", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #1d4e8966" }}>
+            <Plus size={15} /> ESPP
+          </button>
+          <button onClick={() => setModal("addVesting")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2d6a4f", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #2d6a4f66" }}>
+            <Plus size={15} /> RSU
+          </button>
+        </div>
+      )}
 
       {/* Modals */}
       <Modal open={modal === "addStock"} onClose={() => { setModal(null); setAddInitial(null); }}>
@@ -862,6 +1232,24 @@ export default function AssetsApp() {
           setCats(c);
           if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "cats", value: c }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
         }} />
+      </Modal>
+      <Modal open={modal === "addVesting"} onClose={() => setModal(null)}>
+        <VestingForm onSave={addVesting} />
+      </Modal>
+      <Modal open={modal === "editVesting" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <VestingForm initial={editItem} onSave={updateVesting} onDelete={() => deleteVesting(editItem.id)} />}
+      </Modal>
+      <Modal open={modal === "vestComplete" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <VestCompleteForm item={editItem} currentPrice={vestingPrices[editItem.ticker?.toUpperCase()]} onComplete={(vp, add) => { vestComplete(editItem, vp, add); setModal(null); setEditItem(null); }} onClose={() => { setModal(null); setEditItem(null); }} />}
+      </Modal>
+      <Modal open={modal === "addOffering"} onClose={() => setModal(null)}>
+        <EsppForm onSave={addOffering} />
+      </Modal>
+      <Modal open={modal === "editOffering" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <EsppForm initial={editItem} onSave={updateOffering} onDelete={() => deleteOffering(editItem.id)} />}
+      </Modal>
+      <Modal open={modal === "esppComplete" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <EsppCompleteForm item={editItem} currentPrice={vestingPrices[editItem.ticker?.toUpperCase()]} rate={rate} onComplete={(pp, sh) => { esppComplete(editItem, pp, sh); setModal(null); setEditItem(null); }} />}
       </Modal>
 
       {/* Build time footer */}
