@@ -1102,7 +1102,7 @@ export default function AssetsApp() {
 
         {/* Tab */}
         <div style={{ display: "flex", background: C.white, borderRadius: 10, padding: 3, border: `1px solid ${C.border}`, gap: 3, marginBottom: 14 }}>
-          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["vest", "📋 예정"]].map(([k, l]) => (
+          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: tab === k ? 700 : 400, fontSize: 13, background: tab === k ? C.ink : "transparent", color: tab === k ? "#fff" : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
           ))}
         </div>
@@ -1318,101 +1318,196 @@ export default function AssetsApp() {
           </>
         )}
 
-        {/* ── 예정 탭 (RSU + ESPP) ── */}
-        {!dbLoading && tab === "vest" && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>RSU 베스팅 일정</div>
-            {vestings.filter(v => !v.vested).length === 0 ? (
-              <div style={{ textAlign: "center", padding: "32px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14 }}>
-                <div style={{ fontSize: 14, color: C.inkMid }}>베스팅 일정을 추가해보세요</div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                {vestings.filter(v => !v.vested).sort((a, b) => a.vestDate.localeCompare(b.vestDate)).map(v => {
-                  const daysLeft = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
-                  const vp = vestingPrices[v.ticker.toUpperCase()];
-                  const valueKrw = vp ? Math.round(vp * v.shares * rate) : null;
-                  const dColor = daysLeft < 0 ? C.inkLight : daysLeft < 30 ? "#b5451b" : daysLeft < 90 ? "#e07a5f" : "#2d6a4f";
-                  return (
-                    <div key={v.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, padding: "13px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                        <div style={{ width: 44, flexShrink: 0, textAlign: "center", paddingTop: 2 }}>
-                          <div style={{ fontSize: daysLeft < 0 ? 11 : 16, fontWeight: 800, color: dColor, fontVariantNumeric: "tabular-nums" }}>
-                            {daysLeft < 0 ? "지남" : `D-${daysLeft}`}
-                          </div>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{v.name}</span>
-                            <span style={{ fontSize: 10, background: C.cream, borderRadius: 4, padding: "1px 5px", color: C.inkLight, fontWeight: 600 }}>{v.ticker}</span>
-                            {v.institution && <span style={{ fontSize: 10, color: "#2d6a4f", background: "#2d6a4f18", border: "1px solid #2d6a4f44", borderRadius: 5, padding: "1px 6px", fontWeight: 600 }}>{v.institution}{v.accountSuffix ? ` ···${v.accountSuffix}` : ""}</span>}
-                          </div>
-                          <div style={{ fontSize: 11, color: C.inkLight }}>
-                            {v.vestDate} · {v.shares}주{v.grantPrice ? ` · 부여가 $${v.grantPrice.toFixed(2)}` : ""}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink }}>{valueKrw ? fmtS(valueKrw) : "—"}</div>
-                          {vp && <div style={{ fontSize: 10, color: C.inkLight }}>${vp.toFixed(2)}</div>}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                        <button onClick={() => { setEditItem(v); setModal("editVesting"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.inkMid, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={11} /> 수정</button>
-                        <button onClick={() => { setEditItem(v); setModal("vestComplete"); }} style={{ background: "#2d6a4f", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700 }}>✓ 베스팅 완료</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* ── AMAT 탭 ── */}
+        {!dbLoading && tab === "vest" && (() => {
+          const amatStocks   = stocks.filter(s => s.ticker.toUpperCase() === "AMAT");
+          const amatUnvested = vestings.filter(v => !v.vested && v.ticker.toUpperCase() === "AMAT")
+                                       .sort((a, b) => a.vestDate.localeCompare(b.vestDate));
+          const amatOfferings= offerings.filter(o => o.ticker.toUpperCase() === "AMAT");
+          const amatPrice    = amatStocks.length > 0 ? (prices[amatStocks[0].id] ?? amatStocks[0].currentPrice) : null;
+          const amatShares   = amatStocks.reduce((s, x) => s + x.shares, 0);
+          const amatValue    = amatPrice ? Math.round(amatPrice * amatShares * rate) : null;
+          const amatCost     = amatStocks.reduce((s, x) => s + Math.round(x.avgPrice * x.shares * (x.purchaseRate ?? rate)), 0);
+          const amatGain     = amatValue != null ? amatValue - amatCost : null;
+          const amatGainPct  = amatCost > 0 && amatGain != null ? ((amatGain / amatCost) * 100).toFixed(1) : null;
+          const unvestedVal  = amatUnvested.reduce((s, v) => { const p = vestingPrices["AMAT"]; return p ? s + Math.round(p * v.shares * rate) : s; }, 0);
 
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>ESPP 오퍼링</div>
-            {offerings.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "32px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 14, color: C.inkMid }}>ESPP 오퍼링을 추가해보세요</div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {offerings.map(o => {
-                  const op = vestingPrices[o.ticker.toUpperCase()];
-                  const base = o.startPrice && op ? Math.min(o.startPrice, op) : (o.startPrice || op);
-                  const purchasePrice = base ? base * (1 - (o.discountPct || 15) / 100) : null;
-                  const months = Math.max(1, Math.round((new Date(o.endDate) - new Date(o.startDate)) / (30.44 * 86400000)));
-                  const totalKrw = o.monthlyKrw ? o.monthlyKrw * months : null;
-                  const estShares = totalKrw && purchasePrice ? Math.floor(totalKrw / (purchasePrice * rate)) : null;
-                  const daysLeft = Math.ceil((new Date(o.endDate) - new Date()) / 86400000);
-                  return (
-                    <div key={o.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, padding: "13px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{o.name}</span>
-                        <span style={{ fontSize: 10, background: C.cream, borderRadius: 4, padding: "1px 5px", color: C.inkLight, fontWeight: 600 }}>{o.ticker}</span>
-                        {daysLeft > 0 && <span style={{ fontSize: 10, background: "#1d4e8918", border: "1px solid #1d4e8944", borderRadius: 5, padding: "1px 6px", color: "#1d4e89", fontWeight: 600 }}>D-{daysLeft}</span>}
-                        {daysLeft <= 0 && <span style={{ fontSize: 10, background: "#f5f0e8", borderRadius: 5, padding: "1px 6px", color: C.inkLight, fontWeight: 600 }}>완료 대기</span>}
-                      </div>
-                      <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 10 }}>{o.startDate} ~ {o.endDate} · {months}개월 · 할인 {o.discountPct}%</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 10 }}>
-                        {[
-                          { label: "월 적립", val: o.monthlyKrw ? fmtS(o.monthlyKrw) : "—" },
-                          { label: "예상 매입가", val: purchasePrice ? `$${purchasePrice.toFixed(2)}` : "—" },
-                          { label: "예상 주수", val: estShares ? `${estShares}주` : "—" },
-                        ].map(({ label, val }) => (
-                          <div key={label} style={{ background: C.paper, borderRadius: 8, padding: "6px 8px" }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 3 }}>{label}</div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{val}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button onClick={() => { setEditItem(o); setModal("editOffering"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.inkMid, fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={11} /> 수정</button>
-                        <button onClick={() => { setEditItem(o); setModal("esppComplete"); }} style={{ background: "#1d4e89", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700 }}>✓ 구매 완료</button>
-                      </div>
+          return (
+            <>
+              {/* ─ 요약 헤더 ─ */}
+              {amatStocks.length > 0 && (
+                <div style={{ background: "linear-gradient(135deg,#1a2e1a,#2d6a4f)", borderRadius: 18, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
+                    {amatPrice && <div style={{ marginLeft: "auto", fontSize: 12, color: "rgba(255,255,255,0.7)", fontVariantNumeric: "tabular-nums" }}>${amatPrice.toFixed(2)}</div>}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>보유 총액</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{amatValue ? fmtS(amatValue) : "—"}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{amatShares}주</div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
+                    <div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? "#7fffc4" : "#ffb3a7" }}>
+                        {amatGain != null ? (amatGain >= 0 ? "+" : "") + fmtS(amatGain) : "—"}
+                      </div>
+                      <div style={{ fontSize: 10, color: amatGain >= 0 ? "#7fffc4" : "#ffb3a7", marginTop: 2 }}>{amatGainPct != null ? (amatGain >= 0 ? "+" : "") + amatGainPct + "%" : ""}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>미베스팅 예상가</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{unvestedVal > 0 ? fmtS(unvestedVal) : "—"}</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{amatUnvested.reduce((s, v) => s + v.shares, 0)}주 예정</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─ 보유 내역 ─ */}
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>보유</div>
+              {amatStocks.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 13, color: C.inkLight }}>
+                  보유 주식이 없습니다
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                  {amatStocks.map(s => {
+                    const p       = prices[s.id] ?? s.currentPrice;
+                    const valKrw  = p ? Math.round(p * s.shares * rate) : null;
+                    const costKrw = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
+                    const gain    = valKrw != null ? valKrw - costKrw : null;
+                    const gainPct = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
+                    const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
+                    return (
+                      <div key={s.id} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, padding: "11px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{s.name !== s.ticker ? s.name : s.ticker}</span>
+                              {s.institution && <span style={{ fontSize: 10, color: "#2d6a4f", background: "#2d6a4f18", border: "1px solid #2d6a4f44", borderRadius: 5, padding: "1px 6px", fontWeight: 600 }}>{s.institution}{s.accountSuffix ? ` ···${s.accountSuffix}` : ""}</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.inkLight }}>
+                              {s.shares}주 · 취득가 ${s.avgPrice.toFixed(4)}{s.purchaseDate ? ` · ${s.purchaseDate}` : ""}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
+                            {gain != null && <div style={{ fontSize: 11, fontWeight: 600, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                          <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: C.inkMid, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={10} /> 수정</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ─ RSU 예정 베스팅 ─ */}
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>RSU 베스팅 예정</div>
+              {amatUnvested.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 13, color: C.inkLight }}>
+                  베스팅 일정을 추가해보세요
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+                  {/* 같은 날짜끼리 그룹 */}
+                  {(() => {
+                    const byDate = {};
+                    amatUnvested.forEach(v => { if (!byDate[v.vestDate]) byDate[v.vestDate] = []; byDate[v.vestDate].push(v); });
+                    return Object.entries(byDate).map(([date, items]) => {
+                      const totalShares = items.reduce((s, v) => s + v.shares, 0);
+                      const vp = vestingPrices["AMAT"];
+                      const totalVal = vp ? Math.round(vp * totalShares * rate) : null;
+                      const daysLeft = Math.ceil((new Date(date) - new Date()) / 86400000);
+                      const dColor = daysLeft < 0 ? C.inkLight : daysLeft < 30 ? "#b5451b" : daysLeft < 90 ? "#e07a5f" : "#2d6a4f";
+                      return (
+                        <div key={date} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, padding: "11px 14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{ width: 42, flexShrink: 0, textAlign: "center" }}>
+                              <div style={{ fontSize: daysLeft < 0 ? 10 : 15, fontWeight: 800, color: dColor }}>{daysLeft < 0 ? "지남" : `D-${daysLeft}`}</div>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 2 }}>{date}</div>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                {items.map(v => (
+                                  <button key={v.id} onClick={() => { setEditItem(v); setModal("editVesting"); }}
+                                    style={{ fontSize: 10, background: C.paper, border: `1px solid ${C.border}`, borderRadius: 5, padding: "2px 7px", color: C.inkMid, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
+                                    {v.name} {v.shares}주
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{totalVal ? fmtS(totalVal) : "—"}</div>
+                              <div style={{ fontSize: 11, color: C.inkLight }}>{totalShares}주</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                            {items.map(v => (
+                              <button key={v.id} onClick={() => { setEditItem(v); setModal("vestComplete"); }}
+                                style={{ background: "#2d6a4f", border: "none", borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: "#fff", fontSize: 11, fontWeight: 700, fontFamily: F }}>
+                                ✓ {v.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+
+              {/* ─ ESPP ─ */}
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>ESPP</div>
+              {amatOfferings.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, fontSize: 13, color: C.inkLight }}>
+                  ESPP 오퍼링을 추가해보세요
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {amatOfferings.map(o => {
+                    const op = vestingPrices["AMAT"];
+                    const base = o.startPrice && op ? Math.min(o.startPrice, op) : (o.startPrice || op);
+                    const purchasePrice = base ? base * (1 - (o.discountPct || 15) / 100) : null;
+                    const months = Math.max(1, Math.round((new Date(o.endDate) - new Date(o.startDate)) / (30.44 * 86400000)));
+                    const totalKrw = o.monthlyKrw ? o.monthlyKrw * months : null;
+                    const estShares = totalKrw && purchasePrice ? Math.floor(totalKrw / (purchasePrice * rate)) : null;
+                    const daysLeft = Math.ceil((new Date(o.endDate) - new Date()) / 86400000);
+                    return (
+                      <div key={o.id} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, padding: "11px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{o.name}</span>
+                          {daysLeft > 0 && <span style={{ fontSize: 10, background: "#1d4e8918", border: "1px solid #1d4e8944", borderRadius: 5, padding: "1px 6px", color: "#1d4e89", fontWeight: 600 }}>D-{daysLeft}</span>}
+                          {daysLeft <= 0 && <span style={{ fontSize: 10, background: C.paper, borderRadius: 5, padding: "1px 6px", color: C.inkLight, fontWeight: 600 }}>완료 대기</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 8 }}>{o.startDate} ~ {o.endDate} · {months}개월 · 할인 {o.discountPct}%</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+                          {[
+                            { label: "월 적립", val: o.monthlyKrw ? fmtS(o.monthlyKrw) : "—" },
+                            { label: "예상 매입가", val: purchasePrice ? `$${purchasePrice.toFixed(2)}` : "—" },
+                            { label: "예상 주수", val: estShares ? `${estShares}주` : "—" },
+                          ].map(({ label, val }) => (
+                            <div key={label} style={{ background: C.paper, borderRadius: 8, padding: "6px 8px" }}>
+                              <div style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{val}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => { setEditItem(o); setModal("editOffering"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: C.inkMid, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={10} /> 수정</button>
+                          <button onClick={() => { setEditItem(o); setModal("esppComplete"); }} style={{ background: "#1d4e89", border: "none", borderRadius: 7, padding: "5px 12px", cursor: "pointer", color: "#fff", fontSize: 11, fontWeight: 700 }}>✓ 구매 완료</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* FAB */}
