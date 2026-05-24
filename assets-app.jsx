@@ -42,28 +42,17 @@ const C = {
 };
 const F = "'Inter',sans-serif";
 
-/* ── Yahoo Finance price fetch ── */
-async function fetchYahoo(symbol) {
-  // query2 has more permissive CORS headers than query1
-  for (const host of ["query2", "query1"]) {
-    try {
-      const res = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (meta) return meta.regularMarketPrice ?? meta.previousClose ?? null;
-    } catch {}
-  }
-  throw new Error("fetch failed");
-}
-
+/* ── Stock price fetch (via server proxy to avoid CORS) ── */
 async function fetchStockPrice(ticker, market) {
   const sym = market === "KR" ? `${ticker}.KS` : ticker.toUpperCase();
-  return fetchYahoo(sym);
+  const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+  if (!res.ok) throw new Error("fetch failed");
+  const { price } = await res.json();
+  if (price == null) throw new Error("no price");
+  return price;
 }
 
 async function fetchUSDKRW() {
-  // open.er-api.com: free, no key, CORS-enabled
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/USD");
     if (res.ok) {
@@ -72,8 +61,12 @@ async function fetchUSDKRW() {
       if (krw) return krw;
     }
   } catch {}
-  // fallback to Yahoo Finance
-  return fetchYahoo("USDKRW=X");
+  const res = await fetch("/api/stock?symbol=USDKRW%3DX");
+  if (res.ok) {
+    const { price } = await res.json();
+    if (price) return price;
+  }
+  throw new Error("rate fetch failed");
 }
 
 /* ── Storage ── */
