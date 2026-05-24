@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, TrendingUp, TrendingDown, Copy } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "./src/lib/supabase";
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
@@ -81,6 +81,7 @@ const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.
 const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null, purchaseRate: s.purchase_rate != null ? Number(s.purchase_rate) : null, institution: s.institution || "", accountSuffix: s.account_suffix || "" });
 const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date, institution: a.institution || null, account_suffix: a.accountSuffix || null });
 const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date, institution: a.institution || "", accountSuffix: a.account_suffix || "" });
+const fromDbSnap  = s => ({ id: s.id, date: s.recorded_at, total: Number(s.total), stockVal: Number(s.stock_val), assetVal: Number(s.asset_val) });
 
 function isConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.includes("여기에"));
@@ -424,6 +425,9 @@ export default function AssetsApp() {
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
   const [addInitial, setAddInitial] = useState(null);
+  const [snapshots, setSnapshots] = useState([]);
+  const snapshotsRef = useRef([]);
+  useEffect(() => { snapshotsRef.current = snapshots; }, [snapshots]);
 
   /* ── Supabase: initial load ── */
   useEffect(() => {
@@ -432,7 +436,8 @@ export default function AssetsApp() {
       sb("assets?select=*&order=id"),
       sb("stocks?select=*&order=id"),
       sb("settings?select=*"),
-    ]).then(([dbAssets, dbStocks, dbSettings]) => {
+      sb("asset_snapshots?select=*&order=recorded_at&limit=60"),
+    ]).then(([dbAssets, dbStocks, dbSettings, dbSnaps]) => {
       if (dbAssets) setAssets(dbAssets.map(fromDbAsset));
       if (dbStocks) {
         const loaded = dbStocks.map(fromDbStock);
@@ -459,6 +464,7 @@ export default function AssetsApp() {
         if (byKey.cats?.length) setCats(byKey.cats);
         if (byKey.usdKrw)      setUsdKrw(byKey.usdKrw);
       }
+      if (dbSnaps) setSnapshots(dbSnaps.map(fromDbSnap));
     }).catch(e => console.error("[DB load]", e))
       .finally(() => setDbLoading(false));
   }, []);
