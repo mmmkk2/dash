@@ -693,6 +693,11 @@ export default function AssetsApp() {
           if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "cats", value: c }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
         }} />
       </Modal>
+
+      {/* Build time footer */}
+      <div style={{ textAlign: "center", padding: "16px 0 8px", fontSize: 10, color: C.inkLight, fontFamily: F, opacity: 0.5 }}>
+        built {__BUILD_TIME__}
+      </div>
     </div>
   );
 }
