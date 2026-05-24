@@ -5,8 +5,6 @@ import { supabase } from "./src/lib/supabase";
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const ASSET_KEY  = "my_assets_v2";
-const STOCK_KEY  = "my_stocks_v1";
 const CAT_KEY    = "my_asset_cats_v1";
 
 const _fl = document.createElement("link");
@@ -381,62 +379,52 @@ function CatSettings({ cats, onChange }) {
 
 /* ── Main ── */
 export default function AssetsApp() {
-  const [assets,  setAssets]  = useState(() => load(ASSET_KEY, []));
-  const [stocks,  setStocks]  = useState(() => load(STOCK_KEY, []));
-  const [cats,    setCats]    = useState(() => load(CAT_KEY, DEFAULT_CATS));
-  const [usdKrw,  setUsdKrw]  = useState(() => load("my_usdkrw", null));
-  const [prices,  setPrices]  = useState({});   // { [id]: currentPrice }
+  const [assets,   setAssets]   = useState([]);
+  const [stocks,   setStocks]   = useState([]);
+  const [cats,     setCats]     = useState(() => load(CAT_KEY, DEFAULT_CATS));
+  const [usdKrw,   setUsdKrw]   = useState(() => load("my_usdkrw", null));
+  const [prices,   setPrices]   = useState({});
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState(0);
   const [lastSync, setLastSync] = useState(() => load("my_stocks_lastsync", null));
-  const [modal,   setModal]   = useState(null);
+  const [modal,    setModal]    = useState(null);
   const [editItem, setEditItem] = useState(null);
-  const [tab,     setTab]     = useState("stock");  // "stock" | "asset"
-  const [saving,    setSaving]    = useState(false);
-  const [expanded,  setExpanded]  = useState(null);
-  const [lastSaved, setLastSaved] = useState(() => load("my_assets_lastsaved", null));
+  const [tab,      setTab]      = useState("stock");
+  const [expanded, setExpanded] = useState(null);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [dbLoading, setDbLoading] = useState(true);
 
-  useEffect(() => { save(ASSET_KEY, assets); }, [assets]);
-  useEffect(() => { save(STOCK_KEY, stocks); }, [stocks]);
   useEffect(() => { save(CAT_KEY, cats); }, [cats]);
 
   /* ── Supabase: initial load ── */
   useEffect(() => {
-    if (!isConfigured()) return;
+    if (!isConfigured()) { setDbLoading(false); return; }
     Promise.all([
       sb("assets?select=*&order=id"),
       sb("stocks?select=*&order=id"),
       sb("settings?select=*&key=eq.cats"),
     ]).then(([dbAssets, dbStocks, dbSettings]) => {
-      // DB 우선 — localStorage에만 있는 항목(저장 실패분)은 DB에 upsert 후 병합
-      if (dbAssets !== null) {
-        const dbIds = new Set(dbAssets.map(a => String(a.id)));
-        const localOnly = load(ASSET_KEY, []).filter(a => !dbIds.has(String(a.id)));
-        setAssets([...dbAssets.map(fromDbAsset), ...localOnly]);
-        localOnly.forEach(a => upsertAsset(a));
-      }
-      if (dbStocks !== null) {
-        const dbIds = new Set(dbStocks.map(s => String(s.id)));
-        const localOnly = load(STOCK_KEY, []).filter(s => !dbIds.has(String(s.id)));
-        const merged = [...dbStocks.map(fromDbStock), ...localOnly];
-        setStocks(merged);
-        localOnly.forEach(s => upsertStock(s));
+      if (dbAssets) setAssets(dbAssets.map(fromDbAsset));
+      if (dbStocks) {
+        const loaded = dbStocks.map(fromDbStock);
+        setStocks(loaded);
         // 종목명이 티커와 같으면 백그라운드에서 실명으로 자동 갱신
-        merged.filter(s => s.name === s.ticker).forEach(async s => {
+        loaded.filter(s => s.name === s.ticker).forEach(async s => {
           const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
           try {
-            const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
-            if (!res.ok) return;
-            const { name } = await res.json();
+            const r = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+            if (!r.ok) return;
+            const { name } = await r.json();
             if (!name) return;
             setStocks(prev => prev.map(x => x.id === s.id ? { ...x, name } : x));
-            sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify({ name }), prefer: "return=minimal" }).catch(() => {});
+            sb("stocks", { method: "POST", body: JSON.stringify({ ...toDbStock(s), name }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
           } catch {}
         });
       }
       const dbCats = dbSettings?.[0]?.value;
       if (dbCats?.length) setCats(dbCats);
-    }).catch(() => {});
+    }).catch(e => console.error("[DB load]", e))
+      .finally(() => setDbLoading(false));
   }, []);
 
   /* ── Price refresh ── */
@@ -590,8 +578,16 @@ export default function AssetsApp() {
           ))}
         </div>
 
+        {/* Loading */}
+        {dbLoading && (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: C.inkLight, fontSize: 13, fontFamily: F }}>
+            <RefreshCw size={18} style={{ marginBottom: 10, opacity: 0.4, display: "inline-block" }} />
+            <div>불러오는 중…</div>
+          </div>
+        )}
+
         {/* ── Stock Tab ── */}
-        {tab === "stock" && (
+        {!dbLoading && tab === "stock" && (
           <>
             {/* Stock summary */}
             {stocks.length > 0 && (
@@ -696,7 +692,7 @@ export default function AssetsApp() {
         )}
 
         {/* ── Asset Tab ── */}
-        {tab === "asset" && (
+        {!dbLoading && tab === "asset" && (
           <>
             {/* Category bars */}
             {pieData.filter(c => c.name !== "주식").length > 0 && (
@@ -770,7 +766,7 @@ export default function AssetsApp() {
       </div>
 
       {/* FAB */}
-      <button onClick={() => setModal(tab === "stock" ? "addStock" : "addAsset")} style={{
+      {!dbLoading && <button onClick={() => setModal(tab === "stock" ? "addStock" : "addAsset")} style={{
         position: "fixed", bottom: 24, right: 24, zIndex: 200,
         width: 56, height: 56, borderRadius: "50%", border: "none",
         background: tab === "stock" ? "#2d6a4f" : "#234080", color: "#fff", cursor: "pointer",
@@ -781,20 +777,20 @@ export default function AssetsApp() {
         onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
         onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
         <Plus size={26} />
-      </button>
+      </button>}
 
       {/* Modals */}
       <Modal open={modal === "addStock"}  onClose={() => setModal(null)}>
-        <StockForm onSave={addStock} saving={saving} />
+        <StockForm onSave={addStock} saving={false} />
       </Modal>
       <Modal open={modal === "editStock" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { addStock(s); setEditItem(null); }} saving={saving} />}
+        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { addStock(s); setEditItem(null); }} saving={false} />}
       </Modal>
       <Modal open={modal === "addAsset"}  onClose={() => setModal(null)}>
-        <AssetForm cats={cats} onSave={addAsset} saving={saving} />
+        <AssetForm cats={cats} onSave={addAsset} saving={false} />
       </Modal>
       <Modal open={modal === "editAsset" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <AssetForm initial={editItem} cats={cats} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={saving} />}
+        {editItem && <AssetForm initial={editItem} cats={cats} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
