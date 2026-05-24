@@ -394,11 +394,21 @@ export default function AssetsApp() {
       sb("stocks?select=*&order=id"),
       sb("settings?select=*&key=eq.cats"),
     ]).then(([dbAssets, dbStocks, dbSettings]) => {
-      if (dbAssets !== null) setAssets(dbAssets.map(fromDbAsset));
+      // DB 데이터와 localStorage 병합 — DB에 없는 항목은 DB에 올리고 유지
+      if (dbAssets !== null) {
+        const dbIds = new Set(dbAssets.map(a => String(a.id)));
+        const localOnly = load(ASSET_KEY, []).filter(a => !dbIds.has(String(a.id)));
+        setAssets([...dbAssets.map(fromDbAsset), ...localOnly]);
+        localOnly.forEach(a => sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(a)), prefer: "return=minimal" }).catch(() => {}));
+      }
       if (dbStocks !== null) {
-        const loaded = dbStocks.map(fromDbStock);
-        setStocks(loaded);
-        loaded.filter(s => s.name === s.ticker).forEach(async s => {
+        const dbIds = new Set(dbStocks.map(s => String(s.id)));
+        const localOnly = load(STOCK_KEY, []).filter(s => !dbIds.has(String(s.id)));
+        const merged = [...dbStocks.map(fromDbStock), ...localOnly];
+        setStocks(merged);
+        localOnly.forEach(s => sb("stocks", { method: "POST", body: JSON.stringify(toDbStock(s)), prefer: "return=minimal" }).catch(() => {}));
+        // 종목명이 티커와 같으면 백그라운드에서 실명으로 자동 갱신
+        merged.filter(s => s.name === s.ticker).forEach(async s => {
           const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
           try {
             const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
@@ -406,7 +416,7 @@ export default function AssetsApp() {
             const { name } = await res.json();
             if (!name) return;
             setStocks(prev => prev.map(x => x.id === s.id ? { ...x, name } : x));
-            sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify({ name }) }).catch(() => {});
+            sb(`stocks?id=eq.${s.id}`, { method: "PATCH", body: JSON.stringify({ name }), prefer: "return=minimal" }).catch(() => {});
           } catch {}
         });
       }
