@@ -1,13 +1,33 @@
 -- ① Supabase SQL Editor에서 이 파일 전체 실행
 
--- stocks 테이블에 매입일자/증권사/계좌 컬럼 추가 (기존 DB에 아래 실행)
--- alter table stocks add column if not exists purchase_date text default null;
--- alter table stocks add column if not exists institution text default null;
--- alter table stocks add column if not exists account_suffix text default null;
+-- 자산 목록
+create table if not exists assets (
+  id            bigint primary key,
+  name          text not null,
+  cat           text not null,
+  amount        bigint not null,
+  memo          text default '',
+  date          text not null,
+  institution   text default null,
+  account_suffix text default null
+);
+alter table assets disable row level security;
 
--- assets 테이블에 기관/계좌 컬럼 추가 (기존 DB에 아래 실행)
--- alter table assets add column if not exists institution text default null;
--- alter table assets add column if not exists account_suffix text default null;
+-- 주식 종목
+create table if not exists stocks (
+  id             bigint primary key,
+  ticker         text not null,
+  name           text not null,
+  market         text not null,
+  shares         numeric not null,
+  avg_price      numeric not null,
+  current_price  numeric default null,
+  last_fetched   text default null,
+  purchase_date  text default null,
+  institution    text default null,
+  account_suffix text default null
+);
+alter table stocks disable row level security;
 
 -- 이미지 첨부 기능 (기존 DB에 아래 실행)
 -- alter table transactions add column if not exists images jsonb default '[]';
