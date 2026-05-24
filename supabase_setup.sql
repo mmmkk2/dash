@@ -1,7 +1,9 @@
 -- ① Supabase SQL Editor에서 이 파일 전체 실행
 
--- stocks 테이블에 매입일자 컬럼 추가 (기존 DB에 아래 실행)
+-- stocks 테이블에 매입일자/증권사/계좌 컬럼 추가 (기존 DB에 아래 실행)
 -- alter table stocks add column if not exists purchase_date text default null;
+-- alter table stocks add column if not exists institution text default null;
+-- alter table stocks add column if not exists account_suffix text default null;
 
 -- assets 테이블에 기관/계좌 컬럼 추가 (기존 DB에 아래 실행)
 -- alter table assets add column if not exists institution text default null;

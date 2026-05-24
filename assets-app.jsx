@@ -76,8 +76,8 @@ function load(key, def) {
 function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 /* ── DB field mapping ── */
-const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null });
-const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null });
+const toDbStock   = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: s.shares, avg_price: s.avgPrice, current_price: s.currentPrice ?? null, last_fetched: s.lastFetched ?? null, purchase_date: s.purchaseDate ?? null, institution: s.institution || null, account_suffix: s.accountSuffix || null });
+const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.market, shares: Number(s.shares), avgPrice: Number(s.avg_price), currentPrice: s.current_price != null ? Number(s.current_price) : null, lastFetched: s.last_fetched ?? null, purchaseDate: s.purchase_date ?? null, institution: s.institution || "", accountSuffix: s.account_suffix || "" });
 const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date, institution: a.institution || null, account_suffix: a.accountSuffix || null });
 const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date, institution: a.institution || "", accountSuffix: a.account_suffix || "" });
 
@@ -120,8 +120,10 @@ function StockForm({ initial, onSave, onDelete, saving }) {
   const [market,       setMarket]       = useState(init.market       || "KR");
   const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
   const [avgPrice,     setAvgPrice]     = useState(init.avgPrice     ? Number(init.avgPrice).toLocaleString(market === "US" ? "en-US" : "ko-KR") : "");
-  const [purchaseDate, setPurchaseDate] = useState(init.purchaseDate || "");
-  const [nameFetching, setNameFetching] = useState(false);
+  const [purchaseDate,  setPurchaseDate]  = useState(init.purchaseDate  || "");
+  const [institution,   setInstitution]   = useState(init.institution   || "");
+  const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
+  const [nameFetching,  setNameFetching]  = useState(false);
   const [err, setErr] = useState(false);
   const isEdit = !!initial;
 
@@ -145,7 +147,7 @@ function StockForm({ initial, onSave, onDelete, saving }) {
     if (!ticker.trim() || !sh || sh <= 0 || !ap || ap <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null });
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
   }
 
   return (
@@ -193,6 +195,20 @@ function StockForm({ initial, onSave, onDelete, saving }) {
             onChange={e => { const raw = e.target.value.replace(/[^0-9.]/g, ""); setAvgPrice(raw); }}
             placeholder={market === "US" ? "150.00" : "70,000"}
             style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(String(avgPrice).replace(/,/g,"")) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+        </div>
+      </div>
+
+      {/* Institution + Account (optional) */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div>
+          <SLabel>증권사 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="미래에셋, 키움…"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
         </div>
       </div>
 
@@ -571,9 +587,14 @@ export default function AssetsApp() {
                           <span style={{ fontSize: 16 }}>{s.market === "KR" ? "🇰🇷" : "🇺🇸"}</span>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                             <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{s.name}</span>
                             <span style={{ fontSize: 10, fontWeight: 600, color: C.inkLight, background: C.cream, borderRadius: 4, padding: "1px 5px" }}>{s.ticker}</span>
+                            {s.institution && (
+                              <span style={{ fontSize: 10, fontWeight: 600, color: "#2d6a4f", background: "#2d6a4f18", border: "1px solid #2d6a4f44", borderRadius: 5, padding: "1px 6px" }}>
+                                {s.institution}{s.accountSuffix ? ` ···${s.accountSuffix}` : ""}
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: 11, color: C.inkLight }}>
                             {s.shares}주 · 평균단가 {fmtPrice(s.avgPrice, s.market === "US" ? "USD" : "KRW")}
