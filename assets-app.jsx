@@ -412,6 +412,35 @@ function CatSettings({ cats, onChange }) {
   );
 }
 
+/* ── Grant Edit Form ── */
+function GrantEditForm({ grantName, grantDate, onSave }) {
+  const [name, setName] = useState(grantName);
+  const [date, setDate] = useState(grantDate || "");
+  const [err,  setErr]  = useState(false);
+  function submit() {
+    if (!name.trim()) { setErr(true); setTimeout(() => setErr(false), 400); return; }
+    onSave({ oldName: grantName, newName: name.trim(), newDate: date || null });
+  }
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>그랜트 수정</div>
+      <div style={{ marginBottom: 12 }}>
+        <SLabel>Grant ID</SLabel>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="AMK1066155"
+          style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <SLabel>Award Date <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: date ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <Check size={16} /> 저장
+      </button>
+    </div>
+  );
+}
+
 /* ── Vesting Form (RSU) ── */
 function VestingForm({ initial, onSave, onDelete }) {
   const init = initial || {};
@@ -1009,6 +1038,12 @@ export default function AssetsApp() {
     }
   }
   function deleteVesting(id){ setVestings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`vesting_schedule?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
+  function updateGrant({ oldName, newName, newDate }) {
+    const toUpdate = vestings.filter(v => v.name === oldName);
+    setVestings(p => p.map(v => v.name === oldName ? { ...v, name: newName, grantDate: newDate } : v));
+    setModal(null); setEditItem(null);
+    if (isConfigured()) toUpdate.forEach(v => upsertVesting({ ...v, name: newName, grantDate: newDate }));
+  }
   function deleteGrant(name) {
     const grantVestings = vestings.filter(v => v.name === name);
     const vestDates     = new Set(grantVestings.filter(v => v.vested).map(v => v.vestDate));
@@ -1479,11 +1514,8 @@ export default function AssetsApp() {
                   const db = b[0].grantDate || b[0].vestDate;
                   return db.localeCompare(da);
                 });
-                const COL = "1fr 82px 48px 48px 56px 48px";
+                const COL = "1fr 82px 52px 40px";
                 const thStyle = { fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" };
-                const totalGranted   = grantEntries.reduce((s, [, gvs]) => s + gvs.reduce((a, v) => a + v.shares, 0), 0);
-                const totalVested    = grantEntries.reduce((s, [, gvs]) => s + gvs.filter(v => v.vested).reduce((a, v) => a + v.shares, 0), 0);
-                const totalUnvested  = totalGranted - totalVested;
                 const totalAvailable = amatStocks.filter(s => !/espp/i.test(s.name)).reduce((s, x) => s + x.shares, 0);
                 return (
                   <div style={{ marginBottom: 14 }}>
@@ -1491,24 +1523,19 @@ export default function AssetsApp() {
                     <div style={{ display: "grid", gridTemplateColumns: COL, padding: "4px 14px 6px", gap: 0 }}>
                       <div style={thStyle}>Grant</div>
                       <div style={{ ...thStyle, textAlign: "right" }}>Award Date</div>
-                      <div style={{ ...thStyle, textAlign: "right" }}>Granted</div>
-                      <div style={{ ...thStyle, textAlign: "right" }}>Vested</div>
-                      <div style={{ ...thStyle, textAlign: "right" }}>Unvested</div>
-                      <div style={{ ...thStyle, textAlign: "right" }}>Avail</div>
+                      <div style={{ ...thStyle, textAlign: "right" }}>보유</div>
+                      <div />
                     </div>
 
                     {/* 그랜트 행들 */}
                     <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
                       {grantEntries.map(([grantName, gvs], idx) => {
-                        const totalShares    = gvs.reduce((s, v) => s + v.shares, 0);
-                        const vestedShares   = gvs.filter(v => v.vested).reduce((s, v) => s + v.shares, 0);
-                        const unvestedShares = totalShares - vestedShares;
                         const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
                         const availableShares  = amatStocks.filter(s => !/espp/i.test(s.name) && grantVestedDates.has(s.purchaseDate)).reduce((s, x) => s + x.shares, 0);
-                        const isOpen         = openGrants.has(grantName);
-                        const toggleGrant    = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
-                        const isLast         = idx === grantEntries.length - 1;
-                        const rowBorder      = !isLast || isOpen ? `1px solid ${C.border}` : "none";
+                        const isOpen           = openGrants.has(grantName);
+                        const toggleGrant      = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
+                        const isLast           = idx === grantEntries.length - 1;
+                        const rowBorder        = !isLast || isOpen ? `1px solid ${C.border}` : "none";
                         return (
                           <div key={grantName}>
                             {/* 요약 행 */}
@@ -1521,10 +1548,13 @@ export default function AssetsApp() {
                               <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 11, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
                                 {gvs[0].grantDate || "—"}
                               </div>
-                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 13, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalShares}</div>
-                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 13, color: vestedShares > 0 ? "#2d6a4f" : C.inkLight, fontVariantNumeric: "tabular-nums" }}>{vestedShares}</div>
-                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 13, color: unvestedShares > 0 ? "#b5451b" : C.inkLight, fontVariantNumeric: "tabular-nums" }}>{unvestedShares}</div>
-                              <div style={{ padding: "11px 14px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{availableShares}</div>
+                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{availableShares}</div>
+                              <div style={{ padding: "6px 10px 6px 4px", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                                <button onClick={e => { e.stopPropagation(); setEditItem({ grantName, grantDate: gvs[0].grantDate }); setModal("editGrant"); }}
+                                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                  <Pencil size={11} />
+                                </button>
+                              </div>
                             </div>
 
                             {/* 펼쳤을 때 베스팅 스케줄 */}
@@ -1555,7 +1585,6 @@ export default function AssetsApp() {
                                     </div>
                                   );
                                 })}
-                                {/* 그랜트 삭제 */}
                                 <div style={{ padding: "8px 14px", display: "flex", justifyContent: "flex-end" }}>
                                   <button onClick={e => { e.stopPropagation(); if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
                                     style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: "#b5451b", fontSize: 11, fontWeight: 600 }}>
@@ -1572,10 +1601,8 @@ export default function AssetsApp() {
                       <div style={{ display: "grid", gridTemplateColumns: COL, background: C.paper, borderTop: `1px solid ${C.border}` }}>
                         <div style={{ padding: "9px 14px", fontSize: 11, fontWeight: 700, color: C.inkMid }}>Total</div>
                         <div />
-                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalGranted}</div>
-                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#2d6a4f", fontVariantNumeric: "tabular-nums" }}>{totalVested}</div>
-                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 13, fontWeight: 700, color: totalUnvested > 0 ? "#b5451b" : C.inkLight, fontVariantNumeric: "tabular-nums" }}>{totalUnvested}</div>
-                        <div style={{ padding: "9px 14px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalAvailable}</div>
+                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalAvailable}</div>
+                        <div />
                       </div>
                     </div>
                   </div>
@@ -1634,6 +1661,9 @@ export default function AssetsApp() {
           setCats(c);
           if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "cats", value: c }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
         }} />
+      </Modal>
+      <Modal open={modal === "editGrant" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <GrantEditForm grantName={editItem.grantName} grantDate={editItem.grantDate} onSave={updateGrant} />}
       </Modal>
       <Modal open={modal === "addVesting"} onClose={() => setModal(null)}>
         <VestingForm onSave={addVesting} />
