@@ -981,9 +981,17 @@ export default function AssetsApp() {
   function updateVesting(v) { setVestings(p => p.map(x => x.id === v.id ? v : x)); setModal(null); setEditItem(null); upsertVesting(v); }
   function deleteVesting(id){ setVestings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`vesting_schedule?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
   function deleteGrant(name) {
-    const ids = vestings.filter(v => v.name === name).map(v => v.id);
+    const grantVestings = vestings.filter(v => v.name === name);
+    const vestDates     = new Set(grantVestings.filter(v => v.vested).map(v => v.vestDate));
+    const stocksToKill  = stocks.filter(s => s.ticker.toUpperCase() === "AMAT" && !/espp/i.test(s.name) && vestDates.has(s.purchaseDate));
+    const vestingIds    = grantVestings.map(v => v.id);
+    const stockIds      = stocksToKill.map(s => s.id);
     setVestings(p => p.filter(v => v.name !== name));
-    if (isConfigured() && ids.length > 0) sb(`vesting_schedule?id=in.(${ids.join(",")})`, { method: "DELETE" }).catch(() => {});
+    if (stockIds.length > 0) setStocks(p => p.filter(s => !stockIds.includes(s.id)));
+    if (isConfigured()) {
+      if (vestingIds.length > 0) sb(`vesting_schedule?id=in.(${vestingIds.join(",")})`, { method: "DELETE" }).catch(() => {});
+      if (stockIds.length > 0)   sb(`stocks?id=in.(${stockIds.join(",")})`,           { method: "DELETE" }).catch(() => {});
+    }
   }
   function vestComplete(item, vestPrice, addToPortfolio) {
     const updated = { ...item, vestPrice, vested: true };
