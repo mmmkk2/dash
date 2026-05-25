@@ -623,7 +623,8 @@ function VestCompleteForm({ item, currentPrice, onComplete, onClose }) {
 /* ── ESPP Form (완료된 구매 직접 입력 → 포트폴리오 추가) ── */
 function EsppForm({ initial, onSave, onDelete }) {
   const init = initial || {};
-  const [planId,   setPlanId]   = useState(init.accountSuffix || "");
+  const defaultPlanId = init.accountSuffix || (init.name && !/^\s*AMAT\s*\(ESPP\)\s*$/i.test(init.name) ? init.name : "");
+  const [planId,   setPlanId]   = useState(defaultPlanId);
   const [date,     setDate]     = useState(init.purchaseDate  || "");
   const [shares,   setShares]   = useState(init.shares        ? String(init.shares) : "");
   const [avgPrice, setAvgPrice] = useState(init.avgPrice      ? String(init.avgPrice) : "");
@@ -1645,7 +1646,7 @@ export default function AssetsApp() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {grantEntriesShared.map(([grantName, gvs]) => {
                   const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
-                  const holdings  = amatStocks.filter(s => !/espp/i.test(s.name) && grantVestedDates.has(s.purchaseDate));
+                  const holdings  = amatStocks.filter(s => grantVestedDates.has(s.purchaseDate));
                   const futures   = amatUnvested.filter(v => v.name === grantName);
                   if (holdings.length === 0 && futures.length === 0) return null;
                   const isOpen    = openHoldings.has(grantName);
@@ -1754,7 +1755,8 @@ export default function AssetsApp() {
                 })}
                 {/* ESPP */}
                 {(() => {
-                  const esppStocks  = amatStocks.filter(s => /espp/i.test(s.name)).sort((a, b) => (b.purchaseDate || "").localeCompare(a.purchaseDate || ""));
+                  const allRsuVestedDates = new Set(vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").map(v => v.vestDate));
+                  const esppStocks  = amatStocks.filter(s => /espp/i.test(s.name) || !allRsuVestedDates.has(s.purchaseDate)).sort((a, b) => (b.purchaseDate || "").localeCompare(a.purchaseDate || ""));
                   if (esppStocks.length === 0) return null;
                   const isOpen      = openHoldings.has("__ESPP__");
                   const totalSh     = esppStocks.reduce((s, x) => s + x.shares, 0);
@@ -1793,7 +1795,7 @@ export default function AssetsApp() {
                                 <div style={{ flex: 1 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
-                                    {s.accountSuffix && <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4e89" }}>{s.accountSuffix}</span>}
+                                    {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4e89" }}>{s.accountSuffix || s.name}</span>}
                                   </div>
                                   <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
                                     {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)}</span>
