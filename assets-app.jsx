@@ -1116,16 +1116,28 @@ export default function AssetsApp() {
         )}
 
         {/* ── Stock Tab ── */}
-        {!dbLoading && tab === "stock" && (
+        {!dbLoading && tab === "stock" && (() => {
+          const nonAmat = stocks.filter(s => s.ticker.toUpperCase() !== "AMAT");
+          const nonAmatValue = nonAmat.reduce((sum, s) => {
+            const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice;
+            return sum + (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares);
+          }, 0);
+          const nonAmatCost = nonAmat.reduce((sum, s) => {
+            const val = s.avgPrice * s.shares;
+            return sum + (s.market === "US" ? Math.round(val * (s.purchaseRate ?? rate)) : val);
+          }, 0);
+          const nonAmatGain = nonAmatValue - nonAmatCost;
+          const nonAmatGainPct = nonAmatCost > 0 ? ((nonAmatGain / nonAmatCost) * 100).toFixed(2) : "0.00";
+          return (
           <>
             {/* Stock summary */}
-            {stocks.length > 0 && (
+            {nonAmat.length > 0 && (
               <div style={{ background: C.white, borderRadius: 14, padding: "14px 16px", border: `1px solid ${C.border}`, marginBottom: 10 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                   {[
-                    { label: "평가금액", val: fmtS(stockValue), color: "#2d6a4f" },
-                    { label: "수익금", val: (stockGain >= 0 ? "+" : "") + fmtS(stockGain), color: stockGain >= 0 ? "#2d6a4f" : "#b5451b" },
-                    { label: "수익률", val: (stockGain >= 0 ? "+" : "") + stockGainPct + "%", color: stockGain >= 0 ? "#2d6a4f" : "#b5451b" },
+                    { label: "평가금액", val: fmtS(nonAmatValue), color: "#2d6a4f" },
+                    { label: "수익금", val: (nonAmatGain >= 0 ? "+" : "") + fmtS(nonAmatGain), color: nonAmatGain >= 0 ? "#2d6a4f" : "#b5451b" },
+                    { label: "수익률", val: (nonAmatGain >= 0 ? "+" : "") + nonAmatGainPct + "%", color: nonAmatGain >= 0 ? "#2d6a4f" : "#b5451b" },
                   ].map(({ label, val, color }) => (
                     <div key={label} style={{ textAlign: "center" }}>
                       <div style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
@@ -1137,14 +1149,14 @@ export default function AssetsApp() {
             )}
 
             {/* Stock list */}
-            {stocks.length === 0 ? (
+            {nonAmat.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>보유 종목을 추가해보세요</div>
                 <div style={{ fontSize: 12, color: C.inkLight }}>한국·미국 주식 모두 지원</div>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {stocks.map(s => {
+                {nonAmat.map(s => {
                   const p = prices[s.id] ?? s.currentPrice;
                   const hasPrice = p != null;
                   const valueKrw = hasPrice ? (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares) : null;
@@ -1243,7 +1255,8 @@ export default function AssetsApp() {
               </div>
             )}
           </>
-        )}
+          );
+        })()}
 
         {/* ── Asset Tab ── */}
         {!dbLoading && tab === "asset" && (
