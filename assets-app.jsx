@@ -831,6 +831,7 @@ export default function AssetsApp() {
   const [snapshots,     setSnapshots]     = useState([]);
   const [vestings,      setVestings]      = useState([]);
   const [offerings,     setOfferings]     = useState([]);
+  const [openGrants,    setOpenGrants]    = useState(new Set());
   const [vestingPrices, setVestingPrices] = useState({});
   const snapshotsRef = useRef([]);
   useEffect(() => { snapshotsRef.current = snapshots; }, [snapshots]);
@@ -979,6 +980,11 @@ export default function AssetsApp() {
   }
   function updateVesting(v) { setVestings(p => p.map(x => x.id === v.id ? v : x)); setModal(null); setEditItem(null); upsertVesting(v); }
   function deleteVesting(id){ setVestings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`vesting_schedule?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
+  function deleteGrant(name) {
+    const ids = vestings.filter(v => v.name === name).map(v => v.id);
+    setVestings(p => p.filter(v => v.name !== name));
+    if (isConfigured() && ids.length > 0) sb(`vesting_schedule?id=in.(${ids.join(",")})`, { method: "DELETE" }).catch(() => {});
+  }
   function vestComplete(item, vestPrice, addToPortfolio) {
     const updated = { ...item, vestPrice, vested: true };
     setVestings(p => p.map(x => x.id === item.id ? updated : x));
@@ -1400,60 +1406,85 @@ export default function AssetsApp() {
                 </div>
               )}
 
-              {/* ─ RSU 예정 베스팅 ─ */}
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>RSU 베스팅 예정</div>
-              {amatUnvested.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 13, color: C.inkLight }}>
-                  베스팅 일정을 추가해보세요
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
-                  {/* 같은 날짜끼리 그룹 */}
-                  {(() => {
-                    const byDate = {};
-                    amatUnvested.forEach(v => { if (!byDate[v.vestDate]) byDate[v.vestDate] = []; byDate[v.vestDate].push(v); });
-                    return Object.entries(byDate).map(([date, items]) => {
-                      const totalShares = items.reduce((s, v) => s + v.shares, 0);
-                      const vp = vestingPrices["AMAT"];
-                      const totalVal = vp ? Math.round(vp * totalShares * rate) : null;
-                      const daysLeft = Math.ceil((new Date(date) - new Date()) / 86400000);
-                      const dColor = daysLeft < 0 ? C.inkLight : daysLeft < 30 ? "#b5451b" : daysLeft < 90 ? "#e07a5f" : "#2d6a4f";
+              {/* ─ RSU 그랜트 ─ */}
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>RSU 그랜트</div>
+              {(() => {
+                const amatVestings = vestings.filter(v => v.ticker.toUpperCase() === "AMAT").sort((a, b) => a.vestDate.localeCompare(b.vestDate));
+                if (amatVestings.length === 0) return (
+                  <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 13, color: C.inkLight }}>
+                    RSU 그랜트를 추가해보세요
+                  </div>
+                );
+                const grantMap = {};
+                amatVestings.forEach(v => { if (!grantMap[v.name]) grantMap[v.name] = []; grantMap[v.name].push(v); });
+                const grantEntries = Object.entries(grantMap).sort(([, a], [, b]) => a[0].vestDate.localeCompare(b[0].vestDate));
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                    {grantEntries.map(([grantName, gvs]) => {
+                      const totalShares    = gvs.reduce((s, v) => s + v.shares, 0);
+                      const vestedShares   = gvs.filter(v => v.vested).reduce((s, v) => s + v.shares, 0);
+                      const unvestedShares = totalShares - vestedShares;
+                      const nextVest       = gvs.filter(v => !v.vested)[0];
+                      const isOpen         = openGrants.has(grantName);
+                      const dl             = nextVest ? Math.ceil((new Date(nextVest.vestDate) - new Date()) / 86400000) : null;
+                      const dColor         = dl == null ? C.inkLight : dl < 0 ? C.inkLight : dl < 30 ? "#b5451b" : dl < 90 ? "#e07a5f" : "#2d6a4f";
+                      const toggleGrant    = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
                       return (
-                        <div key={date} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, padding: "11px 14px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{ width: 42, flexShrink: 0, textAlign: "center" }}>
-                              <div style={{ fontSize: daysLeft < 0 ? 10 : 15, fontWeight: 800, color: dColor }}>{daysLeft < 0 ? "지남" : `D-${daysLeft}`}</div>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, marginBottom: 2 }}>{date}</div>
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                {items.map(v => (
-                                  <button key={v.id} onClick={() => { setEditItem(v); setModal("editVesting"); }}
-                                    style={{ fontSize: 10, background: C.paper, border: `1px solid ${C.border}`, borderRadius: 5, padding: "2px 7px", color: C.inkMid, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
-                                    {v.name} {v.shares}주
-                                  </button>
-                                ))}
+                        <div key={grantName} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                          <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 8 }}>
+                            <button onClick={toggleGrant} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left", fontFamily: F }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{grantName}</div>
+                                  <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>총 {totalShares}주 · 완료 {vestedShares}주 · 예정 {unvestedShares}주</div>
+                                </div>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  {dl != null && <div style={{ fontSize: 12, fontWeight: 700, color: dColor }}>{dl < 0 ? "지남" : `D-${dl}`}</div>}
+                                  {nextVest && <div style={{ fontSize: 10, color: C.inkLight }}>{nextVest.vestDate}</div>}
+                                </div>
+                                {isOpen ? <ChevronUp size={14} color={C.inkLight} /> : <ChevronDown size={14} color={C.inkLight} />}
                               </div>
-                            </div>
-                            <div style={{ textAlign: "right", flexShrink: 0 }}>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{totalVal ? fmtS(totalVal) : "—"}</div>
-                              <div style={{ fontSize: 11, color: C.inkLight }}>{totalShares}주</div>
-                            </div>
+                            </button>
+                            <button onClick={() => { if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
+                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 7px", cursor: "pointer", color: C.inkLight, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                              <Trash2 size={12} />
+                            </button>
                           </div>
-                          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                            {items.map(v => (
-                              <button key={v.id} onClick={() => { setEditItem(v); setModal("vestComplete"); }}
-                                style={{ background: "#2d6a4f", border: "none", borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: "#fff", fontSize: 11, fontWeight: 700, fontFamily: F }}>
-                                ✓ {v.name}
-                              </button>
-                            ))}
-                          </div>
+                          {isOpen && (
+                            <div style={{ borderTop: `1px solid ${C.border}` }}>
+                              {gvs.map((v, vi) => {
+                                const vdl = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
+                                const vdc = v.vested ? "#2d6a4f" : vdl < 0 ? C.inkLight : vdl < 30 ? "#b5451b" : vdl < 90 ? "#e07a5f" : "#2d6a4f";
+                                return (
+                                  <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "7px 14px", borderBottom: vi < gvs.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, opacity: v.vested ? 0.5 : 1 }}>
+                                    <span style={{ fontSize: 12, color: v.vested ? "#2d6a4f" : C.border, flexShrink: 0 }}>{v.vested ? "✓" : "○"}</span>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ fontSize: 12, fontWeight: v.vested ? 400 : 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</span>
+                                      <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 6 }}>{v.shares}주</span>
+                                      {v.vested && v.vestPrice && <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 4 }}>@ ${v.vestPrice}</span>}
+                                    </div>
+                                    {!v.vested && <span style={{ fontSize: 10, fontWeight: 700, color: vdc, flexShrink: 0 }}>{vdl < 0 ? "지남" : `D-${vdl}`}</span>}
+                                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                                      {!v.vested && (
+                                        <button onClick={() => { setEditItem(v); setModal("vestComplete"); }}
+                                          style={{ background: "#2d6a4f", border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
+                                      )}
+                                      <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
+                                        style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                        <Pencil size={10} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
-                    });
-                  })()}
-                </div>
-              )}
+                    })}
+                  </div>
+                );
+              })()}
 
             </>
           );
