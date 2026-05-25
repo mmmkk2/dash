@@ -623,7 +623,7 @@ function VestCompleteForm({ item, currentPrice, onComplete, onClose }) {
 /* ── ESPP Form (완료된 구매 직접 입력 → 포트폴리오 추가) ── */
 function EsppForm({ initial, onSave, onDelete }) {
   const init = initial || {};
-  const [name,     setName]     = useState(init.name         || "");
+  const [planId,   setPlanId]   = useState(init.accountSuffix || "");
   const [date,     setDate]     = useState(init.purchaseDate  || "");
   const [shares,   setShares]   = useState(init.shares        ? String(init.shares) : "");
   const [avgPrice, setAvgPrice] = useState(init.avgPrice      ? String(init.avgPrice) : "");
@@ -633,10 +633,10 @@ function EsppForm({ initial, onSave, onDelete }) {
   function submit() {
     const sh = parseInt(shares);
     const ap = parseFloat(avgPrice);
-    if (!name.trim() || !date || !sh || sh <= 0 || !ap || ap <= 0) {
+    if (!date || !sh || sh <= 0 || !ap || ap <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), ticker: "AMAT", name: name.trim(), market: "US", shares: sh, avgPrice: ap, currentPrice: null, lastFetched: null, purchaseDate: date, purchaseRate: null, institution: "UBS", accountSuffix: "" });
+    onSave({ id: init.id || Date.now(), ticker: "AMAT", name: "AMAT (ESPP)", market: "US", shares: sh, avgPrice: ap, currentPrice: null, lastFetched: null, purchaseDate: date, purchaseRate: null, institution: init.institution || "UBS", accountSuffix: planId.trim() });
   }
 
   return (
@@ -646,9 +646,9 @@ function EsppForm({ initial, onSave, onDelete }) {
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
       <div style={{ marginBottom: 12 }}>
-        <SLabel>Plan ID <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 오퍼링 구분용 (예: 2026 H1 ESPP)</span></SLabel>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="2026 H1 ESPP"
-          style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        <SLabel>Plan ID <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 오퍼링 구분용 (예: 2026 H1)</span></SLabel>
+        <input value={planId} onChange={e => setPlanId(e.target.value)} placeholder="2026 H1"
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
         <div><SLabel>구매일</SLabel>
@@ -1793,7 +1793,7 @@ export default function AssetsApp() {
                                 <div style={{ flex: 1 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
-                                    {s.name && !/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4e89" }}>{s.name}</span>}
+                                    {s.accountSuffix && <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4e89" }}>{s.accountSuffix}</span>}
                                   </div>
                                   <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
                                     {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)}</span>
