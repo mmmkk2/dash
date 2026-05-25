@@ -24,13 +24,13 @@ const fmtPrice = (n, currency) =>
 
 const DEFAULT_CATS = [
   { key: "주식",      color: "#2d6a4f" },
-  { key: "달러/외화", color: "#1d4e89" },
+  { key: "달러/외화", color: "#2469b3" },
   { key: "부동산",    color: "#b5451b" },
   { key: "예금/적금", color: "#0077b6" },
   { key: "가상화폐",  color: "#7b2d00" },
   { key: "기타",      color: "#6b5c4e" },
 ];
-const CAT_COLORS = ["#2d6a4f","#1d4e89","#b5451b","#0077b6","#7b2d00","#4a1942","#831843","#6b5c4e","#374151"];
+const CAT_COLORS = ["#2d6a4f","#2469b3","#b5451b","#0077b6","#7b2d00","#4a1942","#831843","#6b5c4e","#374151"];
 
 const C = {
   bg: "#f0f2f5", paper: "#ffffff", white: "#ffffff",
@@ -217,7 +217,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
         {isEdit && (
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" && purchaseRate ? parseFloat(purchaseRate) : null, institution: institution.trim(), accountSuffix: "" })}
-              style={{ display: "flex", alignItems: "center", gap: 5, background: "#f0f4ff", border: "1px solid #c7d4f4", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#1d4e89", fontSize: 12, fontWeight: 600 }}>
+              style={{ display: "flex", alignItems: "center", gap: 5, background: "#f0f4ff", border: "1px solid #c7d4f4", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#2469b3", fontSize: 12, fontWeight: 600 }}>
               <Copy size={13} /> 복사
             </button>
             <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>
@@ -231,7 +231,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
         <div style={{ display: "flex", gap: 8 }}>
           {[["KR", "🇰🇷 한국"], ["US", "🇺🇸 미국"]].map(([m, l]) => {
             const sel = market === m;
-            return <button key={m} onClick={() => setMarket(m)} style={{ flex: 1, padding: "8px", borderRadius: 10, border: `1.5px solid ${sel ? "#1d4e89" : C.border}`, background: sel ? "#1d4e89" : C.white, color: sel ? "#fff" : C.inkMid, fontFamily: F, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{l}</button>;
+            return <button key={m} onClick={() => setMarket(m)} style={{ flex: 1, padding: "8px", borderRadius: 10, border: `1.5px solid ${sel ? "#2469b3" : C.border}`, background: sel ? "#2469b3" : C.white, color: sel ? "#fff" : C.inkMid, fontFamily: F, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{l}</button>;
           })}
         </div>
       </div>
@@ -479,7 +479,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
       <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>퇴직연금</span>
       <div style={{ display: "flex", gap: 6, marginTop: 18, marginBottom: 12 }}>
         {TYPES.map(t => (
-          <button key={t} onClick={() => setType(t)} style={{ flex: 1, padding: "9px 0", border: `1.5px solid ${type === t ? "#234080" : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, background: type === t ? "#234080" : C.white, color: type === t ? "#fff" : C.inkMid, fontFamily: F }}>
+          <button key={t} onClick={() => setType(t)} style={{ flex: 1, padding: "9px 0", border: `1.5px solid ${type === t ? "#2d5cb8" : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, background: type === t ? "#2d5cb8" : C.white, color: type === t ? "#fff" : C.inkMid, fontFamily: F }}>
             {t}
           </button>
         ))}
@@ -510,7 +510,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
         <input value={memo} onChange={e => setMemo(e.target.value)} placeholder=""
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#234080", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d5cb8", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "추가"}
       </button>
       {onDelete && (
@@ -730,7 +730,7 @@ function EsppForm({ initial, onSave, onDelete }) {
             style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(avgPrice) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#1d4e89", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #1d4e8955", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2469b3", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #2469b355", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -759,12 +759,12 @@ function EsppCompleteForm({ item, currentPrice, rate, onComplete }) {
           style={{ width: "100%", border: `1.5px solid ${err ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
       {estShares > 0 && (
-        <div style={{ background: "#1d4e8910", border: "1px solid #1d4e8930", borderRadius: 10, padding: "10px 14px", marginBottom: 18, fontSize: 13, color: "#1d4e89", fontWeight: 600 }}>
+        <div style={{ background: "#2469b310", border: "1px solid #2469b330", borderRadius: 10, padding: "10px 14px", marginBottom: 18, fontSize: 13, color: "#2469b3", fontWeight: 600 }}>
           예상 매입 주수: {estShares}주 ({fmtS(totalKrw)} ÷ ${pp?.toFixed(2)} × {rate?.toLocaleString("ko-KR")}원)
         </div>
       )}
       <button onClick={() => { const vp = parseFloat(purchasePrice); if (!vp) { setErr(true); setTimeout(() => setErr(false), 400); return; } onComplete(vp, estShares); }}
-        style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#1d4e89", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>주식에 등록</button>
+        style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2469b3", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>주식에 등록</button>
     </div>
   );
 }
@@ -1421,28 +1421,28 @@ export default function AssetsApp() {
                     const isAcctOpen = expandedAccounts.has(acctName);
 
                     return (
-                      <div key={acctName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                      <div key={acctName} style={{ borderRadius: 16, overflow: "hidden" }}>
                         {/* Account header card */}
-                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#f4f6fb", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: C.ink, letterSpacing: "-0.01em" }}>{acctName}</span>
-                              <span style={{ fontSize: 10, color: C.inkLight, fontWeight: 500 }}>{acctStocks.length}종목</span>
-                            </div>
-                            {isAcctOpen ? <ChevronUp size={14} color={C.inkLight} /> : <ChevronDown size={14} color={C.inkLight} />}
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#265a8c", padding: "18px 20px", textAlign: "left", fontFamily: F }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                            <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em" }}>{acctName}</span>
+                            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{acctStocks.length}종목</span>
+                            <span style={{ marginLeft: "auto" }}>
+                              {isAcctOpen ? <ChevronUp size={14} color="rgba(255,255,255,0.35)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.35)" />}
+                            </span>
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                             <div>
-                              <div style={{ fontSize: 9, color: C.inkLight, marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>보유 총액</div>
-                              <div style={{ fontSize: 17, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</div>
-                              <div style={{ fontSize: 10, color: C.inkLight, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>보유 총액</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 9, color: C.inkLight, marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>평가손익</div>
-                              <div style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#2d9e6b" : "#d95f4b" }}>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
+                              <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#34d399" : "#f87171" }}>
                                 {acctPos ? "+" : ""}{fmtS(acctGain)}
                               </div>
-                              <div style={{ fontSize: 10, color: acctPos ? "#2d9e6b" : "#d95f4b", marginTop: 3, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
+                              <div style={{ fontSize: 10, color: acctPos ? "#34d399" : "#f87171", marginTop: 2, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
                                 {acctGainPct != null ? `${acctPos ? "+" : ""}${acctGainPct}%` : "—"}
                               </div>
                             </div>
@@ -1451,7 +1451,7 @@ export default function AssetsApp() {
 
                         {/* Expanded: individual stocks */}
                         {isAcctOpen && (
-                          <div style={{ background: C.white, borderTop: "none" }}>
+                          <div style={{ background: C.white, borderRadius: "0 0 16px 16px", border: `1px solid ${C.border}`, borderTop: "none" }}>
                             {acctStocks.map((s, si) => {
                               const p = prices[s.id] ?? s.currentPrice;
                               const hasPrice = p != null;
@@ -1649,13 +1649,13 @@ export default function AssetsApp() {
           const ungrouped = pensions.filter(a => !PENSION_TYPES.includes(a.accountSuffix));
           if (ungrouped.length > 0) typeGroups.push(["기타", ungrouped]);
 
-          const TYPE_COLORS = { IRP: "#234080", DC: "#2d6a4f", DB: "#7b2d00", "기타": "#6b5c4e" };
+          const TYPE_COLORS = { IRP: "#2d5cb8", DC: "#2d6a4f", DB: "#7b2d00", "기타": "#6b5c4e" };
 
           return (
             <>
               {/* 요약 */}
               {pensions.length > 0 && (
-                <div style={{ background: "#234080", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#2d5cb8", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ fontSize: 11, opacity: 0.55, letterSpacing: "0.08em", marginBottom: 6 }}>퇴직연금 총액</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>{fmtS(pensionTotal)}</div>
                   <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
@@ -1754,7 +1754,7 @@ export default function AssetsApp() {
             <>
               {/* ─ 요약 헤더 ─ */}
               {amatStocks.length > 0 && (
-                <div style={{ background: "#1e3a5f", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#265a8c", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
@@ -1810,12 +1810,12 @@ export default function AssetsApp() {
                             {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
                             <div style={{ flex: 1 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>{grantName}</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>{grantName}</span>
                                 {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
                               </div>
                               <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                                 {heldSh > 0 && <span>보유 <strong style={{ color: C.inkMid }}>{heldSh}주</strong></span>}
-                                {heldSh > 0 && amatPrice && <span style={{ fontWeight: 700, color: "#1d4e89", fontVariantNumeric: "tabular-nums" }}>${Math.round(amatPrice * heldSh).toLocaleString()}</span>}
+                                {heldSh > 0 && amatPrice && <span style={{ fontWeight: 700, color: "#2469b3", fontVariantNumeric: "tabular-nums" }}>${Math.round(amatPrice * heldSh).toLocaleString()}</span>}
                                 {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 2px" }}>·</span>}
                                 {futureSh > 0 && <span>예정 {futureSh}주</span>}
                               </div>
@@ -1917,7 +1917,7 @@ export default function AssetsApp() {
                           {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>ESPP</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>ESPP</span>
                               {latestDate && <span style={{ fontSize: 10, color: C.inkLight }}>{latestDate}</span>}
                             </div>
                             <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
@@ -1942,7 +1942,7 @@ export default function AssetsApp() {
                                 <div style={{ flex: 1 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
-                                    {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4e89" }}>{s.accountSuffix || s.name}</span>}
+                                    {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: "#2469b3" }}>{s.accountSuffix || s.name}</span>}
                                   </div>
                                   <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
                                     {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)}</span>
@@ -1976,9 +1976,9 @@ export default function AssetsApp() {
         <button onClick={() => setModal("addAsset")} style={{
           position: "fixed", bottom: 24, right: 24, zIndex: 200,
           width: 56, height: 56, borderRadius: "50%", border: "none",
-          background: "#234080", color: "#fff", cursor: "pointer",
+          background: "#2d5cb8", color: "#fff", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 20px #23408088", transition: "transform 0.15s",
+          boxShadow: "0 4px 20px #2d5cb888", transition: "transform 0.15s",
         }}
           onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
           onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
@@ -1989,9 +1989,9 @@ export default function AssetsApp() {
         <button onClick={() => setModal("addPension")} style={{
           position: "fixed", bottom: 24, right: 24, zIndex: 200,
           width: 56, height: 56, borderRadius: "50%", border: "none",
-          background: "#234080", color: "#fff", cursor: "pointer",
+          background: "#2d5cb8", color: "#fff", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 20px #23408088", transition: "transform 0.15s",
+          boxShadow: "0 4px 20px #2d5cb888", transition: "transform 0.15s",
         }}
           onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
           onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
@@ -2010,7 +2010,7 @@ export default function AssetsApp() {
       )}
       {!dbLoading && tab === "vest" && (
         <div style={{ position: "fixed", bottom: 24, right: 16, zIndex: 200, display: "flex", gap: 8 }}>
-          <button onClick={() => setModal("addOffering")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#1d4e89", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #1d4e8966" }}>
+          <button onClick={() => setModal("addOffering")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2469b3", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #2469b366" }}>
             <Plus size={15} /> ESPP
           </button>
           <button onClick={() => setModal("addVesting")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2d6a4f", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #2d6a4f66" }}>
