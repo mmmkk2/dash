@@ -1361,10 +1361,13 @@ export default function AssetsApp() {
 
           const amatPrice    = amatStocks.length > 0 ? (prices[amatStocks[0].id] ?? amatStocks[0].currentPrice) : null;
           const amatShares   = amatStocks.reduce((s, x) => s + x.shares, 0);
-          const amatValue    = amatPrice ? Math.round(amatPrice * amatShares * rate) : null;
+          const amatValueUsd = amatPrice ? amatPrice * amatShares : null;
+          const amatValue    = amatValueUsd != null ? Math.round(amatValueUsd * rate) : null;
+          const amatCostUsd  = amatStocks.reduce((s, x) => s + x.avgPrice * x.shares, 0);
           const amatCost     = amatStocks.reduce((s, x) => s + Math.round(x.avgPrice * x.shares * (x.purchaseRate ?? rate)), 0);
+          const amatGainUsd  = amatValueUsd != null ? amatValueUsd - amatCostUsd : null;
           const amatGain     = amatValue != null ? amatValue - amatCost : null;
-          const amatGainPct  = amatCost > 0 && amatGain != null ? ((amatGain / amatCost) * 100).toFixed(1) : null;
+          const amatGainPct  = amatCostUsd > 0 && amatGainUsd != null ? ((amatGainUsd / amatCostUsd) * 100).toFixed(1) : null;
           const unvestedVal    = amatUnvested.reduce((s, v) => { const p = vestingPrices["AMAT"]; return p ? s + Math.round(p * v.shares * rate) : s; }, 0);
           const vestDateGrantInfo = {};
           vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").forEach(v => { if (!vestDateGrantInfo[v.vestDate]) vestDateGrantInfo[v.vestDate] = { name: v.name, grantDate: v.grantDate, id: v.id }; });
@@ -1383,14 +1386,19 @@ export default function AssetsApp() {
                     <div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>보유 총액</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{amatValue ? fmtS(amatValue) : "—"}</div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{amatShares}주</div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                        {amatValueUsd != null ? `$${amatValueUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}` : ""} · {amatShares}주
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? "#7fffc4" : "#ffb3a7" }}>
                         {amatGain != null ? (amatGain >= 0 ? "+" : "") + fmtS(amatGain) : "—"}
                       </div>
-                      <div style={{ fontSize: 10, color: amatGain >= 0 ? "#7fffc4" : "#ffb3a7", marginTop: 2 }}>{amatGainPct != null ? (amatGain >= 0 ? "+" : "") + amatGainPct + "%" : ""}</div>
+                      <div style={{ fontSize: 10, color: amatGainUsd >= 0 ? "#7fffc4" : "#ffb3a7", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                        {amatGainUsd != null ? `${amatGainUsd >= 0 ? "+" : ""}$${Math.round(amatGainUsd).toLocaleString("en-US")}` : ""}
+                        {amatGainPct != null ? ` (${amatGainUsd >= 0 ? "+" : ""}${amatGainPct}%)` : ""}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>미베스팅 예상가</div>
@@ -1465,74 +1473,111 @@ export default function AssetsApp() {
                 );
                 const grantMap = {};
                 amatVestings.forEach(v => { if (!grantMap[v.name]) grantMap[v.name] = []; grantMap[v.name].push(v); });
-                const grantEntries = Object.entries(grantMap).sort(([, a], [, b]) => a[0].vestDate.localeCompare(b[0].vestDate));
+                // Award Date 기준 내림차순 정렬 (최신 그랜트 먼저)
+                const grantEntries = Object.entries(grantMap).sort(([, a], [, b]) => {
+                  const da = a[0].grantDate || a[0].vestDate;
+                  const db = b[0].grantDate || b[0].vestDate;
+                  return db.localeCompare(da);
+                });
+                const COL = "1fr 82px 48px 48px 56px 48px";
+                const thStyle = { fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" };
+                const totalGranted   = grantEntries.reduce((s, [, gvs]) => s + gvs.reduce((a, v) => a + v.shares, 0), 0);
+                const totalVested    = grantEntries.reduce((s, [, gvs]) => s + gvs.filter(v => v.vested).reduce((a, v) => a + v.shares, 0), 0);
+                const totalUnvested  = totalGranted - totalVested;
+                const totalAvailable = amatStocks.filter(s => !/espp/i.test(s.name)).reduce((s, x) => s + x.shares, 0);
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-                    {grantEntries.map(([grantName, gvs]) => {
-                      const totalShares    = gvs.reduce((s, v) => s + v.shares, 0);
-                      const vestedShares   = gvs.filter(v => v.vested).reduce((s, v) => s + v.shares, 0);
-                      const unvestedShares = totalShares - vestedShares;
-                      const nextVest       = gvs.filter(v => !v.vested)[0];
-                      const isOpen         = openGrants.has(grantName);
-                      const dl             = nextVest ? Math.ceil((new Date(nextVest.vestDate) - new Date()) / 86400000) : null;
-                      const dColor         = dl == null ? C.inkLight : dl < 0 ? C.inkLight : dl < 30 ? "#b5451b" : dl < 90 ? "#e07a5f" : "#2d6a4f";
-                      const toggleGrant    = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
-                      return (
-                        <div key={grantName} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                          <div style={{ display: "flex", alignItems: "center", padding: "12px 14px", gap: 8 }}>
-                            <button onClick={toggleGrant} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left", fontFamily: F }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{grantName}</div>
-                                  <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
-                                    총 {totalShares}주 · 완료 {vestedShares}주 · 예정 {unvestedShares}주
-                                    {gvs[0].grantDate && <span style={{ marginLeft: 6 }}>· 어워드 {gvs[0].grantDate}</span>}
-                                  </div>
-                                </div>
-                                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  {dl != null && <div style={{ fontSize: 12, fontWeight: 700, color: dColor }}>{dl < 0 ? "지남" : `D-${dl}`}</div>}
-                                  {nextVest && <div style={{ fontSize: 10, color: C.inkLight }}>{nextVest.vestDate}</div>}
-                                </div>
-                                {isOpen ? <ChevronUp size={14} color={C.inkLight} /> : <ChevronDown size={14} color={C.inkLight} />}
+                  <div style={{ marginBottom: 14 }}>
+                    {/* 컬럼 헤더 */}
+                    <div style={{ display: "grid", gridTemplateColumns: COL, padding: "4px 14px 6px", gap: 0 }}>
+                      <div style={thStyle}>Grant</div>
+                      <div style={{ ...thStyle, textAlign: "right" }}>Award Date</div>
+                      <div style={{ ...thStyle, textAlign: "right" }}>Granted</div>
+                      <div style={{ ...thStyle, textAlign: "right" }}>Vested</div>
+                      <div style={{ ...thStyle, textAlign: "right" }}>Unvested</div>
+                      <div style={{ ...thStyle, textAlign: "right" }}>Avail</div>
+                    </div>
+
+                    {/* 그랜트 행들 */}
+                    <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                      {grantEntries.map(([grantName, gvs], idx) => {
+                        const totalShares    = gvs.reduce((s, v) => s + v.shares, 0);
+                        const vestedShares   = gvs.filter(v => v.vested).reduce((s, v) => s + v.shares, 0);
+                        const unvestedShares = totalShares - vestedShares;
+                        const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
+                        const availableShares  = amatStocks.filter(s => !/espp/i.test(s.name) && grantVestedDates.has(s.purchaseDate)).reduce((s, x) => s + x.shares, 0);
+                        const isOpen         = openGrants.has(grantName);
+                        const toggleGrant    = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
+                        const isLast         = idx === grantEntries.length - 1;
+                        const rowBorder      = !isLast || isOpen ? `1px solid ${C.border}` : "none";
+                        return (
+                          <div key={grantName}>
+                            {/* 요약 행 */}
+                            <div style={{ display: "grid", gridTemplateColumns: COL, borderBottom: rowBorder, cursor: "pointer", background: isOpen ? C.paper : C.white }}
+                              onClick={toggleGrant}>
+                              <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                                {isOpen ? <ChevronUp size={11} color={C.inkLight} style={{ flexShrink: 0 }} /> : <ChevronDown size={11} color={C.inkLight} style={{ flexShrink: 0 }} />}
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{grantName}</span>
                               </div>
-                            </button>
-                            <button onClick={() => { if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
-                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 7px", cursor: "pointer", color: C.inkLight, display: "flex", alignItems: "center", flexShrink: 0 }}>
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                          {isOpen && (
-                            <div style={{ borderTop: `1px solid ${C.border}` }}>
-                              {gvs.map((v, vi) => {
-                                const vdl = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
-                                const vdc = v.vested ? "#2d6a4f" : vdl < 0 ? C.inkLight : vdl < 30 ? "#b5451b" : vdl < 90 ? "#e07a5f" : "#2d6a4f";
-                                return (
-                                  <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "7px 14px", borderBottom: vi < gvs.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, opacity: v.vested ? 0.5 : 1 }}>
-                                    <span style={{ fontSize: 12, color: v.vested ? "#2d6a4f" : C.border, flexShrink: 0 }}>{v.vested ? "✓" : "○"}</span>
-                                    <div style={{ flex: 1 }}>
-                                      <span style={{ fontSize: 12, fontWeight: v.vested ? 400 : 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</span>
-                                      <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 6 }}>{v.shares}주</span>
-                                      {v.vested && v.vestPrice && <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 4 }}>@ ${v.vestPrice}</span>}
-                                    </div>
-                                    {!v.vested && <span style={{ fontSize: 10, fontWeight: 700, color: vdc, flexShrink: 0 }}>{vdl < 0 ? "지남" : `D-${vdl}`}</span>}
-                                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                                      {!v.vested && (
-                                        <button onClick={() => { setEditItem(v); setModal("vestComplete"); }}
-                                          style={{ background: "#2d6a4f", border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
-                                      )}
-                                      <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
-                                        style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
-                                        <Pencil size={10} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 11, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
+                                {gvs[0].grantDate || "—"}
+                              </div>
+                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 13, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalShares}</div>
+                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 13, color: vestedShares > 0 ? "#2d6a4f" : C.inkLight, fontVariantNumeric: "tabular-nums" }}>{vestedShares}</div>
+                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 13, color: unvestedShares > 0 ? "#b5451b" : C.inkLight, fontVariantNumeric: "tabular-nums" }}>{unvestedShares}</div>
+                              <div style={{ padding: "11px 14px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{availableShares}</div>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                            {/* 펼쳤을 때 베스팅 스케줄 */}
+                            {isOpen && (
+                              <div style={{ background: C.paper, borderBottom: !isLast ? `1px solid ${C.border}` : "none" }}>
+                                {gvs.map((v, vi) => {
+                                  const vdl = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
+                                  const vdc = v.vested ? "#2d6a4f" : vdl < 0 ? C.inkLight : vdl < 30 ? "#b5451b" : vdl < 90 ? "#e07a5f" : "#2d6a4f";
+                                  return (
+                                    <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "7px 14px 7px 32px", borderBottom: vi < gvs.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, opacity: v.vested ? 0.55 : 1 }}>
+                                      <span style={{ fontSize: 11, color: v.vested ? "#2d6a4f" : C.border, flexShrink: 0 }}>{v.vested ? "✓" : "○"}</span>
+                                      <div style={{ flex: 1 }}>
+                                        <span style={{ fontSize: 12, fontWeight: v.vested ? 400 : 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</span>
+                                        <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 6 }}>{v.shares}주</span>
+                                        {v.vested && v.vestPrice && <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 4 }}>@ ${v.vestPrice}</span>}
+                                      </div>
+                                      {!v.vested && <span style={{ fontSize: 10, fontWeight: 700, color: vdc, flexShrink: 0 }}>{vdl < 0 ? "지남" : `D-${vdl}`}</span>}
+                                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                                        {!v.vested && (
+                                          <button onClick={e => { e.stopPropagation(); setEditItem(v); setModal("vestComplete"); }}
+                                            style={{ background: "#2d6a4f", border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
+                                        )}
+                                        <button onClick={e => { e.stopPropagation(); setEditItem(v); setModal("editVesting"); }}
+                                          style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                          <Pencil size={10} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {/* 그랜트 삭제 */}
+                                <div style={{ padding: "8px 14px", display: "flex", justifyContent: "flex-end" }}>
+                                  <button onClick={e => { e.stopPropagation(); if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
+                                    style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: "#b5451b", fontSize: 11, fontWeight: 600 }}>
+                                    <Trash2 size={11} /> 그랜트 삭제
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Total 행 */}
+                      <div style={{ display: "grid", gridTemplateColumns: COL, background: C.paper, borderTop: `1px solid ${C.border}` }}>
+                        <div style={{ padding: "9px 14px", fontSize: 11, fontWeight: 700, color: C.inkMid }}>Total</div>
+                        <div />
+                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalGranted}</div>
+                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "#2d6a4f", fontVariantNumeric: "tabular-nums" }}>{totalVested}</div>
+                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 13, fontWeight: 700, color: totalUnvested > 0 ? "#b5451b" : C.inkLight, fontVariantNumeric: "tabular-nums" }}>{totalUnvested}</div>
+                        <div style={{ padding: "9px 14px", textAlign: "right", fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalAvailable}</div>
+                      </div>
+                    </div>
                   </div>
                 );
               })()}
