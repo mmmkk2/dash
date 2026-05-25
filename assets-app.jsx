@@ -1276,6 +1276,7 @@ export default function AssetsApp() {
               <div style={{ fontSize: 11, opacity: 0.5 }}>주식 {fmtS(stockValue)}</div>
               {depositTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>예수금 {fmtS(depositTotal)}</div>}
               <div style={{ fontSize: 11, opacity: 0.5 }}>기타자산 {fmtS(assetTotal)}</div>
+              {pensionTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>퇴직연금 {fmtS(pensionTotal)}</div>}
               {unvestedValue > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>미확정 RSU {fmtS(unvestedValue)}</div>}
             </div>
           </div>
@@ -1315,7 +1316,7 @@ export default function AssetsApp() {
 
         {/* Tab */}
         <div style={{ display: "flex", background: C.white, borderRadius: 10, padding: 3, border: `1px solid ${C.border}`, gap: 3, marginBottom: 14 }}>
-          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
+          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["pension", "💼 퇴직연금"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: tab === k ? 700 : 400, fontSize: 13, background: tab === k ? C.ink : "transparent", color: tab === k ? "#fff" : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
           ))}
         </div>
@@ -1549,7 +1550,7 @@ export default function AssetsApp() {
 
         {/* ── Asset Tab ── */}
         {!dbLoading && tab === "asset" && (() => {
-          const tabAssets = assets.filter(a => a.cat !== "예수금");
+          const tabAssets = assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금");
           const toggleCat = key => setExpandedCats(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
           const catGroups = Object.entries(
             tabAssets.reduce((acc, a) => { (acc[a.cat] = acc[a.cat] || []).push(a); return acc; }, {})
@@ -1631,6 +1632,81 @@ export default function AssetsApp() {
                             })}
                           </div>
                         )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* ── 퇴직연금 탭 ── */}
+        {!dbLoading && tab === "pension" && (() => {
+          const PENSION_TYPES = ["IRP", "DC", "DB"];
+          const pensions = assets.filter(a => a.cat === "퇴직연금");
+          const typeGroups = PENSION_TYPES.map(t => [t, pensions.filter(a => a.accountSuffix === t)]).filter(([, list]) => list.length > 0);
+          const ungrouped = pensions.filter(a => !PENSION_TYPES.includes(a.accountSuffix));
+          if (ungrouped.length > 0) typeGroups.push(["기타", ungrouped]);
+
+          const TYPE_COLORS = { IRP: "#234080", DC: "#2d6a4f", DB: "#7b2d00", "기타": "#6b5c4e" };
+
+          return (
+            <>
+              {/* 요약 */}
+              {pensions.length > 0 && (
+                <div style={{ background: "#234080", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                  <div style={{ fontSize: 11, opacity: 0.55, letterSpacing: "0.08em", marginBottom: 6 }}>퇴직연금 총액</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>{fmtS(pensionTotal)}</div>
+                  <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+                    {PENSION_TYPES.map(t => {
+                      const s = pensions.filter(a => a.accountSuffix === t).reduce((acc, a) => acc + a.amount, 0);
+                      return s > 0 ? <div key={t} style={{ fontSize: 11, opacity: 0.65 }}>{t} {fmtS(s)}</div> : null;
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {pensions.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>퇴직연금 계좌를 추가해보세요</div>
+                  <div style={{ fontSize: 12, color: C.inkLight }}>IRP · DC · DB 유형을 구분해서 관리할 수 있어요</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {typeGroups.map(([typeName, list]) => {
+                    const color   = TYPE_COLORS[typeName] || C.inkMid;
+                    const typeSum = list.reduce((s, a) => s + a.amount, 0);
+                    return (
+                      <div key={typeName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                        {/* 유형 헤더 */}
+                        <div style={{ background: C.white, padding: "12px 16px 10px", display: "flex", alignItems: "center", gap: 9 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                          <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: C.ink }}>{typeName}</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(typeSum)}</div>
+                        </div>
+                        {/* 계좌 목록 */}
+                        <div style={{ borderTop: `1px solid ${C.border}` }}>
+                          {list.map((a, ai) => (
+                            <div key={a.id} style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: ai < list.length - 1 ? `1px solid ${C.border}` : "none", gap: 10 }}>
+                              <div style={{ width: 4, height: 36, borderRadius: 2, background: color, flexShrink: 0 }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{a.name || a.institution}</div>
+                                <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                                  {a.institution}{a.date ? ` · ${a.date}` : ""}
+                                  {a.memo ? ` · ${a.memo}` : ""}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
+                              </div>
+                              <button onClick={() => { setEditItem(a); setModal("editPension"); }}
+                                style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                <Pencil size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     );
                   })}
@@ -1909,6 +1985,19 @@ export default function AssetsApp() {
           <Plus size={26} />
         </button>
       )}
+      {!dbLoading && tab === "pension" && (
+        <button onClick={() => setModal("addPension")} style={{
+          position: "fixed", bottom: 24, right: 24, zIndex: 200,
+          width: 56, height: 56, borderRadius: "50%", border: "none",
+          background: "#234080", color: "#fff", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px #23408088", transition: "transform 0.15s",
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+          <Plus size={26} />
+        </button>
+      )}
       {!dbLoading && tab === "stock" && (
         <div style={{ position: "fixed", bottom: 24, right: 16, zIndex: 200, display: "flex", gap: 8 }}>
           <button onClick={() => setModal("addDeposit")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#0d7377", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #0d737766" }}>
@@ -1951,6 +2040,12 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "editDeposit" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <DepositForm initial={editItem} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} suggestions={institutionSuggestions} />}
+      </Modal>
+      <Modal open={modal === "addPension"} onClose={() => setModal(null)}>
+        <PensionForm onSave={a => { addAsset(a); }} />
+      </Modal>
+      <Modal open={modal === "editPension" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <PensionForm initial={editItem} onSave={a => { updateAsset(a); }} onDelete={() => deleteAsset(editItem.id)} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
