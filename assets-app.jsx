@@ -458,9 +458,9 @@ function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
 }
 
 /* ── Pension Form ── */
-const PENSION_TYPES       = ["IRP", "노란우산", "DC", "DB"];
+const PENSION_TYPES       = ["IRP", "노란우산", "DC"];
 const PENSION_MONTHLY     = new Set(["IRP", "노란우산"]);
-const PENSION_TYPE_COLORS = { IRP: "#2d5cb8", "노란우산": "#b8860b", DC: "#2d6a4f", DB: "#7b2d00", "기타": "#6b5c4e" };
+const PENSION_TYPE_COLORS = { IRP: "#2d5cb8", "노란우산": "#b8860b", DC: "#2d6a4f", "기타": "#6b5c4e" };
 const DC_ETF_MARKER       = "dc_pension";
 
 function pensionMonths(startDate) {
@@ -547,12 +547,18 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
           </div>
         </>
       )}
-      <SLabel>현재 평가액</SLabel>
-      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: isMonthly(type) ? 20 : 12, display: "flex", alignItems: "center" }}>
+      <SLabel>현재 평가액 {type === "DC" ? "(ETF 미입력 시 기준값)" : ""}</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 8, display: "flex", alignItems: "center" }}>
         <input value={amountStr} onChange={e => setAmountStr(e.target.value.replace(/[^\d]/g, ""))} placeholder="10000000"
           style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 20, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
         <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원</span>
       </div>
+      {type === "DC" && (
+        <div style={{ background: "#f0f7f4", border: "1px solid #b7dece", borderRadius: 9, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#2d6a4f", lineHeight: 1.5 }}>
+          저장 후 카드의 펼침 버튼(∨)으로 ETF 종목을 추가할 수 있습니다.<br />
+          종목 추가 시 현재 평가액은 자동 계산됩니다.
+        </div>
+      )}
       {!isMonthly(type) && (
         <>
           <SLabel>메모 (선택)</SLabel>
@@ -1828,7 +1834,7 @@ export default function AssetsApp() {
               {pensions.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>연금·공제 계좌를 추가해보세요</div>
-                  <div style={{ fontSize: 12, color: C.inkLight }}>IRP · 노란우산 · DC · DB</div>
+                  <div style={{ fontSize: 12, color: C.inkLight }}>IRP · 노란우산 · DC</div>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
