@@ -33,10 +33,10 @@ const DEFAULT_CATS = [
 const CAT_COLORS = ["#2d6a4f","#1d4e89","#b5451b","#0077b6","#7b2d00","#4a1942","#831843","#6b5c4e","#374151"];
 
 const C = {
-  bg: "#f4f6f9", paper: "#ffffff", white: "#ffffff",
-  ink: "#1a2535", inkMid: "#4a5568", inkLight: "#a0aec0",
-  border: "#e4e9f0", cream: "#edf2f7",
-  header: "linear-gradient(160deg,#1a2535 0%,#2d3f5e 100%)",
+  bg: "#f0f2f5", paper: "#ffffff", white: "#ffffff",
+  ink: "#1a1f2e", inkMid: "#556070", inkLight: "#a8b3c0",
+  border: "#e3e8ef", cream: "#eef1f6",
+  header: "linear-gradient(160deg,#1a1f2e 0%,#2b3a52 100%)",
 };
 const F = "'Inter',sans-serif";
 
@@ -1356,26 +1356,26 @@ export default function AssetsApp() {
                     return (
                       <div key={acctName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
                         {/* Account header card */}
-                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#2d3f5e,#3d5278)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#f4f6fb", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>{acctName}</span>
-                              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>{acctStocks.length}종목</span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: C.ink, letterSpacing: "-0.01em" }}>{acctName}</span>
+                              <span style={{ fontSize: 10, color: C.inkLight, fontWeight: 500 }}>{acctStocks.length}종목</span>
                             </div>
-                            {isAcctOpen ? <ChevronUp size={14} color="rgba(255,255,255,0.35)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.35)" />}
+                            {isAcctOpen ? <ChevronUp size={14} color={C.inkLight} /> : <ChevronDown size={14} color={C.inkLight} />}
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                             <div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>보유 총액</div>
-                              <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</div>
-                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</div>
+                              <div style={{ fontSize: 9, color: C.inkLight, marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>보유 총액</div>
+                              <div style={{ fontSize: 17, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</div>
+                              <div style={{ fontSize: 10, color: C.inkLight, marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</div>
                             </div>
                             <div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>평가손익</div>
-                              <div style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#34d399" : "#f87171" }}>
+                              <div style={{ fontSize: 9, color: C.inkLight, marginBottom: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>평가손익</div>
+                              <div style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#2d9e6b" : "#d95f4b" }}>
                                 {acctPos ? "+" : ""}{fmtS(acctGain)}
                               </div>
-                              <div style={{ fontSize: 10, color: acctPos ? "#34d399" : "#f87171", marginTop: 3, fontVariantNumeric: "tabular-nums", opacity: 0.8 }}>
+                              <div style={{ fontSize: 10, color: acctPos ? "#2d9e6b" : "#d95f4b", marginTop: 3, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
                                 {acctGainPct != null ? `${acctPos ? "+" : ""}${acctGainPct}%` : "—"}
                               </div>
                             </div>
@@ -1671,9 +1671,10 @@ export default function AssetsApp() {
                                 <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>{grantName}</span>
                                 {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
                               </div>
-                              <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
-                                {heldSh > 0 && <span>보유 {heldSh}주</span>}
-                                {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 4px" }}>·</span>}
+                              <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                                {heldSh > 0 && <span>보유 <strong style={{ color: C.inkMid }}>{heldSh}주</strong></span>}
+                                {heldSh > 0 && amatPrice && <span style={{ fontWeight: 700, color: "#1d4e89", fontVariantNumeric: "tabular-nums" }}>${Math.round(amatPrice * heldSh).toLocaleString()}</span>}
+                                {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 2px" }}>·</span>}
                                 {futureSh > 0 && <span>예정 {futureSh}주</span>}
                               </div>
                             </div>
@@ -1706,11 +1707,11 @@ export default function AssetsApp() {
                             return (
                               <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: vi < vestedVestings.length - 1 || futures.length > 0 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
-                                  <div style={{ fontSize: 11, color: C.inkLight }}>{v.shares}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid }}>{v.shares}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}{p ? <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>${(p * v.shares).toFixed(0)}</span> : null}</div>
                                   {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                 </div>
                                 <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
