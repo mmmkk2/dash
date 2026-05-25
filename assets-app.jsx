@@ -125,8 +125,39 @@ function Modal({ open, onClose, children }) {
   );
 }
 
+/* ── AutoInput (계좌 자동완성) ── */
+function AutoInput({ value, onChange, suggestions = [], placeholder, style }) {
+  const [open, setOpen] = useState(false);
+  const filtered = suggestions.filter(s => s && s.toLowerCase().includes((value || "").toLowerCase()));
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        style={style}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 6px 20px rgba(0,0,0,0.12)", zIndex: 500, overflow: "hidden" }}>
+          {filtered.map(s => (
+            <div key={s} onMouseDown={() => { onChange(s); setOpen(false); }}
+              style={{ padding: "10px 14px", fontSize: 13, color: C.ink, cursor: "pointer", borderBottom: `1px solid ${C.border}`, fontFamily: F }}
+              onMouseEnter={e => e.currentTarget.style.background = C.cream}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Stock Form ── */
-function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
+function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = [] }) {
   const init = initial || {};
   const [ticker,       setTicker]       = useState(init.ticker       || "");
   const [name,         setName]         = useState(init.name         || "");
@@ -136,7 +167,6 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
   const [purchaseDate,  setPurchaseDate]  = useState(init.purchaseDate  || "");
   const [purchaseRate,  setPurchaseRate]  = useState(init.purchaseRate  ? String(init.purchaseRate) : "");
   const [institution,   setInstitution]   = useState(init.institution   || "");
-  const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
   const [nameFetching,  setNameFetching]  = useState(false);
   const [rateFetching,  setRateFetching]  = useState(false);
   const [err, setErr] = useState(false);
@@ -177,7 +207,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
     const pr = purchaseRate ? parseFloat(purchaseRate) : null;
-    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" ? pr : null, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: init.lastFetched || null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" ? pr : null, institution: institution.trim(), accountSuffix: init.accountSuffix || "" });
   }
 
   return (
@@ -186,7 +216,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
         <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "종목 수정" : "종목 추가"}</span>
         {isEdit && (
           <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" && purchaseRate ? parseFloat(purchaseRate) : null, institution: institution.trim(), accountSuffix: accountSuffix.trim() })}
+            <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" && purchaseRate ? parseFloat(purchaseRate) : null, institution: institution.trim(), accountSuffix: "" })}
               style={{ display: "flex", alignItems: "center", gap: 5, background: "#f0f4ff", border: "1px solid #c7d4f4", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#1d4e89", fontSize: 12, fontWeight: 600 }}>
               <Copy size={13} /> 복사
             </button>
@@ -236,18 +266,11 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
         </div>
       </div>
 
-      {/* Institution + Account (optional) */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
-        <div>
-          <SLabel>증권사 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="미래에셋, 키움…"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-        <div>
-          <SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
-        </div>
+      {/* Account */}
+      <div style={{ marginBottom: 12 }}>
+        <SLabel>계좌 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <AutoInput value={institution} onChange={setInstitution} suggestions={suggestions} placeholder="미래에셋, 키움…"
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
 
       {/* Purchase Date (optional) */}
@@ -290,7 +313,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving }) {
 }
 
 /* ── Asset Form ── */
-function AssetForm({ initial, cats, onSave, onDelete, saving }) {
+function AssetForm({ initial, cats, onSave, onDelete, saving, suggestions = [] }) {
   const init = initial || {};
   const [name,          setName]          = useState(init.name          || "");
   const [cat,           setCat]           = useState(init.cat           || cats.find(c => c.key !== "주식")?.key || "기타");
@@ -298,7 +321,6 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
   const [memo,          setMemo]          = useState(init.memo          || "");
   const [date,          setDate]          = useState(init.date          || new Date().toISOString().slice(0, 10));
   const [institution,   setInstitution]   = useState(init.institution   || "");
-  const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
   const [err,           setErr]           = useState(false);
   const isEdit = !!initial;
 
@@ -307,7 +329,7 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
   function submit() {
     const num = parseInt(String(amount).replace(/,/g, ""));
     if (!name.trim() || !num || num <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
-    onSave({ id: init.id || Date.now(), name: name.trim(), cat, amount: num, memo: memo.trim(), date, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
+    onSave({ id: init.id || Date.now(), name: name.trim(), cat, amount: num, memo: memo.trim(), date, institution: institution.trim(), accountSuffix: init.accountSuffix || "" });
   }
 
   const catObj = cats.find(c => c.key === cat) || { color: C.inkMid };
@@ -347,18 +369,11 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
         </div>
       </div>
 
-      {/* Institution + Account */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
-        <div>
-          <SLabel>기관 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="국민은행, 미래에셋…"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-        <div>
-          <SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums", letterSpacing: "0.05em" }} />
-        </div>
+      {/* Account */}
+      <div style={{ marginBottom: 12 }}>
+        <SLabel>계좌 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <AutoInput value={institution} onChange={setInstitution} suggestions={suggestions} placeholder="국민은행, 미래에셋…"
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
@@ -382,20 +397,19 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
 }
 
 /* ── Deposit Form (예수금 / 단기자금) ── */
-function DepositForm({ initial, onSave, onDelete, saving }) {
+function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
   const init = initial || {};
-  const [amount,        setAmount]        = useState(init.amount        ? Number(init.amount).toLocaleString("ko-KR") : "");
-  const [institution,   setInstitution]   = useState(init.institution   || "");
-  const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
-  const [memo,          setMemo]          = useState(init.memo          || "");
-  const [date,          setDate]          = useState(init.date          || new Date().toISOString().slice(0, 10));
-  const [err,           setErr]           = useState(false);
+  const [amount,      setAmount]      = useState(init.amount ? Number(init.amount).toLocaleString("ko-KR") : "");
+  const [institution, setInstitution] = useState(init.institution || "");
+  const [memo,        setMemo]        = useState(init.memo || "");
+  const [date,        setDate]        = useState(init.date || new Date().toISOString().slice(0, 10));
+  const [err,         setErr]         = useState(false);
   const isEdit = !!initial;
 
   function submit() {
     const num = parseInt(String(amount).replace(/,/g, ""));
     if (!num || num <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
-    onSave({ id: init.id || Date.now(), name: institution.trim() || "예수금", cat: "예수금", amount: num, memo: memo.trim(), date, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
+    onSave({ id: init.id || Date.now(), name: institution.trim() || "예수금", cat: "예수금", amount: num, memo: memo.trim(), date, institution: institution.trim(), accountSuffix: init.accountSuffix || "" });
   }
 
   return (
@@ -417,17 +431,10 @@ function DepositForm({ initial, onSave, onDelete, saving }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
-        <div>
-          <SLabel>증권사 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="미래에셋, 키움…"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-        <div>
-          <SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
-        </div>
+      <div style={{ marginBottom: 12 }}>
+        <SLabel>계좌 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <AutoInput value={institution} onChange={setInstitution} suggestions={suggestions} placeholder="미래에셋, 키움…"
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
@@ -1060,6 +1067,14 @@ export default function AssetsApp() {
 
   const depositTotal = useMemo(() => assets.filter(a => a.cat === "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
   const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
+
+  const institutionSuggestions = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    [...stocks].reverse().forEach(s => { if (s.institution && !seen.has(s.institution)) { seen.add(s.institution); result.push(s.institution); } });
+    [...assets].reverse().forEach(a => { if (a.institution && !seen.has(a.institution)) { seen.add(a.institution); result.push(a.institution); } });
+    return result;
+  }, [stocks, assets]);
   const total = stockValue + depositTotal + assetTotal;
 
   /* ── Pie data ── */
@@ -1866,22 +1881,22 @@ export default function AssetsApp() {
 
       {/* Modals */}
       <Modal open={modal === "addStock"} onClose={() => { setModal(null); setAddInitial(null); }}>
-        <StockForm initial={addInitial} onSave={addStock} saving={false} />
+        <StockForm initial={addInitial} onSave={addStock} saving={false} suggestions={institutionSuggestions} />
       </Modal>
       <Modal open={modal === "editStock" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { setAddInitial(s); setModal("addStock"); setEditItem(null); }} saving={false} />}
+        {editItem && <StockForm initial={editItem} onSave={updateStock} onDelete={() => deleteStock(editItem.id)} onCopy={s => { setAddInitial(s); setModal("addStock"); setEditItem(null); }} saving={false} suggestions={institutionSuggestions} />}
       </Modal>
       <Modal open={modal === "addAsset"}  onClose={() => setModal(null)}>
-        <AssetForm cats={cats} onSave={addAsset} saving={false} />
+        <AssetForm cats={cats} onSave={addAsset} saving={false} suggestions={institutionSuggestions} />
       </Modal>
       <Modal open={modal === "editAsset" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <AssetForm initial={editItem} cats={cats} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} />}
+        {editItem && <AssetForm initial={editItem} cats={cats} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} suggestions={institutionSuggestions} />}
       </Modal>
       <Modal open={modal === "addDeposit"} onClose={() => setModal(null)}>
-        <DepositForm onSave={addAsset} saving={false} />
+        <DepositForm onSave={addAsset} saving={false} suggestions={institutionSuggestions} />
       </Modal>
       <Modal open={modal === "editDeposit" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <DepositForm initial={editItem} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} />}
+        {editItem && <DepositForm initial={editItem} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} suggestions={institutionSuggestions} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
