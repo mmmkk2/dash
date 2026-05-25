@@ -457,6 +457,71 @@ function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
   );
 }
 
+/* ── Pension Form ── */
+function PensionForm({ initial = {}, onSave, onDelete }) {
+  const init = initial;
+  const TYPES = ["IRP", "DC", "DB"];
+  const [type,        setType]        = useState(init.accountSuffix || "IRP");
+  const [institution, setInstitution] = useState(init.institution || "");
+  const [name,        setName]        = useState(init.name || "");
+  const [amountStr,   setAmountStr]   = useState(init.amount ? String(init.amount) : "");
+  const [date,        setDate]        = useState(init.date || new Date().toISOString().slice(0, 10));
+  const [memo,        setMemo]        = useState(init.memo || "");
+
+  const submit = () => {
+    const num = parseInt(amountStr.replace(/,/g, ""), 10);
+    if (!num || !institution.trim()) return;
+    onSave({ id: init.id || Date.now(), cat: "퇴직연금", name: name.trim() || institution.trim(), institution: institution.trim(), accountSuffix: type, amount: num, date, memo: memo.trim() });
+  };
+
+  return (
+    <div style={{ padding: "4px 0 8px" }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>퇴직연금</span>
+      <div style={{ display: "flex", gap: 6, marginTop: 18, marginBottom: 12 }}>
+        {TYPES.map(t => (
+          <button key={t} onClick={() => setType(t)} style={{ flex: 1, padding: "9px 0", border: `1.5px solid ${type === t ? "#234080" : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, background: type === t ? "#234080" : C.white, color: type === t ? "#fff" : C.inkMid, fontFamily: F }}>
+            {t}
+          </button>
+        ))}
+      </div>
+      <SLabel>금융기관</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="미래에셋증권"
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 15, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>계좌명 (선택)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder=""
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 15, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>현재 평가액</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12, display: "flex", alignItems: "center" }}>
+        <input value={amountStr} onChange={e => setAmountStr(e.target.value.replace(/[^\d]/g, ""))} placeholder="10000000"
+          style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 20, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+        <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원</span>
+      </div>
+      <SLabel>기준일</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>메모 (선택)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
+        <input value={memo} onChange={e => setMemo(e.target.value)} placeholder=""
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#234080", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+        {init.id ? "저장" : "추가"}
+      </button>
+      {onDelete && (
+        <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F, marginTop: 0 }}>
+          삭제
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── Cat Settings ── */
 function CatSettings({ cats, onChange }) {
   const [newName, setNewName] = useState("");
@@ -1068,7 +1133,8 @@ export default function AssetsApp() {
   const stockGainPct = stockCost > 0 ? ((stockGain / stockCost) * 100).toFixed(2) : "0.00";
 
   const depositTotal = useMemo(() => assets.filter(a => a.cat === "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
-  const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
+  const pensionTotal = useMemo(() => assets.filter(a => a.cat === "퇴직연금").reduce((s, a) => s + a.amount, 0), [assets]);
+  const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금").reduce((s, a) => s + a.amount, 0), [assets]);
 
   const institutionSuggestions = useMemo(() => {
     const seen = new Set();
@@ -1077,7 +1143,7 @@ export default function AssetsApp() {
     [...assets].reverse().forEach(a => { if (a.institution && !seen.has(a.institution)) { seen.add(a.institution); result.push(a.institution); } });
     return result;
   }, [stocks, assets]);
-  const total = stockValue + depositTotal + assetTotal;
+  const total = stockValue + depositTotal + assetTotal + pensionTotal;
 
   /* ── Pie data ── */
   const pieData = useMemo(() => {
