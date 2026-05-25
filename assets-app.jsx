@@ -947,6 +947,7 @@ export default function AssetsApp() {
   const [tab,      setTab]      = useState("stock");
   const [expanded, setExpanded] = useState(null);
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
+  const [expandedCats, setExpandedCats] = useState(new Set());
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
   const [addInitial, setAddInitial] = useState(null);
@@ -1355,7 +1356,7 @@ export default function AssetsApp() {
                     return (
                       <div key={acctName} style={{ borderRadius: 18, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.10)" }}>
                         {/* Account header card */}
-                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#2c2c2e 0%,#48484a 100%)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#636366 0%,#8e8e93 100%)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{acctName}</span>
@@ -1481,77 +1482,97 @@ export default function AssetsApp() {
         })()}
 
         {/* ── Asset Tab ── */}
-        {!dbLoading && tab === "asset" && (
-          <>
-            {/* Category bars */}
-            {pieData.filter(c => c.name !== "주식").length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-                {pieData.filter(c => c.name !== "주식").map(c => {
-                  const pct = Math.round((c.value / (total || 1)) * 100);
-                  return (
-                    <div key={c.name} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 13, padding: "11px 14px 9px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 7 }}>
-                        <div style={{ width: 9, height: 9, borderRadius: "50%", background: c.color, flexShrink: 0 }} />
-                        <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.ink }}>{c.name}</div>
-                        <div style={{ fontSize: 11, color: c.color, fontWeight: 700, marginRight: 4 }}>{pct}%</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(c.value)}</div>
-                      </div>
-                      <div style={{ background: C.cream, borderRadius: 99, height: 4 }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: c.color, borderRadius: 99 }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {!dbLoading && tab === "asset" && (() => {
+          const tabAssets = assets.filter(a => a.cat !== "예수금");
+          const toggleCat = key => setExpandedCats(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+          const catGroups = Object.entries(
+            tabAssets.reduce((acc, a) => { (acc[a.cat] = acc[a.cat] || []).push(a); return acc; }, {})
+          ).sort(([ka], [kb]) => {
+            const ia = cats.findIndex(c => c.key === ka);
+            const ib = cats.findIndex(c => c.key === kb);
+            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+          });
 
-            {assets.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>자산을 추가해보세요</div>
-                <div style={{ fontSize: 12, color: C.inkLight }}>부동산, 예금, 달러 등</div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {assets.map(a => {
-                  const color = catColor(a.cat);
-                  const isOpen = expanded === a.id;
-                  return (
-                    <div key={a.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                      <button onClick={() => setExpanded(isOpen ? null : a.id)} style={{ width: "100%", background: "none", border: "none", padding: "13px 16px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 6, height: 36, borderRadius: 3, background: color, flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{a.name}</span>
-                            {a.institution && (
-                              <span style={{ fontSize: 10, fontWeight: 600, color: color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 5, padding: "1px 6px", letterSpacing: "0.02em" }}>
-                                {a.institution}
-                              </span>
-                            )}
+          return (
+            <>
+              {tabAssets.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>자산을 추가해보세요</div>
+                  <div style={{ fontSize: 12, color: C.inkLight }}>부동산, 예금, 달러 등</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {catGroups.map(([catName, catAssets]) => {
+                    const color    = catColor(catName);
+                    const catTotal = catAssets.reduce((s, a) => s + a.amount, 0);
+                    const pct      = Math.round((catTotal / (total || 1)) * 100);
+                    const isCatOpen = expandedCats.has(catName);
+
+                    return (
+                      <div key={catName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                        {/* Category header */}
+                        <button onClick={() => toggleCat(catName)} style={{ width: "100%", background: C.white, border: "none", cursor: "pointer", padding: "13px 16px 10px", textAlign: "left", fontFamily: F }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                            <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: C.ink }}>{catName}</div>
+                            <div style={{ fontSize: 11, color, fontWeight: 700, marginRight: 2 }}>{pct}%</div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums", marginRight: 6 }}>{fmtS(catTotal)}</div>
+                            {isCatOpen ? <ChevronUp size={13} color={C.inkLight} /> : <ChevronDown size={13} color={C.inkLight} />}
                           </div>
-                          <div style={{ fontSize: 11, color: C.inkLight }}>{a.cat} · {a.date}</div>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
-                        {isOpen ? <ChevronUp size={13} color={C.inkLight} /> : <ChevronDown size={13} color={C.inkLight} />}
-                      </button>
-                      {isOpen && (
-                        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 16px", background: C.paper, display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 13, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>{fmt(a.amount)}</div>
-                            {a.date && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 3 }}>기준일 {a.date}</div>}
-                            {a.memo && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{a.memo}</div>}
+                          <div style={{ background: C.cream, borderRadius: 99, height: 4 }}>
+                            <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 99 }} />
                           </div>
-                          <button onClick={() => { setEditItem(a); setModal("editAsset"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 12px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
-                            <Pencil size={12} /> 수정
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
+                        </button>
+
+                        {/* Expanded: individual assets */}
+                        {isCatOpen && (
+                          <div style={{ borderTop: `1px solid ${C.border}` }}>
+                            {catAssets.map((a, ai) => {
+                              const isOpen = expanded === a.id;
+                              const isLast = ai === catAssets.length - 1;
+                              return (
+                                <div key={a.id} style={{ borderBottom: isLast && !isOpen ? "none" : `1px solid ${C.border}` }}>
+                                  <button onClick={() => setExpanded(isOpen ? null : a.id)} style={{ width: "100%", background: "none", border: "none", padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, fontFamily: F }}>
+                                    <div style={{ width: 4, height: 32, borderRadius: 2, background: color, flexShrink: 0 }} />
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{a.name}</span>
+                                        {a.institution && (
+                                          <span style={{ fontSize: 10, fontWeight: 600, color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 5, padding: "1px 6px" }}>
+                                            {a.institution}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: 11, color: C.inkLight }}>{a.date}</div>
+                                    </div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
+                                    {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                                  </button>
+                                  {isOpen && (
+                                    <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 16px", background: C.paper, display: "flex", alignItems: "center", gap: 10 }}>
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 13, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>{fmt(a.amount)}</div>
+                                        {a.date && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 3 }}>기준일 {a.date}</div>}
+                                        {a.memo && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{a.memo}</div>}
+                                      </div>
+                                      <button onClick={() => { setEditItem(a); setModal("editAsset"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 12px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
+                                        <Pencil size={12} /> 수정
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* ── AMAT 탭 ── */}
         {!dbLoading && tab === "vest" && (() => {
