@@ -1371,16 +1371,19 @@ export default function AssetsApp() {
                     const gain    = valKrw != null ? valKrw - costKrw : null;
                     const gainPct = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
                     const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
+                    const isEspp = /espp/i.test(s.name);
+                    const typeLabel = isEspp ? "ESPP" : "RSU";
+                    const typeColor = isEspp ? "#1d4e89" : "#2d6a4f";
                     return (
                       <div key={s.id} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, padding: "11px 14px" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{s.name !== s.ticker ? s.name : s.ticker}</span>
-                              {s.institution && <span style={{ fontSize: 10, color: "#2d6a4f", background: "#2d6a4f18", border: "1px solid #2d6a4f44", borderRadius: 5, padding: "1px 6px", fontWeight: 600 }}>{s.institution}{s.accountSuffix ? ` ···${s.accountSuffix}` : ""}</span>}
+                              <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: `${typeColor}18`, border: `1px solid ${typeColor}44`, borderRadius: 5, padding: "2px 7px", letterSpacing: "0.04em" }}>{typeLabel}</span>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
                             </div>
                             <div style={{ fontSize: 11, color: C.inkLight }}>
-                              {s.shares}주 · 취득가 ${s.avgPrice.toFixed(4)}{s.purchaseDate ? ` · ${s.purchaseDate}` : ""}
+                              {s.shares}주 · 취득가 ${s.avgPrice.toFixed(4)}
                             </div>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
