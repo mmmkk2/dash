@@ -479,10 +479,13 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
   const [startDate,   setStartDate]   = useState(init.date || new Date().toISOString().slice(0, 10));
   const [monthlyStr,  setMonthlyStr]  = useState(isMonthly(init.accountSuffix) ? (init.memo || "") : "");
   const [memo,        setMemo]        = useState(!isMonthly(init.accountSuffix) ? (init.memo || "") : "");
+  const [err,         setErr]         = useState("");
 
   const submit = () => {
     const num = parseInt(amountStr.replace(/,/g, ""), 10);
-    if (!num || !institution.trim()) return;
+    if (!institution.trim()) { setErr("금융기관을 입력해주세요"); return; }
+    if (!num)                { setErr("현재 평가액을 입력해주세요"); return; }
+    setErr("");
     const memoVal = isMonthly(type) ? monthlyStr.replace(/[^\d]/g, "") : memo.trim();
     onSave({ id: init.id || Date.now(), cat: "퇴직연금", name: name.trim() || institution.trim(), institution: institution.trim(), accountSuffix: type, amount: num, date: startDate, memo: memoVal });
   };
@@ -559,6 +562,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
           </div>
         </>
       )}
+      {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
       <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d5cb8", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "추가"}
       </button>
