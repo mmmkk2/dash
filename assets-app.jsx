@@ -1268,10 +1268,18 @@ export default function AssetsApp() {
 
           {/* Total */}
           <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 18, padding: "18px 20px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: 16 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>총 자산</div>
+            {/* 퇴직연금 포함 */}
+            <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>총 자산 (퇴직연금 포함)</div>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", fontVariantNumeric: "tabular-nums" }}>
               {fmtS(total)}<span style={{ fontSize: 14, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
             </div>
+            {/* 퇴직연금 제외 */}
+            {pensionTotal > 0 && (
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "baseline", gap: 6 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em", textTransform: "uppercase" }}>퇴직연금 제외</span>
+                <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.75 }}>{fmtS(total - pensionTotal)}</span>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
               <div style={{ fontSize: 11, opacity: 0.5 }}>주식 {fmtS(stockValue)}</div>
               {depositTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>예수금 {fmtS(depositTotal)}</div>}
