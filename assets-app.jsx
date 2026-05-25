@@ -954,7 +954,6 @@ export default function AssetsApp() {
   const [snapshots,     setSnapshots]     = useState([]);
   const [vestings,      setVestings]      = useState([]);
   const [offerings,     setOfferings]     = useState([]);
-  const [openGrants,    setOpenGrants]    = useState(new Set());
   const [openHoldings,  setOpenHoldings]  = useState(new Set());
   const [vestingPrices, setVestingPrices] = useState({});
   const snapshotsRef = useRef([]);
@@ -1641,113 +1640,8 @@ export default function AssetsApp() {
                 </div>
               )}
 
-              {/* ─ RSU 그랜트 ─ */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em" }}>그랜트</div>
-              </div>
-              {(() => {
-                const grantEntries = grantEntriesShared;
-                if (grantEntries.length === 0) return (
-                  <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 13, color: C.inkLight }}>
-                    RSU 그랜트를 추가해보세요
-                  </div>
-                );
-                const COL = "1fr 82px 52px 40px";
-                const thStyle = { fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" };
-                const totalAvailable = amatStocks.filter(s => !/espp/i.test(s.name)).reduce((s, x) => s + x.shares, 0);
-                return (
-                  <div style={{ marginBottom: 14 }}>
-                    {/* 컬럼 헤더 */}
-                    <div style={{ display: "grid", gridTemplateColumns: COL, padding: "4px 14px 6px", gap: 0 }}>
-                      <div style={thStyle}>Grant</div>
-                      <div style={{ ...thStyle, textAlign: "right" }}>Award Date</div>
-                      <div style={{ ...thStyle, textAlign: "right" }}>보유</div>
-                      <div />
-                    </div>
-
-                    {/* 그랜트 행들 */}
-                    <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                      {grantEntries.map(([grantName, gvs], idx) => {
-                        const availableShares  = gvs.filter(v => v.vested).reduce((s, v) => s + v.shares, 0);
-                        const isOpen           = openGrants.has(grantName);
-                        const toggleGrant      = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
-                        const isLast           = idx === grantEntries.length - 1;
-                        const rowBorder        = !isLast || isOpen ? `1px solid ${C.border}` : "none";
-                        return (
-                          <div key={grantName}>
-                            {/* 요약 행 */}
-                            <div style={{ display: "grid", gridTemplateColumns: COL, borderBottom: rowBorder, cursor: "pointer", background: isOpen ? C.paper : C.white }}
-                              onClick={toggleGrant}>
-                              <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-                                {isOpen ? <ChevronUp size={11} color={C.inkLight} style={{ flexShrink: 0 }} /> : <ChevronDown size={11} color={C.inkLight} style={{ flexShrink: 0 }} />}
-                                <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{grantName}</span>
-                              </div>
-                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 11, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
-                                {gvs[0].grantDate || "—"}
-                              </div>
-                              <div style={{ padding: "11px 8px", textAlign: "right", fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{availableShares}</div>
-                              <div style={{ padding: "6px 10px 6px 4px", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-                                <button onClick={e => { e.stopPropagation(); setEditItem({ grantName, grantDate: gvs[0].grantDate }); setModal("editGrant"); }}
-                                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
-                                  <Pencil size={11} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* 펼쳤을 때 베스팅 스케줄 */}
-                            {isOpen && (
-                              <div style={{ background: C.paper, borderBottom: !isLast ? `1px solid ${C.border}` : "none" }}>
-                                {gvs.map((v, vi) => {
-                                  const vdl = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
-                                  const vdc = v.vested ? "#2d6a4f" : vdl < 0 ? C.inkLight : vdl < 30 ? "#b5451b" : vdl < 90 ? "#e07a5f" : "#2d6a4f";
-                                  return (
-                                    <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "7px 14px 7px 32px", borderBottom: vi < gvs.length - 1 ? `1px solid ${C.border}` : "none", gap: 8, opacity: v.vested ? 0.55 : 1 }}>
-                                      <span style={{ fontSize: 11, color: v.vested ? "#2d6a4f" : C.border, flexShrink: 0 }}>{v.vested ? "✓" : "○"}</span>
-                                      <div style={{ flex: 1 }}>
-                                        <span style={{ fontSize: 12, fontWeight: v.vested ? 400 : 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</span>
-                                        <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 6 }}>{v.shares}주</span>
-                                        {v.vested && v.vestPrice && <span style={{ fontSize: 11, color: C.inkLight, marginLeft: 4 }}>@ ${v.vestPrice}</span>}
-                                      </div>
-                                      {!v.vested && <span style={{ fontSize: 10, fontWeight: 700, color: vdc, flexShrink: 0 }}>{vdl < 0 ? "지남" : `D-${vdl}`}</span>}
-                                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                                        {!v.vested && (
-                                          <button onClick={e => { e.stopPropagation(); setEditItem(v); setModal("vestComplete"); }}
-                                            style={{ background: "#2d6a4f", border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
-                                        )}
-                                        <button onClick={e => { e.stopPropagation(); setEditItem(v); setModal("editVesting"); }}
-                                          style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
-                                          <Pencil size={10} />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                                <div style={{ padding: "8px 14px", display: "flex", justifyContent: "flex-end" }}>
-                                  <button onClick={e => { e.stopPropagation(); if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
-                                    style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: "#b5451b", fontSize: 11, fontWeight: 600 }}>
-                                    <Trash2 size={11} /> 그랜트 삭제
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-
-                      {/* Total 행 */}
-                      <div style={{ display: "grid", gridTemplateColumns: COL, background: C.paper, borderTop: `1px solid ${C.border}` }}>
-                        <div style={{ padding: "9px 14px", fontSize: 11, fontWeight: 700, color: C.inkMid }}>Total</div>
-                        <div />
-                        <div style={{ padding: "9px 8px", textAlign: "right", fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{totalAvailable}</div>
-                        <div />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
               {/* ─ 보유 · 예정 (그랜트별 폴딩) ─ */}
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10, marginTop: 18 }}>보유 · 예정</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10 }}>보유 · 예정</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {grantEntriesShared.map(([grantName, gvs]) => {
                   const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
@@ -1764,23 +1658,33 @@ export default function AssetsApp() {
                   return (
                     <div key={grantName} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, overflow: "hidden" }}>
                       {/* 헤더 */}
-                      <button onClick={() => toggleHolding(grantName)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>{grantName}</span>
-                              {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <button onClick={() => toggleHolding(grantName)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>{grantName}</span>
+                                {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
+                              </div>
+                              <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                                {heldSh > 0 && <span>보유 {heldSh}주</span>}
+                                {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 4px" }}>·</span>}
+                                {futureSh > 0 && <span>예정 {futureSh}주</span>}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
-                              {heldSh > 0 && <span>보유 {heldSh}주</span>}
-                              {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 4px" }}>·</span>}
-                              {futureSh > 0 && <span>예정 {futureSh}주</span>}
-                            </div>
+                            {dl != null && <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{dl < 0 ? "지남" : `D-${dl}`}</span>}
                           </div>
-                          {dl != null && <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{dl < 0 ? "지남" : `D-${dl}`}</span>}
-                        </div>
-                      </button>
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); setEditItem({ grantName, grantDate }); setModal("editGrant"); }}
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: "11px 8px", color: C.inkLight, display: "flex", alignItems: "center" }}>
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: "11px 12px 11px 4px", color: "#b5451b", display: "flex", alignItems: "center" }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                       {/* 펼침 내용 */}
                       {isOpen && (
                         <div style={{ borderTop: `1px solid ${C.border}` }}>
