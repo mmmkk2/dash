@@ -1645,12 +1645,11 @@ export default function AssetsApp() {
               <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10 }}>보유 · 예정</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {grantEntriesShared.map(([grantName, gvs]) => {
-                  const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
-                  const holdings  = amatStocks.filter(s => grantVestedDates.has(s.purchaseDate));
+                  const vestedVestings = gvs.filter(v => v.vested);
                   const futures   = amatUnvested.filter(v => v.name === grantName);
-                  if (holdings.length === 0 && futures.length === 0) return null;
+                  if (vestedVestings.length === 0 && futures.length === 0) return null;
                   const isOpen    = openHoldings.has(grantName);
-                  const heldSh    = holdings.reduce((s, x) => s + x.shares, 0);
+                  const heldSh    = vestedVestings.reduce((s, v) => s + v.shares, 0);
                   const futureSh  = futures.reduce((s, v) => s + v.shares, 0);
                   const nextVest  = futures[0];
                   const dl        = nextVest ? Math.ceil((new Date(nextVest.vestDate) - new Date()) / 86400000) : null;
@@ -1689,26 +1688,28 @@ export default function AssetsApp() {
                       {/* 펼침 내용 */}
                       {isOpen && (
                         <div style={{ borderTop: `1px solid ${C.border}` }}>
-                          {/* 현재 보유 */}
-                          {holdings.map((s, si) => {
-                            const p        = prices[s.id] ?? s.currentPrice;
-                            const valKrw   = p ? Math.round(p * s.shares * rate) : null;
-                            const costKrw  = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
-                            const gain     = valKrw != null ? valKrw - costKrw : null;
-                            const gainPct  = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
-                            const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
-                            const linkedVest = vestings.find(v => v.vested && v.vestDate === s.purchaseDate && v.name === grantName);
+                          {/* 베스팅 기반 보유 행 */}
+                          {vestedVestings.map((v, vi) => {
+                            const linkedStock = amatStocks.find(s => s.purchaseDate === v.vestDate && Math.abs(s.shares - v.shares) < 0.5);
+                            const p        = linkedStock ? (prices[linkedStock.id] ?? linkedStock.currentPrice) : null;
+                            const costUsd  = v.vestPrice ?? v.grantPrice;
+                            const purchRate = linkedStock?.purchaseRate ?? rate;
+                            const valKrw   = p ? Math.round(p * v.shares * rate) : null;
+                            const costKrw  = costUsd ? Math.round(costUsd * v.shares * purchRate) : null;
+                            const gain     = valKrw != null && costKrw != null ? valKrw - costKrw : null;
+                            const gainPct  = costKrw && costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
+                            const gainColor = gain != null && gain >= 0 ? "#2d6a4f" : "#b5451b";
                             return (
-                              <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: si < holdings.length - 1 || futures.length > 0 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                              <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: vi < vestedVestings.length - 1 || futures.length > 0 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate}</div>
-                                  <div style={{ fontSize: 11, color: C.inkLight }}>{s.shares}주 · 취득가 ${s.avgPrice.toFixed(2)}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
+                                  <div style={{ fontSize: 11, color: C.inkLight }}>{v.shares}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                                   <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
                                   {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                 </div>
-                                <button onClick={() => { setEditItem(linkedVest || s); setModal(linkedVest ? "editVesting" : "editStock"); }}
+                                <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
                                   style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
                                   <Pencil size={10} />
                                 </button>
