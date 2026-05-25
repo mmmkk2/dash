@@ -420,9 +420,6 @@ function VestingForm({ initial, onSave, onDelete }) {
   const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
   const [vestDate,     setVestDate]     = useState(init.vestDate     || "");
   const [grantPrice,   setGrantPrice]   = useState(init.grantPrice   ? String(init.grantPrice) : "");
-  const [institution,  setInstitution]  = useState(init.institution  || "UBS");
-  const [accountSuffix,setAccountSuffix]= useState(init.accountSuffix|| "");
-  const [memo,         setMemo]         = useState(init.memo         || "");
   const [err, setErr] = useState(false);
   const isEdit = !!onDelete;
 
@@ -431,7 +428,7 @@ function VestingForm({ initial, onSave, onDelete }) {
     if (!ticker.trim() || !name.trim() || !sh || sh <= 0 || !vestDate) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), type: "RSU", ticker: ticker.trim().toUpperCase(), name: name.trim(), shares: sh, vestDate, grantPrice: grantPrice ? parseFloat(grantPrice) : null, vestPrice: init.vestPrice ?? null, vested: false, institution: institution.trim(), accountSuffix: accountSuffix.trim(), memo: memo.trim() });
+    onSave({ id: init.id || Date.now(), type: "RSU", ticker: ticker.trim().toUpperCase(), name: name.trim(), shares: sh, vestDate, grantPrice: grantPrice ? parseFloat(grantPrice) : null, vestPrice: init.vestPrice ?? null, vested: false, institution: init.institution || "UBS", accountSuffix: init.accountSuffix || "", memo: "" });
   }
 
   return (
@@ -460,19 +457,10 @@ function VestingForm({ initial, onSave, onDelete }) {
             style={{ width: "100%", border: `1.5px solid ${err && !vestDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: vestDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
-        <div><SLabel>부여가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-        <div><SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-      </div>
-      <div style={{ marginBottom: 20 }}><SLabel>메모 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-        <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="퍼포먼스 보너스 등"
-          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      <div style={{ marginBottom: 20 }}>
+        <SLabel>부여가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00"
+          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
       <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #2d6a4f55", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
@@ -523,8 +511,6 @@ function EsppForm({ initial, onSave, onDelete }) {
   const [startPrice,   setStartPrice]   = useState(init.startPrice   ? String(init.startPrice) : "");
   const [monthlyKrw,   setMonthlyKrw]   = useState(init.monthlyKrw   ? Number(init.monthlyKrw).toLocaleString("ko-KR") : "");
   const [discountPct,  setDiscountPct]  = useState(init.discountPct  ? String(init.discountPct) : "15");
-  const [institution,  setInstitution]  = useState(init.institution  || "UBS");
-  const [accountSuffix,setAccountSuffix]= useState(init.accountSuffix|| "");
   const [err, setErr] = useState(false);
   const isEdit = !!onDelete;
 
@@ -533,7 +519,7 @@ function EsppForm({ initial, onSave, onDelete }) {
     if (!ticker.trim() || !name.trim() || !startDate || !endDate || !mk || mk <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim(), startDate, endDate, startPrice: startPrice ? parseFloat(startPrice) : null, monthlyKrw: mk, discountPct: parseFloat(discountPct) || 15, institution: institution.trim(), accountSuffix: accountSuffix.trim(), memo: "" });
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim(), startDate, endDate, startPrice: startPrice ? parseFloat(startPrice) : null, monthlyKrw: mk, discountPct: parseFloat(discountPct) || 15, institution: init.institution || "UBS", accountSuffix: init.accountSuffix || "", memo: "" });
   }
 
   return (
@@ -628,8 +614,6 @@ function VestingBatchForm({ onSave }) {
   const [awardYear,       setAwardYear]     = useState(String(new Date().getFullYear()));
   const [totalShares,     setTotalShares]   = useState("");
   const [grantPrice,      setGrantPrice]    = useState("");
-  const [institution,     setInstitution]   = useState("UBS");
-  const [accountSuffix,   setAccountSuffix] = useState("");
   const [rows,            setRows]          = useState([]); // {date, shares, vested, vestPrice}
   const [bulkVestPrice,   setBulkVestPrice] = useState(""); // 완료 항목 일괄 베스팅가
   const [autoPortfolio,   setAutoPortfolio] = useState(true);
@@ -673,16 +657,14 @@ function VestingBatchForm({ onSave }) {
     if (!grantName.trim() || !ticker.trim() || rows.length === 0) return;
     setSaving(true);
     const base = Date.now();
-    const gp   = grantPrice ? parseFloat(grantPrice) : null;
-    const tkr  = ticker.trim().toUpperCase();
-    const nm   = grantName.trim();
-    const inst = institution.trim();
-    const acc  = accountSuffix.trim();
+    const gp  = grantPrice ? parseFloat(grantPrice) : null;
+    const tkr = ticker.trim().toUpperCase();
+    const nm  = grantName.trim();
     const vestings = rows.map((r, i) => ({
       id: base + i, type: "RSU", ticker: tkr, name: nm,
       shares: parseInt(r.shares) || 0, vestDate: r.date,
       grantPrice: gp, vestPrice: r.vestPrice ? parseFloat(r.vestPrice) : null,
-      vested: r.vested, institution: inst, accountSuffix: acc, memo: "",
+      vested: r.vested, institution: "UBS", accountSuffix: "", memo: "",
     }));
     // 포트폴리오 자동 등록: vested + vestPrice 있는 행
     const stocksToAdd = autoPortfolio
@@ -692,7 +674,7 @@ function VestingBatchForm({ onSave }) {
             shares: parseInt(r.shares), avgPrice: parseFloat(r.vestPrice),
             currentPrice: null, lastFetched: null,
             purchaseDate: r.date, purchaseRate: null,
-            institution: inst, accountSuffix: acc,
+            institution: "UBS", accountSuffix: "",
           }))
       : [];
     await onSave(vestings, stocksToAdd);
@@ -799,17 +781,6 @@ function VestingBatchForm({ onSave }) {
           </div>
         </div>
       </>)}
-
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
-        <div><SLabel>기관 (증권사)</SLabel>
-          <input value={institution} onChange={e => setInstitution(e.target.value)}
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-        <div><SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} inputMode="numeric"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-        </div>
-      </div>
 
       {generated && vestedCount > 0 && (
         <button onClick={() => setAutoPortfolio(v => !v)}
