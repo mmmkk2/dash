@@ -646,7 +646,7 @@ function EsppForm({ initial, onSave, onDelete }) {
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
       <div style={{ marginBottom: 12 }}>
-        <SLabel>이름 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 오퍼링 구분용 (예: 2026 H1 ESPP)</span></SLabel>
+        <SLabel>Plan ID <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 오퍼링 구분용 (예: 2026 H1 ESPP)</span></SLabel>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="2026 H1 ESPP"
           style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
@@ -1754,38 +1754,53 @@ export default function AssetsApp() {
                 })}
                 {/* ESPP */}
                 {(() => {
-                  const esppStocks = amatStocks.filter(s => /espp/i.test(s.name));
+                  const esppStocks  = amatStocks.filter(s => /espp/i.test(s.name)).sort((a, b) => (b.purchaseDate || "").localeCompare(a.purchaseDate || ""));
                   if (esppStocks.length === 0) return null;
-                  const isOpen = openHoldings.has("__ESPP__");
-                  const totalSh = esppStocks.reduce((s, x) => s + x.shares, 0);
+                  const isOpen      = openHoldings.has("__ESPP__");
+                  const totalSh     = esppStocks.reduce((s, x) => s + x.shares, 0);
+                  const esppPrice   = amatPrice;
+                  const totalUsd    = esppPrice ? esppPrice * totalSh : null;
+                  const latestDate  = esppStocks[0]?.purchaseDate;
                   return (
                     <div style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, overflow: "hidden" }}>
                       <button onClick={() => toggleHolding("__ESPP__")} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
                           <div style={{ flex: 1 }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>ESPP</span>
-                            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>보유 {totalSh}주</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>ESPP</span>
+                              {latestDate && <span style={{ fontSize: 10, color: C.inkLight }}>{latestDate}</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                              <span style={{ fontWeight: 700, color: C.inkMid }}>{totalSh}주</span>
+                              {totalUsd && <span style={{ marginLeft: 6 }}>${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>}
+                            </div>
                           </div>
                         </div>
                       </button>
                       {isOpen && (
                         <div style={{ borderTop: `1px solid ${C.border}` }}>
                           {esppStocks.map((s, si) => {
-                            const p       = prices[s.id] ?? s.currentPrice;
-                            const valKrw  = p ? Math.round(p * s.shares * rate) : null;
-                            const costKrw = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
-                            const gain    = valKrw != null ? valKrw - costKrw : null;
-                            const gainPct = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
-                            const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
+                            const p        = prices[s.id] ?? s.currentPrice;
+                            const valUsd   = p ? p * s.shares : null;
+                            const costKrw  = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
+                            const valKrw   = p ? Math.round(p * s.shares * rate) : null;
+                            const gain     = valKrw != null ? valKrw - costKrw : null;
+                            const gainPct  = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
+                            const gainColor = gain != null && gain >= 0 ? "#2d6a4f" : "#b5451b";
                             return (
                               <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: si < esppStocks.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</div>
-                                  <div style={{ fontSize: 11, color: C.inkLight }}>{s.shares}주 · 취득가 ${s.avgPrice.toFixed(2)}</div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
+                                    {s.name && !/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && <span style={{ fontSize: 11, fontWeight: 600, color: "#1d4e89" }}>{s.name}</span>}
+                                  </div>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
+                                    {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)}</span>
+                                  </div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
+                                  {valUsd && <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
                                   {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                 </div>
                                 <button onClick={() => { setEditItem(s); setModal("editOffering"); }}
