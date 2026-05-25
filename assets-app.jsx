@@ -877,6 +877,7 @@ export default function AssetsApp() {
   const [vestings,      setVestings]      = useState([]);
   const [offerings,     setOfferings]     = useState([]);
   const [openGrants,    setOpenGrants]    = useState(new Set());
+  const [openHoldings,  setOpenHoldings]  = useState(new Set());
   const [vestingPrices, setVestingPrices] = useState({});
   const snapshotsRef = useRef([]);
   useEffect(() => { snapshotsRef.current = snapshots; }, [snapshots]);
@@ -1407,6 +1408,17 @@ export default function AssetsApp() {
           const vestDateGrantInfo = {};
           vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").forEach(v => { if (!vestDateGrantInfo[v.vestDate]) vestDateGrantInfo[v.vestDate] = { name: v.name, grantDate: v.grantDate, id: v.id }; });
 
+          // 그랜트 그루핑 (상위 스코프 — 그랜트 테이블 + 보유·예정 공유)
+          const amatAllVestings = vestings.filter(v => v.ticker.toUpperCase() === "AMAT").sort((a, b) => a.vestDate.localeCompare(b.vestDate));
+          const grantMapShared  = {};
+          amatAllVestings.forEach(v => { if (!grantMapShared[v.name]) grantMapShared[v.name] = []; grantMapShared[v.name].push(v); });
+          const grantEntriesShared = Object.entries(grantMapShared).sort(([, a], [, b]) => {
+            const da = a[0].grantDate || a[0].vestDate;
+            const db = b[0].grantDate || b[0].vestDate;
+            return db.localeCompare(da);
+          });
+          const toggleHolding = name => setOpenHoldings(p => { const n = new Set(p); n.has(name) ? n.delete(name) : n.add(name); return n; });
+
           return (
             <>
               {/* ─ 요약 헤더 ─ */}
@@ -1449,20 +1461,12 @@ export default function AssetsApp() {
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em" }}>그랜트</div>
               </div>
               {(() => {
-                const amatVestings = vestings.filter(v => v.ticker.toUpperCase() === "AMAT").sort((a, b) => a.vestDate.localeCompare(b.vestDate));
-                if (amatVestings.length === 0) return (
+                const grantEntries = grantEntriesShared;
+                if (grantEntries.length === 0) return (
                   <div style={{ textAlign: "center", padding: "24px 20px", background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, marginBottom: 14, fontSize: 13, color: C.inkLight }}>
                     RSU 그랜트를 추가해보세요
                   </div>
                 );
-                const grantMap = {};
-                amatVestings.forEach(v => { if (!grantMap[v.name]) grantMap[v.name] = []; grantMap[v.name].push(v); });
-                // Award Date 기준 내림차순 정렬 (최신 그랜트 먼저)
-                const grantEntries = Object.entries(grantMap).sort(([, a], [, b]) => {
-                  const da = a[0].grantDate || a[0].vestDate;
-                  const db = b[0].grantDate || b[0].vestDate;
-                  return db.localeCompare(da);
-                });
                 const COL = "1fr 82px 52px 40px";
                 const thStyle = { fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" };
                 const totalAvailable = amatStocks.filter(s => !/espp/i.test(s.name)).reduce((s, x) => s + x.shares, 0);
@@ -1558,95 +1562,156 @@ export default function AssetsApp() {
                 );
               })()}
 
-              {/* ─ 보유 · 예정 ─ */}
+              {/* ─ 보유 · 예정 (그랜트별 폴딩) ─ */}
               <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10, marginTop: 18 }}>보유 · 예정</div>
-              <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 14 }}>
-
-                {/* 현재 보유 */}
-                {amatStocks.length === 0 ? (
-                  <div style={{ padding: "16px 14px", fontSize: 12, color: C.inkLight, textAlign: "center", borderBottom: amatUnvested.length > 0 ? `1px solid ${C.border}` : "none" }}>보유 주식 없음</div>
-                ) : amatStocks.map((s, si) => {
-                  const p        = prices[s.id] ?? s.currentPrice;
-                  const valKrw   = p ? Math.round(p * s.shares * rate) : null;
-                  const costKrw  = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
-                  const gain     = valKrw != null ? valKrw - costKrw : null;
-                  const gainPct  = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
-                  const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
-                  const isEspp    = /espp/i.test(s.name);
-                  const typeLabel = isEspp ? "ESPP" : "RSU";
-                  const typeColor = isEspp ? "#1d4e89" : "#2d6a4f";
-                  const grantInfo  = !isEspp ? (vestDateGrantInfo[s.purchaseDate] || null) : null;
-                  const grantName  = grantInfo?.name || null;
-                  const grantDate  = grantInfo?.grantDate || null;
-                  const linkedVest = !isEspp ? vestings.find(v => v.vested && v.vestDate === s.purchaseDate && v.ticker.toUpperCase() === "AMAT") : null;
-                  const isLastStock = si === amatStocks.length - 1;
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                {grantEntriesShared.map(([grantName, gvs]) => {
+                  const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
+                  const holdings  = amatStocks.filter(s => !/espp/i.test(s.name) && grantVestedDates.has(s.purchaseDate));
+                  const futures   = amatUnvested.filter(v => v.name === grantName);
+                  if (holdings.length === 0 && futures.length === 0) return null;
+                  const isOpen    = openHoldings.has(grantName);
+                  const heldSh    = holdings.reduce((s, x) => s + x.shares, 0);
+                  const futureSh  = futures.reduce((s, v) => s + v.shares, 0);
+                  const nextVest  = futures[0];
+                  const dl        = nextVest ? Math.ceil((new Date(nextVest.vestDate) - new Date()) / 86400000) : null;
+                  const dc        = dl == null ? C.inkLight : dl < 0 ? C.inkLight : dl < 30 ? "#b5451b" : dl < 90 ? "#e07a5f" : "#2d6a4f";
+                  const grantDate = gvs[0].grantDate;
                   return (
-                    <div key={s.id} style={{ padding: "11px 14px", borderBottom: !isLastStock || amatUnvested.length > 0 ? `1px solid ${C.border}` : "none" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: `${typeColor}18`, border: `1px solid ${typeColor}44`, borderRadius: 5, padding: "2px 7px", letterSpacing: "0.04em" }}>{typeLabel}</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
-                            {grantName && <span style={{ fontSize: 11, color: C.inkLight }}>{grantName}</span>}
+                    <div key={grantName} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                      {/* 헤더 */}
+                      <button onClick={() => toggleHolding(grantName)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>{grantName}</span>
+                              {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                              {heldSh > 0 && <span>보유 {heldSh}주</span>}
+                              {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 4px" }}>·</span>}
+                              {futureSh > 0 && <span>예정 {futureSh}주</span>}
+                            </div>
                           </div>
-                          <div style={{ fontSize: 11, color: C.inkLight }}>
-                            {s.shares}주 · 취득가 ${s.avgPrice.toFixed(2)}
-                            {grantDate && <span style={{ marginLeft: 6 }}>· 어워드 {grantDate}</span>}
-                          </div>
+                          {dl != null && <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{dl < 0 ? "지남" : `D-${dl}`}</span>}
                         </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
-                          {gain != null && <div style={{ fontSize: 11, fontWeight: 600, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
+                      </button>
+                      {/* 펼침 내용 */}
+                      {isOpen && (
+                        <div style={{ borderTop: `1px solid ${C.border}` }}>
+                          {/* 현재 보유 */}
+                          {holdings.map((s, si) => {
+                            const p        = prices[s.id] ?? s.currentPrice;
+                            const valKrw   = p ? Math.round(p * s.shares * rate) : null;
+                            const costKrw  = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
+                            const gain     = valKrw != null ? valKrw - costKrw : null;
+                            const gainPct  = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
+                            const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
+                            const linkedVest = vestings.find(v => v.vested && v.vestDate === s.purchaseDate && v.name === grantName);
+                            return (
+                              <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: si < holdings.length - 1 || futures.length > 0 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate}</div>
+                                  <div style={{ fontSize: 11, color: C.inkLight }}>{s.shares}주 · 취득가 ${s.avgPrice.toFixed(2)}</div>
+                                </div>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
+                                  {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
+                                </div>
+                                <button onClick={() => { setEditItem(linkedVest || s); setModal(linkedVest ? "editVesting" : "editStock"); }}
+                                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                                  <Pencil size={10} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                          {/* 미래 예정 구분 */}
+                          {futures.length > 0 && (
+                            <div style={{ padding: "5px 14px 5px 28px", background: C.paper, borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+                              예정
+                            </div>
+                          )}
+                          {/* 미래 예정 행 */}
+                          {futures.map((v, vi) => {
+                            const vdl = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
+                            const vdc = vdl < 0 ? C.inkLight : vdl < 30 ? "#b5451b" : vdl < 90 ? "#e07a5f" : "#2d6a4f";
+                            const vp  = vestingPrices["AMAT"];
+                            const estKrw = vp ? Math.round(vp * v.shares * rate) : null;
+                            return (
+                              <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: vi < futures.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
+                                  <div style={{ fontSize: 11, color: C.inkLight }}>{v.shares}주{v.grantPrice ? ` · 부여가 $${v.grantPrice}` : ""}</div>
+                                </div>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: vdc }}>{vdl < 0 ? "지남" : `D-${vdl}`}</div>
+                                  {estKrw && <div style={{ fontSize: 10, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>≈{fmtS(estKrw)}</div>}
+                                </div>
+                                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                                  <button onClick={() => { setEditItem(v); setModal("vestComplete"); }}
+                                    style={{ background: "#2d6a4f", border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
+                                  <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
+                                    style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                    <Pencil size={10} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
-                          {linkedVest
-                            ? <button onClick={() => { setEditItem(linkedVest); setModal("editVesting"); }} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}><Pencil size={10} /></button>
-                            : <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}><Pencil size={10} /></button>
-                          }
-                        </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
-
-                {/* 미래 예정 구분선 */}
-                {amatUnvested.length > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 14px", background: C.paper, borderBottom: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.08em", textTransform: "uppercase" }}>미래 베스팅 예정</div>
-                    <div style={{ fontSize: 10, color: C.inkLight }}>{amatUnvested.reduce((s, v) => s + v.shares, 0)}주</div>
-                  </div>
-                )}
-
-                {/* 미래 예정 행 */}
-                {amatUnvested.map((v, vi) => {
-                  const dl = Math.ceil((new Date(v.vestDate) - new Date()) / 86400000);
-                  const dc = dl < 0 ? C.inkLight : dl < 30 ? "#b5451b" : dl < 90 ? "#e07a5f" : "#2d6a4f";
-                  const vp = vestingPrices["AMAT"];
-                  const estKrw = vp ? Math.round(vp * v.shares * rate) : null;
+                {/* ESPP */}
+                {(() => {
+                  const esppStocks = amatStocks.filter(s => /espp/i.test(s.name));
+                  if (esppStocks.length === 0) return null;
+                  const isOpen = openHoldings.has("__ESPP__");
+                  const totalSh = esppStocks.reduce((s, x) => s + x.shares, 0);
                   return (
-                    <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px", borderBottom: vi < amatUnvested.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</span>
-                          <span style={{ fontSize: 11, color: C.inkLight }}>{v.name}</span>
+                    <div style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                      <button onClick={() => toggleHolding("__ESPP__")} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#1d4e89" }}>ESPP</span>
+                            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>보유 {totalSh}주</div>
+                          </div>
                         </div>
-                        <div style={{ fontSize: 11, color: C.inkLight }}>{v.shares}주{v.grantPrice ? ` · 부여가 $${v.grantPrice}` : ""}</div>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: dc }}>{dl < 0 ? "지남" : `D-${dl}`}</div>
-                        {estKrw && <div style={{ fontSize: 11, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>≈{fmtS(estKrw)}</div>}
-                      </div>
-                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                        <button onClick={() => { setEditItem(v); setModal("vestComplete"); }}
-                          style={{ background: "#2d6a4f", border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
-                        <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
-                          style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
-                          <Pencil size={10} />
-                        </button>
-                      </div>
+                      </button>
+                      {isOpen && (
+                        <div style={{ borderTop: `1px solid ${C.border}` }}>
+                          {esppStocks.map((s, si) => {
+                            const p       = prices[s.id] ?? s.currentPrice;
+                            const valKrw  = p ? Math.round(p * s.shares * rate) : null;
+                            const costKrw = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
+                            const gain    = valKrw != null ? valKrw - costKrw : null;
+                            const gainPct = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
+                            const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
+                            return (
+                              <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: si < esppStocks.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</div>
+                                  <div style={{ fontSize: 11, color: C.inkLight }}>{s.shares}주 · 취득가 ${s.avgPrice.toFixed(2)}</div>
+                                </div>
+                                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}</div>
+                                  {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
+                                </div>
+                                <button onClick={() => { setEditItem(s); setModal("editOffering"); }}
+                                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                                  <Pencil size={10} />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
-                })}
+                })()}
               </div>
 
             </>
