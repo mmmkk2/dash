@@ -1157,8 +1157,9 @@ export default function AssetsApp() {
         const savedPrices = {};
         loaded.forEach(s => { if (s.currentPrice != null) savedPrices[s.id] = s.currentPrice; });
         setPrices(savedPrices);
-        // 종목명이 티커와 같으면 백그라운드에서 실명으로 자동 갱신
-        loaded.filter(s => s.name === s.ticker).forEach(async s => {
+        // 종목명이 티커와 같거나 오염된 형태면 백그라운드에서 실명으로 자동 갱신
+        const isBadName = s => s.name === s.ticker || s.name.includes(',') || /^\d{5,6}\.(KS|KQ)/i.test(s.name);
+        loaded.filter(isBadName).forEach(async s => {
           const sym = s.market === "KR" ? `${s.ticker}.KS` : s.ticker;
           try {
             const r = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
@@ -1608,7 +1609,7 @@ export default function AssetsApp() {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{s.name}</span>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{(s.name && !s.name.includes(',') && !/^\d{5,6}\.(KS|KQ)/i.test(s.name)) ? s.name : s.ticker}</span>
                                         <span style={{ fontSize: 10, fontWeight: 600, color: C.inkLight, background: C.cream, borderRadius: 4, padding: "1px 5px" }}>{s.ticker}</span>
                                       </div>
                                       <div style={{ fontSize: 11, color: C.inkLight }}>
