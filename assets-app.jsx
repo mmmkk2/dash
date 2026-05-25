@@ -302,7 +302,7 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
   const [err,           setErr]           = useState(false);
   const isEdit = !!initial;
 
-  const nonStockCats = cats.filter(c => c.key !== "주식");
+  const nonStockCats = cats.filter(c => c.key !== "주식" && c.key !== "예수금");
 
   function submit() {
     const num = parseInt(String(amount).replace(/,/g, ""));
@@ -375,6 +375,75 @@ function AssetForm({ initial, cats, onSave, onDelete, saving }) {
       </div>
 
       <button onClick={submit} disabled={saving} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: catObj.color, color: "#fff", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: F, boxShadow: `0 4px 18px ${catObj.color}55`, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        {saving ? "저장 중…" : isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
+      </button>
+    </div>
+  );
+}
+
+/* ── Deposit Form (예수금 / 단기자금) ── */
+function DepositForm({ initial, onSave, onDelete, saving }) {
+  const init = initial || {};
+  const [amount,        setAmount]        = useState(init.amount        ? Number(init.amount).toLocaleString("ko-KR") : "");
+  const [institution,   setInstitution]   = useState(init.institution   || "");
+  const [accountSuffix, setAccountSuffix] = useState(init.accountSuffix || "");
+  const [memo,          setMemo]          = useState(init.memo          || "");
+  const [date,          setDate]          = useState(init.date          || new Date().toISOString().slice(0, 10));
+  const [err,           setErr]           = useState(false);
+  const isEdit = !!initial;
+
+  function submit() {
+    const num = parseInt(String(amount).replace(/,/g, ""));
+    if (!num || num <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
+    onSave({ id: init.id || Date.now(), name: institution.trim() || "예수금", cat: "예수금", amount: num, memo: memo.trim(), date, institution: institution.trim(), accountSuffix: accountSuffix.trim() });
+  }
+
+  return (
+    <div style={{ fontFamily: F }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "예수금 수정" : "예수금 추가"}</span>
+        {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <SLabel>금액</SLabel>
+        <div style={{ display: "flex", alignItems: "center", background: err ? "#fff5f0" : C.white, border: `1.5px solid ${err ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "0 14px" }}>
+          <span style={{ color: C.inkLight, fontSize: 16, marginRight: 8 }}>₩</span>
+          <input type="text" inputMode="numeric" value={amount}
+            onChange={e => { const raw = e.target.value.replace(/[^0-9]/g, ""); setAmount(raw ? Number(raw).toLocaleString("ko-KR") : raw); }}
+            placeholder="0"
+            style={{ flex: 1, border: "none", background: "transparent", fontSize: 20, fontWeight: 700, color: C.ink, padding: "10px 0", outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+          <span style={{ color: C.inkLight, fontSize: 13 }}>원</span>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div>
+          <SLabel>증권사 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="미래에셋, 키움…"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <SLabel>계좌 뒷자리 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={accountSuffix} onChange={e => setAccountSuffix(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="1234" inputMode="numeric"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
+        <div>
+          <SLabel>메모 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="대기 자금, CMA…"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div>
+          <SLabel>기준일</SLabel>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+
+      <button onClick={submit} disabled={saving} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#0d7377", color: "#fff", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: F, boxShadow: "0 4px 18px #0d737755", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {saving ? "저장 중…" : isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -989,15 +1058,17 @@ export default function AssetsApp() {
   const stockGain = stockValue - stockCost;
   const stockGainPct = stockCost > 0 ? ((stockGain / stockCost) * 100).toFixed(2) : "0.00";
 
-  const assetTotal = useMemo(() => assets.reduce((s, a) => s + a.amount, 0), [assets]);
-  const total = stockValue + assetTotal;
+  const depositTotal = useMemo(() => assets.filter(a => a.cat === "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
+  const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
+  const total = stockValue + depositTotal + assetTotal;
 
   /* ── Pie data ── */
   const pieData = useMemo(() => {
     const m = {};
     if (stockValue > 0) m["주식"] = (m["주식"] || 0) + stockValue;
     assets.forEach(a => { m[a.cat] = (m[a.cat] || 0) + a.amount; });
-    return cats.filter(c => m[c.key] > 0)
+    const effectiveCats = cats.find(c => c.key === "예수금") ? cats : [...cats, { key: "예수금", color: "#0d7377" }];
+    return effectiveCats.filter(c => m[c.key] > 0)
       .map(c => ({ name: c.key, value: m[c.key], color: c.color }))
       .sort((a, b) => b.value - a.value);
   }, [assets, stockValue, cats]);
@@ -1120,6 +1191,7 @@ export default function AssetsApp() {
             </div>
             <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
               <div style={{ fontSize: 11, opacity: 0.5 }}>주식 {fmtS(stockValue)}</div>
+              {depositTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>예수금 {fmtS(depositTotal)}</div>}
               <div style={{ fontSize: 11, opacity: 0.5 }}>기타자산 {fmtS(assetTotal)}</div>
               {unvestedValue > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>미확정 RSU {fmtS(unvestedValue)}</div>}
             </div>
@@ -1205,6 +1277,42 @@ export default function AssetsApp() {
                 </div>
               </div>
             )}
+
+            {/* Deposits (예수금) */}
+            {(() => {
+              const deposits = assets.filter(a => a.cat === "예수금");
+              if (deposits.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 8px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase" }}>예수금 / 단기자금</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(depositTotal)}</div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {deposits.map(d => (
+                      <div key={d.id} style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: "11px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 6, height: 32, borderRadius: 3, background: "#0d7377", flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            {d.institution && (
+                              <span style={{ fontSize: 11, fontWeight: 600, color: "#0d7377", background: "#0d737718", border: "1px solid #0d737744", borderRadius: 5, padding: "1px 6px" }}>
+                                {d.institution}{d.accountSuffix ? ` ···${d.accountSuffix}` : ""}
+                              </span>
+                            )}
+                            {d.memo && <span style={{ fontSize: 11, color: C.inkLight }}>{d.memo}</span>}
+                          </div>
+                          <div style={{ fontSize: 10, color: C.inkLight, marginTop: 2 }}>{d.date}</div>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(d.amount)}</div>
+                        <button onClick={() => { setEditItem(d); setModal("editDeposit"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                          <Pencil size={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Stock list */}
             {nonAmat.length === 0 ? (
@@ -1719,19 +1827,28 @@ export default function AssetsApp() {
       </div>
 
       {/* FAB */}
-      {!dbLoading && tab !== "vest" && (
-        <button onClick={() => setModal(tab === "stock" ? "addStock" : "addAsset")} style={{
+      {!dbLoading && tab === "asset" && (
+        <button onClick={() => setModal("addAsset")} style={{
           position: "fixed", bottom: 24, right: 24, zIndex: 200,
           width: 56, height: 56, borderRadius: "50%", border: "none",
-          background: tab === "stock" ? "#2d6a4f" : "#234080", color: "#fff", cursor: "pointer",
+          background: "#234080", color: "#fff", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: `0 4px 20px ${tab === "stock" ? "#2d6a4f88" : "#23408088"}`,
-          transition: "transform 0.15s",
+          boxShadow: "0 4px 20px #23408088", transition: "transform 0.15s",
         }}
           onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
           onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
           <Plus size={26} />
         </button>
+      )}
+      {!dbLoading && tab === "stock" && (
+        <div style={{ position: "fixed", bottom: 24, right: 16, zIndex: 200, display: "flex", gap: 8 }}>
+          <button onClick={() => setModal("addDeposit")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#0d7377", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #0d737766" }}>
+            <Plus size={15} /> 예수금
+          </button>
+          <button onClick={() => setModal("addStock")} style={{ display: "flex", alignItems: "center", gap: 6, background: "#2d6a4f", color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px #2d6a4f66" }}>
+            <Plus size={15} /> 종목
+          </button>
+        </div>
       )}
       {!dbLoading && tab === "vest" && (
         <div style={{ position: "fixed", bottom: 24, right: 16, zIndex: 200, display: "flex", gap: 8 }}>
@@ -1759,6 +1876,12 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "editAsset" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <AssetForm initial={editItem} cats={cats} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} />}
+      </Modal>
+      <Modal open={modal === "addDeposit"} onClose={() => setModal(null)}>
+        <DepositForm onSave={addAsset} saving={false} />
+      </Modal>
+      <Modal open={modal === "editDeposit" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <DepositForm initial={editItem} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
