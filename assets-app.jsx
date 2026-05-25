@@ -1483,8 +1483,7 @@ export default function AssetsApp() {
                     {/* 그랜트 행들 */}
                     <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
                       {grantEntries.map(([grantName, gvs], idx) => {
-                        const grantVestedDates = new Set(gvs.filter(v => v.vested).map(v => v.vestDate));
-                        const availableShares  = amatStocks.filter(s => !/espp/i.test(s.name) && grantVestedDates.has(s.purchaseDate)).reduce((s, x) => s + x.shares, 0);
+                        const availableShares  = gvs.filter(v => v.vested).reduce((s, v) => s + v.shares, 0);
                         const isOpen           = openGrants.has(grantName);
                         const toggleGrant      = () => setOpenGrants(p => { const n = new Set(p); n.has(grantName) ? n.delete(grantName) : n.add(grantName); return n; });
                         const isLast           = idx === grantEntries.length - 1;
