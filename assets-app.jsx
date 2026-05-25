@@ -458,35 +458,55 @@ function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
 }
 
 /* ── Pension Form ── */
+const PENSION_TYPES       = ["IRP", "노란우산", "DC", "DB"];
+const PENSION_MONTHLY     = new Set(["IRP", "노란우산"]);
+const PENSION_TYPE_COLORS = { IRP: "#2d5cb8", "노란우산": "#b8860b", DC: "#2d6a4f", DB: "#7b2d00", "기타": "#6b5c4e" };
+const DC_ETF_MARKER       = "dc_pension";
+
+function pensionMonths(startDate) {
+  if (!startDate) return 0;
+  const s = new Date(startDate), n = new Date();
+  return Math.max(0, (n.getFullYear() - s.getFullYear()) * 12 + (n.getMonth() - s.getMonth()));
+}
+
 function PensionForm({ initial = {}, onSave, onDelete }) {
   const init = initial;
-  const TYPES = ["IRP", "DC", "DB"];
+  const isMonthly = t => PENSION_MONTHLY.has(t);
   const [type,        setType]        = useState(init.accountSuffix || "IRP");
   const [institution, setInstitution] = useState(init.institution || "");
   const [name,        setName]        = useState(init.name || "");
   const [amountStr,   setAmountStr]   = useState(init.amount ? String(init.amount) : "");
-  const [date,        setDate]        = useState(init.date || new Date().toISOString().slice(0, 10));
-  const [memo,        setMemo]        = useState(init.memo || "");
+  const [startDate,   setStartDate]   = useState(init.date || new Date().toISOString().slice(0, 10));
+  const [monthlyStr,  setMonthlyStr]  = useState(isMonthly(init.accountSuffix) ? (init.memo || "") : "");
+  const [memo,        setMemo]        = useState(!isMonthly(init.accountSuffix) ? (init.memo || "") : "");
 
   const submit = () => {
     const num = parseInt(amountStr.replace(/,/g, ""), 10);
     if (!num || !institution.trim()) return;
-    onSave({ id: init.id || Date.now(), cat: "퇴직연금", name: name.trim() || institution.trim(), institution: institution.trim(), accountSuffix: type, amount: num, date, memo: memo.trim() });
+    const memoVal = isMonthly(type) ? monthlyStr.replace(/[^\d]/g, "") : memo.trim();
+    onSave({ id: init.id || Date.now(), cat: "퇴직연금", name: name.trim() || institution.trim(), institution: institution.trim(), accountSuffix: type, amount: num, date: startDate, memo: memoVal });
   };
+
+  const months   = isMonthly(type) ? pensionMonths(startDate) : 0;
+  const monthly  = isMonthly(type) ? parseInt(monthlyStr.replace(/[^\d]/g, "")) || 0 : 0;
+  const accum    = monthly * months;
+  const current  = parseInt(amountStr.replace(/,/g, "")) || 0;
+  const gain     = accum > 0 ? current - accum : null;
+  const gainPct  = accum > 0 ? ((gain / accum) * 100).toFixed(1) : null;
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>퇴직연금</span>
-      <div style={{ display: "flex", gap: 6, marginTop: 18, marginBottom: 12 }}>
-        {TYPES.map(t => (
-          <button key={t} onClick={() => setType(t)} style={{ flex: 1, padding: "9px 0", border: `1.5px solid ${type === t ? "#2d5cb8" : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, background: type === t ? "#2d5cb8" : C.white, color: type === t ? "#fff" : C.inkMid, fontFamily: F }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>연금·공제</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 18, marginBottom: 12 }}>
+        {PENSION_TYPES.map(t => (
+          <button key={t} onClick={() => setType(t)} style={{ flex: "1 1 auto", padding: "9px 0", border: `1.5px solid ${type === t ? "#2d5cb8" : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, background: type === t ? "#2d5cb8" : C.white, color: type === t ? "#fff" : C.inkMid, fontFamily: F }}>
             {t}
           </button>
         ))}
       </div>
       <SLabel>금융기관</SLabel>
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
-        <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="미래에셋증권"
+        <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder={type === "노란우산" ? "중소기업중앙회" : "미래에셋증권"}
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 15, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
       <SLabel>계좌명 (선택)</SLabel>
@@ -494,27 +514,118 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
         <input value={name} onChange={e => setName(e.target.value)} placeholder=""
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 15, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
+      {isMonthly(type) && (
+        <>
+          <SLabel>불입 시작일</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+          </div>
+          <SLabel>월 납입액</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12, display: "flex", alignItems: "center" }}>
+            <input value={monthlyStr} onChange={e => setMonthlyStr(e.target.value.replace(/[^\d]/g, ""))} placeholder="300000"
+              style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 18, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+            <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원/월</span>
+          </div>
+          {accum > 0 && (
+            <div style={{ background: C.cream, borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: C.inkMid }}>
+              {months}개월 · 누적 원금 <strong style={{ color: C.ink }}>{fmtS(accum)}</strong>
+              {gain !== null && <span style={{ marginLeft: 8, color: gain >= 0 ? "#2d9e6b" : "#d95f4b", fontWeight: 700 }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</span>}
+            </div>
+          )}
+        </>
+      )}
+      {!isMonthly(type) && (
+        <>
+          <SLabel>기준일</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+          </div>
+        </>
+      )}
       <SLabel>현재 평가액</SLabel>
-      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12, display: "flex", alignItems: "center" }}>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: isMonthly(type) ? 20 : 12, display: "flex", alignItems: "center" }}>
         <input value={amountStr} onChange={e => setAmountStr(e.target.value.replace(/[^\d]/g, ""))} placeholder="10000000"
           style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 20, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
         <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원</span>
       </div>
-      <SLabel>기준일</SLabel>
-      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-      </div>
-      <SLabel>메모 (선택)</SLabel>
-      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
-        <input value={memo} onChange={e => setMemo(e.target.value)} placeholder=""
-          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-      </div>
+      {!isMonthly(type) && (
+        <>
+          <SLabel>메모 (선택)</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
+            <input value={memo} onChange={e => setMemo(e.target.value)} placeholder=""
+              style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+          </div>
+        </>
+      )}
       <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d5cb8", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "추가"}
       </button>
       {onDelete && (
         <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F, marginTop: 0 }}>
+          삭제
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── DC ETF Form ── */
+function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
+  const init = initial;
+  const [ticker,    setTicker]    = useState(init.ticker    || "");
+  const [name,      setName]      = useState(init.name      || "");
+  const [shares,    setShares]    = useState(init.shares    ? String(init.shares) : "");
+  const [avgPrice,  setAvgPrice]  = useState(init.avgPrice  ? String(init.avgPrice) : "");
+  const [market,    setMarket]    = useState(init.market    || "KR");
+
+  const submit = () => {
+    const sh = parseFloat(shares);
+    const ap = parseFloat(avgPrice.replace(/,/g, ""));
+    if (!ticker.trim() || !sh || !ap) return;
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: null, purchaseDate: null, purchaseRate: null, institution: institution || init.institution || "", accountSuffix: DC_ETF_MARKER });
+  };
+
+  return (
+    <div style={{ padding: "4px 0 8px" }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>DC 연금 ETF</span>
+      <div style={{ display: "flex", gap: 6, marginTop: 16, marginBottom: 14 }}>
+        {[["KR", "국내"], ["US", "해외"]].map(([m, l]) => (
+          <button key={m} onClick={() => setMarket(m)} style={{ flex: 1, padding: "9px 0", border: `1.5px solid ${market === m ? "#2d6a4f" : C.border}`, borderRadius: 9, fontWeight: 700, fontSize: 13, background: market === m ? "#2d6a4f" : C.white, color: market === m ? "#fff" : C.inkMid, fontFamily: F, cursor: "pointer" }}>{l}</button>
+        ))}
+      </div>
+      <SLabel>티커</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder={market === "KR" ? "069500" : "SPY"}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 17, fontWeight: 800, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", letterSpacing: "0.05em" }} />
+      </div>
+      <SLabel>종목명 (선택)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder={market === "KR" ? "KODEX 200" : "S&P500 ETF"}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+        <div>
+          <SLabel>보유 수량</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+            <input value={shares} onChange={e => setShares(e.target.value.replace(/[^\d.]/g, ""))} placeholder="10"
+              style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+          </div>
+        </div>
+        <div>
+          <SLabel>평균 단가</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+            <input value={avgPrice} onChange={e => setAvgPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder={market === "KR" ? "35000" : "450.0"}
+              style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+          </div>
+        </div>
+      </div>
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+        {init.id ? "저장" : "ETF 추가"}
+      </button>
+      {onDelete && (
+        <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
           삭제
         </button>
       )}
@@ -1021,6 +1132,8 @@ export default function AssetsApp() {
   const [vestings,      setVestings]      = useState([]);
   const [offerings,     setOfferings]     = useState([]);
   const [openHoldings,  setOpenHoldings]  = useState(new Set());
+  const [openDCAccts,   setOpenDCAccts]   = useState(new Set());
+  const [dcEtfInst,     setDcEtfInst]     = useState("");
   const [vestingPrices, setVestingPrices] = useState({});
   const snapshotsRef = useRef([]);
   useEffect(() => { snapshotsRef.current = snapshots; }, [snapshots]);
@@ -1133,7 +1246,23 @@ export default function AssetsApp() {
   const stockGainPct = stockCost > 0 ? ((stockGain / stockCost) * 100).toFixed(2) : "0.00";
 
   const depositTotal = useMemo(() => assets.filter(a => a.cat === "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
-  const pensionTotal = useMemo(() => assets.filter(a => a.cat === "퇴직연금").reduce((s, a) => s + a.amount, 0), [assets]);
+
+  const dcEtfStocks = useMemo(() => stocks.filter(s => s.accountSuffix === DC_ETF_MARKER), [stocks]);
+  const dcEtfValueByInst = useMemo(() => {
+    const m = {};
+    dcEtfStocks.forEach(s => {
+      const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice ?? 0;
+      const val = s.market === "US" ? Math.round(p * s.shares * rate) : Math.round(p * s.shares);
+      m[s.institution] = (m[s.institution] || 0) + val;
+    });
+    return m;
+  }, [dcEtfStocks, prices, rate]);
+
+  const pensionTotal = useMemo(() => assets.filter(a => a.cat === "퇴직연금").reduce((sum, a) => {
+    if (a.accountSuffix === "DC" && dcEtfValueByInst[a.institution] != null)
+      return sum + dcEtfValueByInst[a.institution];
+    return sum + a.amount;
+  }, 0), [assets, dcEtfValueByInst]);
   const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금").reduce((s, a) => s + a.amount, 0), [assets]);
 
   const institutionSuggestions = useMemo(() => {
@@ -1324,7 +1453,7 @@ export default function AssetsApp() {
 
         {/* Tab */}
         <div style={{ display: "flex", background: C.white, borderRadius: 10, padding: 3, border: `1px solid ${C.border}`, gap: 3, marginBottom: 14 }}>
-          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["pension", "💼 퇴직연금"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
+          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["pension", "💼 연금·공제"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: tab === k ? 700 : 400, fontSize: 13, background: tab === k ? C.ink : "transparent", color: tab === k ? "#fff" : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
           ))}
         </div>
@@ -1339,7 +1468,7 @@ export default function AssetsApp() {
 
         {/* ── Stock Tab ── */}
         {!dbLoading && tab === "stock" && (() => {
-          const nonAmat = stocks.filter(s => s.ticker.toUpperCase() !== "AMAT");
+          const nonAmat = stocks.filter(s => s.ticker.toUpperCase() !== "AMAT" && s.accountSuffix !== DC_ETF_MARKER);
           const nonAmatValue = nonAmat.reduce((sum, s) => {
             const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice;
             return sum + (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares);
@@ -1432,12 +1561,12 @@ export default function AssetsApp() {
                       <div key={acctName} style={{ borderRadius: 16, overflow: "hidden" }}>
                         {/* Account header card */}
                         <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#265a8c", padding: "18px 20px", textAlign: "left", fontFamily: F }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                            <span style={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.01em" }}>{acctName}</span>
-                            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{acctStocks.length}종목</span>
-                            <span style={{ marginLeft: "auto" }}>
-                              {isAcctOpen ? <ChevronUp size={14} color="rgba(255,255,255,0.35)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.35)" />}
-                            </span>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.1 }}>{acctName}</div>
+                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600, marginTop: 3 }}>{acctStocks.length}종목</div>
+                            </div>
+                            {isAcctOpen ? <ChevronUp size={14} color="rgba(255,255,255,0.35)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.35)" />}
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                             <div>
@@ -1649,23 +1778,33 @@ export default function AssetsApp() {
           );
         })()}
 
-        {/* ── 퇴직연금 탭 ── */}
+        {/* ── 연금·공제 탭 ── */}
         {!dbLoading && tab === "pension" && (() => {
-          const PENSION_TYPES = ["IRP", "DC", "DB"];
           const pensions = assets.filter(a => a.cat === "퇴직연금");
           const typeGroups = PENSION_TYPES.map(t => [t, pensions.filter(a => a.accountSuffix === t)]).filter(([, list]) => list.length > 0);
           const ungrouped = pensions.filter(a => !PENSION_TYPES.includes(a.accountSuffix));
           if (ungrouped.length > 0) typeGroups.push(["기타", ungrouped]);
 
-          const TYPE_COLORS = { IRP: "#2d5cb8", DC: "#2d6a4f", DB: "#7b2d00", "기타": "#6b5c4e" };
-
           return (
             <>
               {/* 요약 */}
               {pensions.length > 0 && (
-                <div style={{ background: "#2d5cb8", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
-                  <div style={{ fontSize: 11, opacity: 0.55, letterSpacing: "0.08em", marginBottom: 6 }}>퇴직연금 총액</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.5px" }}>{fmtS(pensionTotal)}</div>
+                <div style={{ background: "#265a8c", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>연금·공제</div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>총 적립액</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{fmtS(pensionTotal)}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>월 납입 합계</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                        {(() => { const m = pensions.filter(a => PENSION_MONTHLY.has(a.accountSuffix)).reduce((s, a) => s + (parseInt(a.memo) || 0), 0); return m > 0 ? fmtS(m) : "—"; })()}
+                      </div>
+                    </div>
+                  </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                     {PENSION_TYPES.map(t => {
                       const s = pensions.filter(a => a.accountSuffix === t).reduce((acc, a) => acc + a.amount, 0);
@@ -1677,13 +1816,13 @@ export default function AssetsApp() {
 
               {pensions.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>퇴직연금 계좌를 추가해보세요</div>
-                  <div style={{ fontSize: 12, color: C.inkLight }}>IRP · DC · DB 유형을 구분해서 관리할 수 있어요</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>연금·공제 계좌를 추가해보세요</div>
+                  <div style={{ fontSize: 12, color: C.inkLight }}>IRP · 노란우산 · DC · DB</div>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {typeGroups.map(([typeName, list]) => {
-                    const color   = TYPE_COLORS[typeName] || C.inkMid;
+                    const color   = PENSION_TYPE_COLORS[typeName] || C.inkMid;
                     const typeSum = list.reduce((s, a) => s + a.amount, 0);
                     return (
                       <div key={typeName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
@@ -1695,25 +1834,91 @@ export default function AssetsApp() {
                         </div>
                         {/* 계좌 목록 */}
                         <div style={{ borderTop: `1px solid ${C.border}` }}>
-                          {list.map((a, ai) => (
-                            <div key={a.id} style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: ai < list.length - 1 ? `1px solid ${C.border}` : "none", gap: 10 }}>
-                              <div style={{ width: 4, height: 36, borderRadius: 2, background: color, flexShrink: 0 }} />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{a.name || a.institution}</div>
-                                <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
-                                  {a.institution}{a.date ? ` · ${a.date}` : ""}
-                                  {a.memo ? ` · ${a.memo}` : ""}
+                          {list.map((a, ai) => {
+                            const isM      = PENSION_MONTHLY.has(a.accountSuffix);
+                            const isDC     = a.accountSuffix === "DC";
+                            const monthly  = isM ? (parseInt(a.memo) || 0) : 0;
+                            const months   = isM ? pensionMonths(a.date) : 0;
+                            const accum    = monthly * months;
+                            const etfs     = isDC ? dcEtfStocks.filter(s => s.institution === a.institution) : [];
+                            const etfVal   = isDC && dcEtfValueByInst[a.institution] != null ? dcEtfValueByInst[a.institution] : null;
+                            const dispAmt  = etfVal ?? a.amount;
+                            const gain     = isM && accum > 0 ? dispAmt - accum : null;
+                            const gainPct  = gain != null && accum > 0 ? ((gain / accum) * 100).toFixed(1) : null;
+                            const isPos    = gain != null && gain >= 0;
+                            const isDCOpen = openDCAccts.has(a.id);
+                            const toggleDC = () => setOpenDCAccts(prev => { const n = new Set(prev); n.has(a.id) ? n.delete(a.id) : n.add(a.id); return n; });
+                            return (
+                              <div key={a.id} style={{ borderBottom: ai < list.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                                <div style={{ display: "flex", alignItems: "center", padding: "12px 16px", gap: 10 }}>
+                                  <div style={{ width: 4, height: isM ? 52 : 36, borderRadius: 2, background: color, flexShrink: 0 }} />
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{a.name || a.institution}</div>
+                                    <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                                      {a.institution}
+                                      {isM && monthly > 0 ? ` · 월 ${fmtS(monthly)}` : ""}
+                                      {isM && months > 0 ? ` · ${months}개월` : (!isM && a.date ? ` · ${a.date}` : "")}
+                                    </div>
+                                    {isM && accum > 0 && (
+                                      <div style={{ fontSize: 11, color: C.inkLight, marginTop: 1 }}>
+                                        납입 {fmtS(accum)}
+                                        {gain !== null && <span style={{ marginLeft: 6, fontWeight: 700, color: isPos ? "#2d9e6b" : "#d95f4b" }}>{isPos ? "+" : ""}{fmtS(gain)} ({gainPct}%)</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(dispAmt)}</div>
+                                    {isDC && etfs.length > 0 && <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>{etfs.length}개 종목</div>}
+                                  </div>
+                                  {isDC && (
+                                    <button onClick={toggleDC} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                      {isDCOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                    </button>
+                                  )}
+                                  <button onClick={() => { setEditItem(a); setModal("editPension"); }}
+                                    style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                    <Pencil size={12} />
+                                  </button>
                                 </div>
+                                {/* DC ETF 목록 */}
+                                {isDC && isDCOpen && (
+                                  <div style={{ borderTop: `1px solid ${C.border}`, background: C.paper }}>
+                                    {etfs.length === 0 ? (
+                                      <div style={{ padding: "12px 20px", fontSize: 12, color: C.inkLight }}>ETF를 추가해보세요</div>
+                                    ) : (
+                                      etfs.map((s, si) => {
+                                        const p      = prices[s.id] ?? s.currentPrice;
+                                        const valKrw = p != null ? (s.market === "US" ? Math.round(p * s.shares * rate) : Math.round(p * s.shares)) : null;
+                                        const costKrw = s.market === "US" ? Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate)) : Math.round(s.avgPrice * s.shares);
+                                        const g      = valKrw != null ? valKrw - costKrw : null;
+                                        const gPct   = g != null && costKrw > 0 ? ((g / costKrw) * 100).toFixed(1) : null;
+                                        return (
+                                          <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 16px 9px 24px", borderBottom: si < etfs.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                                            <div style={{ flex: 1 }}>
+                                              <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{s.name || s.ticker}</div>
+                                              <div style={{ fontSize: 11, color: C.inkLight }}>{s.ticker} · {s.shares}주 · 단가 {s.market === "US" ? `$${s.avgPrice}` : fmtS(s.avgPrice)}</div>
+                                            </div>
+                                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                              <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw != null ? fmtS(valKrw) : "—"}</div>
+                                              {g != null && <div style={{ fontSize: 10, color: g >= 0 ? "#2d9e6b" : "#d95f4b", fontVariantNumeric: "tabular-nums" }}>{g >= 0 ? "+" : ""}{fmtS(g)} ({gPct}%)</div>}
+                                            </div>
+                                            <button onClick={() => { setEditItem(s); setModal("editDCEtf"); }}
+                                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: C.inkMid, display: "flex" }}>
+                                              <Pencil size={10} />
+                                            </button>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                    <button onClick={() => { setDcEtfInst(a.institution); setModal("addDCEtf"); }}
+                                      style={{ width: "100%", padding: "10px 16px", background: "none", border: "none", borderTop: etfs.length > 0 ? `1px solid ${C.border}` : "none", cursor: "pointer", color: "#2d6a4f", fontSize: 12, fontWeight: 700, textAlign: "left", display: "flex", alignItems: "center", gap: 5, fontFamily: F }}>
+                                      <Plus size={13} /> ETF 추가
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
-                              </div>
-                              <button onClick={() => { setEditItem(a); setModal("editPension"); }}
-                                style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
-                                <Pencil size={12} />
-                              </button>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -2048,6 +2253,12 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "editDeposit" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <DepositForm initial={editItem} onSave={updateAsset} onDelete={() => deleteAsset(editItem.id)} saving={false} suggestions={institutionSuggestions} />}
+      </Modal>
+      <Modal open={modal === "addDCEtf"} onClose={() => { setModal(null); setDcEtfInst(""); }}>
+        <DCEtfForm institution={dcEtfInst} onSave={s => { addStock(s); setModal(null); }} />
+      </Modal>
+      <Modal open={modal === "editDCEtf" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <DCEtfForm initial={editItem} institution={editItem.institution} onSave={s => { updateStock(s); setModal(null); setEditItem(null); }} onDelete={() => { deleteStock(editItem.id); setModal(null); setEditItem(null); }} />}
       </Modal>
       <Modal open={modal === "addPension"} onClose={() => setModal(null)}>
         <PensionForm onSave={a => { addAsset(a); }} />
