@@ -1612,7 +1612,7 @@ export default function AssetsApp() {
             <>
               {/* ─ 요약 헤더 ─ */}
               {amatStocks.length > 0 && (
-                <div style={{ background: "linear-gradient(135deg,#1a2e1a,#2d6a4f)", borderRadius: 18, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#0f172a", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
@@ -1628,10 +1628,10 @@ export default function AssetsApp() {
                     </div>
                     <div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? "#7fffc4" : "#ffb3a7" }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? "#34d399" : "#f87171" }}>
                         {amatGain != null ? (amatGain >= 0 ? "+" : "") + fmtS(amatGain) : "—"}
                       </div>
-                      <div style={{ fontSize: 10, color: amatGainUsd >= 0 ? "#7fffc4" : "#ffb3a7", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                      <div style={{ fontSize: 10, color: amatGainUsd >= 0 ? "#34d399" : "#f87171", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                         {amatGainUsd != null ? `${amatGainUsd >= 0 ? "+" : ""}$${Math.round(amatGainUsd).toLocaleString("en-US")}` : ""}
                         {amatGainPct != null ? ` (${amatGainUsd >= 0 ? "+" : ""}${amatGainPct}%)` : ""}
                       </div>
