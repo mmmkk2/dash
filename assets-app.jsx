@@ -1581,7 +1581,11 @@ export default function AssetsApp() {
                                        .sort((a, b) => a.vestDate.localeCompare(b.vestDate));
 
           const amatPrice    = amatStocks.length > 0 ? (prices[amatStocks[0].id] ?? amatStocks[0].currentPrice) : null;
-          const amatShares   = amatStocks.reduce((s, x) => s + x.shares, 0);
+          const allRsuVestedDates = new Set(vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").map(v => v.vestDate));
+          const amatRsuShares  = vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").reduce((s, v) => s + v.shares, 0);
+          const amatEsppStocks = amatStocks.filter(s => /espp/i.test(s.name) || !allRsuVestedDates.has(s.purchaseDate));
+          const amatEsppShares = amatEsppStocks.reduce((s, x) => s + x.shares, 0);
+          const amatShares   = amatRsuShares + amatEsppShares;
           const amatValueUsd = amatPrice ? amatPrice * amatShares : null;
           const amatValue    = amatValueUsd != null ? Math.round(amatValueUsd * rate) : null;
           const amatCostUsd  = amatStocks.reduce((s, x) => s + x.avgPrice * x.shares, 0);
@@ -1756,7 +1760,6 @@ export default function AssetsApp() {
                 })}
                 {/* ESPP */}
                 {(() => {
-                  const allRsuVestedDates = new Set(vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").map(v => v.vestDate));
                   const esppStocks  = amatStocks.filter(s => /espp/i.test(s.name) || !allRsuVestedDates.has(s.purchaseDate)).sort((a, b) => (b.purchaseDate || "").localeCompare(a.purchaseDate || ""));
                   if (esppStocks.length === 0) return null;
                   const isOpen      = openHoldings.has("__ESPP__");
