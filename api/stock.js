@@ -5,6 +5,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+  const krCode = isKR ? symbol.replace(/\.(KS|KQ)$/, '') : null;
+
+  // Start Naver fetch in parallel for KR stocks
+  const naverPromise = krCode
+    ? fetch(`https://m.stock.naver.com/api/stock/${krCode}/basic`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+      }).then(r => r.ok ? r.json() : null).catch(() => null)
+    : Promise.resolve(null);
+
   for (const host of ['query2', 'query1']) {
     try {
       const r = await fetch(
@@ -16,7 +26,13 @@ export default async function handler(req, res) {
       const meta = data?.chart?.result?.[0]?.meta;
       if (meta) {
         const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
-        const name  = meta.shortName ?? meta.longName ?? null;
+        let name = meta.shortName ?? meta.longName ?? null;
+
+        if (krCode) {
+          const naverData = await naverPromise;
+          if (naverData?.stockName) name = naverData.stockName;
+        }
+
         res.status(200).json({ price, name });
         return;
       }
