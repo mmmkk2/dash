@@ -28,6 +28,9 @@ export default async function handler(req, res) {
         const price = meta.regularMarketPrice ?? meta.previousClose ?? null;
         let name = meta.shortName ?? meta.longName ?? null;
 
+        // Yahoo sometimes returns composite identifiers (e.g. "028300.KS,0P0000BZRU,123") — discard those
+        if (name && (name.includes(',') || /^\d{5,6}\.(KS|KQ)/i.test(name))) name = null;
+
         if (krCode) {
           const naverData = await naverPromise;
           if (naverData?.stockName) name = naverData.stockName;
