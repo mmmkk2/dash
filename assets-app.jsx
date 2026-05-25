@@ -36,7 +36,7 @@ const C = {
   bg: "#f0f2f5", paper: "#ffffff", white: "#ffffff",
   ink: "#1a1f2e", inkMid: "#556070", inkLight: "#a8b3c0",
   border: "#e3e8ef", cream: "#eef1f6",
-  header: "linear-gradient(160deg,#1a1f2e 0%,#2b3a52 100%)",
+  header: "#1a1f2e",
 };
 const F = "'Inter',sans-serif";
 
@@ -1612,7 +1612,7 @@ export default function AssetsApp() {
             <>
               {/* ─ 요약 헤더 ─ */}
               {amatStocks.length > 0 && (
-                <div style={{ background: "linear-gradient(135deg,#1e3a5f,#2d5a8e)", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#1e3a5f", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
