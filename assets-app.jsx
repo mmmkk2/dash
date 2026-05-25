@@ -584,10 +584,15 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
   const [avgPrice,  setAvgPrice]  = useState(init.avgPrice  ? String(init.avgPrice) : "");
   const [market,    setMarket]    = useState(init.market    || "KR");
 
+  const [err, setErr] = useState("");
+
   const submit = () => {
     const sh = parseFloat(shares);
     const ap = parseFloat(avgPrice.replace(/,/g, ""));
-    if (!ticker.trim() || !sh || !ap) return;
+    if (!ticker.trim()) { setErr("티커를 입력해주세요"); return; }
+    if (!sh)            { setErr("보유 수량을 입력해주세요"); return; }
+    if (!ap)            { setErr("평균 단가를 입력해주세요"); return; }
+    setErr("");
     onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: null, purchaseDate: null, purchaseRate: null, institution: institution || init.institution || "", accountSuffix: DC_ETF_MARKER });
   };
 
@@ -625,6 +630,7 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
           </div>
         </div>
       </div>
+      {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
       <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "ETF 추가"}
       </button>
@@ -2026,18 +2032,18 @@ export default function AssetsApp() {
                         <button onClick={() => toggleHolding(grantName)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
-                            {/* 왼쪽: 이름 + 부여일 */}
-                            <div style={{ flex: 1 }}>
+                            {/* 왼쪽: 이름 + 부여일 + D-XX */}
+                            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>{grantName}</span>
-                              {grantDate && <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 6 }}>{grantDate}</span>}
-                            </div>
-                            {/* 오른쪽: D-XX + 보유/예정 */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                              {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
                               {dl != null && (
-                                <span style={{ fontSize: 11, fontWeight: 800, color: dc, minWidth: 36, textAlign: "right" }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: dc }}>
                                   {dl < 0 ? "지남" : `D-${dl}`}
                                 </span>
                               )}
+                            </div>
+                            {/* 오른쪽: 보유/예정 */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                               <div style={{ textAlign: "right", minWidth: 80 }}>
                                 {heldSh > 0 && (
                                   <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
