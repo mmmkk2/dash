@@ -82,8 +82,8 @@ const fromDbStock = s => ({ id: s.id, ticker: s.ticker, name: s.name, market: s.
 const toDbAsset   = a => ({ id: a.id, name: a.name, cat: a.cat, amount: a.amount, memo: a.memo || "", date: a.date, institution: a.institution || null, account_suffix: a.accountSuffix || null });
 const fromDbAsset = a => ({ id: a.id, name: a.name, cat: a.cat, amount: Number(a.amount), memo: a.memo || "", date: a.date, institution: a.institution || "", accountSuffix: a.account_suffix || "" });
 const fromDbSnap  = s => ({ id: s.id, date: s.recorded_at, total: Number(s.total), stockVal: Number(s.stock_val), assetVal: Number(s.asset_val) });
-const toDbVesting   = v => ({ id: v.id, type: v.type, ticker: v.ticker, name: v.name, shares: v.shares, vest_date: v.vestDate, grant_price: v.grantPrice ?? null, vest_price: v.vestPrice ?? null, vested: v.vested ?? false, institution: v.institution || null, account_suffix: v.accountSuffix || null, memo: v.memo || "" });
-const fromDbVesting = v => ({ id: v.id, type: v.type, ticker: v.ticker, name: v.name, shares: Number(v.shares), vestDate: v.vest_date, grantPrice: v.grant_price != null ? Number(v.grant_price) : null, vestPrice: v.vest_price != null ? Number(v.vest_price) : null, vested: v.vested ?? false, institution: v.institution || "", accountSuffix: v.account_suffix || "", memo: v.memo || "" });
+const toDbVesting   = v => ({ id: v.id, type: v.type, ticker: v.ticker, name: v.name, shares: v.shares, vest_date: v.vestDate, grant_price: v.grantPrice ?? null, vest_price: v.vestPrice ?? null, vested: v.vested ?? false, grant_date: v.grantDate ?? null, institution: v.institution || null, account_suffix: v.accountSuffix || null, memo: v.memo || "" });
+const fromDbVesting = v => ({ id: v.id, type: v.type, ticker: v.ticker, name: v.name, shares: Number(v.shares), vestDate: v.vest_date, grantPrice: v.grant_price != null ? Number(v.grant_price) : null, vestPrice: v.vest_price != null ? Number(v.vest_price) : null, vested: v.vested ?? false, grantDate: v.grant_date || null, institution: v.institution || "", accountSuffix: v.account_suffix || "", memo: v.memo || "" });
 const toDbOffering  = o => ({ id: o.id, ticker: o.ticker, name: o.name, start_date: o.startDate, end_date: o.endDate, start_price: o.startPrice ?? null, monthly_krw: o.monthlyKrw ?? null, discount_pct: o.discountPct ?? 15, institution: o.institution || null, account_suffix: o.accountSuffix || null, memo: o.memo || "" });
 const fromDbOffering= o => ({ id: o.id, ticker: o.ticker, name: o.name, startDate: o.start_date, endDate: o.end_date, startPrice: o.start_price != null ? Number(o.start_price) : null, monthlyKrw: o.monthly_krw != null ? Number(o.monthly_krw) : null, discountPct: o.discount_pct != null ? Number(o.discount_pct) : 15, institution: o.institution || "", accountSuffix: o.account_suffix || "", memo: o.memo || "" });
 
@@ -419,6 +419,8 @@ function VestingForm({ initial, onSave, onDelete }) {
   const [name,         setName]         = useState(init.name         || "");
   const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
   const [vestDate,     setVestDate]     = useState(init.vestDate     || "");
+  const [grantDate,    setGrantDate]    = useState(init.grantDate    || "");
+  const [vestPrice,    setVestPrice]    = useState(init.vestPrice    ? String(init.vestPrice) : "");
   const [grantPrice,   setGrantPrice]   = useState(init.grantPrice   ? String(init.grantPrice) : "");
   const [err, setErr] = useState(false);
   const isEdit = !!onDelete;
@@ -428,7 +430,7 @@ function VestingForm({ initial, onSave, onDelete }) {
     if (!ticker.trim() || !name.trim() || !sh || sh <= 0 || !vestDate) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), type: "RSU", ticker: ticker.trim().toUpperCase(), name: name.trim(), shares: sh, vestDate, grantPrice: grantPrice ? parseFloat(grantPrice) : null, vestPrice: init.vestPrice ?? null, vested: false, institution: init.institution || "UBS", accountSuffix: init.accountSuffix || "", memo: "" });
+    onSave({ id: init.id || Date.now(), type: "RSU", ticker: ticker.trim().toUpperCase(), name: name.trim(), shares: sh, vestDate, grantDate: grantDate || null, grantPrice: grantPrice ? parseFloat(grantPrice) : null, vestPrice: vestPrice ? parseFloat(vestPrice) : (init.vestPrice ?? null), vested: init.vested ?? false, institution: init.institution || "UBS", accountSuffix: init.accountSuffix || "", memo: init.memo || "" });
   }
 
   return (
@@ -437,17 +439,27 @@ function VestingForm({ initial, onSave, onDelete }) {
         <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "RSU 수정" : "RSU 추가"}</span>
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
         <div><SLabel>티커</SLabel>
           <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="AMAT"
             style={{ width: "100%", border: `1.5px solid ${err && !ticker.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
         </div>
-        <div><SLabel>그랜트명</SLabel>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="2024 Annual RSU Grant"
+        <div><SLabel>그랜트명 / Grant ID</SLabel>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="AMK1066155"
             style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+        <div><SLabel>어워드일 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input type="date" value={grantDate} onChange={e => setGrantDate(e.target.value)}
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: grantDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+        <div><SLabel>부여가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="175.00"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div><SLabel>베스팅 주수</SLabel>
           <input type="text" inputMode="decimal" value={shares} onChange={e => setShares(e.target.value)} placeholder="50"
             style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(shares) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
@@ -457,12 +469,14 @@ function VestingForm({ initial, onSave, onDelete }) {
             style={{ width: "100%", border: `1.5px solid ${err && !vestDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: vestDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
-      <div style={{ marginBottom: 20 }}>
-        <SLabel>부여가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
-        <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="45.00"
-          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
-      </div>
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #2d6a4f55", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      {init.vested && (
+        <div style={{ marginBottom: 10 }}>
+          <SLabel>취득가 / 베스팅가 (USD)</SLabel>
+          <input type="text" inputMode="decimal" value={vestPrice} onChange={e => setVestPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="256.99"
+            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        </div>
+      )}
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 4px 18px #2d6a4f55", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
         {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -589,7 +603,7 @@ function VestingBatchForm({ onSave }) {
   const today = new Date().toISOString().slice(0, 10);
   const [ticker,          setTicker]        = useState("AMAT");
   const [grantName,       setGrantName]     = useState("");
-  const [awardYear,       setAwardYear]     = useState(String(new Date().getFullYear()));
+  const [awardDate,       setAwardDate]     = useState("");
   const [totalShares,     setTotalShares]   = useState("");
   const [grantPrice,      setGrantPrice]    = useState("");
   const [rows,            setRows]          = useState([]); // {date, shares, vested, vestPrice}
@@ -607,7 +621,7 @@ function VestingBatchForm({ onSave }) {
   }
 
   function generateSchedule() {
-    const year  = parseInt(awardYear);
+    const year  = awardDate ? parseInt(awardDate.slice(0, 4)) : 0;
     const total = parseInt(totalShares);
     if (!year || year < 2000 || !total || total <= 0) { setErr(true); setTimeout(() => setErr(false), 400); return; }
     const startYear = year + 2;
@@ -671,6 +685,7 @@ function VestingBatchForm({ onSave }) {
     const vestings = rows.map((r, i) => ({
       id: base + i, type: "RSU", ticker: tkr, name: nm,
       shares: parseInt(r.shares) || 0, vestDate: r.date,
+      grantDate: awardDate || null,
       grantPrice: gp, vestPrice: r.vestPrice ? parseFloat(r.vestPrice) : null,
       vested: r.vested, institution: "UBS", accountSuffix: "", memo: "",
     }));
@@ -689,7 +704,8 @@ function VestingBatchForm({ onSave }) {
     setSaving(false);
   }
 
-  const startYear = parseInt(awardYear) + 2;
+  const awardYear = awardDate ? awardDate.slice(0, 4) : "";
+  const startYear = awardYear ? parseInt(awardYear) + 2 : "";
 
   return (
     <div style={{ fontFamily: F }}>
@@ -706,9 +722,9 @@ function VestingBatchForm({ onSave }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
-        <div><SLabel>어워드 연도</SLabel>
-          <input type="text" inputMode="numeric" value={awardYear} onChange={e => { setAwardYear(e.target.value.replace(/\D/g, "")); setGenerated(false); }} placeholder="2025"
-            style={{ width: "100%", border: `1.5px solid ${err && !parseInt(awardYear) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+        <div><SLabel>어워드일</SLabel>
+          <input type="date" value={awardDate} onChange={e => { setAwardDate(e.target.value); setGenerated(false); }}
+            style={{ width: "100%", border: `1.5px solid ${err && !awardDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: awardDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
         <div><SLabel>총 부여 주수</SLabel>
           <input type="text" inputMode="numeric" value={totalShares} onChange={e => { setTotalShares(e.target.value.replace(/\D/g, "")); setGenerated(false); }} placeholder="55"
@@ -725,9 +741,9 @@ function VestingBatchForm({ onSave }) {
           </button>
         </div>
       </div>
-      {parseInt(awardYear) > 2000 && (
+      {awardYear && parseInt(awardYear) > 2000 && (
         <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 10, paddingLeft: 2 }}>
-          {awardYear}년 12월 어워드 → {startYear}-01-01 ~ {startYear + 3}-01-01 · 분기별 13회
+          {awardDate} 어워드 → {startYear}-01-01 ~ {startYear + 3}-01-01 · 분기별 13회
         </div>
       )}
 
@@ -978,7 +994,20 @@ export default function AssetsApp() {
       markSaved();
     }
   }
-  function updateVesting(v) { setVestings(p => p.map(x => x.id === v.id ? v : x)); setModal(null); setEditItem(null); upsertVesting(v); }
+  function updateVesting(v) {
+    setVestings(p => p.map(x => x.id === v.id ? v : x));
+    setModal(null); setEditItem(null);
+    upsertVesting(v);
+    // 보유에서 수정한 경우 연결된 stock의 avgPrice/shares 싱크
+    if (v.vested && v.vestPrice != null) {
+      const linked = stocks.find(s => s.ticker.toUpperCase() === v.ticker.toUpperCase() && s.purchaseDate === v.vestDate && !/espp/i.test(s.name));
+      if (linked && (linked.avgPrice !== v.vestPrice || linked.shares !== v.shares)) {
+        const updated = { ...linked, avgPrice: v.vestPrice, shares: v.shares };
+        setStocks(p => p.map(x => x.id === linked.id ? updated : x));
+        upsertStock(updated);
+      }
+    }
+  }
   function deleteVesting(id){ setVestings(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`vesting_schedule?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
   function deleteGrant(name) {
     const grantVestings = vestings.filter(v => v.name === name);
@@ -1336,7 +1365,9 @@ export default function AssetsApp() {
           const amatCost     = amatStocks.reduce((s, x) => s + Math.round(x.avgPrice * x.shares * (x.purchaseRate ?? rate)), 0);
           const amatGain     = amatValue != null ? amatValue - amatCost : null;
           const amatGainPct  = amatCost > 0 && amatGain != null ? ((amatGain / amatCost) * 100).toFixed(1) : null;
-          const unvestedVal  = amatUnvested.reduce((s, v) => { const p = vestingPrices["AMAT"]; return p ? s + Math.round(p * v.shares * rate) : s; }, 0);
+          const unvestedVal    = amatUnvested.reduce((s, v) => { const p = vestingPrices["AMAT"]; return p ? s + Math.round(p * v.shares * rate) : s; }, 0);
+          const vestDateGrantInfo = {};
+          vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").forEach(v => { if (!vestDateGrantInfo[v.vestDate]) vestDateGrantInfo[v.vestDate] = { name: v.name, grantDate: v.grantDate, id: v.id }; });
 
           return (
             <>
@@ -1385,9 +1416,13 @@ export default function AssetsApp() {
                     const gain    = valKrw != null ? valKrw - costKrw : null;
                     const gainPct = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
                     const gainColor = gain >= 0 ? "#2d6a4f" : "#b5451b";
-                    const isEspp = /espp/i.test(s.name);
-                    const typeLabel = isEspp ? "ESPP" : "RSU";
-                    const typeColor = isEspp ? "#1d4e89" : "#2d6a4f";
+                    const isEspp     = /espp/i.test(s.name);
+                    const typeLabel  = isEspp ? "ESPP" : "RSU";
+                    const typeColor  = isEspp ? "#1d4e89" : "#2d6a4f";
+                    const grantInfo  = !isEspp ? (vestDateGrantInfo[s.purchaseDate] || null) : null;
+                    const grantName  = grantInfo?.name || null;
+                    const grantDate  = grantInfo?.grantDate || null;
+                    const linkedVest = !isEspp ? vestings.find(v => v.vested && v.vestDate === s.purchaseDate && v.ticker.toUpperCase() === "AMAT") : null;
                     return (
                       <div key={s.id} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, padding: "11px 14px" }}>
                         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -1395,9 +1430,11 @@ export default function AssetsApp() {
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
                               <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: `${typeColor}18`, border: `1px solid ${typeColor}44`, borderRadius: 5, padding: "2px 7px", letterSpacing: "0.04em" }}>{typeLabel}</span>
                               <span style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
+                              {grantName && <span style={{ fontSize: 11, color: C.inkLight }}>{grantName}</span>}
                             </div>
                             <div style={{ fontSize: 11, color: C.inkLight }}>
                               {s.shares}주 · 취득가 ${s.avgPrice.toFixed(4)}
+                              {grantDate && <span style={{ marginLeft: 6 }}>· 어워드 {grantDate}</span>}
                             </div>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -1406,7 +1443,10 @@ export default function AssetsApp() {
                           </div>
                         </div>
                         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-                          <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: C.inkMid, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={10} /> 수정</button>
+                          {linkedVest
+                            ? <button onClick={() => { setEditItem(linkedVest); setModal("editVesting"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: C.inkMid, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={10} /> 수정</button>
+                            : <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 10px", cursor: "pointer", color: C.inkMid, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><Pencil size={10} /> 수정</button>
+                          }
                         </div>
                       </div>
                     );
@@ -1444,7 +1484,10 @@ export default function AssetsApp() {
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{grantName}</div>
-                                  <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>총 {totalShares}주 · 완료 {vestedShares}주 · 예정 {unvestedShares}주</div>
+                                  <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                                    총 {totalShares}주 · 완료 {vestedShares}주 · 예정 {unvestedShares}주
+                                    {gvs[0].grantDate && <span style={{ marginLeft: 6 }}>· 어워드 {gvs[0].grantDate}</span>}
+                                  </div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                                   {dl != null && <div style={{ fontSize: 12, fontWeight: 700, color: dColor }}>{dl < 0 ? "지남" : `D-${dl}`}</div>}
