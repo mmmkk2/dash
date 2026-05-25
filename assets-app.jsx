@@ -946,6 +946,7 @@ export default function AssetsApp() {
   const [editItem, setEditItem] = useState(null);
   const [tab,      setTab]      = useState("stock");
   const [expanded, setExpanded] = useState(null);
+  const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
   const [addInitial, setAddInitial] = useState(null);
@@ -1311,7 +1312,7 @@ export default function AssetsApp() {
                           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                             {d.institution && (
                               <span style={{ fontSize: 11, fontWeight: 600, color: "#0d7377", background: "#0d737718", border: "1px solid #0d737744", borderRadius: 5, padding: "1px 6px" }}>
-                                {d.institution}{d.accountSuffix ? ` ···${d.accountSuffix}` : ""}
+                                {d.institution}
                               </span>
                             )}
                             {d.memo && <span style={{ fontSize: 11, color: C.inkLight }}>{d.memo}</span>}
@@ -1329,112 +1330,152 @@ export default function AssetsApp() {
               );
             })()}
 
-            {/* Stock list */}
+            {/* Stock list — grouped by account */}
             {nonAmat.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>보유 종목을 추가해보세요</div>
                 <div style={{ fontSize: 12, color: C.inkLight }}>한국·미국 주식 모두 지원</div>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {nonAmat.map(s => {
-                  const p = prices[s.id] ?? s.currentPrice;
-                  const hasPrice = p != null;
-                  const valueKrw = hasPrice ? (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares) : null;
-                  const costKrw  = s.market === "US" ? Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate)) : s.avgPrice * s.shares;
-                  const gainKrw  = valueKrw != null ? valueKrw - costKrw : null;
-                  const gainPct  = gainKrw != null && costKrw > 0 ? ((gainKrw / costKrw) * 100).toFixed(2) : null;
-                  const isPos    = gainKrw != null && gainKrw >= 0;
-                  const isOpen   = expanded === s.id;
+            ) : (() => {
+              const acctGroups = Object.entries(
+                nonAmat.reduce((acc, s) => { const k = s.institution || "계좌 미지정"; (acc[k] = acc[k] || []).push(s); return acc; }, {})
+              );
+              const toggleAcct = key => setExpandedAccounts(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
-                  return (
-                    <div key={s.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                      <button onClick={() => setExpanded(isOpen ? null : s.id)} style={{ width: "100%", background: "none", border: "none", padding: "13px 16px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
-                        {/* Market badge */}
-                        <div style={{ width: 34, height: 34, borderRadius: 8, background: "#2d6a4f18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <span style={{ fontSize: 16 }}>{s.market === "KR" ? "🇰🇷" : "🇺🇸"}</span>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: C.ink }}>{s.name}</span>
-                            <span style={{ fontSize: 10, fontWeight: 600, color: C.inkLight, background: C.cream, borderRadius: 4, padding: "1px 5px" }}>{s.ticker}</span>
-                            {s.institution && (
-                              <span style={{ fontSize: 10, fontWeight: 600, color: "#2d6a4f", background: "#2d6a4f18", border: "1px solid #2d6a4f44", borderRadius: 5, padding: "1px 6px" }}>
-                                {s.institution}{s.accountSuffix ? ` ···${s.accountSuffix}` : ""}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 11, color: C.inkLight }}>
-                            {s.shares}주 · 평균단가 {fmtPrice(s.avgPrice, s.market === "US" ? "USD" : "KRW")}
-                            {s.purchaseDate && <span style={{ marginLeft: 6 }}>· {s.purchaseDate}</span>}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
-                            {valueKrw != null ? fmtS(valueKrw) : "—"}
-                          </div>
-                          {gainPct != null && (
-                            <div style={{ fontSize: 11, fontWeight: 600, color: isPos ? "#2d6a4f" : "#b5451b", display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
-                              {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                              {isPos ? "+" : ""}{gainPct}%
-                            </div>
-                          )}
-                        </div>
-                        {isOpen ? <ChevronUp size={13} color={C.inkLight} /> : <ChevronDown size={13} color={C.inkLight} />}
-                      </button>
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {acctGroups.map(([acctName, acctStocks]) => {
+                    const acctValue = acctStocks.reduce((sum, s) => { const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice; return sum + (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares); }, 0);
+                    const acctCost  = acctStocks.reduce((sum, s) => { const v = s.avgPrice * s.shares; return sum + (s.market === "US" ? Math.round(v * (s.purchaseRate ?? rate)) : v); }, 0);
+                    const acctGain  = acctValue - acctCost;
+                    const acctGainPct = acctCost > 0 ? ((acctGain / acctCost) * 100).toFixed(1) : null;
+                    const acctPos   = acctGain >= 0;
+                    const isAcctOpen = expandedAccounts.has(acctName);
 
-                      {isOpen && (() => {
-                        const costUsd  = s.market === "US" ? s.avgPrice * s.shares : costKrw / (s.purchaseRate ?? rate);
-                        const valueUsd = hasPrice ? (s.market === "US" ? p * s.shares : valueKrw / rate) : null;
-                        const gainUsd  = valueUsd != null ? valueUsd - costUsd : null;
-                        const fu = n => "$" + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
-                        const rows = [
-                          { label: "원금", krw: costKrw,  usd: costUsd  },
-                          { label: "수익", krw: gainKrw,  usd: gainUsd,  isGain: true },
-                          { label: "전체", krw: valueKrw, usd: valueUsd },
-                        ];
-                        return (
-                          <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", background: C.paper }}>
-                            <div style={{ background: C.white, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
-                              <div style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "5px 12px", borderBottom: `1px solid ${C.border}` }}>
-                                <span />
-                                <span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>원화</span>
-                                <span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>달러</span>
-                              </div>
-                              {rows.map(({ label, krw, usd, isGain }, i) => {
-                                const color = isGain ? (krw == null ? C.inkLight : krw >= 0 ? "#2d6a4f" : "#b5451b") : C.ink;
-                                const pfx = isGain && krw != null ? (krw >= 0 ? "+" : "−") : "";
-                                return (
-                                  <div key={label} style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "9px 12px", borderBottom: i < 2 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
-                                    <span style={{ fontSize: 10, fontWeight: 700, color: C.inkLight }}>{label}</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                      {krw != null ? pfx + fmtS(Math.abs(krw)) : "—"}
-                                    </span>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: isGain ? color : C.inkMid, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                                      {usd != null ? pfx + fu(usd) : "—"}
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                    return (
+                      <div key={acctName} style={{ borderRadius: 18, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.10)" }}>
+                        {/* Account header card */}
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#152238 0%,#1d4e89 100%)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{acctName}</span>
+                              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{acctStocks.length}종목</span>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                              <div style={{ fontSize: 10, color: C.inkLight }}>
-                                현재가 {hasPrice ? fmtPrice(p, s.market === "US" ? "USD" : "KRW") : "미조회"}
-                                {s.market === "US" && <span style={{ marginLeft: 6 }}>· 현재 {rate.toLocaleString("ko-KR")}원</span>}
-                                {s.market === "US" && s.purchaseRate && <span style={{ marginLeft: 6 }}>· 매입 {s.purchaseRate.toLocaleString("ko-KR")}원</span>}
+                            {isAcctOpen ? <ChevronUp size={15} color="rgba(255,255,255,0.5)" /> : <ChevronDown size={15} color="rgba(255,255,255,0.5)" />}
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                            <div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>보유 총액</div>
+                              <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
+                              <div style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#7fffc4" : "#ffb3a7" }}>
+                                {acctPos ? "+" : ""}{fmtS(acctGain)}
                               </div>
-                              <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
-                                <Pencil size={12} /> 수정
-                              </button>
+                              <div style={{ fontSize: 10, color: acctPos ? "#7fffc4" : "#ffb3a7", marginTop: 2, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
+                                {acctGainPct != null ? `${acctPos ? "+" : ""}${acctGainPct}%` : "—"}
+                              </div>
                             </div>
                           </div>
-                        );
-                      })()}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                        </button>
+
+                        {/* Expanded: individual stocks */}
+                        {isAcctOpen && (
+                          <div style={{ background: C.white, borderTop: "none" }}>
+                            {acctStocks.map((s, si) => {
+                              const p = prices[s.id] ?? s.currentPrice;
+                              const hasPrice = p != null;
+                              const valueKrw = hasPrice ? (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares) : null;
+                              const costKrw  = s.market === "US" ? Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate)) : s.avgPrice * s.shares;
+                              const gainKrw  = valueKrw != null ? valueKrw - costKrw : null;
+                              const gainPct  = gainKrw != null && costKrw > 0 ? ((gainKrw / costKrw) * 100).toFixed(2) : null;
+                              const isPos    = gainKrw != null && gainKrw >= 0;
+                              const isOpen   = expanded === s.id;
+                              const isLast   = si === acctStocks.length - 1;
+
+                              return (
+                                <div key={s.id} style={{ borderBottom: isLast && !isOpen ? "none" : `1px solid ${C.border}` }}>
+                                  <button onClick={() => setExpanded(isOpen ? null : s.id)} style={{ width: "100%", background: "none", border: "none", padding: "12px 16px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+                                    <div style={{ width: 30, height: 30, borderRadius: 7, background: C.cream, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                      <span style={{ fontSize: 14 }}>{s.market === "KR" ? "🇰🇷" : "🇺🇸"}</span>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{s.name}</span>
+                                        <span style={{ fontSize: 10, fontWeight: 600, color: C.inkLight, background: C.cream, borderRadius: 4, padding: "1px 5px" }}>{s.ticker}</span>
+                                      </div>
+                                      <div style={{ fontSize: 11, color: C.inkLight }}>
+                                        {s.shares}주 · {fmtPrice(s.avgPrice, s.market === "US" ? "USD" : "KRW")}
+                                      </div>
+                                    </div>
+                                    <div style={{ textAlign: "right" }}>
+                                      <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
+                                        {valueKrw != null ? fmtS(valueKrw) : "—"}
+                                      </div>
+                                      {gainPct != null && (
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: isPos ? "#2d6a4f" : "#b5451b", display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                                          {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                          {isPos ? "+" : ""}{gainPct}%
+                                        </div>
+                                      )}
+                                    </div>
+                                    {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                                  </button>
+
+                                  {isOpen && (() => {
+                                    const costUsd  = s.market === "US" ? s.avgPrice * s.shares : costKrw / (s.purchaseRate ?? rate);
+                                    const valueUsd = hasPrice ? (s.market === "US" ? p * s.shares : valueKrw / rate) : null;
+                                    const gainUsd  = valueUsd != null ? valueUsd - costUsd : null;
+                                    const fu = n => "$" + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+                                    const dRows = [
+                                      { label: "원금", krw: costKrw,  usd: costUsd  },
+                                      { label: "수익", krw: gainKrw,  usd: gainUsd,  isGain: true },
+                                      { label: "전체", krw: valueKrw, usd: valueUsd },
+                                    ];
+                                    return (
+                                      <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", background: C.paper }}>
+                                        <div style={{ background: C.white, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+                                          <div style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "5px 12px", borderBottom: `1px solid ${C.border}` }}>
+                                            <span /><span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>원화</span>
+                                            <span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>달러</span>
+                                          </div>
+                                          {dRows.map(({ label, krw, usd, isGain }, i) => {
+                                            const color = isGain ? (krw == null ? C.inkLight : krw >= 0 ? "#2d6a4f" : "#b5451b") : C.ink;
+                                            const pfx = isGain && krw != null ? (krw >= 0 ? "+" : "−") : "";
+                                            return (
+                                              <div key={label} style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "9px 12px", borderBottom: i < 2 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: C.inkLight }}>{label}</span>
+                                                <span style={{ fontSize: 13, fontWeight: 700, color, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{krw != null ? pfx + fmtS(Math.abs(krw)) : "—"}</span>
+                                                <span style={{ fontSize: 12, fontWeight: 600, color: isGain ? color : C.inkMid, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{usd != null ? pfx + fu(usd) : "—"}</span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                          <div style={{ fontSize: 10, color: C.inkLight }}>
+                                            현재가 {hasPrice ? fmtPrice(p, s.market === "US" ? "USD" : "KRW") : "미조회"}
+                                            {s.market === "US" && s.purchaseRate && <span style={{ marginLeft: 6 }}>· 매입 {s.purchaseRate.toLocaleString("ko-KR")}원</span>}
+                                          </div>
+                                          <button onClick={() => { setEditItem(s); setModal("editStock"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 14px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
+                                            <Pencil size={12} /> 수정
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </>
           );
         })()}
@@ -1483,7 +1524,7 @@ export default function AssetsApp() {
                             <span style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>{a.name}</span>
                             {a.institution && (
                               <span style={{ fontSize: 10, fontWeight: 600, color: color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 5, padding: "1px 6px", letterSpacing: "0.02em" }}>
-                                {a.institution}{a.accountSuffix ? ` ···${a.accountSuffix}` : ""}
+                                {a.institution}
                               </span>
                             )}
                           </div>
