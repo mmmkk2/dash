@@ -1355,7 +1355,7 @@ export default function AssetsApp() {
                     return (
                       <div key={acctName} style={{ borderRadius: 18, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.10)" }}>
                         {/* Account header card */}
-                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#152238 0%,#1d4e89 100%)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#2c2c2e 0%,#48484a 100%)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>{acctName}</span>
