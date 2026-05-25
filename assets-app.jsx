@@ -2021,19 +2021,29 @@ export default function AssetsApp() {
                         <button onClick={() => toggleHolding(grantName)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                            {/* 왼쪽: 이름 + 부여일 */}
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>{grantName}</span>
-                                {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
-                              </div>
-                              <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2, display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                                {heldSh > 0 && <span>보유 <strong style={{ color: C.inkMid }}>{heldSh}주</strong></span>}
-                                {heldSh > 0 && amatPrice && <span style={{ fontWeight: 700, color: "#2469b3", fontVariantNumeric: "tabular-nums" }}>${Math.round(amatPrice * heldSh).toLocaleString()}</span>}
-                                {heldSh > 0 && futureSh > 0 && <span style={{ margin: "0 2px" }}>·</span>}
-                                {futureSh > 0 && <span>예정 {futureSh}주</span>}
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>{grantName}</span>
+                              {grantDate && <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 6 }}>{grantDate}</span>}
+                            </div>
+                            {/* 오른쪽: D-XX + 보유/예정 */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                              {dl != null && (
+                                <span style={{ fontSize: 11, fontWeight: 800, color: dc, minWidth: 36, textAlign: "right" }}>
+                                  {dl < 0 ? "지남" : `D-${dl}`}
+                                </span>
+                              )}
+                              <div style={{ textAlign: "right", minWidth: 80 }}>
+                                {heldSh > 0 && (
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
+                                    보유 {heldSh}주{amatPrice ? <span style={{ color: "#2469b3", marginLeft: 4 }}>${Math.round(amatPrice * heldSh).toLocaleString()}</span> : null}
+                                  </div>
+                                )}
+                                {futureSh > 0 && (
+                                  <div style={{ fontSize: 11, color: C.inkLight, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>예정 {futureSh}주</div>
+                                )}
                               </div>
                             </div>
-                            {dl != null && <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{dl < 0 ? "지남" : `D-${dl}`}</span>}
                           </div>
                         </button>
                         <button onClick={e => { e.stopPropagation(); setEditItem({ grantName, grantDate }); setModal("editGrant"); }}
