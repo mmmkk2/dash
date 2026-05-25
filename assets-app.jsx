@@ -33,10 +33,10 @@ const DEFAULT_CATS = [
 const CAT_COLORS = ["#2d6a4f","#1d4e89","#b5451b","#0077b6","#7b2d00","#4a1942","#831843","#6b5c4e","#374151"];
 
 const C = {
-  bg: "#f1f5f9", paper: "#f8fafc", white: "#ffffff",
-  ink: "#0f172a", inkMid: "#475569", inkLight: "#94a3b8",
-  border: "#e2e8f0", cream: "#f1f5f9",
-  header: "linear-gradient(160deg,#0f172a 0%,#1e293b 60%,#334155 100%)",
+  bg: "#f4f6f9", paper: "#ffffff", white: "#ffffff",
+  ink: "#1a2535", inkMid: "#4a5568", inkLight: "#a0aec0",
+  border: "#e4e9f0", cream: "#edf2f7",
+  header: "linear-gradient(160deg,#1a2535 0%,#2d3f5e 100%)",
 };
 const F = "'Inter',sans-serif";
 
@@ -1356,7 +1356,7 @@ export default function AssetsApp() {
                     return (
                       <div key={acctName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
                         {/* Account header card */}
-                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#0f172a", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "linear-gradient(135deg,#2d3f5e,#3d5278)", padding: "16px 18px", textAlign: "left", fontFamily: F }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: "-0.01em" }}>{acctName}</span>
@@ -1612,7 +1612,7 @@ export default function AssetsApp() {
             <>
               {/* ─ 요약 헤더 ─ */}
               {amatStocks.length > 0 && (
-                <div style={{ background: "#0f172a", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "linear-gradient(135deg,#1e3a5f,#2d5a8e)", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
