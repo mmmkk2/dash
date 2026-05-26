@@ -607,13 +607,15 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
 
   const fetchName = async (tk, mkt) => {
     if (!tk.trim()) return;
-    const sym = mkt === "KR" ? `${tk.trim().toUpperCase()}.KS` : tk.trim().toUpperCase();
     setNameLoading(true);
     try {
-      const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
-      if (res.ok) {
+      const suffixes = mkt === "KR" ? [".KS", ".KQ"] : [""];
+      for (const suf of suffixes) {
+        const sym = tk.trim().toUpperCase() + suf;
+        const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+        if (!res.ok) continue;
         const data = await res.json();
-        if (data.name) setName(data.name);
+        if (data.name) { setName(data.name); break; }
       }
     } catch {}
     setNameLoading(false);
