@@ -463,6 +463,9 @@ const PENSION_MONTHLY     = new Set(["IRP", "노란우산"]);
 const PENSION_TYPE_COLORS = { IRP: "#2d5cb8", "노란우산": "#b8860b", DC: "#2d6a4f", "기타": "#6b5c4e" };
 const DC_ETF_MARKER       = "dc_pension";
 
+const LOAN_TYPES       = ["주택담보", "전세자금", "신용", "마이너스통장", "기타"];
+const LOAN_TYPE_COLORS = { "주택담보": "#7b2d00", "전세자금": "#2d6a4f", "신용": "#2d5cb8", "마이너스통장": "#6b2d8b", "기타": "#6b5c4e" };
+
 function pensionMonths(startDate) {
   if (!startDate) return 0;
   const s = new Date(startDate), n = new Date();
@@ -639,6 +642,140 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
       <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "ETF 추가"}
+      </button>
+      {onDelete && (
+        <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
+          삭제
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── Loan Form ── */
+function LoanForm({ initial = {}, onSave, onDelete }) {
+  const init = initial;
+  const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
+  const initMemo  = parseMemo(init.memo);
+
+  const [loanType,   setLoanType]   = useState(init.accountSuffix || "주택담보");
+  const [institution,setInstitution]= useState(init.institution || "");
+  const [name,       setName]       = useState(init.name || "");
+  const [principal,  setPrincipal]  = useState(initMemo.principal ? String(initMemo.principal) : "");
+  const [balance,    setBalance]    = useState(init.amount ? String(init.amount) : "");
+  const [rate,       setRate]       = useState(initMemo.rate != null ? String(initMemo.rate) : "");
+  const [monthly,    setMonthly]    = useState(initMemo.monthly ? String(initMemo.monthly) : "");
+  const [maturity,   setMaturity]   = useState(init.date || "");
+  const [memo,       setMemo]       = useState(initMemo.memo || "");
+  const [err,        setErr]        = useState("");
+
+  const submit = () => {
+    const bal  = parseInt(balance.replace(/[^\d]/g, ""), 10);
+    const prin = parseInt(principal.replace(/[^\d]/g, ""), 10) || 0;
+    const r    = parseFloat(rate) || 0;
+    const mon  = parseInt(monthly.replace(/[^\d]/g, ""), 10) || 0;
+    if (!institution.trim()) { setErr("금융기관을 입력해주세요"); return; }
+    if (!bal)                { setErr("현재 잔액을 입력해주세요"); return; }
+    setErr("");
+    const memoObj = {};
+    if (prin)     memoObj.principal = prin;
+    if (r)        memoObj.rate      = r;
+    if (mon)      memoObj.monthly   = mon;
+    if (memo.trim()) memoObj.memo   = memo.trim();
+    onSave({
+      id: init.id || Date.now(),
+      cat: "대출",
+      name: name.trim() || institution.trim(),
+      institution: institution.trim(),
+      accountSuffix: loanType,
+      amount: bal,
+      date: maturity || new Date().toISOString().slice(0, 10),
+      memo: JSON.stringify(memoObj),
+    });
+  };
+
+  const bal    = parseInt(balance.replace(/[^\d]/g, ""), 10) || 0;
+  const prin   = parseInt(principal.replace(/[^\d]/g, ""), 10) || 0;
+  const r      = parseFloat(rate) || 0;
+  const annualInterest = bal > 0 && r > 0 ? Math.round(bal * r / 100) : 0;
+  const repaidPct = prin > 0 && bal > 0 ? Math.max(0, Math.round((1 - bal / prin) * 100)) : null;
+
+  return (
+    <div style={{ padding: "4px 0 8px" }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>대출</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 18, marginBottom: 12 }}>
+        {LOAN_TYPES.map(t => (
+          <button key={t} onClick={() => setLoanType(t)}
+            style={{ flex: "1 1 auto", padding: "8px 0", border: `1.5px solid ${loanType === t ? (LOAN_TYPE_COLORS[t] || "#555") : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 12, background: loanType === t ? (LOAN_TYPE_COLORS[t] || "#555") : C.white, color: loanType === t ? "#fff" : C.inkMid, fontFamily: F }}>
+            {t}
+          </button>
+        ))}
+      </div>
+      <SLabel>금융기관</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={institution} onChange={e => setInstitution(e.target.value)} placeholder="국민은행"
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 15, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>대출명 (선택)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="KB 주택담보대출"
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div>
+          <SLabel>대출 원금</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
+            <input value={principal} onChange={e => setPrincipal(e.target.value.replace(/[^\d]/g, ""))} placeholder="300000000"
+              style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+          </div>
+        </div>
+        <div>
+          <SLabel>현재 잔액</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
+            <input value={balance} onChange={e => setBalance(e.target.value.replace(/[^\d]/g, ""))} placeholder="250000000"
+              style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div>
+          <SLabel>금리 (%)</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
+            <input value={rate} onChange={e => setRate(e.target.value.replace(/[^\d.]/g, ""))} placeholder="3.5"
+              style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>%</span>
+          </div>
+        </div>
+        <div>
+          <SLabel>월 상환액 (선택)</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
+            <input value={monthly} onChange={e => setMonthly(e.target.value.replace(/[^\d]/g, ""))} placeholder="800000"
+              style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+          </div>
+        </div>
+      </div>
+      <SLabel>만기일</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input type="date" value={maturity} onChange={e => setMaturity(e.target.value)}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>메모 (선택)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input value={memo} onChange={e => setMemo(e.target.value)} placeholder=""
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      {(annualInterest > 0 || repaidPct != null) && (
+        <div style={{ background: "#fff5f5", border: "1px solid #f5c6cb", borderRadius: 9, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#7b2d00", lineHeight: 1.6 }}>
+          {annualInterest > 0 && <div>연간 이자 약 <strong>{fmtS(annualInterest)}</strong>원 · 월 {fmtS(Math.round(annualInterest / 12))}원</div>}
+          {repaidPct != null && <div>원금 상환률 <strong>{repaidPct}%</strong> ({fmtS(prin - bal)}원 상환)</div>}
+        </div>
+      )}
+      {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#7b2d00", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+        {init.id ? "저장" : "대출 추가"}
       </button>
       {onDelete && (
         <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
@@ -1280,7 +1417,8 @@ export default function AssetsApp() {
       return sum + dcEtfValueByInst[a.institution];
     return sum + a.amount;
   }, 0), [assets, dcEtfValueByInst]);
-  const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금").reduce((s, a) => s + a.amount, 0), [assets]);
+  const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금" && a.cat !== "대출").reduce((s, a) => s + a.amount, 0), [assets]);
+  const loanTotal  = useMemo(() => assets.filter(a => a.cat === "대출").reduce((s, a) => s + a.amount, 0), [assets]);
 
   const institutionSuggestions = useMemo(() => {
     const seen = new Set();
@@ -1414,16 +1552,23 @@ export default function AssetsApp() {
 
           {/* Total */}
           <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 18, padding: "18px 20px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: 16 }}>
-            {/* 퇴직연금 포함 */}
+            {/* 총 자산 */}
             <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>총 자산 (퇴직연금 포함)</div>
             <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", fontVariantNumeric: "tabular-nums" }}>
               {fmtS(total)}<span style={{ fontSize: 14, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
             </div>
+            {/* 순자산 (대출 차감) */}
+            {loanTotal > 0 && (
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "baseline", gap: 6 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em", textTransform: "uppercase" }}>순자산 (대출 차감)</span>
+                <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>{fmtS(total - loanTotal)}</span>
+              </div>
+            )}
             {/* 퇴직연금 제외 */}
             {pensionTotal > 0 && (
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "baseline", gap: 6 }}>
+              <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", gap: 6 }}>
                 <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em", textTransform: "uppercase" }}>퇴직연금 제외</span>
-                <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.75 }}>{fmtS(total - pensionTotal)}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.65 }}>{fmtS(total - pensionTotal)}</span>
               </div>
             )}
             <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
@@ -1431,6 +1576,7 @@ export default function AssetsApp() {
               {depositTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>예수금 {fmtS(depositTotal)}</div>}
               <div style={{ fontSize: 11, opacity: 0.5 }}>기타자산 {fmtS(assetTotal)}</div>
               {pensionTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>퇴직연금 {fmtS(pensionTotal)}</div>}
+              {loanTotal > 0 && <div style={{ fontSize: 11, color: "#f87171", opacity: 0.85 }}>대출 -{fmtS(loanTotal)}</div>}
               {unvestedValue > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>미확정 RSU {fmtS(unvestedValue)}</div>}
             </div>
           </div>
@@ -1470,7 +1616,7 @@ export default function AssetsApp() {
 
         {/* Tab */}
         <div style={{ display: "flex", background: C.white, borderRadius: 10, padding: 3, border: `1px solid ${C.border}`, gap: 3, marginBottom: 14 }}>
-          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["pension", "💼 연금·공제"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
+          {[["stock", "📈 주식"], ["asset", "🏦 기타자산"], ["pension", "💼 연금·공제"], ["loan", "💳 대출"], ["vest", "🏢 AMAT"]].map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: tab === k ? 700 : 400, fontSize: 13, background: tab === k ? C.ink : "transparent", color: tab === k ? "#fff" : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
           ))}
         </div>
@@ -1946,6 +2092,105 @@ export default function AssetsApp() {
           );
         })()}
 
+        {/* ── Loan Tab ── */}
+        {!dbLoading && tab === "loan" && (() => {
+          const loans = assets.filter(a => a.cat === "대출");
+          const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
+          const today = new Date();
+
+          return (
+            <>
+              {/* 요약 카드 */}
+              {loans.length > 0 && (
+                <div style={{ background: "#7b2d00", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.5, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>총 대출 잔액</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: "tabular-nums", letterSpacing: "-1px" }}>
+                    {fmtS(loanTotal)}<span style={{ fontSize: 13, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
+                  </div>
+                  {(() => {
+                    const totalPrincipal = loans.reduce((s, a) => { const m = parseMemo(a.memo); return s + (m.principal || 0); }, 0);
+                    const totalAnnualInt = loans.reduce((s, a) => { const m = parseMemo(a.memo); return s + (m.rate ? Math.round(a.amount * m.rate / 100) : 0); }, 0);
+                    return (
+                      <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
+                        {totalPrincipal > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>원금 합계 {fmtS(totalPrincipal)}</div>}
+                        {totalAnnualInt > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>연간 이자 ~{fmtS(totalAnnualInt)}</div>}
+                        <div style={{ fontSize: 11, opacity: 0.55 }}>{loans.length}건</div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {loans.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>대출 내역이 없습니다</div>
+                  <div style={{ fontSize: 12, color: C.inkLight }}>주택담보, 전세자금, 신용대출 등을 추가하세요</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {loans.map(a => {
+                    const m       = parseMemo(a.memo);
+                    const color   = LOAN_TYPE_COLORS[a.accountSuffix] || C.inkMid;
+                    const matDate = a.date ? new Date(a.date) : null;
+                    const dl      = matDate ? Math.ceil((matDate - today) / 86400000) : null;
+                    const dlColor = dl == null ? C.inkLight : dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : dl < 365 ? "#e07a5f" : C.inkMid;
+                    const annInt  = m.rate ? Math.round(a.amount * m.rate / 100) : null;
+                    const repaid  = m.principal && a.amount ? Math.max(0, Math.round((1 - a.amount / m.principal) * 100)) : null;
+
+                    return (
+                      <div key={a.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                        <div style={{ display: "flex", alignItems: "stretch" }}>
+                          <div style={{ width: 4, background: color, flexShrink: 0 }} />
+                          <div style={{ flex: 1, padding: "14px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: color, borderRadius: 5, padding: "2px 7px" }}>{a.accountSuffix}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{a.name || a.institution}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: C.inkLight }}>{a.institution}</div>
+                              </div>
+                              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: "#7b2d00", fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
+                                <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>잔액</div>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+                              {m.rate != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>금리 </span><strong>{m.rate}%</strong></div>}
+                              {annInt != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>}
+                              {m.monthly > 0 && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월상환 </span><strong>{fmtS(m.monthly)}</strong></div>}
+                            </div>
+                            {(dl != null || repaid != null) && (
+                              <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
+                                {dl != null && (
+                                  <div style={{ fontSize: 11, color: dlColor, fontWeight: 700 }}>
+                                    만기 {a.date}{dl < 0 ? " (만기됨)" : ` (D-${dl})`}
+                                  </div>
+                                )}
+                                {repaid != null && (
+                                  <div style={{ fontSize: 11, color: C.inkMid }}>
+                                    <span style={{ color: C.inkLight }}>상환 </span><strong>{repaid}%</strong>
+                                    <span style={{ color: C.inkLight }}> ({fmtS(m.principal - a.amount)}원)</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {m.memo && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 5 }}>{m.memo}</div>}
+                          </div>
+                          <button onClick={() => { setEditItem(a); setModal("editLoan"); }}
+                            style={{ background: "none", border: "none", borderLeft: `1px solid ${C.border}`, cursor: "pointer", padding: "0 14px", color: C.inkLight, display: "flex", alignItems: "center" }}>
+                            <Pencil size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         {/* ── AMAT 탭 ── */}
         {!dbLoading && tab === "vest" && (() => {
           const amatStocks   = stocks.filter(s => s.ticker.toUpperCase() === "AMAT");
@@ -2225,6 +2470,19 @@ export default function AssetsApp() {
           <Plus size={26} />
         </button>
       )}
+      {!dbLoading && tab === "loan" && (
+        <button onClick={() => setModal("addLoan")} style={{
+          position: "fixed", bottom: 24, right: 24, zIndex: 200,
+          width: 56, height: 56, borderRadius: "50%", border: "none",
+          background: "#7b2d00", color: "#fff", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 20px #7b2d0088", transition: "transform 0.15s",
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+          <Plus size={26} />
+        </button>
+      )}
       {!dbLoading && tab === "pension" && (
         <button onClick={() => setModal("addPension")} style={{
           position: "fixed", bottom: 24, right: 24, zIndex: 200,
@@ -2292,6 +2550,12 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "editPension" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <PensionForm initial={editItem} onSave={a => { updateAsset(a); }} onDelete={() => deleteAsset(editItem.id)} />}
+      </Modal>
+      <Modal open={modal === "addLoan"} onClose={() => setModal(null)}>
+        <LoanForm onSave={a => { addAsset(a); setModal(null); }} />
+      </Modal>
+      <Modal open={modal === "editLoan" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <LoanForm initial={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} onDelete={() => deleteAsset(editItem.id)} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
