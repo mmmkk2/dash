@@ -1908,41 +1908,6 @@ export default function AssetsApp() {
               </div>
             )}
 
-            {/* Deposits (예수금) */}
-            {(() => {
-              const deposits = assets.filter(a => a.cat === "예수금");
-              if (deposits.length === 0) return null;
-              return (
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 8px" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase" }}>예수금 / 단기자금</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(depositTotal)}</div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {deposits.map(d => (
-                      <div key={d.id} style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, padding: "11px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 6, height: 32, borderRadius: 3, background: "#0d7377", flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                            {d.institution && (
-                              <span style={{ fontSize: 11, fontWeight: 600, color: "#0d7377", background: "#0d737718", border: "1px solid #0d737744", borderRadius: 5, padding: "1px 6px" }}>
-                                {d.institution}
-                              </span>
-                            )}
-                            {d.memo && <span style={{ fontSize: 11, color: C.inkLight }}>{d.memo}</span>}
-                          </div>
-                          <div style={{ fontSize: 10, color: C.inkLight, marginTop: 2 }}>{d.date}</div>
-                        </div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(d.amount)}</div>
-                        <button onClick={() => { setEditItem(d); setModal("editDeposit"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
-                          <Pencil size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* Stock list — grouped by account */}
             {nonAmat.length === 0 ? (
@@ -1999,6 +1964,19 @@ export default function AssetsApp() {
                         {/* Expanded: individual stocks */}
                         {isAcctOpen && (
                           <div style={{ background: C.white, borderRadius: "0 0 16px 16px", border: `1px solid ${C.border}`, borderTop: "none" }}>
+                            {deposits.filter(d => d.institution === acctName).map(d => (
+                              <div key={d.id} style={{ display: "flex", alignItems: "center", padding: "11px 16px", borderBottom: `1px solid ${C.border}`, gap: 10 }}>
+                                <div style={{ width: 4, height: 32, borderRadius: 2, background: "#0d7377", flexShrink: 0 }} />
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>예수금{d.memo ? ` · ${d.memo}` : ""}</div>
+                                  <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>{d.date}</div>
+                                </div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums", marginRight: 4 }}>{fmtS(d.amount)}</div>
+                                <button onClick={() => { setEditItem(d); setModal("editDeposit"); }} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
+                                  <Pencil size={11} />
+                                </button>
+                              </div>
+                            ))}
                             {acctStocks.map((s, si) => {
                               const p = prices[s.id] ?? s.currentPrice;
                               const hasPrice = p != null;
