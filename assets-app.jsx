@@ -1805,27 +1805,30 @@ export default function AssetsApp() {
           </div>
 
           {/* Total */}
-          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 18, padding: "18px 20px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: 16 }}>
+          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 18, padding: "14px 16px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: 16 }}>
             {/* 총 자산 */}
-            <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>총 자산 (퇴직연금 포함)</div>
-            <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: "-1px", fontVariantNumeric: "tabular-nums" }}>
+            <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 3 }}>총 자산 (퇴직연금 포함)</div>
+            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1px", fontVariantNumeric: "tabular-nums" }}>
               {fmtS(total)}<span style={{ fontSize: 14, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
             </div>
-            {/* 순자산 (대출 차감) */}
-            {loanTotal > 0 && (
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "baseline", gap: 6 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em", textTransform: "uppercase" }}>순자산 (대출 차감)</span>
-                <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>{fmtS(total - loanTotal)}</span>
+            {/* 순자산 / 퇴직연금 제외 — 한 줄 */}
+            {(loanTotal > 0 || pensionTotal > 0) && (
+              <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 20, flexWrap: "wrap" }}>
+                {loanTotal > 0 && (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em" }}>순자산</span>
+                    <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>{fmtS(total - loanTotal)}</span>
+                  </div>
+                )}
+                {pensionTotal > 0 && (
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em" }}>퇴직연금 제외</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.7 }}>{fmtS(total - pensionTotal - loanTotal)}</span>
+                  </div>
+                )}
               </div>
             )}
-            {/* 퇴직연금 제외 */}
-            {pensionTotal > 0 && (
-              <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", gap: 6 }}>
-                <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em", textTransform: "uppercase" }}>퇴직연금 제외</span>
-                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.65 }}>{fmtS(total - pensionTotal)}</span>
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
               <div style={{ fontSize: 11, opacity: 0.5 }}>주식 {fmtS(stockValue)}</div>
               {depositTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>예수금 {fmtS(depositTotal)}</div>}
               <div style={{ fontSize: 11, opacity: 0.5 }}>기타자산 {fmtS(assetTotal)}</div>
