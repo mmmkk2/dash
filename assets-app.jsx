@@ -1955,28 +1955,25 @@ export default function AssetsApp() {
                     return (
                       <div key={acctName} style={{ borderRadius: 16, overflow: "hidden" }}>
                         {/* Account header card */}
-                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#265a8c", padding: "18px 20px", textAlign: "left", fontFamily: F }}>
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.1 }}>{acctName}</div>
-                              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600, marginTop: 3 }}>{acctStocks.length}종목</div>
-                            </div>
-                            {isAcctOpen ? <ChevronUp size={14} color="rgba(255,255,255,0.35)" /> : <ChevronDown size={14} color="rgba(255,255,255,0.35)" />}
+                        <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: "#265a8c", padding: "13px 16px", textAlign: "left", fontFamily: F }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                            <div style={{ fontSize: 17, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em", flex: 1 }}>{acctName}</div>
+                            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>{acctStocks.length}종목</span>
+                            {isAcctOpen ? <ChevronUp size={13} color="rgba(255,255,255,0.35)" /> : <ChevronDown size={13} color="rgba(255,255,255,0.35)" />}
                           </div>
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
                             <div>
-                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>보유 총액</div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</div>
-                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</div>
+                              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginRight: 5 }}>총액</span>
+                              <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</span>
+                              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</span>
                             </div>
                             <div>
-                              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
-                              <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#34d399" : "#f87171" }}>
+                              <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#34d399" : "#f87171" }}>
                                 {acctPos ? "+" : ""}{fmtS(acctGain)}
-                              </div>
-                              <div style={{ fontSize: 10, color: acctPos ? "#34d399" : "#f87171", marginTop: 2, fontVariantNumeric: "tabular-nums", opacity: 0.85 }}>
-                                {acctGainPct != null ? `${acctPos ? "+" : ""}${acctGainPct}%` : "—"}
-                              </div>
+                              </span>
+                              <span style={{ fontSize: 10, marginLeft: 4, fontVariantNumeric: "tabular-nums", color: acctPos ? "#34d399" : "#f87171", opacity: 0.85 }}>
+                                {acctGainPct != null ? `(${acctPos ? "+" : ""}${acctGainPct}%)` : ""}
+                              </span>
                             </div>
                           </div>
                         </button>
