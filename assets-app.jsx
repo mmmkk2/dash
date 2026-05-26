@@ -1903,7 +1903,7 @@ export default function AssetsApp() {
           <>
             {/* Stock summary */}
             {nonAmat.length > 0 && (
-              <div style={{ background: "#2d6a4f", borderRadius: 14, padding: "14px 16px", marginBottom: 10, color: "#fff" }}>
+              <div style={{ background: "#2d6a4f", borderRadius: 16, padding: "16px 18px", marginBottom: 10, color: "#fff" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                   {[
                     { label: "평가금액", val: fmtS(nonAmatValue + depositTotal), color: "#fff" },
@@ -1911,8 +1911,8 @@ export default function AssetsApp() {
                     { label: "수익률", val: (nonAmatGain >= 0 ? "+" : "") + nonAmatGainPct + "%", color: nonAmatGain >= 0 ? "#6ee7b7" : "#fca5a5" },
                   ].map(({ label, val, color }) => (
                     <div key={label} style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{val}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{val}</div>
                     </div>
                   ))}
                 </div>
@@ -2206,17 +2206,17 @@ export default function AssetsApp() {
             <>
               {/* 요약 */}
               {pensions.length > 0 && (
-                <div style={{ background: "#265a8c", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#265a8c", borderRadius: 16, padding: "16px 18px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>연금·공제</div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>총 적립액</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>총 적립액</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{fmtS(pensionTotal)}</div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>월 납입 합계</div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>월 납입 합계</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
                         {(() => { const m = pensions.filter(a => PENSION_MONTHLY.has(a.accountSuffix)).reduce((s, a) => s + (parseInt(a.memo) || 0), 0); return m > 0 ? fmtS(m) : "—"; })()}
                       </div>
@@ -2367,36 +2367,38 @@ export default function AssetsApp() {
           return (
             <>
               {/* 요약 카드 */}
-              {loans.length > 0 && (
-                <div style={{ background: "#7b2d00", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.5, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>총 부채 잔액</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: "tabular-nums", letterSpacing: "-1px" }}>
-                    {fmtS(loanTotal)}<span style={{ fontSize: 13, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
+              {loans.length > 0 && (() => {
+                let sumPrin = 0, sumInt = 0, sumTotal = 0;
+                loans.forEach(a => {
+                  const m = parseMemo(a.memo);
+                  const mi = m.rate ? Math.round(a.amount * m.rate / 12 / 100) : 0;
+                  const mt = (m.repayType && m.repayType !== "직접입력")
+                    ? (calcLoanMonthly(m.repayType, m.principal || 0, a.amount, m.rate || 0, m.termMonths || 0, a.date) || m.monthly || 0)
+                    : (m.monthly || 0);
+                  const mp = m.repayType === "이자만" ? 0 : Math.max(0, mt - mi);
+                  sumInt += mi; sumPrin += mp; sumTotal += mt;
+                });
+                return (
+                  <div style={{ background: "#7b2d00", borderRadius: 16, padding: "16px 18px", marginBottom: 14, color: "#fff" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>부채</div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>{loans.length}건</div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                      {[
+                        { label: "총 잔액", val: fmtS(loanTotal) },
+                        { label: "월 상환", val: sumTotal > 0 ? fmtS(sumTotal) : "—" },
+                        { label: "월 이자", val: sumInt > 0 ? fmtS(sumInt) : "—" },
+                      ].map(({ label, val }) => (
+                        <div key={label} style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
+                          <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  {(() => {
-                    let sumPrin = 0, sumInt = 0, sumTotal = 0;
-                    loans.forEach(a => {
-                      const m = parseMemo(a.memo);
-                      const mi = m.rate ? Math.round(a.amount * m.rate / 12 / 100) : 0;
-                      const mt = (m.repayType && m.repayType !== "직접입력")
-                        ? (calcLoanMonthly(m.repayType, m.principal || 0, a.amount, m.rate || 0, m.termMonths || 0, a.date) || m.monthly || 0)
-                        : (m.monthly || 0);
-                      const mp = m.repayType === "이자만" ? 0 : Math.max(0, mt - mi);
-                      sumInt   += mi;
-                      sumPrin  += mp;
-                      sumTotal += mt;
-                    });
-                    return (
-                      <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
-                        {sumTotal > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>월상환 {fmtS(sumTotal)}</div>}
-                        {sumPrin  > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>원금 {fmtS(sumPrin)}</div>}
-                        {sumInt   > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>이자 {fmtS(sumInt)}</div>}
-                        <div style={{ fontSize: 11, opacity: 0.55 }}>{loans.length}건</div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
+                );
+              })()}
 
               {loans.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
@@ -2556,22 +2558,22 @@ export default function AssetsApp() {
             <>
               {/* ─ 요약 헤더 ─ */}
               {amatStocks.length > 0 && (
-                <div style={{ background: "#2d6a4f", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#2d6a4f", borderRadius: 16, padding: "16px 18px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingRight: 72 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
                     {amatPrice && <div style={{ marginLeft: "auto", fontSize: 12, color: "rgba(255,255,255,0.7)", fontVariantNumeric: "tabular-nums" }}>${amatPrice.toFixed(2)}</div>}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>보유 총액</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>보유 총액</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{amatValue ? fmtS(amatValue) : "—"}</div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                         {amatValueUsd != null ? `$${amatValueUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}` : ""} · {amatShares}주
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>평가손익</div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>평가손익</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? "#34d399" : "#f87171" }}>
                         {amatGain != null ? (amatGain >= 0 ? "+" : "") + fmtS(amatGain) : "—"}
                       </div>
@@ -2580,8 +2582,8 @@ export default function AssetsApp() {
                         {amatGainPct != null ? ` (${amatGainUsd >= 0 ? "+" : ""}${amatGainPct}%)` : ""}
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginBottom: 3, letterSpacing: "0.05em" }}>미베스팅 예상가</div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", marginBottom: 4 }}>미베스팅 예상가</div>
                       <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{unvestedVal > 0 ? fmtS(unvestedVal) : "—"}</div>
                       <div style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>{amatUnvested.reduce((s, v) => s + v.shares, 0)}주 예정</div>
                     </div>
