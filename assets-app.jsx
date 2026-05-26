@@ -1764,15 +1764,15 @@ export default function AssetsApp() {
           <>
             {/* Stock summary */}
             {nonAmat.length > 0 && (
-              <div style={{ background: C.white, borderRadius: 14, padding: "14px 16px", border: `1px solid ${C.border}`, marginBottom: 10 }}>
+              <div style={{ background: "#2d6a4f", borderRadius: 14, padding: "14px 16px", marginBottom: 10, color: "#fff" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                   {[
-                    { label: "평가금액", val: fmtS(nonAmatValue), color: "#2d6a4f" },
-                    { label: "수익금", val: (nonAmatGain >= 0 ? "+" : "") + fmtS(nonAmatGain), color: nonAmatGain >= 0 ? "#2d6a4f" : "#b5451b" },
-                    { label: "수익률", val: (nonAmatGain >= 0 ? "+" : "") + nonAmatGainPct + "%", color: nonAmatGain >= 0 ? "#2d6a4f" : "#b5451b" },
+                    { label: "평가금액", val: fmtS(nonAmatValue), color: "#fff" },
+                    { label: "수익금", val: (nonAmatGain >= 0 ? "+" : "") + fmtS(nonAmatGain), color: nonAmatGain >= 0 ? "#6ee7b7" : "#fca5a5" },
+                    { label: "수익률", val: (nonAmatGain >= 0 ? "+" : "") + nonAmatGainPct + "%", color: nonAmatGain >= 0 ? "#6ee7b7" : "#fca5a5" },
                   ].map(({ label, val, color }) => (
                     <div key={label} style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 5 }}>{label}</div>
                       <div style={{ fontSize: 14, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{val}</div>
                     </div>
                   ))}
@@ -2371,7 +2371,7 @@ export default function AssetsApp() {
             <>
               {/* ─ 요약 헤더 ─ */}
               {amatStocks.length > 0 && (
-                <div style={{ background: "#265a8c", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
+                <div style={{ background: "#2d6a4f", borderRadius: 16, padding: "18px 20px", marginBottom: 14, color: "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>Applied Materials</div>
