@@ -587,22 +587,24 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
 /* ── DC ETF Form ── */
 function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
   const init = initial;
-  const [ticker,    setTicker]    = useState(init.ticker    || "");
-  const [name,      setName]      = useState(init.name      || "");
-  const [shares,    setShares]    = useState(init.shares    ? String(init.shares) : "");
-  const [avgPrice,  setAvgPrice]  = useState(init.avgPrice  ? String(init.avgPrice) : "");
-  const [market,    setMarket]    = useState(init.market    || "KR");
+  const [ticker,       setTicker]       = useState(init.ticker       || "");
+  const [name,         setName]         = useState(init.name         || "");
+  const [shares,       setShares]       = useState(init.shares       ? String(init.shares) : "");
+  const [avgPrice,     setAvgPrice]     = useState(init.avgPrice     ? String(init.avgPrice) : "");
+  const [currentPrice, setCurrentPrice] = useState(init.currentPrice ? String(init.currentPrice) : "");
+  const [market,       setMarket]       = useState(init.market       || "KR");
 
   const [err, setErr] = useState("");
 
   const submit = () => {
     const sh = parseFloat(shares);
     const ap = parseFloat(avgPrice.replace(/,/g, ""));
+    const cp = currentPrice.trim() ? parseFloat(currentPrice.replace(/,/g, "")) : null;
     if (!ticker.trim()) { setErr("티커를 입력해주세요"); return; }
     if (!sh)            { setErr("보유 수량을 입력해주세요"); return; }
     if (!ap)            { setErr("평균 단가를 입력해주세요"); return; }
     setErr("");
-    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: init.currentPrice || null, lastFetched: null, purchaseDate: null, purchaseRate: null, institution: institution || init.institution || "", accountSuffix: DC_ETF_MARKER });
+    onSave({ id: init.id || Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: sh, avgPrice: ap, currentPrice: cp, lastFetched: null, purchaseDate: null, purchaseRate: null, institution: institution || init.institution || "", accountSuffix: DC_ETF_MARKER });
   };
 
   return (
@@ -623,7 +625,7 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
         <input value={name} onChange={e => setName(e.target.value)} placeholder={market === "KR" ? "KODEX 200" : "S&P500 ETF"}
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
           <SLabel>보유 수량</SLabel>
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
@@ -638,6 +640,11 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
               style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
           </div>
         </div>
+      </div>
+      <SLabel>현재가 (선택 · 미입력 시 자동 조회)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 20 }}>
+        <input value={currentPrice} onChange={e => setCurrentPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder={market === "KR" ? "36500" : "460.0"}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
       </div>
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
       <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d6a4f", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
@@ -1413,8 +1420,8 @@ export default function AssetsApp() {
   }, [dcEtfStocks, prices, rate]);
 
   const pensionTotal = useMemo(() => assets.filter(a => a.cat === "퇴직연금").reduce((sum, a) => {
-    if (a.accountSuffix === "DC" && dcEtfValueByInst[a.institution] != null)
-      return sum + dcEtfValueByInst[a.institution];
+    if (a.accountSuffix === "DC" && dcEtfValueByInst[String(a.id)] != null)
+      return sum + dcEtfValueByInst[String(a.id)];
     return sum + a.amount;
   }, 0), [assets, dcEtfValueByInst]);
   const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금" && a.cat !== "대출").reduce((s, a) => s + a.amount, 0), [assets]);
@@ -2003,8 +2010,8 @@ export default function AssetsApp() {
                             const monthly  = isM ? (parseInt(a.memo) || 0) : 0;
                             const months   = isM ? pensionMonths(a.date) : 0;
                             const accum    = monthly * months;
-                            const etfs     = isDC ? dcEtfStocks.filter(s => s.institution === a.institution) : [];
-                            const etfVal   = isDC && dcEtfValueByInst[a.institution] != null ? dcEtfValueByInst[a.institution] : null;
+                            const etfs     = isDC ? dcEtfStocks.filter(s => s.institution === String(a.id)) : [];
+                            const etfVal   = isDC && dcEtfValueByInst[String(a.id)] != null ? dcEtfValueByInst[String(a.id)] : null;
                             const dispAmt  = etfVal ?? a.amount;
                             const gain     = isM && accum > 0 ? dispAmt - accum : null;
                             const gainPct  = gain != null && accum > 0 ? ((gain / accum) * 100).toFixed(1) : null;
@@ -2073,7 +2080,7 @@ export default function AssetsApp() {
                                         );
                                       })
                                     )}
-                                    <button onClick={() => { setDcEtfInst(a.institution); setModal("addDCEtf"); }}
+                                    <button onClick={() => { setDcEtfInst(String(a.id)); setModal("addDCEtf"); }}
                                       style={{ width: "100%", padding: "10px 16px", background: "none", border: "none", borderTop: etfs.length > 0 ? `1px solid ${C.border}` : "none", cursor: "pointer", color: "#2d6a4f", fontSize: 12, fontWeight: 700, textAlign: "left", display: "flex", alignItems: "center", gap: 5, fontFamily: F }}>
                                       <Plus size={13} /> ETF 추가
                                     </button>
