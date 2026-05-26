@@ -2583,6 +2583,51 @@ export default function AssetsApp() {
                 </div>
               )}
 
+              {/* ─ 누적 베스팅 가치 차트 ─ */}
+              {amatPrice && amatUnvested.length > 0 && (() => {
+                const byDate = {};
+                amatUnvested.forEach(v => { byDate[v.vestDate] = (byDate[v.vestDate] || 0) + v.shares; });
+                let cum = amatValue || 0;
+                const chartData = [{ label: "현재", value: cum, isCurrent: true }];
+                Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b)).forEach(([date, shares]) => {
+                  cum += Math.round(amatPrice * shares * rate);
+                  chartData.push({ label: date.slice(2, 7).replace("-", "."), fullDate: date, value: cum, isCurrent: false });
+                });
+                return (
+                  <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, padding: "14px 12px 8px", marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.inkMid }}>베스팅 누적 가치</span>
+                      <span style={{ fontSize: 11, color: C.inkLight }}>현재가 기준 · {amatUnvested.length}건 예정</span>
+                    </div>
+                    <ResponsiveContainer width="100%" height={150}>
+                      <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                        <defs>
+                          <linearGradient id="amatCumGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#2d6a4f" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#2d6a4f" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                        <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.inkLight }} axisLine={false} tickLine={false} interval={0} />
+                        <YAxis hide domain={["auto", "auto"]} />
+                        <Tooltip
+                          formatter={v => [fmtS(v), "누적 평가액"]}
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? "현재"}
+                          contentStyle={{ fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, boxShadow: "0 2px 8px #0001" }}
+                          labelStyle={{ fontWeight: 700, color: C.ink, marginBottom: 2 }}
+                        />
+                        <Area type="monotone" dataKey="value" stroke="#2d6a4f" strokeWidth={2} fill="url(#amatCumGrad)"
+                          dot={({ cx, cy, payload }) => (
+                            <circle key={cx} cx={cx} cy={cy} r={payload.isCurrent ? 4 : 3}
+                              fill={payload.isCurrent ? "#34d399" : "#2d6a4f"} stroke="#fff" strokeWidth={1.5} />
+                          )}
+                          activeDot={{ r: 5, fill: "#2d6a4f" }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                );
+              })()}
+
               {/* ─ 보유 · 예정 (그랜트별 폴딩) ─ */}
               <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10 }}>보유 · 예정</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
