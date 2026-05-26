@@ -2224,7 +2224,10 @@ export default function AssetsApp() {
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                     {PENSION_TYPES.map(t => {
-                      const s = pensions.filter(a => a.accountSuffix === t).reduce((acc, a) => acc + a.amount, 0);
+                      const s = pensions.filter(a => a.accountSuffix === t).reduce((acc, a) => {
+                        const ev = t === "DC" && dcEtfValueByAcctId[String(a.id)] != null ? dcEtfValueByAcctId[String(a.id)] : null;
+                        return acc + (ev ?? a.amount);
+                      }, 0);
                       return s > 0 ? <div key={t} style={{ fontSize: 11, opacity: 0.65 }}>{t} {fmtS(s)}</div> : null;
                     })}
                   </div>
@@ -2240,7 +2243,10 @@ export default function AssetsApp() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {typeGroups.map(([typeName, list]) => {
                     const color   = PENSION_TYPE_COLORS[typeName] || C.inkMid;
-                    const typeSum = list.reduce((s, a) => s + a.amount, 0);
+                    const typeSum = list.reduce((s, a) => {
+                      const ev = a.accountSuffix === "DC" && dcEtfValueByAcctId[String(a.id)] != null ? dcEtfValueByAcctId[String(a.id)] : null;
+                      return s + (ev ?? a.amount);
+                    }, 0);
                     return (
                       <div key={typeName} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
                         {/* 유형 헤더 */}
