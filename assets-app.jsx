@@ -2604,11 +2604,11 @@ export default function AssetsApp() {
                         <button onClick={() => toggleHolding(grantName)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
-                            {/* 왼쪽: 이름 + 부여일 + D-XX */}
+                            {/* 왼쪽: 이름 + 부여일 (D-XX는 펼침 시만) */}
                             <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>{grantName}</span>
                               {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
-                              {dl != null && (
+                              {isOpen && dl != null && (
                                 <span style={{ fontSize: 11, fontWeight: 800, color: dc }}>
                                   {dl < 0 ? "지남" : `D-${dl}`}
                                 </span>
