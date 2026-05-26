@@ -1967,12 +1967,15 @@ export default function AssetsApp() {
               );
               const toggleAcct = key => setExpandedAccounts(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
+              const deposits = assets.filter(a => a.cat === "예수금");
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {acctGroups.map(([acctName, acctStocks]) => {
-                    const acctValue = acctStocks.reduce((sum, s) => { const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice; return sum + (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares); }, 0);
+                    const acctDeposit = deposits.filter(d => d.institution === acctName).reduce((s, d) => s + d.amount, 0);
+                    const acctStockValue = acctStocks.reduce((sum, s) => { const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice; return sum + (s.market === "US" ? Math.round(p * s.shares * rate) : p * s.shares); }, 0);
+                    const acctValue = acctStockValue + acctDeposit;
                     const acctCost  = acctStocks.reduce((sum, s) => { const v = s.avgPrice * s.shares; return sum + (s.market === "US" ? Math.round(v * (s.purchaseRate ?? rate)) : v); }, 0);
-                    const acctGain  = acctValue - acctCost;
+                    const acctGain  = acctStockValue - acctCost;
                     const acctGainPct = acctCost > 0 ? ((acctGain / acctCost) * 100).toFixed(1) : null;
                     const acctPos   = acctGain >= 0;
                     const isAcctOpen = expandedAccounts.has(acctName);
@@ -1991,6 +1994,7 @@ export default function AssetsApp() {
                               <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", marginRight: 5 }}>총액</span>
                               <span style={{ fontSize: 15, fontWeight: 800, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</span>
                               <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</span>
+                              {acctDeposit > 0 && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>예수금 {fmtS(acctDeposit)}</span>}
                             </div>
                             <div>
                               <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? "#34d399" : "#f87171" }}>
