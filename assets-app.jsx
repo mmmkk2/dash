@@ -884,6 +884,120 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
   );
 }
 
+/* ── Loan Pay Form ── */
+function LoanPayForm({ loan, onSave }) {
+  const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
+  const m = parseMemo(loan.memo);
+
+  const monthlyInt  = m.rate ? Math.round(loan.amount * m.rate / 12 / 100) : 0;
+  const calcedTotal = m.repayType && m.repayType !== "직접입력" ? calcLoanMonthly(m.repayType, m.principal || 0, loan.amount, m.rate || 0, m.termMonths || 0, loan.date) : m.monthly;
+  const defaultTotal = calcedTotal || m.monthly || 0;
+  const defaultPrin = m.repayType === "이자만" ? 0 : Math.max(0, (defaultTotal || 0) - monthlyInt);
+
+  const [totalStr, setTotalStr] = useState(defaultTotal ? String(defaultTotal) : "");
+  const [prinStr,  setPrinStr]  = useState(defaultPrin  ? String(defaultPrin)  : "");
+  const [dateStr,  setDateStr]  = useState(new Date().toISOString().slice(0, 10));
+  const [err,      setErr]      = useState("");
+
+  const total = parseInt(totalStr.replace(/[^\d]/g, ""), 10) || 0;
+  const prin  = parseInt(prinStr.replace(/[^\d]/g, ""),  10) || 0;
+  const intAmt = Math.max(0, total - prin);
+
+  const submit = () => {
+    if (!total) { setErr("납입액을 입력해주세요"); return; }
+    setErr("");
+    const newBalance = Math.max(0, loan.amount - prin);
+    const newMemo = { ...m };
+    if (!newMemo.payments) newMemo.payments = [];
+    newMemo.payments.push({ date: dateStr, total, principal: prin, interest: intAmt });
+    onSave({ ...loan, amount: newBalance, memo: JSON.stringify(newMemo) });
+  };
+
+  return (
+    <div style={{ padding: "4px 0 8px" }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>납입 기록</span>
+      <div style={{ background: "#fff5f5", border: "1px solid #f5c6cb", borderRadius: 10, padding: "12px 14px", margin: "14px 0 16px", fontSize: 12, color: "#7b2d00", lineHeight: 1.7 }}>
+        <div style={{ fontWeight: 700, marginBottom: 3 }}>{loan.name || loan.institution} · 잔액 {fmtS(loan.amount)}</div>
+        {monthlyInt > 0 && <div>이번 달 이자 {fmtS(monthlyInt)}원 (잔액 × {m.rate}% ÷ 12)</div>}
+      </div>
+      <SLabel>납입일</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input type="date" value={dateStr} onChange={e => setDateStr(e.target.value)}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>납입 총액</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12, display: "flex", alignItems: "center" }}>
+        <input value={totalStr} onChange={e => setTotalStr(e.target.value.replace(/[^\d]/g, ""))} placeholder={defaultTotal ? String(defaultTotal) : "0"}
+          style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 20, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+        <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원</span>
+      </div>
+      <SLabel>원금 상환액 (납입액 중 이자 제외 부분)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 8, display: "flex", alignItems: "center" }}>
+        <input value={prinStr} onChange={e => setPrinStr(e.target.value.replace(/[^\d]/g, ""))} placeholder={defaultPrin ? String(defaultPrin) : "0"}
+          style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 20, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+        <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원</span>
+      </div>
+      {total > 0 && (
+        <div style={{ background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.inkMid, lineHeight: 1.7 }}>
+          <div>원금 {fmtS(prin)} + 이자 {fmtS(intAmt)} = 총 {fmtS(total)}</div>
+          <div style={{ fontWeight: 700, color: "#7b2d00" }}>납입 후 잔액 → {fmtS(Math.max(0, loan.amount - prin))}</div>
+        </div>
+      )}
+      {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#7b2d00", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+        납입 완료
+      </button>
+    </div>
+  );
+}
+
+/* ── Pension Pay Form ── */
+function PensionPayForm({ pension, onSave }) {
+  const monthly = parseInt(pension.memo) || 0;
+  const [amtStr, setAmtStr] = useState(monthly ? String(monthly) : "");
+  const [dateStr, setDateStr] = useState(new Date().toISOString().slice(0, 10));
+  const [err, setErr] = useState("");
+
+  const amt = parseInt(amtStr.replace(/[^\d]/g, ""), 10) || 0;
+
+  const submit = () => {
+    if (!amt) { setErr("납입액을 입력해주세요"); return; }
+    setErr("");
+    onSave({ ...pension, amount: pension.amount + amt });
+  };
+
+  return (
+    <div style={{ padding: "4px 0 8px" }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>납입 기록</span>
+      <div style={{ background: "#eef3fc", border: "1px solid #c7d4f4", borderRadius: 10, padding: "12px 14px", margin: "14px 0 16px", fontSize: 12, color: "#2d5cb8", lineHeight: 1.7 }}>
+        <div style={{ fontWeight: 700, marginBottom: 2 }}>{pension.accountSuffix} · {pension.name || pension.institution}</div>
+        <div>현재 적립액 <strong>{fmtS(pension.amount)}</strong></div>
+        {monthly > 0 && <div>설정 월 납입액 <strong>{fmtS(monthly)}</strong></div>}
+      </div>
+      <SLabel>납입일</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+        <input type="date" value={dateStr} onChange={e => setDateStr(e.target.value)}
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>납입액</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 8, display: "flex", alignItems: "center" }}>
+        <input value={amtStr} onChange={e => setAmtStr(e.target.value.replace(/[^\d]/g, ""))} placeholder={monthly ? String(monthly) : "0"}
+          style={{ flex: 1, border: "none", padding: "11px 12px", fontSize: 20, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums" }} />
+        <span style={{ padding: "0 14px 0 4px", color: C.inkLight, fontSize: 13 }}>원</span>
+      </div>
+      {amt > 0 && (
+        <div style={{ background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.inkMid }}>
+          납입 후 적립액 → <strong style={{ color: "#2d5cb8" }}>{fmtS(pension.amount + amt)}</strong>
+        </div>
+      )}
+      {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "#2d5cb8", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+        납입 완료
+      </button>
+    </div>
+  );
+}
+
 /* ── Cat Settings ── */
 function CatSettings({ cats, onChange }) {
   const [newName, setNewName] = useState("");
@@ -2151,6 +2265,12 @@ export default function AssetsApp() {
                                     <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(dispAmt)}</div>
                                     {isDC && etfs.length > 0 && <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>{etfs.length}개 종목</div>}
                                   </div>
+                                  {isM && monthly > 0 && (
+                                    <button onClick={() => { setEditItem(a); setModal("payPension"); }}
+                                      style={{ background: "#2d5cb8", border: "none", borderRadius: 7, padding: "5px 9px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700 }}>
+                                      납입
+                                    </button>
+                                  )}
                                   {isDC && (
                                     <button onClick={toggleDC} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
                                       {isDCOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -2319,10 +2439,16 @@ export default function AssetsApp() {
                             )}
                             {m.memo && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 5 }}>{m.memo}</div>}
                           </div>
-                          <button onClick={() => { setEditItem(a); setModal("editLoan"); }}
-                            style={{ background: "none", border: "none", borderLeft: `1px solid ${C.border}`, cursor: "pointer", padding: "0 14px", color: C.inkLight, display: "flex", alignItems: "center" }}>
-                            <Pencil size={14} />
-                          </button>
+                          <div style={{ display: "flex", flexDirection: "column", borderLeft: `1px solid ${C.border}` }}>
+                            <button onClick={() => { setEditItem(a); setModal("payLoan"); }}
+                              style={{ flex: 1, background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer", padding: "0 12px", color: "#7b2d00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, gap: 3, minWidth: 44 }}>
+                              납입
+                            </button>
+                            <button onClick={() => { setEditItem(a); setModal("editLoan"); }}
+                              style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "0 12px", color: C.inkLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Pencil size={13} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -2698,6 +2824,12 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "editLoan" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <LoanForm initial={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} onDelete={() => deleteAsset(editItem.id)} />}
+      </Modal>
+      <Modal open={modal === "payLoan" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <LoanPayForm loan={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} />}
+      </Modal>
+      <Modal open={modal === "payPension" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
+        {editItem && <PensionPayForm pension={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} />}
       </Modal>
       <Modal open={modal === "cats"} onClose={() => setModal(null)}>
         <CatSettings cats={cats} onChange={c => {
