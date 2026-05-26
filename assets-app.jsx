@@ -471,8 +471,8 @@ const PENSION_MONTHLY     = new Set(["IRP", "노란우산"]);
 const PENSION_TYPE_COLORS = { IRP: "#2d5cb8", "노란우산": "#b8860b", DC: "#2d6a4f", "기타": "#6b5c4e" };
 const DC_ETF_MARKER       = "dc_pension";
 
-const LOAN_TYPES       = ["주택담보", "전세자금", "신용", "마이너스통장", "기타"];
-const LOAN_TYPE_COLORS = { "주택담보": "#7b2d00", "전세자금": "#2d6a4f", "신용": "#2d5cb8", "마이너스통장": "#6b2d8b", "기타": "#6b5c4e" };
+const LOAN_TYPES       = ["신용", "마이너스통장", "사업자", "주택담보", "기타"];
+const LOAN_TYPE_COLORS = { "신용": "#2d5cb8", "마이너스통장": "#6b2d8b", "사업자": "#b8860b", "주택담보": "#7b2d00", "기타": "#6b5c4e" };
 
 function pensionMonths(startDate) {
   if (!startDate) return 0;
