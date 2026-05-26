@@ -1622,7 +1622,7 @@ export default function AssetsApp() {
       const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice;
       const val = p * s.shares;
       return sum + (s.market === "US" ? Math.round(val * rate) : val);
-    }, 0) + depositTotal, [stocks, prices, rate, depositTotal]);
+    }, 0), [stocks, prices, rate]);
 
   const stockCost = useMemo(() =>
     stocks.filter(s => s.accountSuffix !== DC_ETF_MARKER).reduce((sum, s) => {
@@ -1681,7 +1681,7 @@ export default function AssetsApp() {
     [...assets].reverse().forEach(a => { if (a.institution && !seen.has(a.institution)) { seen.add(a.institution); result.push(a.institution); } });
     return result;
   }, [stocks, assets]);
-  const total = stockValue + assetTotal + pensionTotal;
+  const total = stockValue + depositTotal + assetTotal + pensionTotal;
 
   /* ── Pie data ── */
   const pieData = useMemo(() => {
@@ -1820,6 +1820,7 @@ export default function AssetsApp() {
             )}
             <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
               <div style={{ fontSize: 11, opacity: 0.5 }}>주식 {fmtS(stockValue)}</div>
+              {depositTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>예수금 {fmtS(depositTotal)}</div>}
               <div style={{ fontSize: 11, opacity: 0.5 }}>기타자산 {fmtS(assetTotal)}</div>
               {pensionTotal > 0 && <div style={{ fontSize: 11, opacity: 0.5 }}>퇴직연금 {fmtS(pensionTotal)}</div>}
               {loanTotal > 0 && <div style={{ fontSize: 11, color: "#f87171", opacity: 0.85 }}>부채 -{fmtS(loanTotal)}</div>}
