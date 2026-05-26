@@ -2244,8 +2244,10 @@ export default function AssetsApp() {
                     const matDate = a.date ? new Date(a.date) : null;
                     const dl      = matDate ? Math.ceil((matDate - today) / 86400000) : null;
                     const dlColor = dl == null ? C.inkLight : dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : dl < 365 ? "#e07a5f" : C.inkMid;
-                    const annInt  = m.rate ? Math.round(a.amount * m.rate / 100) : null;
-                    const repaid  = m.principal && a.amount ? Math.max(0, Math.round((1 - a.amount / m.principal) * 100)) : null;
+                    const annInt        = m.rate ? Math.round(a.amount * m.rate / 100) : null;
+                    const monthlyInt    = annInt != null ? Math.round(annInt / 12) : null;
+                    const monthlyPrin   = m.monthly && monthlyInt != null ? Math.max(0, m.monthly - monthlyInt) : null;
+                    const repaid        = m.principal && a.amount ? Math.max(0, Math.round((1 - a.amount / m.principal) * 100)) : null;
 
                     return (
                       <div key={a.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
@@ -2270,6 +2272,20 @@ export default function AssetsApp() {
                               {annInt != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>}
                               {m.monthly > 0 && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월상환 </span><strong>{fmtS(m.monthly)}</strong></div>}
                             </div>
+                            {m.monthly > 0 && monthlyInt != null && (
+                              <div style={{ display: "flex", gap: 0, marginTop: 7, borderRadius: 8, overflow: "hidden", height: 22 }}>
+                                {monthlyPrin > 0 && (
+                                  <div style={{ flex: monthlyPrin, background: "#7b2d00", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 36 }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>원금 {fmtS(monthlyPrin)}</span>
+                                  </div>
+                                )}
+                                {monthlyInt > 0 && (
+                                  <div style={{ flex: monthlyInt, background: "#c0654a", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 36 }}>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: "#fff" }}>이자 {fmtS(monthlyInt)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {(dl != null || repaid != null) && (
                               <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
                                 {dl != null && (
