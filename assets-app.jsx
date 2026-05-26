@@ -1482,21 +1482,41 @@ export default function AssetsApp() {
   const depositTotal = useMemo(() => assets.filter(a => a.cat === "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
 
   const dcEtfStocks = useMemo(() => stocks.filter(s => s.accountSuffix === DC_ETF_MARKER), [stocks]);
-  const dcEtfValueByInst = useMemo(() => {
+  const dcAccounts  = useMemo(() => assets.filter(a => a.cat === "퇴직연금" && a.accountSuffix === "DC"), [assets]);
+
+  // ETF 종목 → 소유 DC 계좌 ID 매핑
+  // 1순위: institution 필드가 DC 계좌 id와 일치 (새 방식)
+  // 2순위: institution 필드가 DC 계좌 institution명과 일치하되 유일한 경우만 (구 방식 backward compat)
+  const etfToAcctId = useMemo(() => {
+    const map = {};
+    dcEtfStocks.forEach(s => {
+      if (dcAccounts.some(a => String(a.id) === s.institution)) {
+        map[s.id] = s.institution;
+        return;
+      }
+      const matches = dcAccounts.filter(a => a.institution === s.institution);
+      if (matches.length === 1) map[s.id] = String(matches[0].id);
+    });
+    return map;
+  }, [dcEtfStocks, dcAccounts]);
+
+  const dcEtfValueByAcctId = useMemo(() => {
     const m = {};
     dcEtfStocks.forEach(s => {
+      const acctId = etfToAcctId[s.id];
+      if (!acctId) return;
       const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice ?? 0;
       const val = s.market === "US" ? Math.round(p * s.shares * rate) : Math.round(p * s.shares);
-      m[s.institution] = (m[s.institution] || 0) + val;
+      m[acctId] = (m[acctId] || 0) + val;
     });
     return m;
-  }, [dcEtfStocks, prices, rate]);
+  }, [dcEtfStocks, etfToAcctId, prices, rate]);
 
   const pensionTotal = useMemo(() => assets.filter(a => a.cat === "퇴직연금").reduce((sum, a) => {
-    if (a.accountSuffix === "DC" && dcEtfValueByInst[String(a.id)] != null)
-      return sum + dcEtfValueByInst[String(a.id)];
+    if (a.accountSuffix === "DC" && dcEtfValueByAcctId[String(a.id)] != null)
+      return sum + dcEtfValueByAcctId[String(a.id)];
     return sum + (a.amount || 0);
-  }, 0), [assets, dcEtfValueByInst]);
+  }, 0), [assets, dcEtfValueByAcctId]);
   const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금" && a.cat !== "대출").reduce((s, a) => s + a.amount, 0), [assets]);
   const loanTotal  = useMemo(() => assets.filter(a => a.cat === "대출").reduce((s, a) => s + a.amount, 0), [assets]);
 
@@ -2083,8 +2103,8 @@ export default function AssetsApp() {
                             const monthly  = isM ? (parseInt(a.memo) || 0) : 0;
                             const months   = isM ? pensionMonths(a.date) : 0;
                             const accum    = monthly * months;
-                            const etfs     = isDC ? dcEtfStocks.filter(s => s.institution === String(a.id)) : [];
-                            const etfVal   = isDC && dcEtfValueByInst[String(a.id)] != null ? dcEtfValueByInst[String(a.id)] : null;
+                            const etfs     = isDC ? dcEtfStocks.filter(s => etfToAcctId[s.id] === String(a.id)) : [];
+                            const etfVal   = isDC && dcEtfValueByAcctId[String(a.id)] != null ? dcEtfValueByAcctId[String(a.id)] : null;
                             const dispAmt  = etfVal ?? a.amount;
                             const gain     = isM && accum > 0 ? dispAmt - accum : null;
                             const gainPct  = gain != null && accum > 0 ? ((gain / accum) * 100).toFixed(1) : null;
