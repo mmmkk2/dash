@@ -1906,7 +1906,7 @@ export default function AssetsApp() {
               <div style={{ background: "#2d6a4f", borderRadius: 14, padding: "14px 16px", marginBottom: 10, color: "#fff" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                   {[
-                    { label: "평가금액", val: fmtS(nonAmatValue), color: "#fff" },
+                    { label: "평가금액", val: fmtS(nonAmatValue + depositTotal), color: "#fff" },
                     { label: "수익금", val: (nonAmatGain >= 0 ? "+" : "") + fmtS(nonAmatGain), color: nonAmatGain >= 0 ? "#6ee7b7" : "#fca5a5" },
                     { label: "수익률", val: (nonAmatGain >= 0 ? "+" : "") + nonAmatGainPct + "%", color: nonAmatGain >= 0 ? "#6ee7b7" : "#fca5a5" },
                   ].map(({ label, val, color }) => (
