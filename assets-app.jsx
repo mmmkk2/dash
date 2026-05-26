@@ -1618,14 +1618,14 @@ export default function AssetsApp() {
   /* ── Stock value calc ── */
   const rate = usdKrw || 1380;
   const stockValue = useMemo(() =>
-    stocks.reduce((sum, s) => {
+    stocks.filter(s => s.accountSuffix !== DC_ETF_MARKER).reduce((sum, s) => {
       const p = prices[s.id] ?? s.currentPrice ?? s.avgPrice;
       const val = p * s.shares;
       return sum + (s.market === "US" ? Math.round(val * rate) : val);
     }, 0), [stocks, prices, rate]);
 
   const stockCost = useMemo(() =>
-    stocks.reduce((sum, s) => {
+    stocks.filter(s => s.accountSuffix !== DC_ETF_MARKER).reduce((sum, s) => {
       const val = s.avgPrice * s.shares;
       return sum + (s.market === "US" ? Math.round(val * (s.purchaseRate ?? rate)) : val);
     }, 0), [stocks, rate]);
