@@ -693,9 +693,15 @@ function calcLoanMonthly(repayType, prin, bal, annualRate, termMonths, maturity)
     ? Math.max(1, Math.round((new Date(maturity) - new Date()) / (1000 * 60 * 60 * 24 * 30.44)))
     : 0;
   if (repayType === "원리금균등" && mr > 0) {
-    const n = termMonths > 0 ? termMonths : remFromMaturity;
-    const p = prin > 0 ? prin : bal;
-    if (n > 0 && p > 0) { const t = Math.pow(1 + mr, n); return Math.round(p * mr * t / (t - 1)); }
+    if (termMonths > 0 && prin > 0) {
+      // 대출 기간 직접 입력: 원금 + 총 기간으로 정확 계산
+      const t = Math.pow(1 + mr, termMonths);
+      return Math.round(prin * mr * t / (t - 1));
+    } else if (remFromMaturity > 0 && bal > 0) {
+      // 대출 기간 미입력: 현재 잔액 + 남은 개월로 계산
+      const t = Math.pow(1 + mr, remFromMaturity);
+      return Math.round(bal * mr * t / (t - 1));
+    }
   }
   if (repayType === "원금균등" && bal > 0 && mr > 0) {
     const rem = termMonths > 0 ? termMonths : remFromMaturity;
