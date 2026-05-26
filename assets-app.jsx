@@ -2368,12 +2368,23 @@ export default function AssetsApp() {
                     {fmtS(loanTotal)}<span style={{ fontSize: 13, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
                   </div>
                   {(() => {
-                    const totalPrincipal = loans.reduce((s, a) => { const m = parseMemo(a.memo); return s + (m.principal || 0); }, 0);
-                    const totalAnnualInt = loans.reduce((s, a) => { const m = parseMemo(a.memo); return s + (m.rate ? Math.round(a.amount * m.rate / 100) : 0); }, 0);
+                    let sumPrin = 0, sumInt = 0, sumTotal = 0;
+                    loans.forEach(a => {
+                      const m = parseMemo(a.memo);
+                      const mi = m.rate ? Math.round(a.amount * m.rate / 12 / 100) : 0;
+                      const mt = (m.repayType && m.repayType !== "직접입력")
+                        ? (calcLoanMonthly(m.repayType, m.principal || 0, a.amount, m.rate || 0, m.termMonths || 0, a.date) || m.monthly || 0)
+                        : (m.monthly || 0);
+                      const mp = m.repayType === "이자만" ? 0 : Math.max(0, mt - mi);
+                      sumInt   += mi;
+                      sumPrin  += mp;
+                      sumTotal += mt;
+                    });
                     return (
                       <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
-                        {totalPrincipal > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>원금 합계 {fmtS(totalPrincipal)}</div>}
-                        {totalAnnualInt > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>연간 이자 ~{fmtS(totalAnnualInt)}</div>}
+                        {sumTotal > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>월상환 {fmtS(sumTotal)}</div>}
+                        {sumPrin  > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>원금 {fmtS(sumPrin)}</div>}
+                        {sumInt   > 0 && <div style={{ fontSize: 11, opacity: 0.55 }}>이자 {fmtS(sumInt)}</div>}
                         <div style={{ fontSize: 11, opacity: 0.55 }}>{loans.length}건</div>
                       </div>
                     );
