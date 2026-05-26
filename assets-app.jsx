@@ -490,7 +490,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
     if (!num && type !== "DC") { setErr("현재 평가액을 입력해주세요"); return; }
     setErr("");
     const memoVal = isMonthly(type) ? monthlyStr.replace(/[^\d]/g, "") : memo.trim();
-    onSave({ id: init.id || Date.now(), cat: "퇴직연금", name: name.trim() || institution.trim(), institution: institution.trim(), accountSuffix: type, amount: num, date: startDate, memo: memoVal });
+    onSave({ id: init.id || Date.now(), cat: "퇴직연금", name: name.trim() || institution.trim(), institution: institution.trim(), accountSuffix: type, amount: num || 0, date: startDate, memo: memoVal });
   };
 
   const months   = isMonthly(type) ? pensionMonths(startDate) : 0;
@@ -1493,11 +1493,9 @@ export default function AssetsApp() {
   }, [dcEtfStocks, prices, rate]);
 
   const pensionTotal = useMemo(() => assets.filter(a => a.cat === "퇴직연금").reduce((sum, a) => {
-    if (a.accountSuffix === "DC") {
-      const v = dcEtfValueByInst[String(a.id)] ?? dcEtfValueByInst[a.institution] ?? null;
-      if (v != null) return sum + v;
-    }
-    return sum + a.amount;
+    if (a.accountSuffix === "DC" && dcEtfValueByInst[String(a.id)] != null)
+      return sum + dcEtfValueByInst[String(a.id)];
+    return sum + (a.amount || 0);
   }, 0), [assets, dcEtfValueByInst]);
   const assetTotal = useMemo(() => assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금" && a.cat !== "대출").reduce((s, a) => s + a.amount, 0), [assets]);
   const loanTotal  = useMemo(() => assets.filter(a => a.cat === "대출").reduce((s, a) => s + a.amount, 0), [assets]);
@@ -2085,13 +2083,8 @@ export default function AssetsApp() {
                             const monthly  = isM ? (parseInt(a.memo) || 0) : 0;
                             const months   = isM ? pensionMonths(a.date) : 0;
                             const accum    = monthly * months;
-                            const etfs     = isDC ? dcEtfStocks.filter(s => {
-                              if (s.institution === String(a.id)) return true;
-                              const hasNew = dcEtfStocks.some(x => x.institution === String(a.id));
-                              return !hasNew && s.institution === a.institution;
-                            }) : [];
-                            const etfKey   = dcEtfValueByInst[String(a.id)] != null ? String(a.id) : a.institution;
-                            const etfVal   = isDC && dcEtfValueByInst[etfKey] != null ? dcEtfValueByInst[etfKey] : null;
+                            const etfs     = isDC ? dcEtfStocks.filter(s => s.institution === String(a.id)) : [];
+                            const etfVal   = isDC && dcEtfValueByInst[String(a.id)] != null ? dcEtfValueByInst[String(a.id)] : null;
                             const dispAmt  = etfVal ?? a.amount;
                             const gain     = isM && accum > 0 ? dispAmt - accum : null;
                             const gainPct  = gain != null && accum > 0 ? ((gain / accum) * 100).toFixed(1) : null;
