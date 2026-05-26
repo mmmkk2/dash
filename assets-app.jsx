@@ -1806,26 +1806,16 @@ export default function AssetsApp() {
 
           {/* Total */}
           <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 18, padding: "14px 16px", border: "1px solid rgba(255,255,255,0.12)", marginBottom: 16 }}>
-            {/* 총 자산 */}
-            <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 3 }}>총 자산 (퇴직연금 포함)</div>
+            {/* 순자산 메인 */}
+            <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 3 }}>순자산 (부채 차감)</div>
             <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-1px", fontVariantNumeric: "tabular-nums" }}>
-              {fmtS(total)}<span style={{ fontSize: 14, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
+              {fmtS(total - loanTotal)}<span style={{ fontSize: 14, fontWeight: 400, opacity: 0.5, marginLeft: 4 }}>원</span>
             </div>
-            {/* 순자산 / 퇴직연금 제외 — 한 줄 */}
-            {(loanTotal > 0 || pensionTotal > 0) && (
-              <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 20, flexWrap: "wrap" }}>
-                {loanTotal > 0 && (
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em" }}>순자산</span>
-                    <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums" }}>{fmtS(total - loanTotal)}</span>
-                  </div>
-                )}
-                {pensionTotal > 0 && (
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em" }}>퇴직연금 제외</span>
-                    <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.7 }}>{fmtS(total - pensionTotal - loanTotal)}</span>
-                  </div>
-                )}
+            {/* 퇴직연금 제외 */}
+            {pensionTotal > 0 && (
+              <div style={{ marginTop: 7, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", gap: 5, alignItems: "baseline" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.4, letterSpacing: "0.1em" }}>퇴직연금 제외</span>
+                <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px", fontVariantNumeric: "tabular-nums", opacity: 0.7 }}>{fmtS(total - pensionTotal - loanTotal)}</span>
               </div>
             )}
             <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
@@ -2108,7 +2098,7 @@ export default function AssetsApp() {
 
         {/* ── Asset Tab ── */}
         {!dbLoading && tab === "asset" && (() => {
-          const tabAssets = assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금");
+          const tabAssets = assets.filter(a => a.cat !== "예수금" && a.cat !== "퇴직연금" && a.cat !== "대출");
           const toggleCat = key => setExpandedCats(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
           const catGroups = Object.entries(
             tabAssets.reduce((acc, a) => { (acc[a.cat] = acc[a.cat] || []).push(a); return acc; }, {})
