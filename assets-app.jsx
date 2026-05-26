@@ -689,15 +689,17 @@ const REPAY_TYPES = ["원리금균등", "원금균등", "이자만", "직접입�
 
 function calcLoanMonthly(repayType, prin, bal, annualRate, termMonths, maturity) {
   const mr = annualRate / 12 / 100;
-  if (repayType === "원리금균등" && prin > 0 && mr > 0 && termMonths > 0) {
-    const t = Math.pow(1 + mr, termMonths);
-    return Math.round(prin * mr * t / (t - 1));
+  const remFromMaturity = maturity
+    ? Math.max(1, Math.round((new Date(maturity) - new Date()) / (1000 * 60 * 60 * 24 * 30.44)))
+    : 0;
+  if (repayType === "원리금균등" && mr > 0) {
+    const n = termMonths > 0 ? termMonths : remFromMaturity;
+    const p = prin > 0 ? prin : bal;
+    if (n > 0 && p > 0) { const t = Math.pow(1 + mr, n); return Math.round(p * mr * t / (t - 1)); }
   }
   if (repayType === "원금균등" && bal > 0 && mr > 0) {
-    const rem = maturity
-      ? Math.max(1, Math.round((new Date(maturity) - new Date()) / (1000 * 60 * 60 * 24 * 30.44)))
-      : (termMonths || 1);
-    return Math.round(bal / rem + bal * mr);
+    const rem = termMonths > 0 ? termMonths : remFromMaturity;
+    if (rem > 0) return Math.round(bal / rem + bal * mr);
   }
   if (repayType === "이자만" && bal > 0 && mr > 0) {
     return Math.round(bal * mr);
@@ -2269,17 +2271,16 @@ export default function AssetsApp() {
                             </div>
                             <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                               {m.rate != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>금리 </span><strong>{m.rate}%</strong></div>}
-                              {monthlyInt != null && monthlyPrin != null && m.monthly > 0 ? (
+                              {monthlyInt != null && m.monthly > 0 ? (
                                 <>
-                                  <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월원금 </span><strong>{fmtS(monthlyPrin)}</strong></div>
+                                  {monthlyPrin > 0 && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월원금 </span><strong>{fmtS(monthlyPrin)}</strong></div>}
                                   <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월이자 </span><strong>{fmtS(monthlyInt)}</strong></div>
                                 </>
-                              ) : (
-                                <>
-                                  {annInt != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>}
-                                  {m.monthly > 0 && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월상환 </span><strong>{fmtS(m.monthly)}</strong></div>}
-                                </>
-                              )}
+                              ) : monthlyInt != null ? (
+                                <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월이자 </span><strong>~{fmtS(monthlyInt)}</strong></div>
+                              ) : annInt != null ? (
+                                <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>
+                              ) : null}
                             </div>
                             {m.monthly > 0 && monthlyInt != null && (
                               <div style={{ display: "flex", gap: 0, marginTop: 7, borderRadius: 8, overflow: "hidden", height: 22 }}>
