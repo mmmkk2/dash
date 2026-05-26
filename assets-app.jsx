@@ -2269,8 +2269,17 @@ export default function AssetsApp() {
                             </div>
                             <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
                               {m.rate != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>금리 </span><strong>{m.rate}%</strong></div>}
-                              {annInt != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>}
-                              {m.monthly > 0 && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월상환 </span><strong>{fmtS(m.monthly)}</strong></div>}
+                              {monthlyInt != null && monthlyPrin != null && m.monthly > 0 ? (
+                                <>
+                                  <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월원금 </span><strong>{fmtS(monthlyPrin)}</strong></div>
+                                  <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월이자 </span><strong>{fmtS(monthlyInt)}</strong></div>
+                                </>
+                              ) : (
+                                <>
+                                  {annInt != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>}
+                                  {m.monthly > 0 && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월상환 </span><strong>{fmtS(m.monthly)}</strong></div>}
+                                </>
+                              )}
                             </div>
                             {m.monthly > 0 && monthlyInt != null && (
                               <div style={{ display: "flex", gap: 0, marginTop: 7, borderRadius: 8, overflow: "hidden", height: 22 }}>
