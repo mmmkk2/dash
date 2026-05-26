@@ -675,35 +675,69 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
 }
 
 /* ── Loan Form ── */
+const REPAY_TYPES = ["원리금균등", "원금균등", "이자만", "직접입력"];
+
+function calcLoanMonthly(repayType, prin, bal, annualRate, termMonths, maturity) {
+  const mr = annualRate / 12 / 100;
+  if (repayType === "원리금균등" && prin > 0 && mr > 0 && termMonths > 0) {
+    const t = Math.pow(1 + mr, termMonths);
+    return Math.round(prin * mr * t / (t - 1));
+  }
+  if (repayType === "원금균등" && bal > 0 && mr > 0) {
+    const rem = maturity
+      ? Math.max(1, Math.round((new Date(maturity) - new Date()) / (1000 * 60 * 60 * 24 * 30.44)))
+      : (termMonths || 1);
+    return Math.round(bal / rem + bal * mr);
+  }
+  if (repayType === "이자만" && bal > 0 && mr > 0) {
+    return Math.round(bal * mr);
+  }
+  return null;
+}
+
 function LoanForm({ initial = {}, onSave, onDelete }) {
   const init = initial;
   const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
   const initMemo  = parseMemo(init.memo);
 
   const [loanType,   setLoanType]   = useState(init.accountSuffix || "주택담보");
+  const [repayType,  setRepayType]  = useState(initMemo.repayType || "직접입력");
   const [institution,setInstitution]= useState(init.institution || "");
   const [name,       setName]       = useState(init.name || "");
   const [principal,  setPrincipal]  = useState(initMemo.principal ? String(initMemo.principal) : "");
   const [balance,    setBalance]    = useState(init.amount ? String(init.amount) : "");
   const [rate,       setRate]       = useState(initMemo.rate != null ? String(initMemo.rate) : "");
+  const [termMonths, setTermMonths] = useState(initMemo.termMonths ? String(initMemo.termMonths) : "");
   const [monthly,    setMonthly]    = useState(initMemo.monthly ? String(initMemo.monthly) : "");
   const [maturity,   setMaturity]   = useState(init.date || "");
   const [memo,       setMemo]       = useState(initMemo.memo || "");
   const [err,        setErr]        = useState("");
 
+  const bal   = parseInt(balance.replace(/[^\d]/g, ""), 10) || 0;
+  const prin  = parseInt(principal.replace(/[^\d]/g, ""), 10) || 0;
+  const r     = parseFloat(rate) || 0;
+  const term  = parseInt(termMonths) || 0;
+
+  const calcedMonthly = calcLoanMonthly(repayType, prin, bal, r, term, maturity);
+  const dispMonthly   = repayType !== "직접입력" ? calcedMonthly : (parseInt(monthly.replace(/[^\d]/g, ""), 10) || 0);
+
+  const annualInterest = bal > 0 && r > 0 ? Math.round(bal * r / 100) : 0;
+  const repaidPct      = prin > 0 && bal > 0 ? Math.max(0, Math.round((1 - bal / prin) * 100)) : null;
+
+  const needsTermInput = repayType === "원리금균등" || repayType === "원금균등";
+
   const submit = () => {
-    const bal  = parseInt(balance.replace(/[^\d]/g, ""), 10);
-    const prin = parseInt(principal.replace(/[^\d]/g, ""), 10) || 0;
-    const r    = parseFloat(rate) || 0;
-    const mon  = parseInt(monthly.replace(/[^\d]/g, ""), 10) || 0;
     if (!institution.trim()) { setErr("금융기관을 입력해주세요"); return; }
     if (!bal)                { setErr("현재 잔액을 입력해주세요"); return; }
     setErr("");
+    const finalMonthly = repayType !== "직접입력" ? calcedMonthly : (parseInt(monthly.replace(/[^\d]/g, ""), 10) || 0);
     const memoObj = {};
-    if (prin)     memoObj.principal = prin;
-    if (r)        memoObj.rate      = r;
-    if (mon)      memoObj.monthly   = mon;
-    if (memo.trim()) memoObj.memo   = memo.trim();
+    if (prin)            memoObj.principal  = prin;
+    if (r)               memoObj.rate       = r;
+    if (finalMonthly)    memoObj.monthly    = finalMonthly;
+    if (term)            memoObj.termMonths = term;
+    if (repayType !== "직접입력") memoObj.repayType = repayType;
+    if (memo.trim())     memoObj.memo       = memo.trim();
     onSave({
       id: init.id || Date.now(),
       cat: "대출",
@@ -715,12 +749,6 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
       memo: JSON.stringify(memoObj),
     });
   };
-
-  const bal    = parseInt(balance.replace(/[^\d]/g, ""), 10) || 0;
-  const prin   = parseInt(principal.replace(/[^\d]/g, ""), 10) || 0;
-  const r      = parseFloat(rate) || 0;
-  const annualInterest = bal > 0 && r > 0 ? Math.round(bal * r / 100) : 0;
-  const repaidPct = prin > 0 && bal > 0 ? Math.max(0, Math.round((1 - bal / prin) * 100)) : null;
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
@@ -761,7 +789,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
           </div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: needsTermInput ? "1fr 1fr" : "1fr", gap: 10, marginBottom: 12 }}>
         <div>
           <SLabel>금리 (%)</SLabel>
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
@@ -770,7 +798,36 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
             <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>%</span>
           </div>
         </div>
-        <div>
+        {needsTermInput && (
+          <div>
+            <SLabel>대출 기간</SLabel>
+            <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
+              <input value={termMonths} onChange={e => setTermMonths(e.target.value.replace(/[^\d]/g, ""))} placeholder="360"
+                style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
+              <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>개월</span>
+            </div>
+          </div>
+        )}
+      </div>
+      <SLabel>상환 방식</SLabel>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        {REPAY_TYPES.map(t => (
+          <button key={t} onClick={() => setRepayType(t)}
+            style={{ flex: "1 1 auto", padding: "8px 0", border: `1.5px solid ${repayType === t ? "#7b2d00" : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 11, background: repayType === t ? "#7b2d00" : C.white, color: repayType === t ? "#fff" : C.inkMid, fontFamily: F }}>
+            {t}
+          </button>
+        ))}
+      </div>
+      {repayType !== "직접입력" ? (
+        <div style={{ background: calcedMonthly ? "#fff5f5" : C.paper, border: `1px solid ${calcedMonthly ? "#f5c6cb" : C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "baseline", gap: 8 }}>
+          <span style={{ fontSize: 12, color: C.inkMid }}>월 상환액</span>
+          <span style={{ fontSize: 20, fontWeight: 800, color: "#7b2d00", fontVariantNumeric: "tabular-nums" }}>
+            {calcedMonthly ? `${fmtS(calcedMonthly)}원` : "—"}
+          </span>
+          {repayType === "원금균등" && <span style={{ fontSize: 10, color: C.inkLight }}>(현재 잔액 기준)</span>}
+        </div>
+      ) : (
+        <div style={{ marginBottom: 12 }}>
           <SLabel>월 상환액 (선택)</SLabel>
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
             <input value={monthly} onChange={e => setMonthly(e.target.value.replace(/[^\d]/g, ""))} placeholder="800000"
@@ -778,7 +835,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
             <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
           </div>
         </div>
-      </div>
+      )}
       <SLabel>만기일</SLabel>
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
         <input type="date" value={maturity} onChange={e => setMaturity(e.target.value)}
@@ -791,8 +848,9 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
       </div>
       {(annualInterest > 0 || repaidPct != null) && (
         <div style={{ background: "#fff5f5", border: "1px solid #f5c6cb", borderRadius: 9, padding: "9px 12px", marginBottom: 12, fontSize: 12, color: "#7b2d00", lineHeight: 1.6 }}>
-          {annualInterest > 0 && <div>연간 이자 약 <strong>{fmtS(annualInterest)}</strong>원 · 월 {fmtS(Math.round(annualInterest / 12))}원</div>}
+          {annualInterest > 0 && <div>연간 이자 약 <strong>{fmtS(annualInterest)}</strong>원 · 월 이자 {fmtS(Math.round(annualInterest / 12))}원</div>}
           {repaidPct != null && <div>원금 상환률 <strong>{repaidPct}%</strong> ({fmtS(prin - bal)}원 상환)</div>}
+          {dispMonthly > 0 && r > 0 && bal > 0 && <div>월 상환 중 이자 비중 <strong>{Math.min(100, Math.round(annualInterest / 12 / dispMonthly * 100))}%</strong></div>}
         </div>
       )}
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
