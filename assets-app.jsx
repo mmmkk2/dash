@@ -685,7 +685,7 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
 }
 
 /* ── Loan Form ── */
-const REPAY_TYPES = ["원리금균등", "원금균등", "이자만", "직접입력"];
+const REPAY_TYPES = ["원리금균등", "원금균등", "부분원금균등", "이자만", "직접입력"];
 
 function calcLoanMonthly(repayType, prin, bal, annualRate, termMonths, maturity) {
   const mr = annualRate / 12 / 100;
@@ -718,25 +718,30 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
   const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
   const initMemo  = parseMemo(init.memo);
 
-  const [loanType,   setLoanType]   = useState(init.accountSuffix || "주택담보");
-  const [repayType,  setRepayType]  = useState(initMemo.repayType || "직접입력");
-  const [institution,setInstitution]= useState(init.institution || "");
-  const [name,       setName]       = useState(init.name || "");
-  const [principal,  setPrincipal]  = useState(initMemo.principal ? String(initMemo.principal) : "");
-  const [balance,    setBalance]    = useState(init.amount ? String(init.amount) : "");
-  const [rate,       setRate]       = useState(initMemo.rate != null ? String(initMemo.rate) : "");
-  const [termMonths, setTermMonths] = useState(initMemo.termMonths ? String(initMemo.termMonths) : "");
-  const [monthly,    setMonthly]    = useState(initMemo.monthly ? String(initMemo.monthly) : "");
-  const [maturity,   setMaturity]   = useState(init.date || "");
-  const [memo,       setMemo]       = useState(initMemo.memo || "");
-  const [err,        setErr]        = useState("");
+  const [loanType,       setLoanType]       = useState(init.accountSuffix || "주택담보");
+  const [repayType,      setRepayType]      = useState(initMemo.repayType || "직접입력");
+  const [institution,    setInstitution]    = useState(init.institution || "");
+  const [name,           setName]           = useState(init.name || "");
+  const [principal,      setPrincipal]      = useState(initMemo.principal ? String(initMemo.principal) : "");
+  const [balance,        setBalance]        = useState(init.amount ? String(init.amount) : "");
+  const [rate,           setRate]           = useState(initMemo.rate != null ? String(initMemo.rate) : "");
+  const [termMonths,     setTermMonths]     = useState(initMemo.termMonths ? String(initMemo.termMonths) : "");
+  const [monthly,        setMonthly]        = useState(initMemo.monthly ? String(initMemo.monthly) : "");
+  const [monthlyPrinStr, setMonthlyPrinStr] = useState(initMemo.monthlyPrincipal ? String(initMemo.monthlyPrincipal) : "");
+  const [maturity,       setMaturity]       = useState(init.date || "");
+  const [memo,           setMemo]           = useState(initMemo.memo || "");
+  const [err,            setErr]            = useState("");
 
   const bal   = parseInt(balance.replace(/[^\d]/g, ""), 10) || 0;
   const prin  = parseInt(principal.replace(/[^\d]/g, ""), 10) || 0;
   const r     = parseFloat(rate) || 0;
   const term  = parseInt(termMonths) || 0;
 
-  const calcedMonthly = calcLoanMonthly(repayType, prin, bal, r, term, maturity);
+  const monthlyPrin   = parseInt(monthlyPrinStr.replace(/[^\d]/g, ""), 10) || 0;
+  const monthlyInt    = bal > 0 && r > 0 ? Math.round(bal * r / 12 / 100) : 0;
+  const calcedMonthly = repayType === "부분원금균등"
+    ? (monthlyPrin > 0 ? monthlyPrin + monthlyInt : null)
+    : calcLoanMonthly(repayType, prin, bal, r, term, maturity);
   const dispMonthly   = repayType !== "직접입력" ? calcedMonthly : (parseInt(monthly.replace(/[^\d]/g, ""), 10) || 0);
 
   const annualInterest = bal > 0 && r > 0 ? Math.round(bal * r / 100) : 0;
@@ -755,6 +760,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
     if (finalMonthly)    memoObj.monthly    = finalMonthly;
     if (term)            memoObj.termMonths = term;
     if (repayType !== "직접입력") memoObj.repayType = repayType;
+    if (repayType === "부분원금균등" && monthlyPrin) memoObj.monthlyPrincipal = monthlyPrin;
     if (memo.trim())     memoObj.memo       = memo.trim();
     onSave({
       id: init.id || Date.now(),
@@ -836,7 +842,23 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
           </button>
         ))}
       </div>
-      {repayType !== "직접입력" ? (
+      {repayType === "부분원금균등" ? (
+        <div style={{ marginBottom: 12 }}>
+          <SLabel>월 상환 원금</SLabel>
+          <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center", marginBottom: 8 }}>
+            <input value={monthlyPrinStr} onChange={e => setMonthlyPrinStr(e.target.value.replace(/[^\d]/g, ""))} placeholder="500000"
+              style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+          </div>
+          {monthlyPrin > 0 && (
+            <div style={{ background: "#fff5f5", border: "1px solid #f5c6cb", borderRadius: 10, padding: "12px 16px", display: "flex", gap: 16, alignItems: "baseline" }}>
+              <span style={{ fontSize: 12, color: C.inkMid }}>월 상환액</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: "#7b2d00", fontVariantNumeric: "tabular-nums" }}>{fmtS(monthlyPrin + monthlyInt)}원</span>
+              <span style={{ fontSize: 11, color: C.inkLight }}>원금 {fmtS(monthlyPrin)} + 이자 {fmtS(monthlyInt)}</span>
+            </div>
+          )}
+        </div>
+      ) : repayType !== "직접입력" ? (
         <div style={{ background: calcedMonthly ? "#fff5f5" : C.paper, border: `1px solid ${calcedMonthly ? "#f5c6cb" : C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "baseline", gap: 8 }}>
           <span style={{ fontSize: 12, color: C.inkMid }}>월 상환액</span>
           <span style={{ fontSize: 20, fontWeight: 800, color: "#7b2d00", fontVariantNumeric: "tabular-nums" }}>
