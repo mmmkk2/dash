@@ -42,8 +42,16 @@ const F = "'Inter',sans-serif";
 
 /* ── Stock price fetch (via server proxy to avoid CORS) ── */
 async function fetchStockPrice(ticker, market) {
-  const sym = market === "KR" ? `${ticker}.KS` : ticker.toUpperCase();
-  const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+  if (market === "KR") {
+    for (const suffix of [".KS", ".KQ"]) {
+      const res = await fetch(`/api/stock?symbol=${encodeURIComponent(ticker + suffix)}`);
+      if (!res.ok) continue;
+      const { price } = await res.json();
+      if (price != null) return price;
+    }
+    throw new Error("no price");
+  }
+  const res = await fetch(`/api/stock?symbol=${encodeURIComponent(ticker.toUpperCase())}`);
   if (!res.ok) throw new Error("fetch failed");
   const { price } = await res.json();
   if (price == null) throw new Error("no price");
