@@ -322,7 +322,8 @@ import { useState, useEffect, useRef } from "react";
         const extraTotal = (profit.extraCosts||[]).reduce((s,c)=>s+(c.amount||0),0);
         const eviction = profit.evictionCost||0;
         const mgmt = profit.mgmtCost||0;
-        const expenses = acqTax + profit.legalFee + profit.interior + agentFee + lr.total + extraTotal + eviction + mgmt;
+        const other = profit.otherCost||0;
+        const expenses = acqTax + profit.legalFee + profit.interior + agentFee + lr.total + extraTotal + eviction + mgmt + other;
         // 예정신고: 취득세+법무비+중개비 공제, 15% 고정 (지방세 포함 16.5%)
         const prepayTaxBase = Math.max(grossGain - acqTax - profit.legalFee - agentFee, 0);
         const prepayTax = prepayTaxBase * 0.15 * 1.1;
@@ -331,7 +332,7 @@ import { useState, useEffect, useRef } from "react";
         const {tax:incomeTax, effectiveRate} = calcTaxForGain(taxableGain);
         const totalCost = expenses + incomeTax;
         const netProfit = grossGain - totalCost;
-        return {grossGain, acqTax, legalFee:profit.legalFee, interior:profit.interior, agentFee, interest:lr.interest, prepay:lr.prepay, prepayTax, prepayTaxBase, incomeTax, effectiveRate, extraTotal, eviction, mgmt, expenses, totalCost, netProfit, taxableGain};
+        return {grossGain, acqTax, legalFee:profit.legalFee, interior:profit.interior, agentFee, interest:lr.interest, prepay:lr.prepay, prepayTax, prepayTaxBase, incomeTax, effectiveRate, extraTotal, eviction, mgmt, other, expenses, totalCost, netProfit, taxableGain};
       }
 
       const baseIncome = (tax.salary||0) + (tax.businessIncome||0);
@@ -622,7 +623,7 @@ import { useState, useEffect, useRef } from "react";
                     <RateInput value={profit.acquisitionTax} step={0.01} onChange={v=>updateProfit(p=>({...p,acquisitionTax:v}))} style={inp} />
                   )}
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border2}`}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border2}`}}>
                   <div>
                     <span style={lbl}>명도비(+열쇠)</span>
                     <NumInput value={profit.evictionCost} onChange={v=>updateProfit(p=>({...p,evictionCost:v}))} style={inp} />
@@ -630,6 +631,10 @@ import { useState, useEffect, useRef } from "react";
                   <div>
                     <span style={lbl}>관리비 미납</span>
                     <NumInput value={profit.mgmtCost} onChange={v=>updateProfit(p=>({...p,mgmtCost:v}))} style={inp} />
+                  </div>
+                  <div>
+                    <span style={lbl}>기타</span>
+                    <NumInput value={profit.otherCost||0} onChange={v=>updateProfit(p=>({...p,otherCost:v}))} style={inp} />
                   </div>
                 </div>
                 {loans.length>0&&(
@@ -799,6 +804,7 @@ import { useState, useEffect, useRef } from "react";
                             r.interior>0&&{l:"인테리어",v:r.interior},
                             r.eviction>0&&{l:"명도비(+열쇠)",v:r.eviction},
                             r.mgmt>0&&{l:"관리비 미납",v:r.mgmt},
+                            r.other>0&&{l:"기타",v:r.other},
                             {l:"중개수수료",v:r.agentFee},
                             {l:`대출이자 ${profit.holdMonths}개월`,v:r.interest},
                             r.prepay>0&&{l:"중도상환수수료",v:r.prepay},
