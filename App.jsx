@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import Calculator from './pages/calculator'
 import Budget from './pages/budget'
 import Assets from './pages/assets'
@@ -34,6 +35,7 @@ export default function App() {
           </>
         )}
       </Routes>
+      <Analytics />
     </BrowserRouter>
   )
 }
