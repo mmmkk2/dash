@@ -239,6 +239,7 @@ import { useState, useEffect, useRef } from "react";
       const [tax, setTax] = useState(loadTax());
       const [savedSnaps, setSavedSnaps] = useState(loadSnapshots);
       const [editingSnapName, setEditingSnapName] = useState(null);
+      const [snapSaved, setSnapSaved] = useState(false);
       const saveTimer = useRef(null);
 
       const activeProp = props.find(p => p.id === activeId) || props[0];
@@ -349,6 +350,7 @@ import { useState, useEffect, useRef } from "react";
           ? savedSnaps.map(s => s.propName === activeProp.name ? snap : s)
           : [snap, ...savedSnaps];
         setSavedSnaps(next); saveSnapshots(next);
+        setSnapSaved(true); setTimeout(()=>setSnapSaved(false), 1500);
       }
       function deleteSnap(id) {
         const next = savedSnaps.filter(s => s.id !== id);
@@ -766,8 +768,8 @@ import { useState, useEffect, useRef } from "react";
               <div style={card}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>시나리오별 순이익</div>
-                  <button onClick={saveSnap} style={{border:`1px solid ${C.border}`,background:C.surface2,borderRadius:7,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",color:C.accent,fontFamily:"inherit"}}>
-                    📎 저장
+                  <button onClick={saveSnap} style={{border:`1px solid ${snapSaved?C.green:C.border}`,background:snapSaved?C.greenBg:C.surface2,borderRadius:7,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",color:snapSaved?C.green:C.accent,fontFamily:"inherit",transition:"all 0.2s"}}>
+                    {snapSaved ? "✓ 저장됨" : "📎 저장"}
                   </button>
                 </div>
                 {[...profit.sellScenarios].sort((a,b)=>a-b).map((sell,i)=>{
