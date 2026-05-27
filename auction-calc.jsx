@@ -165,37 +165,26 @@ import { useState, useEffect, useRef } from "react";
       };
     }
     function defaultExamples() {
-      const lid1 = uid(); const lid2 = uid(); const lid3 = uid();
+      const lid1 = uid(); const lid2 = uid();
       return [
         {
-          id:uid(), name:"서울 은평 빌라 (예시)",
-          loans:[{ id:lid1, name:"경락잔금대출", amount:110000000, rate:4.8,
-            prepayTiers:[{untilMonth:3,rate:1.5},{untilMonth:null,rate:0.5}] }],
-          profit:{
-            bidPrice:158000000, propType:"주택1", acquisitionTax:1.1, legalFee:650000,
-            interior:2000000, agentFeeRate:0.4, loanId:lid1,
-            holdMonths:3, sellScenarios:[180000000,185000000,190000000],
-            extraCosts:[], evictionCost:1500000, mgmtCost:450000,
-          },
-        },
-        {
           id:uid(), name:"경기 부천 아파트 (예시)",
-          loans:[{ id:lid2, name:"경락잔금대출", amount:230000000, rate:4.3,
+          loans:[{ id:lid1, name:"경락잔금대출", amount:230000000, rate:4.3,
             prepayTiers:[{untilMonth:null,rate:0.46}] }],
           profit:{
             bidPrice:318000000, propType:"주택1", acquisitionTax:1.1, legalFee:1150000,
-            interior:8000000, agentFeeRate:0.44, loanId:lid2,
+            interior:8000000, agentFeeRate:0.44, loanId:lid1,
             holdMonths:5, sellScenarios:[360000000,370000000,380000000],
             extraCosts:[], evictionCost:0, mgmtCost:1500000,
           },
         },
         {
           id:uid(), name:"인천 상가 (예시)",
-          loans:[{ id:lid3, name:"경락잔금대출", amount:80000000, rate:5.2,
+          loans:[{ id:lid2, name:"경락잔금대출", amount:80000000, rate:5.2,
             prepayTiers:[{untilMonth:6,rate:2.0},{untilMonth:null,rate:0.5}] }],
           profit:{
             bidPrice:145000000, propType:"상가토지", acquisitionTax:4.4, legalFee:900000,
-            interior:5000000, agentFeeRate:0.9, loanId:lid3,
+            interior:5000000, agentFeeRate:0.9, loanId:lid2,
             holdMonths:6, sellScenarios:[165000000,170000000],
             extraCosts:[], evictionCost:2000000, mgmtCost:1800000,
           },

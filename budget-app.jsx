@@ -3383,12 +3383,6 @@ export default function App(){
                 fontSize:"13px",lineHeight:1}}>
                 {THEMES[themeKey].emoji}
               </button>
-              <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif"}}>
-                자산
-              </button>
               <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                 borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
