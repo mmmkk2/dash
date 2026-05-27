@@ -193,41 +193,7 @@ import { supabase } from "./src/lib/supabase";
       const [expenses, setExpenses] = useState(loadExpenses);
       const [expForm, setExpForm] = useState({ date:new Date().toISOString().slice(0,10), category:"기타", amount:"", memo:"" });
       const [showExpForm, setShowExpForm] = useState(false);
-      const [user, setUser] = useState(null);
-      const [showAuth, setShowAuth] = useState(false);
-      const [authForm, setAuthForm] = useState({ email:"", password:"" });
-      const [authLoading, setAuthLoading] = useState(false);
-      const [authError, setAuthError] = useState(null);
       const saveTimer = useRef(null);
-
-      // 세션 감지
-      useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          setUser(session?.user ?? null);
-          if (session?.user) loadSnapsFromSupabase();
-        });
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-          setUser(session?.user ?? null);
-          if (session?.user) loadSnapsFromSupabase();
-        });
-        return () => subscription.unsubscribe();
-      }, []);
-
-      async function loadSnapsFromSupabase() {
-        const { data, error } = await supabase
-          .from("auction_snapshots")
-          .select("*")
-          .order("saved_at", { ascending: false });
-        if (!error && data) {
-          const snaps = data.map(r => ({
-            id: r.id, name: r.name, savedAt: r.saved_at,
-            propName: r.prop_name, bidPrice: r.bid_price,
-            holdMonths: r.hold_months, taxLabel: r.tax_label, scenarios: r.scenarios,
-          }));
-          setSavedSnaps(snaps);
-          saveSnapshots(snaps);
-        }
-      }
 
       const activeProp = props.find(p => p.id === activeId) || props[0];
       const curId = activeId || props[0].id;
@@ -324,61 +290,24 @@ import { supabase } from "./src/lib/supabase";
         : baseIncome > 0 ? "종소세 누진 (타소득 합산)" : "종소세 누진";
 
       // ── 스냅샷 저장/삭제/이름변경 ──
-      async function saveSnap() {
+      function saveSnap() {
         const scenarios = [...profit.sellScenarios].sort((a,b)=>a-b).map(sell => ({sell, ...calcProfit(sell)}));
         const now = new Date();
         const name = `${activeProp.name} · ${now.toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"})} ${now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}`;
         const existing = savedSnaps.find(s => s.propName === activeProp.name);
-        if (user) {
-          if (existing) {
-            const { data, error } = await supabase.from("auction_snapshots")
-              .update({ name, bid_price:profit.bidPrice, hold_months:profit.holdMonths, tax_label:taxLabel, scenarios, saved_at:now.toISOString() })
-              .eq("id", existing.id).select().single();
-            if (!error && data) {
-              const snap = { id:data.id, name:data.name, savedAt:data.saved_at, propName:data.prop_name, bidPrice:data.bid_price, holdMonths:data.hold_months, taxLabel:data.tax_label, scenarios:data.scenarios };
-              const next = savedSnaps.map(s => s.id === existing.id ? snap : s);
-              setSavedSnaps(next); saveSnapshots(next);
-            }
-          } else {
-            const { data, error } = await supabase.from("auction_snapshots")
-              .insert({ name, prop_name:activeProp.name, bid_price:profit.bidPrice, hold_months:profit.holdMonths, tax_label:taxLabel, scenarios })
-              .select().single();
-            if (!error && data) {
-              const snap = { id:data.id, name:data.name, savedAt:data.saved_at, propName:data.prop_name, bidPrice:data.bid_price, holdMonths:data.hold_months, taxLabel:data.tax_label, scenarios:data.scenarios };
-              const next = [snap, ...savedSnaps];
-              setSavedSnaps(next); saveSnapshots(next);
-            }
-          }
-        } else {
-          const snap = { id:existing?.id||uid(), name, savedAt:now.toISOString(), propName:activeProp.name, bidPrice:profit.bidPrice, holdMonths:profit.holdMonths, taxLabel, scenarios };
-          const next = existing
-            ? savedSnaps.map(s => s.propName === activeProp.name ? snap : s)
-            : [snap, ...savedSnaps];
-          setSavedSnaps(next); saveSnapshots(next);
-        }
+        const snap = { id:existing?.id||uid(), name, savedAt:now.toISOString(), propName:activeProp.name, bidPrice:profit.bidPrice, holdMonths:profit.holdMonths, taxLabel, scenarios };
+        const next = existing
+          ? savedSnaps.map(s => s.propName === activeProp.name ? snap : s)
+          : [snap, ...savedSnaps];
+        setSavedSnaps(next); saveSnapshots(next);
       }
-      async function deleteSnap(id) {
-        if (user) await supabase.from("auction_snapshots").delete().eq("id", id);
+      function deleteSnap(id) {
         const next = savedSnaps.filter(s => s.id !== id);
         setSavedSnaps(next); saveSnapshots(next);
       }
-      async function renameSnap(id, name) {
-        if (user) await supabase.from("auction_snapshots").update({ name }).eq("id", id);
+      function renameSnap(id, name) {
         const next = savedSnaps.map(s => s.id === id ? {...s, name} : s);
         setSavedSnaps(next); saveSnapshots(next);
-      }
-
-      // ── 로그인/로그아웃 ──
-      async function login() {
-        setAuthLoading(true); setAuthError(null);
-        const { error } = await supabase.auth.signInWithPassword({ email:authForm.email, password:authForm.password });
-        setAuthLoading(false);
-        if (error) setAuthError("이메일 또는 비밀번호가 올바르지 않아요");
-        else setShowAuth(false);
-      }
-      async function logout() {
-        await supabase.auth.signOut();
-        setSavedSnaps(loadSnapshots());
       }
 
       // ── 지출 기록 ──
