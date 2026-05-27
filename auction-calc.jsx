@@ -155,7 +155,7 @@ import { useState, useEffect, useRef } from "react";
     function newProperty(name) {
       return {
         id:uid(), name:name||"새 물건",
-        loans:[newLoan("경락잔금대출")],
+        loans:[newLoan("상품A")],
         profit:{
           bidPrice:200000000, propType:"주택1", acquisitionTax:1.1, legalFee:800000,
           interior:0, agentFeeRate:0.4, loanId:null,
@@ -169,7 +169,7 @@ import { useState, useEffect, useRef } from "react";
       return [
         {
           id:uid(), name:"경기 부천 아파트 (예시)",
-          loans:[{ id:lid1, name:"경락잔금대출", amount:230000000, rate:4.3,
+          loans:[{ id:lid1, name:"상품A", amount:230000000, rate:4.3,
             prepayTiers:[{untilMonth:null,rate:0.46}] }],
           profit:{
             bidPrice:318000000, propType:"주택1", acquisitionTax:1.1, legalFee:1150000,
@@ -180,7 +180,7 @@ import { useState, useEffect, useRef } from "react";
         },
         {
           id:uid(), name:"인천 상가 (예시)",
-          loans:[{ id:lid2, name:"경락잔금대출", amount:80000000, rate:5.2,
+          loans:[{ id:lid2, name:"상품A", amount:80000000, rate:5.2,
             prepayTiers:[{untilMonth:6,rate:2.0},{untilMonth:null,rate:0.5}] }],
           profit:{
             bidPrice:145000000, propType:"상가토지", acquisitionTax:4.4, legalFee:900000,
