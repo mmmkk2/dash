@@ -113,6 +113,41 @@ import { useState, useEffect, useRef } from "react";
       return { tax: gain * TAX_BRACKETS[idx].rate * 1.1, effectiveRate: TAX_BRACKETS[idx].rate*100 };
     }
 
+    // ── 취득세 자동계산 ──
+    const ACQ_TYPES = [
+      { id:"주택1",    label:"주택 1주택" },
+      { id:"주택중과", label:"주택 중과" },
+      { id:"오피스텔", label:"오피스텔" },
+      { id:"상가토지", label:"상가/토지" },
+      { id:"직접입력", label:"직접입력" },
+    ];
+    function calcAcqTaxRate(propType, bidPrice) {
+      if (propType === "주택1") {
+        const base = bidPrice <= 600000000 ? 1
+          : bidPrice <= 900000000 ? Math.round((bidPrice * 2 / 300000000 - 3) * 100) / 100
+          : 3;
+        return { rate: Math.round(base * 1.1 * 100) / 100, base };
+      }
+      if (propType === "주택중과") return { rate: 8.4, base: 8 };
+      if (propType === "오피스텔") return { rate: 4.4, base: 4 };
+      if (propType === "상가토지") return { rate: 4.4, base: 4 };
+      return null;
+    }
+    function acqTaxDetail(propType, bidPrice) {
+      if (propType === "주택1") {
+        if (bidPrice <= 600000000) return "6억 이하 · 취득세 1% + 교육세 0.1%";
+        if (bidPrice <= 900000000) {
+          const base = Math.round((bidPrice * 2 / 300000000 - 3) * 100) / 100;
+          return `6~9억 구간 · 취득세 ${base}% + 교육세 ${Math.round(base*0.1*100)/100}%`;
+        }
+        return "9억 초과 · 취득세 3% + 교육세 0.3%";
+      }
+      if (propType === "주택중과") return "8% 중과 + 지방교육세 0.4% (조정2주택 / 3주택+)";
+      if (propType === "오피스텔") return "취득세 4% + 지방교육세 0.4%";
+      if (propType === "상가토지") return "취득세 4% + 지방교육세 0.4%";
+      return "";
+    }
+
     // ── 기본 데이터 ──
     function newLoan(name) {
       return { id:uid(), name:name||"상품", amount:150000000, rate:4.5, prepayTiers:[{untilMonth:null,rate:0.5}] };
@@ -122,7 +157,7 @@ import { useState, useEffect, useRef } from "react";
         id:uid(), name:name||"새 물건",
         loans:[newLoan("경락잔금대출")],
         profit:{
-          bidPrice:200000000, acquisitionTax:1.1, legalFee:800000,
+          bidPrice:200000000, propType:"주택1", acquisitionTax:1.1, legalFee:800000,
           interior:0, agentFeeRate:0.4, loanId:null,
           holdMonths:3, sellScenarios:[230000000,240000000],
           extraCosts:[], evictionCost:0, mgmtCost:0,
@@ -133,36 +168,33 @@ import { useState, useEffect, useRef } from "react";
       const lid1 = uid(); const lid2 = uid(); const lid3 = uid();
       return [
         {
-          // 빌라 소액 경매 — 명도 필요, 단기 매도
           id:uid(), name:"서울 은평 빌라 (예시)",
           loans:[{ id:lid1, name:"경락잔금대출", amount:110000000, rate:4.8,
             prepayTiers:[{untilMonth:3,rate:1.5},{untilMonth:null,rate:0.5}] }],
           profit:{
-            bidPrice:158000000, acquisitionTax:1.1, legalFee:650000,
+            bidPrice:158000000, propType:"주택1", acquisitionTax:1.1, legalFee:650000,
             interior:2000000, agentFeeRate:0.4, loanId:lid1,
             holdMonths:3, sellScenarios:[180000000,185000000,190000000],
             extraCosts:[], evictionCost:1500000, mgmtCost:450000,
           },
         },
         {
-          // 아파트 중형 — 인테리어 후 매도
           id:uid(), name:"경기 부천 아파트 (예시)",
           loans:[{ id:lid2, name:"경락잔금대출", amount:230000000, rate:4.3,
             prepayTiers:[{untilMonth:null,rate:0.46}] }],
           profit:{
-            bidPrice:318000000, acquisitionTax:1.1, legalFee:1150000,
+            bidPrice:318000000, propType:"주택1", acquisitionTax:1.1, legalFee:1150000,
             interior:8000000, agentFeeRate:0.44, loanId:lid2,
             holdMonths:5, sellScenarios:[360000000,370000000,380000000],
             extraCosts:[], evictionCost:0, mgmtCost:1500000,
           },
         },
         {
-          // 상가 경매 — 대출 없이 자기자본 투자
           id:uid(), name:"인천 상가 (예시)",
           loans:[{ id:lid3, name:"경락잔금대출", amount:80000000, rate:5.2,
             prepayTiers:[{untilMonth:6,rate:2.0},{untilMonth:null,rate:0.5}] }],
           profit:{
-            bidPrice:145000000, acquisitionTax:4.6, legalFee:900000,
+            bidPrice:145000000, propType:"상가토지", acquisitionTax:4.4, legalFee:900000,
             interior:5000000, agentFeeRate:0.9, loanId:lid3,
             holdMonths:6, sellScenarios:[165000000,170000000],
             extraCosts:[], evictionCost:2000000, mgmtCost:1800000,
@@ -196,13 +228,6 @@ import { useState, useEffect, useRef } from "react";
     function saveSnapshots(snaps) {
       try { localStorage.setItem("auction-snapshots", JSON.stringify(snaps)); } catch {}
     }
-    function loadExpenses() {
-      try { const s = localStorage.getItem("auction-expenses"); if (s) return JSON.parse(s); } catch {}
-      return [];
-    }
-    function saveExpenses(exps) {
-      try { localStorage.setItem("auction-expenses", JSON.stringify(exps)); } catch {}
-    }
 
     // ── 앱 ──
     export default function App() {
@@ -217,9 +242,6 @@ import { useState, useEffect, useRef } from "react";
       const [tax, setTax] = useState(loadTax());
       const [savedSnaps, setSavedSnaps] = useState(loadSnapshots);
       const [editingSnapName, setEditingSnapName] = useState(null);
-      const [expenses, setExpenses] = useState(loadExpenses);
-      const [expForm, setExpForm] = useState({ date:new Date().toISOString().slice(0,10), category:"기타", amount:"", memo:"" });
-      const [showExpForm, setShowExpForm] = useState(false);
       const saveTimer = useRef(null);
 
       const activeProp = props.find(p => p.id === activeId) || props[0];
@@ -293,7 +315,10 @@ import { useState, useEffect, useRef } from "react";
       function calcProfit(sellPrice) {
         const loan = loans.find(l => l.id===selLoanId) || loans[0];
         const lr = loan ? calcLoan(loan, profit.holdMonths) : {interest:0,prepay:0,total:0};
-        const acqTax = profit.bidPrice * (profit.acquisitionTax/100);
+        const acqTaxPct = (profit.propType && profit.propType !== "직접입력")
+          ? (calcAcqTaxRate(profit.propType, profit.bidPrice)?.rate ?? profit.acquisitionTax)
+          : profit.acquisitionTax;
+        const acqTax = profit.bidPrice * (acqTaxPct / 100);
         const agentFee = sellPrice * (profit.agentFeeRate/100);
         const grossGain = sellPrice - profit.bidPrice;
         const extraTotal = (profit.extraCosts||[]).reduce((s,c)=>s+(c.amount||0),0);
@@ -335,21 +360,6 @@ import { useState, useEffect, useRef } from "react";
       function renameSnap(id, name) {
         const next = savedSnaps.map(s => s.id === id ? {...s, name} : s);
         setSavedSnaps(next); saveSnapshots(next);
-      }
-
-      // ── 지출 기록 ──
-      const EXP_CATS = ["취득세","법무사/등기","인테리어","명도비","관리비","중개수수료","대출이자","세금","기타"];
-      function addExpense() {
-        if (!expForm.amount) return;
-        const exp = { id:uid(), date:expForm.date, category:expForm.category, amount:Number(String(expForm.amount).replace(/[^0-9]/g,"")), memo:expForm.memo };
-        const next = [exp, ...expenses].sort((a,b)=>b.date.localeCompare(a.date));
-        setExpenses(next); saveExpenses(next);
-        setShowExpForm(false);
-        setExpForm({ date:new Date().toISOString().slice(0,10), category:"기타", amount:"", memo:"" });
-      }
-      function deleteExpense(id) {
-        const next = expenses.filter(e=>e.id!==id);
-        setExpenses(next); saveExpenses(next);
       }
 
       return (
@@ -403,7 +413,7 @@ import { useState, useEffect, useRef } from "react";
 
           {/* 메인 탭 */}
           <div style={{display:"flex",gap:4,marginBottom:14,background:C.surface2,padding:3,borderRadius:12,border:`1px solid ${C.border}`}}>
-            {[{id:"loan",label:"대출 비교"},{id:"profit",label:"순이익 계산"},{id:"expense",label:"지출 기록"},{id:"saved",label:savedSnaps.length>0?`저장 (${savedSnaps.length})`:"저장 목록"}].map(t=>(
+            {[{id:"loan",label:"대출 비교"},{id:"profit",label:"순이익 계산"},{id:"saved",label:savedSnaps.length>0?`저장 (${savedSnaps.length})`:"저장 목록"}].map(t=>(
               <button key={t.id} onClick={()=>setTab(t.id)} style={{
                 flex:1,padding:"9px 0",borderRadius:9,border:"none",cursor:"pointer",
                 fontFamily:"inherit",fontSize:13,fontWeight:700,
@@ -570,7 +580,6 @@ import { useState, useEffect, useRef } from "react";
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   {[
                     {l:"낙찰가",key:"bidPrice"},
-                    {l:"취득세 (%)",key:"acquisitionTax",step:0.01},
                     {l:"법무사/등기",key:"legalFee"},
                     {l:"인테리어/수리",key:"interior"},
                     {l:"중개수수료 (%)",key:"agentFeeRate",step:0.01},
@@ -584,6 +593,35 @@ import { useState, useEffect, useRef } from "react";
                       }
                     </div>
                   ))}
+                </div>
+                {/* 취득세 */}
+                <div style={{marginTop:10}}>
+                  <span style={lbl}>취득세</span>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:7}}>
+                    {ACQ_TYPES.map(t=>{
+                      const cur = profit.propType || "직접입력";
+                      const sel = cur === t.id;
+                      return (
+                        <button key={t.id} onClick={()=>updateProfit(p=>({...p,propType:t.id}))}
+                          style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${sel?C.accent:C.border}`,
+                            background:sel?C.accent:C.surface, color:sel?"#fff":C.sub,
+                            fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(profit.propType && profit.propType !== "직접입력") ? (() => {
+                    const info = calcAcqTaxRate(profit.propType, profit.bidPrice);
+                    return (
+                      <div style={{background:C.surface2,borderRadius:8,padding:"9px 12px",border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,color:C.sub}}>{acqTaxDetail(profit.propType, profit.bidPrice)}</span>
+                        <span style={{fontSize:15,fontWeight:800,color:C.accent,marginLeft:10,flexShrink:0}}>{info.rate}%</span>
+                      </div>
+                    );
+                  })() : (
+                    <RateInput value={profit.acquisitionTax} step={0.01} onChange={v=>updateProfit(p=>({...p,acquisitionTax:v}))} style={inp} />
+                  )}
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border2}`}}>
                   <div>
@@ -827,85 +865,6 @@ import { useState, useEffect, useRef } from "react";
             </div>
           )}
 
-          {/* ── 지출 기록 ── */}
-          {tab==="expense" && (
-            <div>
-              {/* 입력 폼 */}
-              {showExpForm ? (
-                <div style={{...card,marginBottom:12,border:`1.5px solid ${C.border}`}}>
-                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600,marginBottom:12}}>지출 추가</div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                    <div>
-                      <span style={lbl}>날짜</span>
-                      <input type="date" value={expForm.date} onChange={e=>setExpForm(p=>({...p,date:e.target.value}))} style={inp} />
-                    </div>
-                    <div>
-                      <span style={lbl}>카테고리</span>
-                      <select value={expForm.category} onChange={e=>setExpForm(p=>({...p,category:e.target.value}))} style={{...inp,background:C.surface}}>
-                        {EXP_CATS.map(c=><option key={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{marginBottom:8}}>
-                    <span style={lbl}>금액</span>
-                    <NumInput value={parseNum(expForm.amount)} onChange={v=>setExpForm(p=>({...p,amount:v}))} placeholder="0" style={inp} />
-                  </div>
-                  <div style={{marginBottom:12}}>
-                    <span style={lbl}>메모</span>
-                    <input placeholder="물건명, 용도 등" value={expForm.memo} onChange={e=>setExpForm(p=>({...p,memo:e.target.value}))} style={inp} />
-                  </div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>setShowExpForm(false)} style={{flex:1,padding:"9px 0",borderRadius:9,border:`1px solid ${C.border}`,background:C.surface2,fontSize:13,fontWeight:600,cursor:"pointer",color:C.sub,fontFamily:"inherit"}}>취소</button>
-                    <button onClick={addExpense} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",background:C.text,fontSize:13,fontWeight:700,cursor:"pointer",color:"#fff",fontFamily:"inherit"}}>추가</button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={()=>setShowExpForm(true)} style={{width:"100%",padding:"11px 0",borderRadius:10,border:`1.5px dashed ${C.border}`,background:"none",fontSize:13,cursor:"pointer",color:C.sub,fontFamily:"inherit",marginBottom:12,fontWeight:600}}>+ 지출 추가</button>
-              )}
-
-              {/* 합계 */}
-              {expenses.length>0 && (
-                <div style={{...card,marginBottom:12,background:C.surface2}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <span style={{fontSize:11,color:C.sub,fontWeight:600}}>총 지출 ({expenses.length}건)</span>
-                    <span style={{fontSize:17,fontWeight:900,color:C.text,letterSpacing:"-0.03em"}}>{fmt(expenses.reduce((s,e)=>s+e.amount,0))}원</span>
-                  </div>
-                </div>
-              )}
-
-              {/* 목록 */}
-              {expenses.length===0
-                ? <div style={{textAlign:"center",padding:"60px 0",color:C.muted,fontSize:13}}>지출 내역이 없어요</div>
-                : expenses.map((exp,i)=>{
-                    const isNewMonth = i===0 || expenses[i-1].date.slice(0,7)!==exp.date.slice(0,7);
-                    return (
-                      <div key={exp.id}>
-                        {isNewMonth && (
-                          <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:"0.05em",marginBottom:6,marginTop:i>0?14:0}}>
-                            {exp.date.slice(0,7).replace("-","년 ")}월
-                          </div>
-                        )}
-                        <div style={{...card,marginBottom:6,padding:"12px 14px"}}>
-                          <div style={{display:"flex",alignItems:"center",gap:10}}>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                                <span style={{fontSize:10,color:C.surface,background:C.sub,borderRadius:4,padding:"1px 6px",fontWeight:600}}>{exp.category}</span>
-                                {exp.memo && <span style={{fontSize:11,color:C.sub,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exp.memo}</span>}
-                              </div>
-                              <div style={{fontSize:10,color:C.muted}}>{exp.date}</div>
-                            </div>
-                            <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                              <span style={{fontSize:14,fontWeight:800,color:C.red}}>−{fmt(exp.amount)}</span>
-                              <button onClick={()=>deleteExpense(exp.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15,padding:0}}>×</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-              }
-            </div>
-          )}
 
           {/* ── 저장 목록 ── */}
           {tab==="saved" && (
