@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "./src/lib/supabase";
 
     // ── 색상 ──
     const C = {
@@ -336,12 +335,7 @@ import { supabase } from "./src/lib/supabase";
               <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>경매 수익 계산기</div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준 · 장기보유특별공제 미적용</div>
             </div>
-            <div style={{flexShrink:0,marginTop:4}}>
-              {user
-                ? <button onClick={logout} style={{border:`1px solid ${C.border}`,background:C.surface,borderRadius:8,padding:"5px 11px",fontSize:11,cursor:"pointer",color:C.sub,fontFamily:"inherit"}}>로그아웃</button>
-                : <button onClick={()=>setShowAuth(true)} style={{border:`1px solid ${C.accent}`,background:C.accentBg,borderRadius:8,padding:"5px 11px",fontSize:11,fontWeight:700,cursor:"pointer",color:C.accent,fontFamily:"inherit"}}>로그인</button>
-              }
-            </div>
+            <div style={{flexShrink:0,marginTop:4}} />
           </div>
 
           {/* 물건 탭 */}
@@ -710,7 +704,7 @@ import { supabase } from "./src/lib/supabase";
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>시나리오별 순이익</div>
                   <button onClick={saveSnap} style={{border:`1px solid ${C.border}`,background:C.surface2,borderRadius:7,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",color:C.accent,fontFamily:"inherit"}}>
-                    📎 {user?"클라우드 저장":"저장"}
+                    📎 저장
                   </button>
                 </div>
                 {[...profit.sellScenarios].sort((a,b)=>a-b).map((sell,i)=>{
