@@ -15,15 +15,24 @@ export default function App() {
   }, [])
 
   if (session === undefined) return null
-  if (!session) return <Login onLogin={setSession} />
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/budget" replace />} />
         <Route path="/calculator" element={<Calculator />} />
-        <Route path="/budget" element={<Budget />} />
-        <Route path="/assets" element={<Assets />} />
+        {session ? (
+          <>
+            <Route path="/" element={<Navigate to="/budget" replace />} />
+            <Route path="/budget" element={<Budget />} />
+            <Route path="/assets" element={<Assets />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<Login onLogin={setSession} />} />
+            <Route path="/budget" element={<Login onLogin={setSession} />} />
+            <Route path="/assets" element={<Login onLogin={setSession} />} />
+          </>
+        )}
       </Routes>
     </BrowserRouter>
   )

@@ -115,32 +115,44 @@ import { useState, useEffect, useRef } from "react";
 
     // ── 기본 데이터 ──
     function newLoan(name) {
-      return { id:uid(), name:name||"상품", amount:157000000, rate:4.3, prepayTiers:[{untilMonth:null,rate:0.46}] };
+      return { id:uid(), name:name||"상품", amount:150000000, rate:4.5, prepayTiers:[{untilMonth:null,rate:0.5}] };
     }
     function newProperty(name) {
       return {
         id:uid(), name:name||"새 물건",
-        loans:[newLoan("상품 A")],
+        loans:[newLoan("경락잔금대출")],
         profit:{
-          bidPrice:265120000, acquisitionTax:1.1, legalFee:800000,
-          interior:0, agentFeeRate:0.44, loanId:null,
-          holdMonths:4, sellScenarios:[300000000,305000000],
+          bidPrice:200000000, acquisitionTax:1.1, legalFee:800000,
+          interior:0, agentFeeRate:0.4, loanId:null,
+          holdMonths:3, sellScenarios:[230000000,240000000],
           extraCosts:[], evictionCost:0, mgmtCost:0,
         },
       };
     }
-    function newOchangProperty() {
-      const lid = uid();
-      return {
-        id:uid(), name:"청주 오창",
-        loans:[{ id:lid, name:"오창 대출", amount:250000000, rate:4.8, prepayTiers:[] }],
-        profit:{
-          bidPrice:365190000, acquisitionTax:1.1, legalFee:1485600,
-          interior:0, agentFeeRate:0.44, loanId:lid,
-          holdMonths:2, sellScenarios:[395000000],
-          extraCosts:[], evictionCost:304000, mgmtCost:3449280,
+    function defaultExamples() {
+      const lid1 = uid(); const lid2 = uid();
+      return [
+        {
+          id:uid(), name:"경기 수원 빌라",
+          loans:[{ id:lid1, name:"경락잔금대출", amount:130000000, rate:4.5, prepayTiers:[{untilMonth:3,rate:1.2},{untilMonth:null,rate:0.5}] }],
+          profit:{
+            bidPrice:195000000, acquisitionTax:1.1, legalFee:750000,
+            interior:3000000, agentFeeRate:0.4, loanId:lid1,
+            holdMonths:3, sellScenarios:[225000000,230000000,235000000],
+            extraCosts:[], evictionCost:500000, mgmtCost:600000,
+          },
         },
-      };
+        {
+          id:uid(), name:"인천 아파트",
+          loans:[{ id:lid2, name:"경락잔금대출", amount:220000000, rate:4.3, prepayTiers:[{untilMonth:null,rate:0.46}] }],
+          profit:{
+            bidPrice:310000000, acquisitionTax:1.1, legalFee:1200000,
+            interior:5000000, agentFeeRate:0.44, loanId:lid2,
+            holdMonths:4, sellScenarios:[350000000,360000000],
+            extraCosts:[], evictionCost:0, mgmtCost:1200000,
+          },
+        },
+      ];
     }
 
     // ── 저장/불러오기 ──
@@ -179,7 +191,7 @@ import { useState, useEffect, useRef } from "react";
     // ── 앱 ──
     export default function App() {
       const saved = loadStorage();
-      const [props, setProps] = useState(saved ? saved.properties : [newOchangProperty(), newProperty("울산 아파트")]);
+      const [props, setProps] = useState(saved ? saved.properties : defaultExamples());
       const [activeId, setActiveId] = useState(saved ? saved.activeId : null);
       const [tab, setTab] = useState("profit");
       const [editing, setEditing] = useState(null);
@@ -882,12 +894,6 @@ import { useState, useEffect, useRef } from "react";
           {/* ── 저장 목록 ── */}
           {tab==="saved" && (
             <div>
-              {!user && (
-                <div style={{background:C.accentBg,border:`1px solid ${C.accent}30`,borderRadius:12,padding:"12px 14px",marginBottom:12,fontSize:12,color:C.accent}}>
-                  로그인하면 기기를 바꿔도 저장 목록이 유지돼요.
-                  <button onClick={()=>setShowAuth(true)} style={{marginLeft:8,fontWeight:700,color:C.accent,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textDecoration:"underline",fontSize:12}}>로그인</button>
-                </div>
-              )}
               {savedSnaps.length===0
                 ? <div style={{textAlign:"center",padding:"60px 0",color:C.muted,fontSize:13}}>
                     저장된 결과가 없어요<br/>
@@ -949,39 +955,6 @@ import { useState, useEffect, useRef } from "react";
 
           </div>
 
-          {/* ── 로그인 모달 ── */}
-          {showAuth && (
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
-              onClick={e=>e.target===e.currentTarget&&setShowAuth(false)}>
-              <div style={{background:C.surface,borderRadius:20,padding:28,width:"100%",maxWidth:340,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
-                <div style={{fontSize:17,fontWeight:800,marginBottom:4,color:C.text}}>로그인</div>
-                <div style={{fontSize:11,color:C.muted,marginBottom:20}}>클라우드 저장을 위한 관리자 로그인</div>
-                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
-                  <input
-                    type="email" placeholder="이메일"
-                    value={authForm.email}
-                    onChange={e=>setAuthForm(p=>({...p,email:e.target.value}))}
-                    onKeyDown={e=>e.key==="Enter"&&login()}
-                    style={{...inp,fontSize:15,padding:"11px 13px"}}
-                  />
-                  <input
-                    type="password" placeholder="비밀번호"
-                    value={authForm.password}
-                    onChange={e=>setAuthForm(p=>({...p,password:e.target.value}))}
-                    onKeyDown={e=>e.key==="Enter"&&login()}
-                    style={{...inp,fontSize:15,padding:"11px 13px"}}
-                  />
-                </div>
-                {authError && <div style={{fontSize:12,color:C.red,marginBottom:12}}>{authError}</div>}
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>setShowAuth(false)} style={{flex:1,padding:"11px 0",borderRadius:10,border:`1px solid ${C.border}`,background:C.surface2,fontSize:14,fontWeight:600,cursor:"pointer",color:C.sub,fontFamily:"inherit"}}>취소</button>
-                  <button onClick={login} disabled={authLoading} style={{flex:1,padding:"11px 0",borderRadius:10,border:"none",background:C.accent,fontSize:14,fontWeight:700,cursor:"pointer",color:"#fff",fontFamily:"inherit",opacity:authLoading?0.7:1}}>
-                    {authLoading?"로그인 중...":"로그인"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       );
     }
