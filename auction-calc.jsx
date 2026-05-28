@@ -594,8 +594,22 @@ import { useState, useEffect, useRef } from "react";
                     </div>
                   ))}
                 </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border2}`}}>
+                  <div>
+                    <span style={lbl}>명도비(+열쇠)</span>
+                    <NumInput value={profit.evictionCost} onChange={v=>updateProfit(p=>({...p,evictionCost:v}))} style={inp} />
+                  </div>
+                  <div>
+                    <span style={lbl}>관리비 미납</span>
+                    <NumInput value={profit.mgmtCost} onChange={v=>updateProfit(p=>({...p,mgmtCost:v}))} style={inp} />
+                  </div>
+                  <div>
+                    <span style={lbl}>기타</span>
+                    <NumInput value={profit.otherCost||0} onChange={v=>updateProfit(p=>({...p,otherCost:v}))} style={inp} />
+                  </div>
+                </div>
                 {/* 취득세 */}
-                <div style={{marginTop:10}}>
+                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border2}`}}>
                   <span style={lbl}>취득세</span>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:7}}>
                     {ACQ_TYPES.map(t=>{
@@ -622,20 +636,6 @@ import { useState, useEffect, useRef } from "react";
                   })() : (
                     <RateInput value={profit.acquisitionTax} step={0.01} onChange={v=>updateProfit(p=>({...p,acquisitionTax:v}))} style={inp} />
                   )}
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border2}`}}>
-                  <div>
-                    <span style={lbl}>명도비(+열쇠)</span>
-                    <NumInput value={profit.evictionCost} onChange={v=>updateProfit(p=>({...p,evictionCost:v}))} style={inp} />
-                  </div>
-                  <div>
-                    <span style={lbl}>관리비 미납</span>
-                    <NumInput value={profit.mgmtCost} onChange={v=>updateProfit(p=>({...p,mgmtCost:v}))} style={inp} />
-                  </div>
-                  <div>
-                    <span style={lbl}>기타</span>
-                    <NumInput value={profit.otherCost||0} onChange={v=>updateProfit(p=>({...p,otherCost:v}))} style={inp} />
-                  </div>
                 </div>
                 {loans.length>0&&(
                   <div style={{marginTop:10}}>
