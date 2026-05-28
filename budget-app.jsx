@@ -3375,35 +3375,35 @@ export default function App(){
                 }
               </div>
             </div>
-            <div style={{display:"flex",gap:"6px"}}>
-<button onClick={()=>setModal("theme")} title="테마 변경" style={{
+            <div style={{display:"flex",gap:"5px",flexShrink:0}}>
+              <button onClick={()=>setModal("theme")} title="테마 변경" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"7px 10px",color:"rgba(255,255,255,0.6)",
+                borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",
                 cursor:"pointer",display:"flex",alignItems:"center",
-                fontSize:"13px",lineHeight:1}}>
+                fontSize:"13px",lineHeight:1,flexShrink:0}}>
                 {THEMES[themeKey].emoji}
               </button>
               <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif"}}>
+                borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
+                fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
                 CAT
               </button>
               <button onClick={()=>setModal("cards")} style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex"}}>
+                borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
                 <CreditCard size={14}/>
               </button>
               <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
+                borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
+                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
                 자산
               </button>
               <button onClick={handleLogout} title="로그아웃" style={{
                 background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 10px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
+                borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
+                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
                 OUT
               </button>
             </div>
