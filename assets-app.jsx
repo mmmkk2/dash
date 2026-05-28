@@ -13,8 +13,13 @@ document.head.appendChild(_fl);
 
 const fmt  = n => n.toLocaleString("ko-KR") + "원";
 const fmtS = n => {
-  if (n >= 1e8) return (n / 1e8).toFixed(1) + "억";
-  if (n >= 1e4) return Math.round(n / 1e4) + "만";
+  const abs = Math.abs(n), sign = n < 0 ? "-" : "";
+  if (abs >= 1e8) {
+    const uk = Math.floor(abs / 1e8);
+    const man = Math.round((abs % 1e8) / 1e4);
+    return sign + (man > 0 ? `${uk}억 ${man.toLocaleString("ko-KR")}만` : `${uk}억`);
+  }
+  if (abs >= 1e4) return sign + Math.round(abs / 1e4).toLocaleString("ko-KR") + "만";
   return n.toLocaleString("ko-KR");
 };
 const fmtPrice = (n, currency) =>
