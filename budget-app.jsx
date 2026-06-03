@@ -3642,9 +3642,9 @@ export default function App(){
     <div style={{minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
 
       {/* Header */}
-      <div style={{background:C.header,padding:"26px 0 0",color:"#fff",position:"relative",overflow:"hidden"}}>
+      <div style={{background:C.header,padding:"26px 20px 0",color:"#fff",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:"-40px",right:"-40px",width:"160px",height:"160px",borderRadius:"50%",background:"rgba(255,255,255,0.03)"}}/>
-        <div style={{maxWidth:"660px",margin:"0 auto",padding:"0 14px",position:"relative"}}>
+        <div style={{maxWidth:"660px",margin:"0 auto",position:"relative"}}>
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"20px"}}>
             <div>
@@ -3769,7 +3769,8 @@ export default function App(){
       </div>
 
       {/* Body */}
-      <div style={{maxWidth:"660px",margin:"0 auto",padding:"0 14px 16px"}}>​
+      <div style={{maxWidth:"660px",margin:"0 auto",padding:"0 14px 16px",
+        background:C.paper,borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`}}>
 
         {!isConfigured()&&<SetupGuide/>}
 
