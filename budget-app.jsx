@@ -2669,264 +2669,6 @@ function CoupangImport({ onRegister }) {
   );
 }
 
-/* ── Realty Schedule Section (부동산매매 납부 스케줄) ── */
-const PAYMENT_TYPES = ["계약금", "중도금", "잔금", "기타"];
-const PAYMENT_COLORS = { "계약금": "#1d4e89", "중도금": "#2d6a4f", "잔금": "#b5451b", "기타": "#6b5c4e" };
-
-function RealtyScheduleSection({ schedules, onAdd, onEdit, onPay }) {
-  const [open, setOpen] = useState(true);
-  const today = new Date().toISOString().slice(0, 10);
-
-  // 물건명별 그룹
-  const deals = {};
-  schedules.forEach(s => {
-    if (!deals[s.dealName]) deals[s.dealName] = [];
-    deals[s.dealName].push(s);
-  });
-
-  const totalPending = schedules.filter(s => !s.paid).reduce((sum, s) => sum + s.amount, 0);
-  const nextItem = schedules
-    .filter(s => !s.paid)
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
-
-  const dDay = item => {
-    if (!item) return null;
-    const diff = Math.ceil((new Date(item.dueDate) - new Date(today)) / 86400000);
-    if (diff === 0) return "D-Day";
-    return diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
-  };
-
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <button onClick={() => setOpen(o => !o)} style={{
-        width: "100%", background: "none", border: "none", cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "10px 0 8px", fontFamily: "'Inter',sans-serif",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>납부 스케줄</span>
-          {nextItem && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
-              background: new Date(nextItem.dueDate) < new Date(today) ? "#fee2e2" : "#dbeafe",
-              color: new Date(nextItem.dueDate) < new Date(today) ? "#b91c1c" : "#1d4e89",
-            }}>
-              {dDay(nextItem)} · {nextItem.dealName} {nextItem.paymentType}
-            </span>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {totalPending > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4e89" }}>잔여 {fmt(totalPending)}</span>}
-          <button onClick={e => { e.stopPropagation(); onAdd(); }} style={{
-            background: "#1d4e89", border: "none", borderRadius: 7, padding: "4px 10px",
-            color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Inter',sans-serif",
-          }}>+ 추가</button>
-          {open ? <ChevronUp size={14} color={C.inkLight} /> : <ChevronDown size={14} color={C.inkLight} />}
-        </div>
-      </button>
-
-      {open && (
-        schedules.length === 0
-          ? <div style={{ textAlign: "center", padding: "24px", background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 12, color: C.inkLight, fontFamily: "'Inter',sans-serif", marginBottom: 8 }}>
-              납부 스케줄을 추가해보세요
-            </div>
-          : Object.entries(deals).map(([dealName, items]) => {
-              const sorted = [...items].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-              return (
-                <div key={dealName} style={{ background: C.white, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 8, overflow: "hidden" }}>
-                  <div style={{ padding: "10px 14px 8px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontFamily: "'Inter',sans-serif" }}>{dealName}</span>
-                    <span style={{ fontSize: 11, color: C.inkLight, fontFamily: "'Inter',sans-serif" }}>
-                      {items.filter(i => i.paid).length}/{items.length} 완납
-                    </span>
-                  </div>
-                  {sorted.map((item, idx) => {
-                    const isPast = !item.paid && item.dueDate < today;
-                    const dd = dDay(item);
-                    const color = PAYMENT_COLORS[item.paymentType] || "#6b5c4e";
-                    return (
-                      <div key={item.id} style={{
-                        display: "flex", alignItems: "center", padding: "11px 14px",
-                        borderBottom: idx < sorted.length - 1 ? `1px solid ${C.border}` : "none",
-                        background: item.paid ? "#f8f9fa" : "transparent",
-                        gap: 10,
-                      }}>
-                        <div style={{ width: 3, height: 36, borderRadius: 2, background: item.paid ? C.border : color, flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                            <span style={{
-                              fontSize: 11, fontWeight: 700, color: item.paid ? C.inkLight : color,
-                              background: item.paid ? C.cream : color + "18",
-                              borderRadius: 5, padding: "1px 7px", fontFamily: "'Inter',sans-serif",
-                            }}>{item.paymentType}</span>
-                            {!item.paid && dd && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: isPast ? "#b91c1c" : "#1d4e89", fontFamily: "'Inter',sans-serif" }}>{dd}</span>
-                            )}
-                            {item.paid && <span style={{ fontSize: 10, color: C.inkLight, fontFamily: "'Inter',sans-serif" }}>완납 {item.paidDate}</span>}
-                          </div>
-                          <div style={{ fontSize: 11, color: C.inkLight, fontFamily: "'Inter',sans-serif" }}>
-                            {item.dueDate} {item.memo ? `· ${item.memo}` : ""}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: item.paid ? C.inkLight : C.ink, fontVariantNumeric: "tabular-nums", fontFamily: "'Inter',sans-serif", textDecoration: item.paid ? "line-through" : "none" }}>
-                            {fmt(item.amount)}
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-                          {!item.paid && (
-                            <button onClick={() => onPay(item)} style={{
-                              background: "#1d4e89", border: "none", borderRadius: 7, padding: "5px 10px",
-                              color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "'Inter',sans-serif", whiteSpace: "nowrap",
-                            }}>납부</button>
-                          )}
-                          <button onClick={() => onEdit(item)} style={{
-                            background: "none", border: `1px solid ${C.border}`, borderRadius: 7, padding: "5px 8px",
-                            color: C.inkMid, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center",
-                          }}>
-                            <Pencil size={11} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })
-      )}
-    </div>
-  );
-}
-
-function ScheduleForm({ initial, propertyTags=[], onSave, onDelete }) {
-  const init = initial || {};
-  const [dealName,     setDealName]     = useState(init.dealName     || "");
-  const [paymentType,  setPaymentType]  = useState(init.paymentType  || "계약금");
-  const [amount,       setAmount]       = useState(init.amount       ? Number(init.amount).toLocaleString("ko-KR") : "");
-  const [dueDate,      setDueDate]      = useState(init.dueDate      || new Date().toISOString().slice(0, 10));
-  const [memo,         setMemo]         = useState(init.memo         || "");
-  const [dealOpen,     setDealOpen]     = useState(false);
-  const [err,          setErr]          = useState(false);
-  const isEdit = !!init.id;
-
-  const allDeals = [...new Set([...propertyTags, dealName].filter(Boolean))];
-
-  function submit() {
-    const num = parseInt(String(amount).replace(/,/g, ""));
-    if (!dealName.trim() || !num || !dueDate) { setErr(true); setTimeout(() => setErr(false), 400); return; }
-    onSave({ id: init.id || Date.now(), dealName: dealName.trim(), paymentType, amount: num, dueDate, memo: memo.trim(), paid: init.paid || false, paidDate: init.paidDate || null, txId: init.txId || null });
-  }
-
-  const color = PAYMENT_COLORS[paymentType] || "#6b5c4e";
-
-  return (
-    <div style={{ fontFamily: "'Inter',sans-serif" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "스케줄 수정" : "납부 스케줄 추가"}</span>
-        {isEdit && <button onClick={onDelete} style={{ background: "#fff1ee", border: "1px solid #f4c5b2", borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: "#b5451b", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}><Trash2 size={13} /> 삭제</button>}
-      </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", marginBottom: 6 }}>물건명</div>
-        <div style={{ position: "relative" }}>
-          <input value={dealName} onChange={e => setDealName(e.target.value)}
-            onFocus={() => setDealOpen(true)} onBlur={() => setTimeout(() => setDealOpen(false), 150)}
-            placeholder="예: 강남 오피스텔 101호"
-            style={{ width: "100%", border: `1.5px solid ${err && !dealName.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: "'Inter',sans-serif", boxSizing: "border-box" }} />
-          {dealOpen && allDeals.length > 0 && (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 6px 20px rgba(0,0,0,0.1)", zIndex: 500, overflow: "hidden" }}>
-              {allDeals.map(d => (
-                <div key={d} onMouseDown={() => { setDealName(d); setDealOpen(false); }}
-                  style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", borderBottom: `1px solid ${C.border}` }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.cream}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  {d}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", marginBottom: 6 }}>납부 유형</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          {PAYMENT_TYPES.map(t => (
-            <button key={t} onClick={() => setPaymentType(t)} style={{
-              flex: 1, padding: "8px 4px", borderRadius: 10, cursor: "pointer", border: `1.5px solid ${paymentType === t ? PAYMENT_COLORS[t] : C.border}`,
-              background: paymentType === t ? PAYMENT_COLORS[t] : C.white, color: paymentType === t ? "#fff" : C.inkMid,
-              fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 12,
-            }}>{t}</button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", marginBottom: 6 }}>금액</div>
-        <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${err && !parseInt(String(amount).replace(/,/g,"")) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "0 14px", background: C.white }}>
-          <span style={{ color: C.inkLight, marginRight: 6 }}>₩</span>
-          <input type="text" inputMode="numeric" value={amount}
-            onChange={e => { const r = e.target.value.replace(/[^0-9]/g, ""); setAmount(r ? Number(r).toLocaleString("ko-KR") : r); }}
-            placeholder="0"
-            style={{ flex: 1, border: "none", background: "transparent", fontSize: 20, fontWeight: 700, color: C.ink, padding: "10px 0", outline: "none", fontFamily: "'Inter',sans-serif", fontVariantNumeric: "tabular-nums" }} />
-          <span style={{ color: C.inkLight, fontSize: 13 }}>원</span>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", marginBottom: 6 }}>납부 예정일</div>
-          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-            style={{ width: "100%", border: `1.5px solid ${err && !dueDate ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: "'Inter',sans-serif", boxSizing: "border-box" }} />
-        </div>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", marginBottom: 6 }}>메모</div>
-          <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="선택"
-            style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: "'Inter',sans-serif", boxSizing: "border-box" }} />
-        </div>
-      </div>
-
-      <button onClick={submit} style={{
-        width: "100%", padding: 13, borderRadius: 12, border: "none",
-        background: color, color: "#fff", fontSize: 15, fontWeight: 700,
-        cursor: "pointer", fontFamily: "'Inter',sans-serif",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-      }}>
-        {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
-      </button>
-    </div>
-  );
-}
-
-function PayForm({ item, onConfirm }) {
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const color = PAYMENT_COLORS[item.paymentType] || "#6b5c4e";
-  return (
-    <div style={{ fontFamily: "'Inter',sans-serif" }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 4 }}>납부 완료 처리</div>
-      <div style={{ fontSize: 12, color: C.inkLight, marginBottom: 18 }}>가계부에 지출로 자동 등록됩니다</div>
-      <div style={{ background: color + "12", border: `1px solid ${color}40`, borderRadius: 12, padding: "12px 16px", marginBottom: 18 }}>
-        <div style={{ fontSize: 11, color: color, fontWeight: 700, marginBottom: 4 }}>{item.dealName} · {item.paymentType}</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmt(item.amount)}</div>
-        <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>예정일 {item.dueDate}</div>
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", marginBottom: 6 }}>납부일</div>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: "'Inter',sans-serif", boxSizing: "border-box" }} />
-      </div>
-      <button onClick={() => onConfirm(date)} style={{
-        width: "100%", padding: 13, borderRadius: 12, border: "none",
-        background: color, color: "#fff", fontSize: 15, fontWeight: 700,
-        cursor: "pointer", fontFamily: "'Inter',sans-serif",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-      }}>
-        <Check size={16} /> 납부 완료 · 가계부 등록
-      </button>
-    </div>
-  );
-}
-
 /* ── Supplies View (앤딩 전용) ── */
 const SUPPLY_CATS = ["음료재료","소모품","청소","사무용품","비품","기타"];
 
@@ -3397,13 +3139,10 @@ export default function App(){
   const [tab,   setTab]   =useState("list");
   const [modal, setModal] =useState(null);
   const [editTx,setEditTx]=useState(null);
-  const [editSchedule, setEditSchedule] = useState(null);
-  const [payItem, setPayItem] = useState(null);
   const [txs,   setTxs]   =useState([]);
   const [cards, setCards] =useState(DEFAULT_CARDS);
   const [trees, setTrees] =useState(loadTrees);
   const [supplies, setSupplies] = useState([]);
-  const [schedules, setSchedules] = useState([]);
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
@@ -3474,17 +3213,15 @@ export default function App(){
     if(!isConfigured())return;
     setLoading(true);
     try{
-      const [rows, cardRows, supplyRows, settingsRows, scheduleRows] = await Promise.all([
+      const [rows, cardRows, supplyRows, settingsRows] = await Promise.all([
         sb("transactions?select=*&order=date.desc"),
         sb("cards?select=*&order=sort_order.asc"),
         sb("supplies?select=*&order=created_at.asc"),
         sb("settings?select=*&key=eq.trees"),
-        sb("payment_schedules?select=*&order=due_date.asc"),
       ]);
       setTxs(rows.map(rowToTx));
       if(cardRows.length) setCards(cardRows.map(rowToCard));
       setSupplies(supplyRows);
-      setSchedules(scheduleRows.map(r => ({ id: r.id, dealName: r.deal_name, paymentType: r.payment_type, amount: Number(r.amount), dueDate: r.due_date, memo: r.memo||"", paid: r.paid||false, paidDate: r.paid_date||null, txId: r.tx_id||null })));
       const dbTrees = settingsRows?.[0]?.value;
       if(dbTrees){
         TREES=dbTrees; setTrees(dbTrees);
@@ -3502,27 +3239,6 @@ export default function App(){
 
   // session 확정 후에만 fetch (토큰 미세팅 상태로 호출하는 타이밍 버그 방지)
   useEffect(()=>{if(session)fetchAll();},[session]);
-
-  /* ── Schedule CRUD ── */
-  async function saveSchedule(s) {
-    const row = { id: s.id, deal_name: s.dealName, payment_type: s.paymentType, amount: s.amount, due_date: s.dueDate, memo: s.memo, paid: s.paid, paid_date: s.paidDate, tx_id: s.txId };
-    if (isConfigured()) {
-      const [saved] = await sb("payment_schedules", { method: "POST", body: JSON.stringify(row), prefer: "resolution=merge-duplicates,return=representation" });
-      const obj = { id: saved.id, dealName: saved.deal_name, paymentType: saved.payment_type, amount: Number(saved.amount), dueDate: saved.due_date, memo: saved.memo||"", paid: saved.paid||false, paidDate: saved.paid_date||null, txId: saved.tx_id||null };
-      setSchedules(prev => { const f = prev.filter(x => x.id !== obj.id); return [...f, obj].sort((a,b) => a.dueDate.localeCompare(b.dueDate)); });
-    } else {
-      setSchedules(prev => { const f = prev.filter(x => x.id !== s.id); return [...f, s].sort((a,b) => a.dueDate.localeCompare(b.dueDate)); });
-    }
-  }
-  async function deleteSchedule(id) {
-    if (isConfigured()) await sb(`payment_schedules?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" });
-    setSchedules(prev => prev.filter(x => x.id !== id));
-  }
-  async function paySchedule(item, paidDate) {
-    const tx = { id: Date.now(), entity: "realty", cat1: "취득비용", cat2: item.paymentType, cat3: item.dealName, amount: item.amount, memo: `${item.dealName} ${item.paymentType}`, date: paidDate, cardId: "", isFixed: false, type: "expense", images: [] };
-    await addTx(tx);
-    await saveSchedule({ ...item, paid: true, paidDate });
-  }
 
   /* ── TX CRUD ── */
   async function addTx(tx){
@@ -3793,14 +3509,6 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {entity==="realty"&&tab==="list"&&(
-              <RealtyScheduleSection
-                schedules={schedules}
-                onAdd={()=>{setEditSchedule(null);setModal("schedule");}}
-                onEdit={s=>{setEditSchedule(s);setModal("schedule");}}
-                onPay={s=>setPayItem(s)}
-              />
-            )}
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
 :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
@@ -3809,17 +3517,6 @@ export default function App(){
         }
       </div>
 
-      <Modal open={modal==="schedule"} onClose={()=>{setModal(null);setEditSchedule(null);}}>
-        <ScheduleForm
-          initial={editSchedule||undefined}
-          propertyTags={realtyTags}
-          onSave={async s=>{await saveSchedule(s);setModal(null);setEditSchedule(null);}}
-          onDelete={editSchedule?async()=>{await deleteSchedule(editSchedule.id);setModal(null);setEditSchedule(null);}:undefined}
-        />
-      </Modal>
-      <Modal open={!!payItem} onClose={()=>setPayItem(null)}>
-        {payItem&&<PayForm item={payItem} onConfirm={async d=>{await paySchedule(payItem,d);setPayItem(null);}}/>}
-      </Modal>
       <Modal open={modal==="add"} onClose={()=>{setModal(null);setEditTx(null);}}>
         <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>
       </Modal>

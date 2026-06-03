@@ -112,22 +112,6 @@ create table if not exists auction_snapshots (
 alter table auction_snapshots enable row level security;
 create policy "본인 데이터만" on auction_snapshots for all using (auth.uid() = user_id);
 
--- 부동산매매 납부 스케줄
-create table if not exists payment_schedules (
-  id           bigint primary key,
-  user_id      uuid references auth.users not null default auth.uid(),
-  deal_name    text not null,
-  payment_type text not null,
-  amount       bigint not null,
-  due_date     date not null,
-  memo         text default '',
-  paid         boolean default false,
-  paid_date    date,
-  tx_id        bigint
-);
-alter table payment_schedules enable row level security;
-create policy "본인 데이터만" on payment_schedules for all using (auth.uid() = user_id);
-
 -- 기본 카드 데이터
 insert into cards (id, name, color, sort_order) values
   ('c1', '삼성 iD 달달하린',           '#1a1410', 1),
