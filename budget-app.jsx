@@ -3374,38 +3374,40 @@ export default function App(){
                     :<><WifiOff size={10} color="#e07a5f"/><span style={{fontSize:"10px",color:"#e07a5f",fontFamily:"'Inter',sans-serif"}}>연결 오류</span></>
                 }
               </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
+              <div style={{display:"flex",gap:"5px"}}>
+                <button onClick={()=>setModal("theme")} title="테마 변경" style={{
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",
+                  cursor:"pointer",display:"flex",alignItems:"center",
+                  fontSize:"13px",lineHeight:1,flexShrink:0}}>
+                  {THEMES[themeKey].emoji}
+                </button>
+                <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
+                  fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
+                  CAT
+                </button>
+                <button onClick={()=>setModal("cards")} style={{
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
+                  <CreditCard size={14}/>
+                </button>
+                <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
+                  fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
+                  자산
+                </button>
+              </div>
               <button onClick={handleLogout} title="로그아웃" style={{
-                marginTop:"6px",background:"none",border:"none",padding:0,
+                background:"none",border:"none",padding:0,
                 color:"rgba(255,255,255,0.25)",cursor:"pointer",
                 fontSize:"9px",fontWeight:600,fontFamily:"'Inter',sans-serif",
-                letterSpacing:"0.08em",textAlign:"left"}}>
+                letterSpacing:"0.08em"}}>
                 LOG OUT
-              </button>
-            </div>
-            <div style={{display:"flex",gap:"5px",flexShrink:0}}>
-              <button onClick={()=>setModal("theme")} title="테마 변경" style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",
-                cursor:"pointer",display:"flex",alignItems:"center",
-                fontSize:"13px",lineHeight:1,flexShrink:0}}>
-                {THEMES[themeKey].emoji}
-              </button>
-              <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
-                CAT
-              </button>
-              <button onClick={()=>setModal("cards")} style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
-                <CreditCard size={14}/>
-              </button>
-              <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
-                자산
               </button>
             </div>
           </div>
