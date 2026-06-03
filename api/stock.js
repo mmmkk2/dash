@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           if (naverData?.stockName) name = naverData.stockName;
         }
 
-        const previousClose = meta.previousClose ?? null;
+        const previousClose = meta.chartPreviousClose ?? meta.previousClose ?? null;
         res.status(200).json({ price, name, previousClose });
         return;
       }
