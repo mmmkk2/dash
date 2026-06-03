@@ -1555,6 +1555,9 @@ export default function AssetsApp() {
         const savedPrices = {};
         loaded.forEach(s => { if (s.currentPrice != null) savedPrices[s.id] = s.currentPrice; });
         setPrices(savedPrices);
+        // 가장 최근 시세 저장 시각을 lastSync로 표시
+        const latestFetched = loaded.map(s => s.lastFetched).filter(Boolean).sort().at(-1);
+        if (latestFetched) setLastSync(new Date(latestFetched).toLocaleString("ko-KR"));
         // 종목명이 티커와 같거나 오염된 형태면 백그라운드에서 실명으로 자동 갱신
         const isBadName = s => s.name === s.ticker || s.name.includes(',') || /^\d{5,6}\.(KS|KQ)/i.test(s.name);
         loaded.filter(isBadName).forEach(async s => {
