@@ -3398,7 +3398,7 @@ export default function App(){
                 <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
                   background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
                   borderRadius:"10px",padding:"7px 12px",color:"rgba(255,255,255,0.75)",cursor:"pointer",
-                  fontSize:"12px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
+                  fontSize:"12px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>
                   자산
                 </button>
               </div>
