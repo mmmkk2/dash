@@ -46,21 +46,26 @@ const C = {
 const F = "'Inter',sans-serif";
 
 /* ── Stock price fetch (via server proxy to avoid CORS) ── */
-async function fetchStockPrice(ticker, market) {
+async function fetchStockData(ticker, market) {
   if (market === "KR") {
     for (const suffix of [".KS", ".KQ"]) {
       const res = await fetch(`/api/stock?symbol=${encodeURIComponent(ticker + suffix)}`);
       if (!res.ok) continue;
-      const { price } = await res.json();
-      if (price != null) return price;
+      const data = await res.json();
+      if (data.price != null) return data;
     }
     throw new Error("no price");
   }
   const res = await fetch(`/api/stock?symbol=${encodeURIComponent(ticker.toUpperCase())}`);
   if (!res.ok) throw new Error("fetch failed");
-  const { price } = await res.json();
-  if (price == null) throw new Error("no price");
-  return price;
+  const data = await res.json();
+  if (data.price == null) throw new Error("no price");
+  return data;
+}
+
+async function fetchStockPrice(ticker, market) {
+  const data = await fetchStockData(ticker, market);
+  return data.price;
 }
 
 async function fetchUSDKRW() {
@@ -1507,7 +1512,8 @@ export default function AssetsApp() {
   const [stocks,   setStocks]   = useState([]);
   const [cats,     setCats]     = useState(DEFAULT_CATS);
   const [usdKrw,   setUsdKrw]   = useState(null);
-  const [prices,   setPrices]   = useState({});
+  const [prices,     setPrices]     = useState({});
+  const [prevPrices, setPrevPrices] = useState({});
   const [fetching, setFetching] = useState(false);
   const [fetchErr, setFetchErr] = useState(0);
   const [lastSync, setLastSync] = useState(null);
@@ -1589,15 +1595,18 @@ export default function AssetsApp() {
       if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "usdKrw", value: rate }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
     } catch {}
 
+    const newPrevPrices = {};
     const results = await Promise.allSettled(
       stocks.map(async s => {
-        const p = await fetchStockPrice(s.ticker, s.market);
-        if (p) newPrices[s.id] = p;
+        const data = await fetchStockData(s.ticker, s.market);
+        if (data.price) newPrices[s.id] = data.price;
+        if (data.previousClose) newPrevPrices[s.id] = data.previousClose;
       })
     );
     const errCount = results.filter(r => r.status === "rejected").length;
     setFetchErr(errCount);
     setPrices(prev => ({ ...prev, ...newPrices }));
+    setPrevPrices(prev => ({ ...prev, ...newPrevPrices }));
     setStocks(prev => prev.map(s => newPrices[s.id] != null ? { ...s, currentPrice: newPrices[s.id], lastFetched: new Date().toISOString() } : s));
     if (isConfigured()) {
       const ts = new Date().toISOString();
@@ -1637,6 +1646,19 @@ export default function AssetsApp() {
 
   const stockGain = stockValue - stockCost;
   const stockGainPct = stockCost > 0 ? ((stockGain / stockCost) * 100).toFixed(2) : "0.00";
+
+  const dailyGain = useMemo(() =>
+    stocks.filter(s => s.accountSuffix !== DC_ETF_MARKER).reduce((sum, s) => {
+      const cur = prices[s.id] ?? s.currentPrice;
+      const prev = prevPrices[s.id];
+      if (cur == null || prev == null) return sum;
+      const diff = (cur - prev) * s.shares;
+      return sum + (s.market === "US" ? Math.round(diff * rate) : diff);
+    }, 0), [stocks, prices, prevPrices, rate]);
+
+  const hasDailyData = useMemo(() =>
+    stocks.some(s => s.accountSuffix !== DC_ETF_MARKER && prevPrices[s.id] != null),
+    [stocks, prevPrices]);
 
   const depositTotal = useMemo(() => assets.filter(a => a.cat === "예수금").reduce((s, a) => s + a.amount, 0), [assets]);
 
@@ -1914,6 +1936,17 @@ export default function AssetsApp() {
                     </div>
                   ))}
                 </div>
+                {hasDailyData && (
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.45)", letterSpacing: "0.05em" }}>전일비</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: dailyGain >= 0 ? "#6ee7b7" : "#fca5a5", fontVariantNumeric: "tabular-nums" }}>
+                      {dailyGain >= 0 ? "+" : ""}{fmtS(dailyGain)}
+                    </span>
+                    {dailyGain >= 0
+                      ? <TrendingUp size={13} color="#6ee7b7" />
+                      : <TrendingDown size={13} color="#fca5a5" />}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1996,6 +2029,13 @@ export default function AssetsApp() {
                               const isPos    = gainKrw != null && gainKrw >= 0;
                               const isOpen   = expanded === s.id;
                               const isLast   = si === acctStocks.length - 1;
+                              const prevP    = prevPrices[s.id];
+                              const dayDiffKrw = (p != null && prevP != null)
+                                ? (s.market === "US" ? Math.round((p - prevP) * s.shares * rate) : (p - prevP) * s.shares)
+                                : null;
+                              const dayDiffPct = (p != null && prevP != null && prevP !== 0)
+                                ? (((p - prevP) / prevP) * 100).toFixed(2)
+                                : null;
 
                               return (
                                 <div key={s.id} style={{ borderBottom: isLast && !isOpen ? "none" : `1px solid ${C.border}` }}>
@@ -2016,7 +2056,13 @@ export default function AssetsApp() {
                                       <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
                                         {valueKrw != null ? fmtS(valueKrw) : "—"}
                                       </div>
-                                      {gainPct != null && (
+                                      {dayDiffKrw != null ? (
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: dayDiffKrw >= 0 ? "#2d6a4f" : "#b5451b", display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                                          {dayDiffKrw >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                          {dayDiffKrw >= 0 ? "+" : ""}{fmtS(dayDiffKrw)}
+                                          {dayDiffPct != null && <span style={{ fontSize: 10, opacity: 0.7 }}>({dayDiffKrw >= 0 ? "+" : ""}{dayDiffPct}%)</span>}
+                                        </div>
+                                      ) : gainPct != null && (
                                         <div style={{ fontSize: 11, fontWeight: 600, color: isPos ? "#2d6a4f" : "#b5451b", display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
                                           {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                                           {isPos ? "+" : ""}{gainPct}%
