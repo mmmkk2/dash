@@ -3400,17 +3400,11 @@ export default function App(){
                 fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
                 자산
               </button>
-              <button onClick={handleLogout} title="로그아웃" style={{
-                background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.5)",cursor:"pointer",
-                fontSize:"11px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
-                OUT
-              </button>
             </div>
           </div>
 
           {/* Entity tabs */}
-          <div style={{display:"flex",gap:"5px",marginBottom:"18px"}}>
+          <div style={{display:"flex",gap:"5px",marginBottom:"18px",alignItems:"stretch"}}>
             {ENTITY_KEYS.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
@@ -3424,6 +3418,12 @@ export default function App(){
                 </button>
               );
             })}
+            <button onClick={handleLogout} title="로그아웃" style={{
+              background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",
+              borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.35)",cursor:"pointer",
+              fontSize:"10px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
+              OUT
+            </button>
           </div>
 
           {/* Month/Year nav */}
