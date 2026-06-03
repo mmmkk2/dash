@@ -3374,6 +3374,13 @@ export default function App(){
                     :<><WifiOff size={10} color="#e07a5f"/><span style={{fontSize:"10px",color:"#e07a5f",fontFamily:"'Inter',sans-serif"}}>연결 오류</span></>
                 }
               </div>
+              <button onClick={handleLogout} title="로그아웃" style={{
+                marginTop:"6px",background:"none",border:"none",padding:0,
+                color:"rgba(255,255,255,0.25)",cursor:"pointer",
+                fontSize:"9px",fontWeight:600,fontFamily:"'Inter',sans-serif",
+                letterSpacing:"0.08em",textAlign:"left"}}>
+                LOG OUT
+              </button>
             </div>
             <div style={{display:"flex",gap:"5px",flexShrink:0}}>
               <button onClick={()=>setModal("theme")} title="테마 변경" style={{
@@ -3404,7 +3411,7 @@ export default function App(){
           </div>
 
           {/* Entity tabs */}
-          <div style={{display:"flex",gap:"5px",marginBottom:"18px",alignItems:"stretch"}}>
+          <div style={{display:"flex",gap:"5px",marginBottom:"18px"}}>
             {ENTITY_KEYS.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
@@ -3418,12 +3425,6 @@ export default function App(){
                 </button>
               );
             })}
-            <button onClick={handleLogout} title="로그아웃" style={{
-              background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",
-              borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.35)",cursor:"pointer",
-              fontSize:"10px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
-              OUT
-            </button>
           </div>
 
           {/* Month/Year nav */}
