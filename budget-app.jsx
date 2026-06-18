@@ -3548,9 +3548,11 @@ export default function App(){
               {label:"잔액",val:bal,color:bal>=0?"#1d4e89":"#831843",sign:bal>=0?"+":""},
             ].map((item,i)=>item===null
               ?<div key={i} style={{background:C.border,height:"32px",width:"1px"}}/>
-              :<div key={i} style={{textAlign:"center"}}>
+              :<div key={i} style={{textAlign:"center",minWidth:0}}>
                 <div style={{fontSize:"9px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"5px",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:"16px",color:item.color,letterSpacing:"-0.3px"}}>{item.sign}{fmtS(item.val)}</div>
+                <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color:item.color,letterSpacing:"-0.3px",whiteSpace:"nowrap",overflow:"hidden"}}>
+                  {item.sign}{item.val.toLocaleString("ko-KR")}<span style={{fontSize:"10px",marginLeft:"1px"}}>원</span>
+                </div>
               </div>
             )}
           </div>
