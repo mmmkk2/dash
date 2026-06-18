@@ -414,17 +414,21 @@ import { useState, useEffect, useRef } from "react";
                         onBlur={()=>setEditingPropName(null)}
                         onKeyDown={e=>e.key==="Enter"&&setEditingPropName(null)}
                         style={{...inp,width:100,fontWeight:700,fontSize:13,padding:"5px 9px",borderRadius:9,background:C.text,color:"#fff",border:"none"}} />
-                    : <button onClick={()=>{setActiveId(p.id);persist(props,p.id);}}
-                        style={{padding:"7px 13px",borderRadius:9,border:"1px solid",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
+                    : <div style={{display:"flex",alignItems:"center",borderRadius:9,border:"1px solid",overflow:"hidden",flexShrink:0,
                           background:curId===p.id?C.text:C.surface,
-                          color:curId===p.id?"#fff":C.muted,
                           borderColor:curId===p.id?C.text:C.border}}>
-                        {p.name}
-                      </button>
+                        <button onClick={()=>{setActiveId(p.id);persist(props,p.id);}}
+                          style={{padding:"7px 13px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
+                            background:"transparent",
+                            color:curId===p.id?"#fff":C.muted}}>
+                          {p.name}
+                        </button>
+                        {curId===p.id && (
+                          <button onClick={()=>setEditingPropName(p.id)}
+                            style={{border:"none",borderLeft:`1px solid rgba(255,255,255,0.2)`,background:"transparent",color:"rgba(255,255,255,0.6)",cursor:"pointer",fontSize:11,padding:"0 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>✏️</button>
+                        )}
+                      </div>
                   }
-                  {curId===p.id && !editingPropName && (
-                    <button onClick={()=>setEditingPropName(p.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:"0 2px"}}>✏️</button>
-                  )}
                   {props.length>1 && curId===p.id && (
                     <button onClick={()=>deleteProperty(p.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15,padding:"0 2px"}}>×</button>
                   )}
