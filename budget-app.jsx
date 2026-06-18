@@ -2681,6 +2681,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
   const [expandedId, setExpandedId] = useState(null);
   const [editingTx, setEditingTx] = useState(null);
   const [buyingTx, setBuyingTx] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const daysDiff = (dateStr) => Math.round((today - new Date(dateStr)) / 86400000);
 
