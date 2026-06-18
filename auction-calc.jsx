@@ -254,6 +254,19 @@ import { useState, useEffect, useRef } from "react";
       const [snapSaved, setSnapSaved] = useState(false);
       const saveTimer = useRef(null);
 
+      const [visitCount] = useState(() => {
+        try {
+          const prev = parseInt(localStorage.getItem("auction-visits")||"0",10);
+          if (!sessionStorage.getItem("auction-visited")) {
+            const next = prev + 1;
+            localStorage.setItem("auction-visits", String(next));
+            sessionStorage.setItem("auction-visited", "1");
+            return next;
+          }
+          return prev;
+        } catch { return 0; }
+      });
+
       const activeProp = props.find(p => p.id === activeId) || props[0];
       const curId = activeId || props[0].id;
       const { loans, profit } = activeProp;
@@ -384,6 +397,7 @@ import { useState, useEffect, useRef } from "react";
               <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>매매사업자용</div>
               <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>매매사업자 계산기</div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준 · 장기보유특별공제 미적용</div>
+              <div style={{fontSize:10,color:C.muted,marginTop:4}}>방문자 {visitCount.toLocaleString("ko-KR")}명</div>
             </div>
             <div style={{flexShrink:0,marginTop:4}} />
           </div>
