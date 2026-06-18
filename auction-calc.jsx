@@ -27,29 +27,51 @@ import { useState, useEffect, useRef } from "react";
     function fmtComma(n) { if(!n&&n!==0) return ""; return Math.round(Number(n)).toLocaleString("ko-KR"); }
 
     function NumInput({value, onChange, placeholder, style, autoFocus, onCommit, onCancel}) {
-      const [focused, setFocused] = useState(false);
-      const [raw, setRaw] = useState(String(value||""));
+      const inputRef = useRef(null);
+      const focusedRef = useRef(false);
+      const [displayVal, setDisplayVal] = useState(value ? fmtComma(value) : "");
 
       useEffect(() => {
-        if (!focused) setRaw(String(value||""));
-      }, [value, focused]);
+        if (!focusedRef.current) setDisplayVal(value ? fmtComma(value) : "");
+      }, [value]);
+
+      function handleChange(e) {
+        const input = e.target;
+        const selEnd = input.selectionEnd;
+        const prevVal = input.value;
+        const digitsBeforeCursor = prevVal.slice(0, selEnd).replace(/[^0-9]/g,"").length;
+        const digits = e.target.value.replace(/[^0-9]/g,"");
+        const newFormatted = digits ? fmtComma(parseNum(digits)) : "";
+        setDisplayVal(newFormatted);
+        onChange(parseNum(digits));
+        requestAnimationFrame(() => {
+          if (!inputRef.current) return;
+          let count = 0, pos = newFormatted.length;
+          for (let i = 0; i < newFormatted.length; i++) {
+            if (/[0-9]/.test(newFormatted[i])) count++;
+            if (count === digitsBeforeCursor) { pos = i + 1; break; }
+          }
+          inputRef.current.setSelectionRange(pos, pos);
+        });
+      }
 
       return (
         <input
+          ref={inputRef}
           inputMode="numeric"
           autoFocus={autoFocus}
-          value={focused ? (raw ? fmtComma(parseNum(raw)) : "") : (value ? fmtComma(value) : "")}
+          value={displayVal}
           placeholder={placeholder||"0"}
-          onFocus={()=>{ setFocused(true); setRaw(value?String(value):""); }}
+          onFocus={()=>{ focusedRef.current=true; setDisplayVal(value ? fmtComma(value) : ""); }}
           onBlur={()=>{
-            setFocused(false);
-            const v = parseNum(raw);
+            focusedRef.current=false;
+            const v = parseNum(displayVal);
             onChange(v);
             if (onCommit) onCommit(v);
           }}
-          onChange={e=>{ const v=e.target.value.replace(/[^0-9]/g,""); setRaw(v); onChange(parseNum(v)); }}
+          onChange={handleChange}
           onKeyDown={e=>{
-            if(e.key==="Enter"){ const v=parseNum(raw); onChange(v); if(onCommit) onCommit(v); e.target.blur(); }
+            if(e.key==="Enter"){ const v=parseNum(displayVal); onChange(v); if(onCommit) onCommit(v); e.target.blur(); }
             if(e.key==="Escape"){ if(onCancel) onCancel(); else e.target.blur(); }
           }}
           style={style}
