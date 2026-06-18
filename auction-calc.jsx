@@ -712,20 +712,27 @@ import { useState, useEffect, useRef } from "react";
                   <button onClick={()=>updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,p.bidPrice+10000000]}))}
                     style={{border:`1px dashed ${C.border}`,background:"none",borderRadius:7,padding:"4px 11px",fontSize:11,cursor:"pointer",color:C.muted,fontFamily:"inherit"}}>+ 추가</button>
                 </div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {profit.sellScenarios.map((price,i)=>(
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:C.surface2,borderRadius:9,padding:"6px 11px",border:`1px solid ${C.border}`}}>
-                      {editingScenario===i
-                        ? <NumInput value={price}
-                            onChange={v=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.map((sv,j)=>j===i?v:sv)}))}
-                            style={{border:"none",background:"transparent",fontSize:13,width:100,outline:"none",fontFamily:"inherit",color:C.text}} />
-                        : <span style={{fontSize:13,cursor:"pointer",fontWeight:700}} onClick={()=>setEditingScenario(i)}>{fmtComma(price)}원</span>
-                      }
-                      <button onClick={()=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.filter((_,j)=>j!==i)}))}
-                        style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0}}>×</button>
+                {profit.sellScenarios.length === 0
+                  ? <button onClick={()=>updateProfit(p=>({...p,sellScenarios:[p.bidPrice+10000000]}))}
+                      style={{width:"100%",padding:"14px 0",borderRadius:10,border:`1.5px dashed ${C.accent}60`,background:C.accentBg,cursor:"pointer",fontFamily:"inherit",color:C.accent}}>
+                      <div style={{fontSize:13,fontWeight:700,marginBottom:3}}>+ 매도 예상가 추가</div>
+                      <div style={{fontSize:10,color:C.sub}}>탭하면 낙찰가 +1천만원으로 시작해요</div>
+                    </button>
+                  : <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {profit.sellScenarios.map((price,i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:C.surface2,borderRadius:9,padding:"6px 11px",border:`1px solid ${C.border}`}}>
+                          {editingScenario===i
+                            ? <NumInput value={price}
+                                onChange={v=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.map((sv,j)=>j===i?v:sv)}))}
+                                style={{border:"none",background:"transparent",fontSize:13,width:100,outline:"none",fontFamily:"inherit",color:C.text}} />
+                            : <span style={{fontSize:13,cursor:"pointer",fontWeight:700}} onClick={()=>setEditingScenario(i)}>{fmtComma(price)}원</span>
+                          }
+                          <button onClick={()=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.filter((_,j)=>j!==i)}))}
+                            style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0}}>×</button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                }
               </div>
 
               {/* 종합소득세 설정 */}
