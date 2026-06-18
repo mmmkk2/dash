@@ -164,6 +164,18 @@ import { useState, useEffect, useRef } from "react";
         },
       };
     }
+    function blankProperty(name) {
+      return {
+        id:uid(), name:name||"새 물건",
+        loans:[newLoan("상품A")],
+        profit:{
+          bidPrice:0, propType:"주택1", acquisitionTax:1.1, legalFee:0,
+          interior:0, agentFeeRate:0, loanId:null,
+          holdMonths:0, sellScenarios:[],
+          extraCosts:[], evictionCost:0, mgmtCost:0, otherCost:0,
+        },
+      };
+    }
     function defaultExamples() {
       const lid1 = uid(); const lid2 = uid(); const lid3 = uid(); const lid4 = uid();
       return [
@@ -403,7 +415,7 @@ import { useState, useEffect, useRef } from "react";
               ))}
               <button onClick={addProperty} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.muted,fontFamily:"inherit",flexShrink:0}}>+ 추가</button>
               <button onClick={()=>{ if(window.confirm("예시 데이터로 초기화할까요?\n현재 데이터는 삭제됩니다.")) { const ex=defaultExamples(); setProps(ex); setActiveId(null); saveStorage(ex, null); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.muted,fontFamily:"inherit",flexShrink:0}}>예시 보기</button>
-              <button onClick={()=>{ if(window.confirm("물건을 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.")) { const np=newProperty("새 물건 1"); setProps([np]); setActiveId(np.id); saveStorage([np], np.id); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.red,fontFamily:"inherit",flexShrink:0}}>모두 삭제</button>
+              <button onClick={()=>{ if(window.confirm("물건을 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.")) { const np=blankProperty("새 물건 1"); setProps([np]); setActiveId(np.id); saveStorage([np], np.id); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.red,fontFamily:"inherit",flexShrink:0}}>모두 삭제</button>
               <div style={{display:"flex",alignItems:"center",marginLeft:4}}>
                 {saveStatus==="saving" && <span style={{fontSize:10,color:C.muted}}>저장중</span>}
                 {saveStatus==="saved"  && <span style={{fontSize:13,color:C.green}}>✓</span>}
