@@ -1636,6 +1636,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
       return `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     })();
     const isReg = registering.has(tx.memo);
+    const [editAmount, setEditAmount] = useState(null);
     const borderColor = isToday?"#b5451b":isPast?"#e07a5f":C.border;
     const bgColor = isToday?"#fff8f0":isPast?"#fffaf8":C.white;
     return(
@@ -1690,13 +1691,45 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
           )}
         </div>
         {isScheduled?(
-          <button onClick={()=>handleRegister(tx,regDate)} disabled={isReg}
-            style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
-              padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
-              flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
-              opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
-            {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
-          </button>
+          editAmount!==null?(
+            <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",border:"1.5px solid #f4c5b2",
+                borderRadius:"8px",padding:"3px 8px",background:"#fff"}}>
+                <input type="text" inputMode="numeric" autoFocus value={editAmount}
+                  onChange={e=>{const raw=e.target.value.replace(/[^0-9]/g,"");setEditAmount(raw?Number(raw).toLocaleString("ko-KR"):raw);}}
+                  onKeyDown={e=>{
+                    if(e.key==="Enter"){const num=parseInt(String(editAmount).replace(/,/g,""));if(num>0){handleRegister({...tx,amount:num},regDate);setEditAmount(null);}}
+                    if(e.key==="Escape")setEditAmount(null);
+                  }}
+                  style={{width:"80px",border:"none",background:"transparent",fontSize:"13px",
+                    fontWeight:700,color:"#b5451b",outline:"none",textAlign:"right",
+                    fontFamily:"'Inter',sans-serif"}}/>
+                <span style={{fontSize:"11px",color:"#b5451b",marginLeft:"2px"}}>원</span>
+              </div>
+              <button onClick={()=>{
+                const num=parseInt(String(editAmount).replace(/,/g,""));
+                if(!num||num<=0) return;
+                handleRegister({...tx,amount:num},regDate);
+                setEditAmount(null);
+              }} disabled={isReg} style={{background:"#b5451b",border:"none",borderRadius:"8px",
+                padding:"5px 8px",cursor:"pointer",color:"#fff",display:"flex",alignItems:"center"}}>
+                <Check size={12}/>
+              </button>
+              <button onClick={()=>setEditAmount(null)} style={{background:"none",
+                border:`1px solid ${C.border}`,borderRadius:"8px",padding:"5px 6px",
+                cursor:"pointer",color:C.inkLight,display:"flex"}}>
+                <X size={11}/>
+              </button>
+            </div>
+          ):(
+            <button onClick={()=>setEditAmount(tx.amount.toLocaleString("ko-KR"))} disabled={isReg}
+              style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
+                padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
+                flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
+                opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
+              {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
+            </button>
+          )
         ):(
           <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
             <button onClick={()=>onEdit(tx)} style={{background:"none",border:"none",cursor:"pointer",
@@ -2806,6 +2839,16 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     setModal(s);
   }
 
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if(!q) return sorted;
+    return sorted.filter(s =>
+      (s.name||"").toLowerCase().includes(q) ||
+      (s.category||"").toLowerCase().includes(q) ||
+      (s.memo||"").toLowerCase().includes(q)
+    );
+  }, [sorted, searchQuery]);
+
   const needAction = sorted.filter(s => { const d=daysUntil(s); return d!==null && d<=3; });
 
   const FormContent = ({ isEdit }) => (
@@ -2902,6 +2945,29 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
         </button>
       </div>
 
+      {/* 검색 */}
+      <div style={{position:"relative"}}>
+        <input
+          value={searchQuery}
+          onChange={e=>setSearchQuery(e.target.value)}
+          placeholder="소모품 검색..."
+          style={{width:"100%",border:`1.5px solid ${C.border}`,borderRadius:"10px",
+            padding:"9px 13px 9px 34px",fontSize:"13px",color:C.ink,outline:"none",
+            background:C.white,boxSizing:"border-box",fontFamily:"'Inter',sans-serif"}}
+        />
+        <span style={{position:"absolute",left:"11px",top:"50%",transform:"translateY(-50%)",
+          color:C.inkLight,pointerEvents:"none",display:"flex",alignItems:"center"}}>
+          🔍
+        </span>
+        {searchQuery&&(
+          <button onClick={()=>setSearchQuery("")} style={{position:"absolute",right:"10px",top:"50%",
+            transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",
+            color:C.inkLight,padding:"2px",display:"flex",alignItems:"center"}}>
+            <X size={14}/>
+          </button>
+        )}
+      </div>
+
       {/* 알림 배너 */}
       {needAction.length>0&&(
         <div style={{background:"#fff8f0",borderRadius:"14px",padding:"14px 16px",
@@ -2928,7 +2994,13 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
           <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>소모품이 없어요</div>
           <div style={{fontSize:"12px",color:C.inkLight}}>추가 버튼으로 소모품을 등록해보세요</div>
         </div>
-        :sorted.map(s=>{
+        :filtered.length===0
+          ?<div style={{textAlign:"center",padding:"40px 20px",background:C.white,
+              borderRadius:"20px",border:`1px solid ${C.border}`}}>
+            <div style={{fontSize:"28px",marginBottom:"10px",opacity:0.3}}>🔍</div>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color:C.inkMid}}>&quot;{searchQuery}&quot; 검색 결과 없음</div>
+          </div>
+        :filtered.map(s=>{
           const st = getStatus(s);
           const cyc = effectiveCycle(s);
           const lastB = effectiveLastBought(s);
