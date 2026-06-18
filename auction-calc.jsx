@@ -643,8 +643,8 @@ import { useState, useEffect, useRef } from "react";
               <div style={{background:"#fff8e8",border:"1.5px solid #e8c84a",borderRadius:10,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"flex-start",gap:9}}>
                 <span style={{fontSize:17,lineHeight:1,flexShrink:0,marginTop:1}}>⚠️</span>
                 <div>
-                  <div style={{fontSize:12,fontWeight:700,color:"#7a5800",marginBottom:2}}>세율은 개인마다 다릅니다 — 반드시 세무사와 상담하세요</div>
-                  <div style={{fontSize:11,color:"#9a7200",lineHeight:1.5}}>이 계산기는 간이 추정치입니다. 타소득 합산 여부, 공제 항목에 따라 실제 세금이 크게 달라질 수 있습니다.</div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#7a5800",marginBottom:2}}>본 계산 결과는 참고용 간이 추정치이며 실제 세금 및 수익과 차이가 있을 수 있습니다.</div>
+                  <div style={{fontSize:11,color:"#9a7200",lineHeight:1.5}}>세율, 공제 항목, 타 소득 합산 여부 등 개인별 상황에 따라 결과가 달라질 수 있으므로 정확한 내용은 세무 전문가와 상담하시기 바랍니다.</div>
                 </div>
               </div>
               {/* 기본 정보 */}
