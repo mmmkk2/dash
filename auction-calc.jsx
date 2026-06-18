@@ -471,7 +471,7 @@ import { useState, useEffect, useRef } from "react";
                         </button>
                         {curId===p.id && (
                           <button onClick={()=>setEditingPropName(p.id)}
-                            style={{border:"none",borderLeft:`1px solid rgba(255,255,255,0.2)`,background:"transparent",color:"rgba(255,255,255,0.6)",cursor:"pointer",fontSize:9,padding:"0 7px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>✎</button>
+                            style={{border:"none",borderLeft:`1px solid rgba(255,255,255,0.2)`,background:"transparent",color:"rgba(255,255,255,0.6)",cursor:"pointer",fontSize:9,padding:"0 7px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>✏️</button>
                         )}
                       </div>
                   }
@@ -520,7 +520,7 @@ import { useState, useEffect, useRef } from "react";
                         <div style={{display:"flex",gap:6}}>
                           <button onClick={()=>{if(isEdit)normalizeTiers(loan.id);setEditing(isEdit?null:loan.id);}}
                             style={{border:"none",background:"none",color:isEdit?C.green:C.muted,cursor:"pointer",fontSize:14}}>
-                            {isEdit?"✓":"✏"}
+                            {isEdit?"✓":"✏️"}
                           </button>
                           {loans.length>1 && <button onClick={()=>deleteLoan(loan.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:16,padding:"0 2px"}}>×</button>}
                         </div>
@@ -1007,7 +1007,7 @@ import { useState, useEffect, useRef } from "react";
                         </div>
                       </div>
                       <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button onClick={()=>setEditingSnapName(snap.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13}}>✏</button>
+                        <button onClick={()=>setEditingSnapName(snap.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13}}>✏️</button>
                         <button onClick={()=>deleteSnap(snap.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15}}>×</button>
                       </div>
                     </div>
