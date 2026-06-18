@@ -26,7 +26,7 @@ import { useState, useEffect, useRef } from "react";
     function parseNum(s) { return Number(String(s).replace(/[^0-9.-]/g,""))||0; }
     function fmtComma(n) { if(!n&&n!==0) return ""; return Math.round(Number(n)).toLocaleString("ko-KR"); }
 
-    function NumInput({value, onChange, placeholder, style}) {
+    function NumInput({value, onChange, placeholder, style, autoFocus, onCommit, onCancel}) {
       const [focused, setFocused] = useState(false);
       const [raw, setRaw] = useState(String(value||""));
 
@@ -37,11 +37,21 @@ import { useState, useEffect, useRef } from "react";
       return (
         <input
           inputMode="numeric"
-          value={focused ? raw : (value ? fmtComma(value) : "")}
+          autoFocus={autoFocus}
+          value={focused ? (raw ? fmtComma(parseNum(raw)) : "") : (value ? fmtComma(value) : "")}
           placeholder={placeholder||"0"}
           onFocus={()=>{ setFocused(true); setRaw(value?String(value):""); }}
-          onBlur={()=>{ setFocused(false); onChange(parseNum(raw)); }}
+          onBlur={()=>{
+            setFocused(false);
+            const v = parseNum(raw);
+            onChange(v);
+            if (onCommit) onCommit(v);
+          }}
           onChange={e=>{ const v=e.target.value.replace(/[^0-9]/g,""); setRaw(v); onChange(parseNum(v)); }}
+          onKeyDown={e=>{
+            if(e.key==="Enter"){ const v=parseNum(raw); onChange(v); if(onCommit) onCommit(v); e.target.blur(); }
+            if(e.key==="Escape"){ if(onCancel) onCancel(); else e.target.blur(); }
+          }}
           style={style}
         />
       );
@@ -738,21 +748,16 @@ import { useState, useEffect, useRef } from "react";
                       ))}
                       {addingScenario && (
                         <div style={{display:"flex",alignItems:"center",gap:4,background:C.surface2,borderRadius:9,padding:"6px 11px",border:`1.5px solid ${C.accent}60`}}>
-                          <input
-                            autoFocus
-                            inputMode="numeric"
-                            placeholder="매도가 입력"
+                          <NumInput
                             value={newScenarioVal}
-                            onChange={e=>setNewScenarioVal(e.target.value.replace(/[^0-9]/g,""))}
-                            onBlur={()=>{
-                              const v=parseNum(newScenarioVal);
+                            onChange={v=>setNewScenarioVal(v)}
+                            placeholder="매도가 입력"
+                            autoFocus
+                            onCommit={v=>{
                               if(v>0) updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,v]}));
                               setAddingScenario(false); setNewScenarioVal("");
                             }}
-                            onKeyDown={e=>{
-                              if(e.key==="Enter"){const v=parseNum(newScenarioVal);if(v>0)updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,v]}));setAddingScenario(false);setNewScenarioVal("");}
-                              if(e.key==="Escape"){setAddingScenario(false);setNewScenarioVal("");}
-                            }}
+                            onCancel={()=>{setAddingScenario(false);setNewScenarioVal("");}}
                             style={{border:"none",background:"transparent",fontSize:13,width:110,outline:"none",fontFamily:"inherit",color:C.text}}
                           />
                         </div>
