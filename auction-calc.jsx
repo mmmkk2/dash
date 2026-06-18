@@ -104,10 +104,14 @@ import { useState, useEffect, useRef } from "react";
     function uid() { return Math.random().toString(36).slice(2,8); }
     const PROVINCES = ["경기","강원","충북","충남","전북","전남","경북","경남","제주"];
     function shortTabName(name) {
-      const clean = name.replace(/\s*\(.*?\)\s*/g, "").trim();
+      const suffixMatch = name.match(/\s*(\(.*?\))\s*$/);
+      const suffix = suffixMatch ? suffixMatch[1] : "";
+      const clean = name.replace(/\s*\(.*?\)\s*$/, "").trim();
       const parts = clean.split(/\s+/);
-      if (parts.length >= 2 && PROVINCES.some(p => parts[0] === p)) return parts.slice(1).join("");
-      return parts.join("");
+      const short = (parts.length >= 2 && PROVINCES.some(p => parts[0] === p))
+        ? parts.slice(1).join("")
+        : parts.join("");
+      return suffix ? `${short}${suffix}` : short;
     }
     function fmt(n) {
       const abs = Math.abs(n), sign = n < 0 ? "-" : "";
