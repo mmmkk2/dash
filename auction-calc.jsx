@@ -396,8 +396,7 @@ import { useState, useEffect, useRef } from "react";
             <div>
               <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>매매사업자용</div>
               <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>매매사업자 계산기</div>
-              <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준 · 장기보유특별공제 미적용</div>
-              <div style={{fontSize:10,color:C.muted,marginTop:4}}>방문자 {visitCount.toLocaleString("ko-KR")}명</div>
+              <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준</div>
             </div>
             <div style={{flexShrink:0,marginTop:4}} />
           </div>
@@ -414,7 +413,6 @@ import { useState, useEffect, useRef } from "react";
                         onKeyDown={e=>e.key==="Enter"&&setEditingPropName(null)}
                         style={{...inp,width:100,fontWeight:700,fontSize:13,padding:"5px 9px",borderRadius:9,background:C.text,color:"#fff",border:"none"}} />
                     : <button onClick={()=>{setActiveId(p.id);persist(props,p.id);}}
-                        onDoubleClick={()=>setEditingPropName(p.id)}
                         style={{padding:"7px 13px",borderRadius:9,border:"1px solid",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
                           background:curId===p.id?C.text:C.surface,
                           color:curId===p.id?"#fff":C.muted,
@@ -422,6 +420,9 @@ import { useState, useEffect, useRef } from "react";
                         {p.name}
                       </button>
                   }
+                  {curId===p.id && !editingPropName && (
+                    <button onClick={()=>setEditingPropName(p.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:"0 2px"}}>✏️</button>
+                  )}
                   {props.length>1 && curId===p.id && (
                     <button onClick={()=>deleteProperty(p.id)} style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15,padding:"0 2px"}}>×</button>
                   )}
@@ -435,7 +436,6 @@ import { useState, useEffect, useRef } from "react";
                 {saveStatus==="saved"  && <span style={{fontSize:13,color:C.green}}>✓</span>}
               </div>
             </div>
-            <div style={{fontSize:9,color:C.muted,marginTop:3}}>이름 변경: 길게 탭</div>
           </div>
 
           {/* 메인 탭 */}
@@ -972,6 +972,9 @@ import { useState, useEffect, useRef } from "react";
 
           <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:"10px",color:C.muted,fontFamily:"'Inter',sans-serif",opacity:0.5}}>
             built {__BUILD_TIME__}
+          </div>
+          <div style={{textAlign:"center",fontSize:"9px",color:C.muted,opacity:0.3,paddingBottom:8}}>
+            {visitCount.toLocaleString("ko-KR")}
           </div>
 
           </div>
