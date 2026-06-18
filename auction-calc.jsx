@@ -158,7 +158,6 @@ import { useState, useEffect, useRef } from "react";
     const ACQ_TYPES = [
       { id:"주택1",    label:"주택 1주택" },
       { id:"주택중과", label:"주택 중과" },
-      { id:"오피스텔", label:"오피스텔" },
       { id:"상가토지", label:"상가/토지" },
       { id:"직접입력", label:"직접입력" },
     ];
@@ -170,7 +169,7 @@ import { useState, useEffect, useRef } from "react";
         return { rate: Math.round(base * 1.1 * 100) / 100, base };
       }
       if (propType === "주택중과") return { rate: 8.4, base: 8 };
-      if (propType === "오피스텔") return { rate: 4.4, base: 4 };
+
       if (propType === "상가토지") return { rate: 4.4, base: 4 };
       return null;
     }
@@ -184,7 +183,7 @@ import { useState, useEffect, useRef } from "react";
         return "9억 초과 · 취득세 3% + 교육세 0.3%";
       }
       if (propType === "주택중과") return "8% 중과 + 지방교육세 0.4% (조정2주택 / 3주택+)";
-      if (propType === "오피스텔") return "취득세 4% + 지방교육세 0.4%";
+
       if (propType === "상가토지") return "취득세 4% + 지방교육세 0.4%";
       return "";
     }
