@@ -100,6 +100,13 @@ import { useState, useEffect, useRef } from "react";
 
     // ── 유틸 ──
     function uid() { return Math.random().toString(36).slice(2,8); }
+    const PROVINCES = ["경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+    function shortTabName(name) {
+      const clean = name.replace(/\s*\(.*?\)\s*/g, "").trim();
+      const parts = clean.split(/\s+/);
+      if (parts.length >= 2 && PROVINCES.some(p => parts[0] === p)) return parts.slice(1).join("");
+      return parts.join("");
+    }
     function fmt(n) {
       const abs = Math.abs(n), sign = n < 0 ? "-" : "";
       if (abs >= 100000000) {
@@ -453,7 +460,7 @@ import { useState, useEffect, useRef } from "react";
                           style={{padding:"7px 13px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,whiteSpace:"nowrap",
                             background:"transparent",
                             color:curId===p.id?"#fff":C.muted}}>
-                          {p.name}
+                          {shortTabName(p.name)}
                         </button>
                         {curId===p.id && (
                           <button onClick={()=>setEditingPropName(p.id)}
@@ -644,7 +651,7 @@ import { useState, useEffect, useRef } from "react";
                 <span style={{fontSize:17,lineHeight:1,flexShrink:0,marginTop:1}}>⚠️</span>
                 <div>
                   <div style={{fontSize:12,fontWeight:700,color:"#7a5800",marginBottom:2}}>본 계산 결과는 참고용 간이 추정치이며 실제 세금 및 수익과 차이가 있을 수 있습니다.</div>
-                  <div style={{fontSize:11,color:"#9a7200",lineHeight:1.5}}>세율, 공제 항목, 타 소득 합산 여부 등 개인별 상황에 따라 결과가 달라질 수 있으므로 정확한 내용은 세무 전문가와 상담하시기 바랍니다.</div>
+                  <div style={{fontSize:11,color:"#9a7200",lineHeight:1.5}}>세율, 공제 항목, 타 소득 합산 여부 등 개인별 상황에 따라 결과가 달라질 수 있으므로 정확한 내용은 전문가와 상담하시기 바랍니다.</div>
                 </div>
               </div>
               {/* 기본 정보 */}
