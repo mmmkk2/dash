@@ -435,7 +435,7 @@ import { useState, useEffect, useRef } from "react";
                         </button>
                         {curId===p.id && (
                           <button onClick={()=>setEditingPropName(p.id)}
-                            style={{border:"none",borderLeft:`1px solid rgba(255,255,255,0.2)`,background:"transparent",color:"rgba(255,255,255,0.6)",cursor:"pointer",fontSize:11,padding:"0 8px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>✏️</button>
+                            style={{border:"none",borderLeft:`1px solid rgba(255,255,255,0.2)`,background:"transparent",color:"rgba(255,255,255,0.6)",cursor:"pointer",fontSize:9,padding:"0 7px",alignSelf:"stretch",display:"flex",alignItems:"center"}}>✎</button>
                         )}
                       </div>
                   }
