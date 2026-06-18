@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+    const SB_URL  = import.meta.env.VITE_SUPABASE_URL;
+    const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     // ── 색상 ──
     const C = {
@@ -295,18 +297,23 @@ import { useState, useEffect, useRef } from "react";
       const [snapSaved, setSnapSaved] = useState(false);
       const saveTimer = useRef(null);
 
-      const [visitCount] = useState(() => {
-        try {
-          const prev = parseInt(localStorage.getItem("auction-visits")||"0",10);
-          if (!sessionStorage.getItem("auction-visited")) {
-            const next = prev + 1;
-            localStorage.setItem("auction-visits", String(next));
-            sessionStorage.setItem("auction-visited", "1");
-            return next;
-          }
-          return prev;
-        } catch { return 0; }
-      });
+      const [visitCount, setVisitCount] = useState(0);
+      useEffect(() => {
+        if (!SB_URL || !SB_ANON) return;
+        const headers = { "apikey": SB_ANON, "Authorization": `Bearer ${SB_ANON}`, "Content-Type": "application/json" };
+        // 세션당 1회만 카운트
+        if (!sessionStorage.getItem("auction-visited")) {
+          sessionStorage.setItem("auction-visited", "1");
+          fetch(`${SB_URL}/rest/v1/page_views`, { method:"POST", headers, body: JSON.stringify({page:"auction-calc"}) });
+        }
+        // 전체 방문 수 조회
+        fetch(`${SB_URL}/rest/v1/page_views?page=eq.auction-calc&select=id`, {
+          headers: { ...headers, "Prefer": "count=exact" },
+        }).then(r => {
+          const total = parseInt(r.headers.get("content-range")?.split("/")[1] || "0");
+          setVisitCount(total);
+        }).catch(() => {});
+      }, []);
 
       const activeProp = props.find(p => p.id === activeId) || props[0];
       const curId = activeId || props[0].id;
