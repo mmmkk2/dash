@@ -246,6 +246,8 @@ import { useState, useEffect, useRef } from "react";
       const [tab, setTab] = useState("profit");
       const [editing, setEditing] = useState(null);
       const [editingScenario, setEditingScenario] = useState(null);
+      const [addingScenario, setAddingScenario] = useState(false);
+      const [newScenarioVal, setNewScenarioVal] = useState("");
       const [editingPropName, setEditingPropName] = useState(null);
       const [saveStatus, setSaveStatus] = useState(null);
       const [tax, setTax] = useState(loadTax());
@@ -709,14 +711,13 @@ import { useState, useEffect, useRef } from "react";
               <div style={card}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                   <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>매도가 시나리오</div>
-                  <button onClick={()=>updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,p.bidPrice+10000000]}))}
+                  <button onClick={()=>{setAddingScenario(true);setNewScenarioVal("");}}
                     style={{border:`1px dashed ${C.border}`,background:"none",borderRadius:7,padding:"4px 11px",fontSize:11,cursor:"pointer",color:C.muted,fontFamily:"inherit"}}>+ 추가</button>
                 </div>
-                {profit.sellScenarios.length === 0
-                  ? <button onClick={()=>updateProfit(p=>({...p,sellScenarios:[p.bidPrice+10000000]}))}
+                {profit.sellScenarios.length === 0 && !addingScenario
+                  ? <button onClick={()=>{setAddingScenario(true);setNewScenarioVal("");}}
                       style={{width:"100%",padding:"14px 0",borderRadius:10,border:`1.5px dashed ${C.accent}60`,background:C.accentBg,cursor:"pointer",fontFamily:"inherit",color:C.accent}}>
-                      <div style={{fontSize:13,fontWeight:700,marginBottom:3}}>+ 매도 예상가 추가</div>
-                      <div style={{fontSize:10,color:C.sub}}>탭하면 낙찰가 +1천만원으로 시작해요</div>
+                      <div style={{fontSize:13,fontWeight:700}}>+ 매도 예상가 추가</div>
                     </button>
                   : <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {profit.sellScenarios.map((price,i)=>(
@@ -731,6 +732,27 @@ import { useState, useEffect, useRef } from "react";
                             style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0}}>×</button>
                         </div>
                       ))}
+                      {addingScenario && (
+                        <div style={{display:"flex",alignItems:"center",gap:4,background:C.surface2,borderRadius:9,padding:"6px 11px",border:`1.5px solid ${C.accent}60`}}>
+                          <input
+                            autoFocus
+                            inputMode="numeric"
+                            placeholder="매도가 입력"
+                            value={newScenarioVal}
+                            onChange={e=>setNewScenarioVal(e.target.value.replace(/[^0-9]/g,""))}
+                            onBlur={()=>{
+                              const v=parseNum(newScenarioVal);
+                              if(v>0) updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,v]}));
+                              setAddingScenario(false); setNewScenarioVal("");
+                            }}
+                            onKeyDown={e=>{
+                              if(e.key==="Enter"){const v=parseNum(newScenarioVal);if(v>0)updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,v]}));setAddingScenario(false);setNewScenarioVal("");}
+                              if(e.key==="Escape"){setAddingScenario(false);setNewScenarioVal("");}
+                            }}
+                            style={{border:"none",background:"transparent",fontSize:13,width:110,outline:"none",fontFamily:"inherit",color:C.text}}
+                          />
+                        </div>
+                      )}
                     </div>
                 }
               </div>
