@@ -370,7 +370,7 @@ import { useState, useEffect, useRef } from "react";
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
             <div>
               <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>매매사업자용</div>
-              <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>경매 수익 계산기</div>
+              <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>매매사업자 계산기</div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>종합소득세 기준 · 장기보유특별공제 미적용</div>
             </div>
             <div style={{flexShrink:0,marginTop:4}} />
@@ -574,6 +574,14 @@ import { useState, useEffect, useRef } from "react";
           {/* ── 순이익 계산 ── */}
           {tab==="profit" && (
             <div>
+              {/* 세무사 상담 안내 */}
+              <div style={{background:"#fff8e8",border:"1.5px solid #e8c84a",borderRadius:10,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"flex-start",gap:9}}>
+                <span style={{fontSize:17,lineHeight:1,flexShrink:0,marginTop:1}}>⚠️</span>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#7a5800",marginBottom:2}}>세율은 개인마다 다릅니다 — 반드시 세무사와 상담하세요</div>
+                  <div style={{fontSize:11,color:"#9a7200",lineHeight:1.5}}>이 계산기는 간이 추정치입니다. 타소득 합산 여부, 공제 항목에 따라 실제 세금이 크게 달라질 수 있습니다.</div>
+                </div>
+              </div>
               {/* 기본 정보 */}
               <div style={card}>
                 <div style={{fontSize:9,color:C.muted,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>기본 정보</div>
@@ -646,6 +654,51 @@ import { useState, useEffect, useRef } from "react";
                     </select>
                   </div>
                 )}
+              </div>
+
+              {/* 추가 비용 */}
+              <div style={card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>추가 비용</div>
+                  <button onClick={()=>updateProfit(p=>({...p,extraCosts:[...(p.extraCosts||[]),{id:uid(),label:"",amount:0}]}))}
+                    style={{border:`1px dashed ${C.border}`,background:"none",borderRadius:7,padding:"4px 11px",fontSize:11,cursor:"pointer",color:C.muted,fontFamily:"inherit"}}>+ 추가</button>
+                </div>
+                {!(profit.extraCosts||[]).length&&<div style={{fontSize:12,color:C.muted}}>없음</div>}
+                {(profit.extraCosts||[]).map((cost,i)=>(
+                  <div key={cost.id||i} style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
+                    <input placeholder="항목명" value={cost.label}
+                      onChange={e=>updateProfit(p=>({...p,extraCosts:p.extraCosts.map((c,j)=>j===i?{...c,label:e.target.value}:c)}))}
+                      style={{...inp,flex:1.2}} />
+                    <NumInput value={cost.amount} placeholder="금액"
+                      onChange={v=>updateProfit(p=>({...p,extraCosts:p.extraCosts.map((c,j)=>j===i?{...c,amount:v}:c)}))}
+                      style={{...inp,flex:1}} />
+                    <button onClick={()=>updateProfit(p=>({...p,extraCosts:p.extraCosts.filter((_,j)=>j!==i)}))}
+                      style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15,padding:"0 2px",flexShrink:0}}>×</button>
+                  </div>
+                ))}
+              </div>
+
+              {/* 매도 시나리오 */}
+              <div style={card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>매도가 시나리오</div>
+                  <button onClick={()=>updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,p.bidPrice+10000000]}))}
+                    style={{border:`1px dashed ${C.border}`,background:"none",borderRadius:7,padding:"4px 11px",fontSize:11,cursor:"pointer",color:C.muted,fontFamily:"inherit"}}>+ 추가</button>
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {profit.sellScenarios.map((price,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:C.surface2,borderRadius:9,padding:"6px 11px",border:`1px solid ${C.border}`}}>
+                      {editingScenario===i
+                        ? <NumInput value={price}
+                            onChange={v=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.map((sv,j)=>j===i?v:sv)}))}
+                            style={{border:"none",background:"transparent",fontSize:13,width:100,outline:"none",fontFamily:"inherit",color:C.text}} />
+                        : <span style={{fontSize:13,cursor:"pointer",fontWeight:700}} onClick={()=>setEditingScenario(i)}>{fmtComma(price)}원</span>
+                      }
+                      <button onClick={()=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.filter((_,j)=>j!==i)}))}
+                        style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0}}>×</button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* 종합소득세 설정 */}
@@ -722,51 +775,6 @@ import { useState, useEffect, useRef } from "react";
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* 추가 비용 */}
-              <div style={card}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>추가 비용</div>
-                  <button onClick={()=>updateProfit(p=>({...p,extraCosts:[...(p.extraCosts||[]),{id:uid(),label:"",amount:0}]}))}
-                    style={{border:`1px dashed ${C.border}`,background:"none",borderRadius:7,padding:"4px 11px",fontSize:11,cursor:"pointer",color:C.muted,fontFamily:"inherit"}}>+ 추가</button>
-                </div>
-                {!(profit.extraCosts||[]).length&&<div style={{fontSize:12,color:C.muted}}>없음</div>}
-                {(profit.extraCosts||[]).map((cost,i)=>(
-                  <div key={cost.id||i} style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
-                    <input placeholder="항목명" value={cost.label}
-                      onChange={e=>updateProfit(p=>({...p,extraCosts:p.extraCosts.map((c,j)=>j===i?{...c,label:e.target.value}:c)}))}
-                      style={{...inp,flex:1.2}} />
-                    <NumInput value={cost.amount} placeholder="금액"
-                      onChange={v=>updateProfit(p=>({...p,extraCosts:p.extraCosts.map((c,j)=>j===i?{...c,amount:v}:c)}))}
-                      style={{...inp,flex:1}} />
-                    <button onClick={()=>updateProfit(p=>({...p,extraCosts:p.extraCosts.filter((_,j)=>j!==i)}))}
-                      style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:15,padding:"0 2px",flexShrink:0}}>×</button>
-                  </div>
-                ))}
-              </div>
-
-              {/* 매도 시나리오 */}
-              <div style={card}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                  <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>매도가 시나리오</div>
-                  <button onClick={()=>updateProfit(p=>({...p,sellScenarios:[...p.sellScenarios,p.bidPrice+10000000]}))}
-                    style={{border:`1px dashed ${C.border}`,background:"none",borderRadius:7,padding:"4px 11px",fontSize:11,cursor:"pointer",color:C.muted,fontFamily:"inherit"}}>+ 추가</button>
-                </div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                  {profit.sellScenarios.map((price,i)=>(
-                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:C.surface2,borderRadius:9,padding:"6px 11px",border:`1px solid ${C.border}`}}>
-                      {editingScenario===i
-                        ? <NumInput value={price}
-                            onChange={v=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.map((sv,j)=>j===i?v:sv)}))}
-                            style={{border:"none",background:"transparent",fontSize:13,width:100,outline:"none",fontFamily:"inherit",color:C.text}} />
-                        : <span style={{fontSize:13,cursor:"pointer",fontWeight:700}} onClick={()=>setEditingScenario(i)}>{fmtComma(price)}원</span>
-                      }
-                      <button onClick={()=>updateProfit(p=>({...p,sellScenarios:p.sellScenarios.filter((_,j)=>j!==i)}))}
-                        style={{border:"none",background:"none",color:C.muted,cursor:"pointer",fontSize:13,padding:0}}>×</button>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* 결과 */}
@@ -866,7 +874,6 @@ import { useState, useEffect, useRef } from "react";
                   );
                 })}
               </div>
-              <div style={{textAlign:"center",fontSize:10,color:C.muted,marginBottom:20}}>종합소득세 간이 추정치 · 타소득 합산 시 세율 달라질 수 있음 · 세무사 상담 필수</div>
             </div>
           )}
 
