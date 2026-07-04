@@ -387,7 +387,8 @@ import { useState, useEffect, useRef } from "react";
       }
 
       function calcProfit(sellPrice) {
-        const loan = loans.find(l => l.id===selLoanId) || loans[0];
+        const noLoan = profit.noLoan || false;
+        const loan = noLoan ? null : (loans.find(l => l.id===selLoanId) || loans[0]);
         const lr = loan ? calcLoan(loan, profit.holdMonths) : {interest:0,prepay:0,total:0};
         const acqTaxPct = (profit.propType && profit.propType !== "직접입력")
           ? (calcAcqTaxRate(profit.propType, profit.bidPrice)?.rate ?? profit.acquisitionTax)
@@ -730,10 +731,18 @@ import { useState, useEffect, useRef } from "react";
                 {loans.length>0&&(
                   <div style={{marginTop:10}}>
                     <span style={lbl}>연동 대출 상품</span>
-                    <select value={selLoanId} onChange={e=>updateProfit(p=>({...p,loanId:e.target.value}))}
-                      style={{...inp,background:C.surface}}>
-                      {loans.map(l=><option key={l.id} value={l.id}>{l.name} ({l.rate}%)</option>)}
-                    </select>
+                    <label style={{display:"flex",alignItems:"center",gap:7,marginBottom:8,cursor:"pointer"}}>
+                      <input type="checkbox" checked={!!profit.noLoan}
+                        onChange={e=>updateProfit(p=>({...p,noLoan:e.target.checked}))}
+                        style={{width:15,height:15,cursor:"pointer",accentColor:C.accent}}/>
+                      <span style={{fontSize:13,color:profit.noLoan?C.accent:C.sub,fontWeight:profit.noLoan?700:400}}>대출 사용하지 않음</span>
+                    </label>
+                    {!profit.noLoan&&(
+                      <select value={selLoanId} onChange={e=>updateProfit(p=>({...p,loanId:e.target.value}))}
+                        style={{...inp,background:C.surface}}>
+                        {loans.map(l=><option key={l.id} value={l.id}>{l.name} ({l.rate}%)</option>)}
+                      </select>
+                    )}
                   </div>
                 )}
               </div>
