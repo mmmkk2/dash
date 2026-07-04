@@ -737,12 +737,11 @@ import { useState, useEffect, useRef } from "react";
                         style={{width:15,height:15,cursor:"pointer",accentColor:C.accent}}/>
                       <span style={{fontSize:13,color:profit.noLoan?C.accent:C.sub,fontWeight:profit.noLoan?700:400}}>대출 사용하지 않음</span>
                     </label>
-                    {!profit.noLoan&&(
-                      <select value={selLoanId} onChange={e=>updateProfit(p=>({...p,loanId:e.target.value}))}
-                        style={{...inp,background:C.surface}}>
-                        {loans.map(l=><option key={l.id} value={l.id}>{l.name} ({l.rate}%)</option>)}
-                      </select>
-                    )}
+                    <select value={selLoanId} onChange={e=>updateProfit(p=>({...p,loanId:e.target.value}))}
+                      disabled={!!profit.noLoan}
+                      style={{...inp,background:C.surface,opacity:profit.noLoan?0.35:1,cursor:profit.noLoan?"not-allowed":"auto"}}>
+                      {loans.map(l=><option key={l.id} value={l.id}>{l.name} ({l.rate}%)</option>)}
+                    </select>
                   </div>
                 )}
               </div>
