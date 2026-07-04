@@ -912,7 +912,12 @@ import { useState, useEffect, useRef } from "react";
                         </div>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:7,borderTop:`1px solid ${C.border2}`}}>
                           <span style={{fontSize:10,color:C.muted,fontWeight:600}}>매매차익</span>
-                          <span style={{fontSize:17,fontWeight:800,color:r.grossGain>=0?C.text:C.red}}>{r.grossGain>=0?"+":""}{fmt(r.grossGain)}원</span>
+                          <div style={{textAlign:"right"}}>
+                            <span style={{fontSize:17,fontWeight:800,color:r.grossGain>=0?C.text:C.red}}>{r.grossGain>=0?"+":""}{fmt(r.grossGain)}원</span>
+                            {profit.bidPrice>0&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>
+                              낙찰가 기준 {(r.grossGain/profit.bidPrice*100).toFixed(1)}%
+                            </div>}
+                          </div>
                         </div>
                       </div>
                       <div style={{background:C.surface2,borderRadius:10,padding:"12px 14px",marginBottom:8,border:`1px solid ${C.border}`}}>
