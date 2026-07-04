@@ -946,7 +946,7 @@ import { useState, useEffect, useRef } from "react";
                                 {(r.grossGain-r.expenses)>=0?"+":""}{fmt(r.grossGain-r.expenses)}원
                               </span>
                               {profit.bidPrice>0&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>
-                                수익률 {((r.grossGain-r.expenses)/profit.bidPrice*100).toFixed(1)}%
+                                낙찰가 기준 수익률 {((r.grossGain-r.expenses)/profit.bidPrice*100).toFixed(1)}%
                               </div>}
                             </div>
                           </div>
@@ -987,7 +987,7 @@ import { useState, useEffect, useRef } from "react";
                           <div style={{textAlign:"right"}}>
                             <span style={{fontSize:24,fontWeight:900,letterSpacing:"-0.04em",color:isPos?C.green:C.red}}>{isPos?"+":""}{fmt(r.netProfit)}원</span>
                             {profit.bidPrice>0&&<div style={{fontSize:11,color:isPos?C.green:C.red,opacity:0.7,marginTop:2}}>
-                              수익률 {(r.netProfit/profit.bidPrice*100).toFixed(1)}%
+                              낙찰가 기준 수익률 {(r.netProfit/profit.bidPrice*100).toFixed(1)}%
                             </div>}
                           </div>
                         </div>
