@@ -13,6 +13,12 @@ import { useState, useEffect, useRef } from "react";
     };
     const LOAN_COLORS = ["#6b5b3e","#4a6b7c","#5a6b4a","#7c4a6b","#4a5a7c","#7c6b4a"];
     const COMPARE_MONTHS = [1,2,3,4,5,6];
+    const DEDUCT_REGIONS = [
+      { id:"서울", label:"서울특별시", amount:55000000 },
+      { id:"과밀", label:"수도권과밀억제권역", amount:48000000 },
+      { id:"광역시", label:"광역시·안산·용인·김포·광주", amount:28000000 },
+      { id:"기타", label:"그 밖의 지역", amount:25000000 },
+    ];
     const TAX_BRACKETS = [
       { label:"1,400만원 이하",  rate:0.06 },
       { label:"1,400~5,000만원", rate:0.15 },
@@ -82,14 +88,36 @@ import { useState, useEffect, useRef } from "react";
     }
 
     function RateInput({value, onChange, step, placeholder, style}) {
+      const focusedRef = useRef(false);
+      const [displayVal, setDisplayVal] = useState((value||value===0) ? String(value) : "");
+
+      useEffect(() => {
+        if (!focusedRef.current) setDisplayVal((value||value===0) ? String(value) : "");
+      }, [value]);
+
       return (
         <input
           inputMode="decimal"
-          type="number"
-          step={step||0.01}
-          value={value}
+          type="text"
+          value={displayVal}
           placeholder={placeholder||"0"}
-          onChange={e=>onChange(parseFloat(e.target.value)||0)}
+          onFocus={()=>{ focusedRef.current=true; }}
+          onBlur={()=>{
+            focusedRef.current=false;
+            const v = parseFloat(displayVal)||0;
+            setDisplayVal(String(v));
+            onChange(v);
+          }}
+          onChange={e=>{
+            const v = e.target.value;
+            if (!/^-?\d*\.?\d*$/.test(v)) return;
+            setDisplayVal(v);
+            const parsed = parseFloat(v);
+            onChange(isNaN(parsed) ? 0 : parsed);
+          }}
+          onKeyDown={e=>{
+            if(e.key==="Enter") e.target.blur();
+          }}
           style={style}
         />
       );
@@ -136,6 +164,19 @@ import { useState, useEffect, useRef } from "react";
       const interest = loan.amount * r * months;
       const prepay = calcPrepay(loan.prepayTiers, loan.amount, months);
       return { interest, prepay, total: interest+prepay };
+    }
+    function calcLoanLimit(ll) {
+      const limitByKB = (ll.kbPrice||0) * ((ll.kbRatio||0)/100);
+      const limitByBid = (ll.bidPrice||0) * ((ll.bidRatio||0)/100);
+      const hasKB = (ll.kbPrice||0) > 0;
+      const hasBid = (ll.bidPrice||0) > 0;
+      let base = 0, basisIsKB = true;
+      if (hasKB && hasBid) { base = Math.min(limitByKB, limitByBid); basisIsKB = limitByKB <= limitByBid; }
+      else if (hasKB) { base = limitByKB; basisIsKB = true; }
+      else if (hasBid) { base = limitByBid; basisIsKB = false; }
+      const deduct = ll.useDeduct ? (ll.deductAmount||0) * Math.max(ll.units||1,1) : 0;
+      const final = Math.max(base - deduct, 0);
+      return { limitByKB, limitByBid, base, deduct, final, basisIsKB };
     }
     function calcTaxAuto(gain, baseIncome=0) {
       if (gain <= 0) return { tax:0, effectiveRate:0 };
@@ -196,10 +237,18 @@ import { useState, useEffect, useRef } from "react";
     function newLoan(name) {
       return { id:uid(), name:name||"상품", amount:150000000, rate:4.5, prepayTiers:[{untilMonth:null,rate:0.5}] };
     }
+    function newLoanLimit(bidPrice) {
+      return {
+        kbPrice:0, kbRatio:70,
+        bidPrice:bidPrice||0, bidRatio:80,
+        useDeduct:true, region:"서울", deductAmount:55000000, units:1,
+      };
+    }
     function newProperty(name) {
       return {
         id:uid(), name:name||"새 물건",
         loans:[newLoan("상품A")],
+        loanLimit:newLoanLimit(200000000),
         profit:{
           bidPrice:200000000, propType:"주택1", acquisitionTax:1.1, legalFee:800000,
           interior:0, agentFeeRate:0.4, loanId:null,
@@ -212,9 +261,10 @@ import { useState, useEffect, useRef } from "react";
       return {
         id:uid(), name:name||"새 물건",
         loans:[newLoan("상품A")],
+        loanLimit:newLoanLimit(0),
         profit:{
           bidPrice:0, propType:"주택1", acquisitionTax:1.1, legalFee:0,
-          interior:0, agentFeeRate:0, loanId:null,
+          interior:0, agentFeeRate:0.4, loanId:null,
           holdMonths:0, sellScenarios:[],
           extraCosts:[], evictionCost:0, mgmtCost:0, otherCost:0,
         },
@@ -231,6 +281,7 @@ import { useState, useEffect, useRef } from "react";
             { id:lid2, name:"상품B", amount:230000000, rate:3.8,
               prepayTiers:[{untilMonth:3,rate:1.5},{untilMonth:null,rate:0.5}] },
           ],
+          loanLimit:{ kbPrice:340000000, kbRatio:70, bidPrice:318000000, bidRatio:80, useDeduct:true, region:"과밀", deductAmount:48000000, units:1 },
           profit:{
             bidPrice:318000000, propType:"주택1", acquisitionTax:1.1, legalFee:1150000,
             interior:8000000, agentFeeRate:0.44, loanId:lid1,
@@ -246,6 +297,7 @@ import { useState, useEffect, useRef } from "react";
             { id:lid4, name:"상품B", amount:80000000, rate:4.7,
               prepayTiers:[{untilMonth:null,rate:1.0}] },
           ],
+          loanLimit:{ kbPrice:0, kbRatio:70, bidPrice:145000000, bidRatio:80, useDeduct:false, region:"기타", deductAmount:25000000, units:1 },
           profit:{
             bidPrice:145000000, propType:"상가토지", acquisitionTax:4.4, legalFee:900000,
             interior:5000000, agentFeeRate:0.9, loanId:lid3,
@@ -321,7 +373,9 @@ import { useState, useEffect, useRef } from "react";
       const activeProp = props.find(p => p.id === activeId) || props[0];
       const curId = activeId || props[0].id;
       const { loans, profit } = activeProp;
+      const loanLimit = activeProp.loanLimit || newLoanLimit(profit.bidPrice);
       const selLoanId = profit.loanId && loans.find(l => l.id === profit.loanId) ? profit.loanId : loans[0]?.id;
+      const limitCalc = calcLoanLimit(loanLimit);
 
       function persist(newProps, newActiveId) {
         setSaveStatus("saving");
@@ -346,6 +400,7 @@ import { useState, useEffect, useRef } from "react";
       }
       function updateLoans(fn) { updateActive(p => ({...p, loans:fn(p.loans)})); }
       function updateProfit(fn) { updateActive(p => ({...p, profit:fn(p.profit)})); }
+      function updateLoanLimit(fn) { updateActive(p => ({...p, loanLimit:fn(p.loanLimit || newLoanLimit(p.profit.bidPrice))})); }
 
       function addProperty() {
         const np = newProperty("새 물건 "+(props.length+1));
@@ -496,7 +551,7 @@ import { useState, useEffect, useRef } from "react";
 
           {/* 메인 탭 */}
           <div style={{display:"flex",gap:4,marginBottom:14,background:C.surface2,padding:3,borderRadius:12,border:`1px solid ${C.border}`}}>
-            {[{id:"loan",label:"대출 비교"},{id:"profit",label:"순이익 계산"},{id:"saved",label:savedSnaps.length>0?`저장 (${savedSnaps.length})`:"저장 목록"}].map(t=>(
+            {[{id:"loanLimit",label:"대출한도"},{id:"loan",label:"대출 비교"},{id:"profit",label:"순이익 계산"},{id:"saved",label:savedSnaps.length>0?`저장 (${savedSnaps.length})`:"저장 목록"}].map(t=>(
               <button key={t.id} onClick={()=>setTab(t.id)} style={{
                 flex:1,padding:"9px 0",borderRadius:9,border:"none",cursor:"pointer",
                 fontFamily:"inherit",fontSize:13,fontWeight:700,
@@ -506,6 +561,98 @@ import { useState, useEffect, useRef } from "react";
               }}>{t.label}</button>
             ))}
           </div>
+
+          {/* ── 대출한도 계산 ── */}
+          {tab==="loanLimit" && (
+            <div>
+              <div style={card}>
+                <div style={{fontSize:9,color:C.muted,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>기준 가격 · 담보인정비율(LTV)</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <div>
+                    <span style={lbl}>KB시세</span>
+                    <NumInput value={loanLimit.kbPrice} onChange={v=>updateLoanLimit(p=>({...p,kbPrice:v}))} style={inp} />
+                  </div>
+                  <div>
+                    <span style={lbl}>KB시세 LTV (%)</span>
+                    <RateInput value={loanLimit.kbRatio} step={0.1} onChange={v=>updateLoanLimit(p=>({...p,kbRatio:v}))} style={inp} />
+                  </div>
+                  <div>
+                    <span style={lbl}>낙찰가</span>
+                    <NumInput value={loanLimit.bidPrice} onChange={v=>updateLoanLimit(p=>({...p,bidPrice:v}))} style={inp} />
+                  </div>
+                  <div>
+                    <span style={lbl}>낙찰가 LTV (%)</span>
+                    <RateInput value={loanLimit.bidRatio} step={0.1} onChange={v=>updateLoanLimit(p=>({...p,bidRatio:v}))} style={inp} />
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <div style={{flex:1,background:limitCalc.basisIsKB?C.accentBg:C.surface2,borderRadius:8,padding:"9px 12px",border:`1px solid ${limitCalc.basisIsKB?C.accent:C.border}`}}>
+                    <div style={{fontSize:10,color:C.muted,marginBottom:2}}>KB시세 기준{limitCalc.basisIsKB?" ✓":""}</div>
+                    <div style={{fontWeight:700,fontSize:13}}>{fmt(limitCalc.limitByKB)}</div>
+                  </div>
+                  <div style={{flex:1,background:!limitCalc.basisIsKB?C.accentBg:C.surface2,borderRadius:8,padding:"9px 12px",border:`1px solid ${!limitCalc.basisIsKB?C.accent:C.border}`}}>
+                    <div style={{fontSize:10,color:C.muted,marginBottom:2}}>낙찰가 기준{!limitCalc.basisIsKB?" ✓":""}</div>
+                    <div style={{fontWeight:700,fontSize:13}}>{fmt(limitCalc.limitByBid)}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:10,color:C.muted,marginTop:8}}>두 기준 중 <b style={{color:C.text}}>작은 금액</b>을 대출한도 산정 기준으로 적용합니다.</div>
+              </div>
+
+              <div style={card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <span style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>방공제 (소액임차보증금 최우선변제금)</span>
+                  <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                    <input type="checkbox" checked={loanLimit.useDeduct}
+                      onChange={e=>updateLoanLimit(p=>({...p,useDeduct:e.target.checked}))}
+                      style={{width:15,height:15,cursor:"pointer",accentColor:C.accent}} />
+                    <span style={{fontSize:12,fontWeight:700,color:loanLimit.useDeduct?C.accent:C.sub}}>{loanLimit.useDeduct?"차감함":"차감안함"}</span>
+                  </label>
+                </div>
+                <div style={{opacity:loanLimit.useDeduct?1:0.4,pointerEvents:loanLimit.useDeduct?"auto":"none"}}>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+                    {DEDUCT_REGIONS.map(r=>{
+                      const sel = loanLimit.region===r.id;
+                      return (
+                        <button key={r.id} onClick={()=>updateLoanLimit(p=>({...p,region:r.id,deductAmount:r.amount}))}
+                          style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${sel?C.accent:C.border}`,
+                            background:sel?C.accent:C.surface, color:sel?"#fff":C.sub,
+                            fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                          {r.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    <div>
+                      <span style={lbl}>1세대(호)당 공제금액</span>
+                      <NumInput value={loanLimit.deductAmount} onChange={v=>updateLoanLimit(p=>({...p,deductAmount:v}))} style={inp} />
+                    </div>
+                    <div>
+                      <span style={lbl}>세대(호) 수</span>
+                      <NumInput value={loanLimit.units} onChange={v=>updateLoanLimit(p=>({...p,units:Math.max(1,v)}))} style={inp} />
+                    </div>
+                  </div>
+                </div>
+                <div style={{fontSize:10,color:C.muted,marginTop:10,lineHeight:1.5}}>지역·근저당설정일에 따라 기준금액이 달라질 수 있어 참고용입니다. 아파트/오피스텔 등 단일 세대는 세대수 1로 계산하세요.</div>
+              </div>
+
+              <div style={{...card,background:C.accentBg,border:`1.5px solid ${C.accent}`}}>
+                <div style={{fontSize:9,color:C.accent,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700}}>예상 대출한도</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                  <span style={{fontSize:11,color:C.sub}}>{limitCalc.basisIsKB?"KB시세":"낙찰가"} 기준{loanLimit.useDeduct?" · 방공제 차감":""}</span>
+                  <span style={{fontSize:24,fontWeight:800,color:C.accent}}>{fmt(limitCalc.final)}<span style={{fontSize:12,fontWeight:400,marginLeft:2}}>원</span></span>
+                </div>
+                {loanLimit.useDeduct && limitCalc.deduct>0 && (
+                  <div style={{fontSize:11,color:C.sub,marginTop:6,textAlign:"right"}}>{fmt(limitCalc.base)} − 방공제 {fmt(limitCalc.deduct)}</div>
+                )}
+                <div style={{borderTop:`1px solid ${C.accent}33`,marginTop:12,paddingTop:12,display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                  <span style={{fontSize:11,color:C.sub}}>필요금액 (낙찰가 − 대출한도)</span>
+                  <span style={{fontSize:20,fontWeight:800,color:C.text}}>{fmt(Math.max((loanLimit.bidPrice||0)-limitCalc.final,0))}<span style={{fontSize:12,fontWeight:400,marginLeft:2}}>원</span></span>
+                </div>
+              </div>
+              <div style={{textAlign:"center",fontSize:10,color:C.muted,marginBottom:20}}>참고용 추정치 · 실제 한도는 은행 심사 결과에 따라 달라질 수 있음</div>
+            </div>
+          )}
 
           {/* ── 대출 비교 ── */}
           {tab==="loan" && (
