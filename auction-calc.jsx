@@ -238,8 +238,10 @@ import { useState, useEffect, useRef } from "react";
       return { id:uid(), name:name||"상품", amount:150000000, rate:4.5, prepayTiers:[{untilMonth:null,rate:0.5}] };
     }
     function newLoanLimit(bidPrice) {
+      // 낙찰가는 통상 KB시세의 85% 내외 → 역산한 값을 기본값으로 제시
+      const kbPrice = bidPrice ? Math.round(bidPrice/0.85/1000000)*1000000 : 0;
       return {
-        kbPrice:0, kbRatio:70,
+        kbPrice, kbRatio:70,
         bidPrice:bidPrice||0, bidRatio:80,
         useDeduct:true, region:"서울", deductAmount:55000000, units:1,
       };
@@ -271,7 +273,7 @@ import { useState, useEffect, useRef } from "react";
       };
     }
     function defaultExamples() {
-      const lid1 = uid(); const lid2 = uid(); const lid3 = uid(); const lid4 = uid();
+      const lid1 = uid(); const lid2 = uid();
       return [
         {
           id:uid(), name:"경기 부천 아파트 (예시)",
@@ -287,22 +289,6 @@ import { useState, useEffect, useRef } from "react";
             interior:8000000, agentFeeRate:0.44, loanId:lid1,
             holdMonths:5, sellScenarios:[360000000,370000000,380000000],
             extraCosts:[], evictionCost:0, mgmtCost:1500000,
-          },
-        },
-        {
-          id:uid(), name:"인천 상가 (예시)",
-          loans:[
-            { id:lid3, name:"상품A", amount:80000000, rate:5.2,
-              prepayTiers:[{untilMonth:6,rate:2.0},{untilMonth:null,rate:0.5}] },
-            { id:lid4, name:"상품B", amount:80000000, rate:4.7,
-              prepayTiers:[{untilMonth:null,rate:1.0}] },
-          ],
-          loanLimit:{ kbPrice:0, kbRatio:70, bidPrice:145000000, bidRatio:80, useDeduct:false, region:"기타", deductAmount:25000000, units:1 },
-          profit:{
-            bidPrice:145000000, propType:"상가토지", acquisitionTax:4.4, legalFee:900000,
-            interior:5000000, agentFeeRate:0.9, loanId:lid3,
-            holdMonths:6, sellScenarios:[165000000,170000000],
-            extraCosts:[], evictionCost:2000000, mgmtCost:1800000,
           },
         },
       ];
@@ -565,8 +551,17 @@ import { useState, useEffect, useRef } from "react";
           {/* ── 대출한도 계산 ── */}
           {tab==="loanLimit" && (
             <div>
+              {/* 대출한도 안내 */}
+              <div style={{background:"#fff8e8",border:"1.5px solid #e8c84a",borderRadius:10,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"flex-start",gap:9}}>
+                <span style={{fontSize:17,lineHeight:1,flexShrink:0,marginTop:1}}>⚠️</span>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#7a5800",marginBottom:2}}>본 계산 결과는 참고용 간이 추정치이며 실제 대출한도와 차이가 있을 수 있습니다.</div>
+                  <div style={{fontSize:11,color:"#9a7200",lineHeight:1.5}}>LTV·DTI·DSR 규제, 지역·규제지역 여부, 방공제(최우선변제금) 기준, 개인 신용도 및 소득에 따라 실제 승인 한도는 달라지며 은행별 심사 결과가 최종 기준입니다. 정확한 한도는 대출 상담을 통해 확인하시기 바랍니다.</div>
+                </div>
+              </div>
               <div style={card}>
-                <div style={{fontSize:9,color:C.muted,marginBottom:14,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>기준 가격 · 담보인정비율(LTV)</div>
+                <div style={{fontSize:9,color:C.muted,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>기준 가격 · 담보인정비율(LTV)</div>
+                <div style={{fontSize:11,color:C.sub,marginBottom:12,lineHeight:1.5}}>LTV(%)는 은행·대출 상품마다 다르니 실제 이용하려는 상품의 조건에 맞춰 입력하세요.</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
                   <div>
                     <span style={lbl}>KB시세</span>
@@ -978,6 +973,9 @@ import { useState, useEffect, useRef } from "react";
                     </div>
                   </div>
                 </button>
+                <div style={{fontSize:10,fontWeight:700,color:"#7a5800",marginTop:10,paddingTop:10,borderTop:`1px dashed ${C.accent}30`}}>
+                  ⚠️ 실제 적용 세율은 본인의 종합소득 구간·공제 항목·타 소득 합산 여부에 따라 달라집니다. 아래 세율은 참고용이며 정확한 세액은 세무사와 상담하세요.
+                </div>
                 {tax.open&&(
                   <div style={{marginTop:14}}>
                     {/* 타소득 입력 */}
