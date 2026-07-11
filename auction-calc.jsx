@@ -487,7 +487,7 @@ import { useState, useEffect, useRef } from "react";
           {/* 헤더 */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
             <div>
-              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>내 도구</div>
+              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.15em",textTransform:"uppercase",marginBottom:3}}>경매 계산기</div>
               <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em"}}>경매 수익 계산기</div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>매매사업자 계산기</div>
             </div>
