@@ -401,11 +401,12 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const cat3list=Array.isArray(tree[cat1]?.children[cat2])?tree[cat1].children[cat2]:[];
   const m1=tree[cat1]||{color:C.inkMid,accent:C.inkLight};
   const ent=ENTITIES[entity];
+  const isIncomeCat=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"));
 
   async function submit(){
     const num=parseInt(String(amount).replace(/,/g,""));
     if(!num||num<=0){setErr(true);setTimeout(()=>setErr(false),400);return;}
-    const isIncome=(cat1.includes("수입")||cat1.includes("매출")||cat1.startsWith("저축"));
+    const isIncome=isIncomeCat;
     const supplyData=isSupply&&showSupplyToggle
       ?{name:(supplyName.trim()||memo.trim()||cat2),category:supplyCat,
         cycle_days:null,last_bought:date,
@@ -701,9 +702,9 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               left:isFixed?"19px":"3px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
           </div>
           <div style={{flex:1,textAlign:"left"}}>
-            <div style={{fontSize:"13px",fontWeight:600,color:isFixed?"#b5451b":C.inkMid,fontFamily:"'Inter',sans-serif"}}>고정지출</div>
+            <div style={{fontSize:"13px",fontWeight:600,color:isFixed?"#b5451b":C.inkMid,fontFamily:"'Inter',sans-serif"}}>{isIncomeCat?"반복수입":"반복지출"}</div>
             <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
-              {isFixed?"매달 반복되는 고정 지출":"일반 지출"}
+              {isIncomeCat?(isFixed?"매달 반복되는 수입":"일반 수입"):(isFixed?"매달 반복되는 지출":"일반 지출")}
             </div>
           </div>
         </button>
@@ -1525,7 +1526,7 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
                     <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px",flexWrap:"wrap"}}>
                       {tx.isFixed&&<span style={{fontSize:"9px",background:"#fff8f0",color:"#b5451b",
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
-                        border:"1px solid #f4c5b2"}}>고정</span>}
+                        border:"1px solid #f4c5b2"}}>반복</span>}
                       {card&&<span style={{fontSize:"9px",background:card.color+"14",color:card.color,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{card.name}</span>}
                     </div>
@@ -1610,8 +1611,10 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     [...thisMonthFixed].sort((a,b)=>a.date.localeCompare(b.date)),
   [thisMonthFixed]);
 
-  const totalScheduled = scheduled.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
-  const totalOccurred  = occurred.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const totalScheduledExpense = scheduled.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const totalScheduledIncome  = scheduled.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const totalOccurredExpense  = occurred.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const totalOccurredIncome   = occurred.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
 
   async function handleRegister(tx, regDate){
     if(registering.has(tx.memo)) return;
@@ -1637,19 +1640,25 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     })();
     const isReg = registering.has(tx.memo);
     const [editAmount, setEditAmount] = useState(null);
+    const isIncome = tx.type==="income";
     const borderColor = isToday?"#b5451b":isPast?"#e07a5f":C.border;
-    const bgColor = isToday?"#fff8f0":isPast?"#fffaf8":C.white;
+    const bgColor = isToday?"#fff8f0":isPast?"#fffaf8":isIncome?"#f8fdfa":C.white;
+    const barColor = isScheduled
+      ? (isToday?"#b5451b":isPast?"#e07a5f":(isIncome?"#52b788":"#d4c8b8"))
+      : (isIncome?"#52b788":"#d4c8b8");
     return(
       <div style={{display:"flex",alignItems:"center",gap:"12px",
         background:bgColor,borderRadius:"13px",padding:"12px 14px",
         border:`1px solid ${borderColor}`,
         position:"relative",overflow:"hidden"}}>
-        {isScheduled&&(
-          <div style={{position:"absolute",top:0,left:0,bottom:0,width:"3px",
-            background:isToday?"#b5451b":isPast?"#e07a5f":"#d4c8b8"}}/>
-        )}
-        <div style={{flex:1,minWidth:0,paddingLeft:isScheduled?"4px":"0"}}>
+        <div style={{position:"absolute",top:0,left:0,bottom:0,width:"3px",background:barColor}}/>
+        <div style={{flex:1,minWidth:0,paddingLeft:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
+            <span style={{fontSize:"9px",background:isIncome?"#f0fdf4":"#fff0ee",
+              color:isIncome?"#2d6a4f":"#b5451b",
+              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+              border:`1px solid ${isIncome?"#b7e4c7":"#f4c5b2"}`,
+              fontFamily:"'Inter',sans-serif"}}>{isIncome?"수입":"지출"}</span>
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
               fontFamily:"'Inter',sans-serif",overflow:"hidden",
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
@@ -1752,8 +1761,8 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
   if(!fixedTemplates.length) return(
     <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
       <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📋</div>
-      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>고정지출이 없어요</div>
-      <div style={{fontSize:"12px",color:C.inkLight}}>거래 추가 시 고정지출 토글을 켜보세요</div>
+      <div style={{fontFamily:"'Inter',sans-serif",fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>반복 항목이 없어요</div>
+      <div style={{fontSize:"12px",color:C.inkLight}}>거래 추가 시 반복지출/반복수입 토글을 켜보세요</div>
     </div>
   );
 
@@ -1768,8 +1777,9 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
               textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>
               이번 달 예정 ({scheduled.length}건)
             </div>
-            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b",opacity:0.7}}>
-              -{fmtS(totalScheduled)}
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",display:"flex",gap:"6px"}}>
+              {totalScheduledIncome>0&&<span style={{color:"#2d6a4f"}}>+{fmtS(totalScheduledIncome)}</span>}
+              {totalScheduledExpense>0&&<span style={{color:"#b5451b",opacity:0.7}}>-{fmtS(totalScheduledExpense)}</span>}
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -1786,8 +1796,9 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
               textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>
               이번 달 발생 ({occurred.length}건)
             </div>
-            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",color:"#b5451b"}}>
-              -{fmtS(totalOccurred)}
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:"14px",display:"flex",gap:"6px"}}>
+              {totalOccurredIncome>0&&<span style={{color:"#2d6a4f"}}>+{fmtS(totalOccurredIncome)}</span>}
+              {totalOccurredExpense>0&&<span style={{color:"#b5451b"}}>-{fmtS(totalOccurredExpense)}</span>}
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -1797,22 +1808,31 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
       )}
 
       {/* 전체 합계 */}
+      {(()=>{
+        const totalExpense=totalOccurredExpense+totalScheduledExpense;
+        const totalIncome=totalOccurredIncome+totalScheduledIncome;
+        const net=totalIncome-totalExpense;
+        const netColor=net>=0?"#2d6a4f":"#b5451b";
+        return(
       <div style={{background:"#fff8f0",borderRadius:"16px",padding:"16px 18px",
         border:"1px solid #f4c5b2",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontSize:"9px",fontWeight:700,color:"#b5451b",letterSpacing:"0.12em",
+          <div style={{fontSize:"9px",fontWeight:700,color:netColor,letterSpacing:"0.12em",
             textTransform:"uppercase",marginBottom:"4px",fontFamily:"'Inter',sans-serif"}}>
-            이번 달 고정지출 예상 합계
+            이번 달 반복 예상 순액
           </div>
-          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"22px",color:"#b5451b",letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums"}}>
-            -{fmtS(totalOccurred+totalScheduled)}
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"22px",color:netColor,letterSpacing:"-0.3px",fontVariantNumeric:"tabular-nums"}}>
+            {net>=0?"+":"-"}{fmtS(Math.abs(net))}
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:"10px",color:"#b5451b",opacity:0.6,fontFamily:"'Inter',sans-serif"}}>발생 -{fmtS(totalOccurred)}</div>
-          <div style={{fontSize:"10px",color:"#b5451b",opacity:0.4,fontFamily:"'Inter',sans-serif"}}>예정 -{fmtS(totalScheduled)}</div>
+          {totalIncome>0&&<div style={{fontSize:"10px",color:"#2d6a4f",fontFamily:"'Inter',sans-serif"}}>반복수입 +{fmtS(totalIncome)}</div>}
+          <div style={{fontSize:"10px",color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>반복지출 -{fmtS(totalExpense)}</div>
+          <div style={{fontSize:"9px",color:C.inkLight,marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>발생 {fmtS(totalOccurredIncome+totalOccurredExpense)} · 예정 {fmtS(totalScheduledIncome+totalScheduledExpense)}</div>
         </div>
       </div>
+        );
+      })()}
     </div>
   );
 }
@@ -3567,7 +3587,7 @@ export default function App(){
 
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
           {[["list","내역"],["stats","통계"],
-            ...(!yearView?[["fixed","고정지출"]]:[]),
+            ...(!yearView?[["fixed","반복"]]:[]),
             ...(entity==="cafe"?[["supplies","소모품"]]:[])
           ].map(([k,l])=>(
             <button key={k} onClick={()=>setTab(k)} style={{
