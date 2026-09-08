@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
@@ -140,6 +141,11 @@ const ENTITIES = {
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
+
+// URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산)
+const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty" };
+const SLUG_ENTITY = { "":"personal", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty" };
+const entityPath = ek => `/budget${ENTITY_SLUG[ek]?`/${ENTITY_SLUG[ek]}`:""}`;
 
 const TREE_PERSONAL = {
   수입:{ color:"#2d6a4f",accent:"#52b788",icon:"💚",children:{
@@ -2209,13 +2215,13 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
         src.forEach(t=>{
           const key=t.date.slice(0,7);
           if(!m[key])m[key]={month:key,매출:0,고정비:0,변동비:0};
-          if(t.cat1==="매출"&&t.type==="income") m[key].매출+=t.amount;
-          if(t.cat1==="운영비") m[key].고정비+=t.amount;
-          if(t.cat1==="매입/원가") m[key].변동비+=t.amount;
+          if(t.type==="income") m[key].매출+=t.amount;
+          else if(t.cat1==="매입/원가") m[key].변동비+=t.amount;
+          else if(t.type==="expense") m[key].고정비+=t.amount;
         });
         const data=Object.values(m).sort((a,b)=>a.month.localeCompare(b.month))
           .map(d=>({...d,순이익:d.매출-d.고정비-d.변동비,
-            label:d.month.slice(5)+"월"}));
+            label:`${d.month.slice(2,4)}.${d.month.slice(5)}`}));
         if(data.length<2) return null;
         const K=1000;
         return(
@@ -3225,10 +3231,13 @@ function ThemePicker({ current, onChange }) {
 /* ── Main ── */
 export default function App(){
   const now=new Date();
+  const routeParams=useParams();
+  const navigate=useNavigate();
+  const urlEntity=SLUG_ENTITY[routeParams.entity||""]||"personal";
   const [year,  setYear]  =useState(now.getFullYear());
   const [month, setMonth] =useState(now.getMonth());
   const [yearView, setYearView] =useState(false);
-  const [entity,setEntity]=useState("personal");
+  const [entity,setEntity]=useState(urlEntity);
   const [tab,   setTab]   =useState("list");
   const [modal, setModal] =useState(null);
   const [editTx,setEditTx]=useState(null);
@@ -3289,6 +3298,9 @@ export default function App(){
       }catch(e){console.error("category rename batch failed",op,e);}
     }
   }
+
+  // URL 주소 변경(뒤로가기/링크 진입) → entity 동기화
+  useEffect(()=>{ setEntity(SLUG_ENTITY[routeParams.entity||""]||"personal"); }, [routeParams.entity]);
 
   // entity 변경 시 테마 동기화
   useEffect(()=>{ setThemeKey(ENTITY_THEME[entity]||"cream"); }, [entity]);
@@ -3510,7 +3522,7 @@ export default function App(){
             {ENTITY_KEYS.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
-                <button key={ek} onClick={()=>{setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");}} style={{
+                <button key={ek} onClick={()=>{setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");navigate(entityPath(ek));}} style={{
                   flex:1,padding:"9px 4px",borderRadius:"10px",cursor:"pointer",border:"none",
                   background:sel?e.color:"rgba(255,255,255,0.07)",
                   color:sel?"#fff":"rgba(255,255,255,0.45)",

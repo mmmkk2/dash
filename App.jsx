@@ -25,12 +25,14 @@ export default function App() {
           <>
             <Route path="/" element={<Navigate to="/budget" replace />} />
             <Route path="/budget" element={<Budget />} />
+            <Route path="/budget/:entity" element={<Budget />} />
             <Route path="/assets" element={<Assets />} />
           </>
         ) : (
           <>
             <Route path="/" element={<Login onLogin={setSession} />} />
             <Route path="/budget" element={<Login onLogin={setSession} />} />
+            <Route path="/budget/:entity" element={<Login onLogin={setSession} />} />
             <Route path="/assets" element={<Login onLogin={setSession} />} />
           </>
         )}
