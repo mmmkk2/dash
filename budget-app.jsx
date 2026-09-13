@@ -2288,6 +2288,67 @@ async function fetchGmailCoupang(token, since, until) {
   }));
 }
 
+/* ── 전체 현금흐름 (개인/카페/부동산 통합, 계좌 간 이동은 자동 상쇄) ── */
+const SETTLE_CAT1 = "대표자거래";
+function CashFlowView({txs,year,month,yearView}){
+  const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
+  const periodTxs=useMemo(()=>txs.filter(t=>yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey)),
+    [txs,year,month,yearView,monthKey]);
+
+  const rows=ENTITY_KEYS.map(ek=>{
+    const etxs=periodTxs.filter(t=>t.entity===ek);
+    const income=etxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const expense=etxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+    const settleOut=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1).reduce((s,t)=>s+t.amount,0);
+    const settleIn=etxs.filter(t=>t.type==="income"&&t.cat2&&t.cat2.includes("인출금")).reduce((s,t)=>s+t.amount,0);
+    return {ek,income,expense,net:income-expense,settleOut,settleIn};
+  });
+  const totalIncome=rows.reduce((s,r)=>s+r.income,0);
+  const totalExpense=rows.reduce((s,r)=>s+r.expense,0);
+  const totalNet=totalIncome-totalExpense;
+
+  return(
+    <div>
+      <SLabel>{yearView?`${year}년`:`${year}.${month+1}`} 전체 현금흐름</SLabel>
+      <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
+        개인·카페·부동산 세 계정을 한 번에 봐. "대표자거래&gt;대표자 인출금"(지출)과 짝을 이루는 "…인출금"(수입) 카테고리는
+        실제 지출이 아니라 계정 간 자금 이동이라 아래 전체 합산에서 자동으로 상쇄돼.
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:"10px",marginBottom:"18px"}}>
+        {rows.map(r=>(
+          <div key={r.ek} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:"14px",padding:"14px 16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+              <div style={{fontWeight:700,fontSize:"14px",color:ENTITIES[r.ek].color}}>{ENTITIES[r.ek].label}</div>
+              <div style={{fontWeight:800,fontSize:"15px",color:r.net>=0?"#2d6a4f":"#b5451b"}}>
+                {r.net>=0?"+":""}{fmt(r.net)}
+              </div>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px",color:C.inkLight}}>
+              <span>수입 {fmt(r.income)}</span>
+              <span>지출 {fmt(r.expense)}</span>
+            </div>
+            {(r.settleOut>0||r.settleIn>0)&&(
+              <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,fontSize:"11px",color:C.inkLight}}>
+                {r.settleOut>0&&<div>↳ 대표자 인출로 내보냄: {fmt(r.settleOut)}</div>}
+                {r.settleIn>0&&<div>↳ 다른 계정에서 인출 받음: {fmt(r.settleIn)}</div>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{background:C.ink,borderRadius:"16px",padding:"16px 18px",color:"#fff"}}>
+        <div style={{fontSize:"11px",opacity:0.7,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
+          전체 합산 (계정 간 이동 상쇄 후 실제 순증감)
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+          <div style={{fontSize:"12px",opacity:0.8}}>수입 {fmt(totalIncome)} · 지출 {fmt(totalExpense)}</div>
+          <div style={{fontSize:"20px",fontWeight:800}}>{totalNet>=0?"+":""}{fmt(totalNet)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function parseMailSnippets(snippets) {
   return snippets.map(({ date, snippet }) => {
     const amtAll = [...snippet.matchAll(/(\d{1,3}(?:,\d{3})+|\d{4,})\s*원/g)]
@@ -3495,6 +3556,13 @@ export default function App(){
                   fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
                   CAT
                 </button>
+                <button onClick={()=>setModal("flow")} title="전체 현금흐름 (개인/카페/부동산 통합)" style={{
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",
+                  cursor:"pointer",display:"flex",alignItems:"center",
+                  fontSize:"13px",lineHeight:1,flexShrink:0}}>
+                  🔀
+                </button>
                 <button onClick={()=>setModal("cards")} style={{
                   background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                   borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
@@ -3635,6 +3703,9 @@ export default function App(){
       </Modal>
       <Modal open={modal==="cards"} onClose={()=>setModal(null)}>
         <CardSettings cards={cards} onChange={handleCards}/>
+      </Modal>
+      <Modal open={modal==="flow"} onClose={()=>setModal(null)}>
+        <CashFlowView txs={txs} year={year} month={month} yearView={yearView}/>
       </Modal>
       <Modal open={modal==="import"} onClose={()=>setModal(null)}>
         <CoupangImport onRegister={tx=>{ const n=[...txs,tx]; setTxs(n); save(TX_KEY,n); if(isConfigured()) sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))}).catch(console.error); }}/>
