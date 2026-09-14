@@ -1882,6 +1882,48 @@ function TxMiniList({txs, onEdit}){
   );
 }
 
+function Cat3BreakdownList({subTxs,total,baseColor,onEdit}){
+  const [expandedCat3,setExpandedCat3]=useState(null);
+  const m={};
+  subTxs.forEach(t=>{
+    const key=t.cat3||"기타";
+    if(!m[key])m[key]=[];
+    m[key].push(t);
+  });
+  const entries=Object.entries(m).map(([name,list])=>({
+    name,list,value:list.reduce((s,t)=>s+t.amount,0),
+  })).sort((a,b)=>b.value-a.value);
+  return(
+    <div style={{padding:"2px 10px 8px 21px",borderTop:`1px dashed ${C.border}`}}>
+      {entries.map((c,i)=>{
+        const isOpen=expandedCat3===c.name;
+        const pct=total>0?Math.round((c.value/total)*100):0;
+        const color=SUB_COLORS[(i+3)%SUB_COLORS.length];
+        return(
+          <div key={c.name} style={{marginTop:"6px",borderRadius:"7px",
+            border:`1px solid ${isOpen?color+"88":"transparent"}`,overflow:"hidden",
+            background:isOpen?C.cream:"transparent"}}>
+            <div onClick={()=>setExpandedCat3(isOpen?null:c.name)}
+              style={{cursor:"pointer",padding:"5px 8px 4px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
+                  <div style={{width:"5px",height:"5px",borderRadius:"50%",background:color,flexShrink:0}}/>
+                  <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{c.name}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+                  <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{fmtS(c.value)}&nbsp;·&nbsp;{pct}%</span>
+                  <span style={{fontSize:"8px",color:C.inkLight}}>{isOpen?"▲":"▼"}</span>
+                </div>
+              </div>
+            </div>
+            {isOpen&&<TxMiniList txs={c.list.slice().sort((a,b)=>b.date.localeCompare(a.date))} onEdit={onEdit}/>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
   const [expandedSub,setExpandedSub]=useState(null);
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:"'Inter',sans-serif",fontSize:"12px"};
@@ -1954,7 +1996,9 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                               <div style={{width:`${sp}%`,height:"100%",background:(s.isRefund?refundColor:s.color)+"bb",borderRadius:"99px"}}/>
                             </div>
                           </div>
-                          {isSubOpen&&<TxMiniList txs={subTxs} onEdit={onEdit}/>}
+                          {isSubOpen&&(new Set(subTxs.map(t=>t.cat3||"기타")).size>1
+                            ?<Cat3BreakdownList subTxs={subTxs} total={absVal} baseColor={s.color} onEdit={onEdit}/>
+                            :<TxMiniList txs={subTxs} onEdit={onEdit}/>)}
                         </div>
                       );
                     })}
