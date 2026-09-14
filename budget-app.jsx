@@ -1929,8 +1929,10 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                       const sp=item.value>0?Math.round((absVal/item.value)*100):0;
                       const subKey=`${item.name}::${s.name}`;
                       const isSubOpen=expandedSub===subKey;
-                      const subTxs=txs.filter(t=>(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)
-                        .sort((a,b)=>b.date.localeCompare(a.date));
+                      const subTxs=(item.cardId!==undefined
+                        ?txs.filter(t=>(t.cardId||"__none__")===item.cardId&&catDisplayName(t.cat1)===s.name)
+                        :txs.filter(t=>(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)
+                      ).sort((a,b)=>b.date.localeCompare(a.date));
                       const refundColor="#b5451b";
                       return(
                         <div key={s.name} style={{marginBottom:"6px",borderRadius:"8px",
@@ -2000,10 +2002,17 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const byExpense=useMemo(()=>buildBreakdown(t=>t.type==="expense"),[txs,tree]);
   const byCard=useMemo(()=>{
     const m={};
-    txs.filter(t=>t.type==="expense").forEach(t=>{const k=t.cardId||"__none__";m[k]=(m[k]||0)+t.amount;});
-    return Object.entries(m).map(([id,value])=>{
+    txs.filter(t=>t.type==="expense").forEach(t=>{
+      const k=t.cardId||"__none__";
+      if(!m[k])m[k]={value:0,sub:{}};
+      m[k].value+=t.amount;
+      const catName=catDisplayName(t.cat1);
+      m[k].sub[catName]=(m[k].sub[catName]||0)+t.amount;
+    });
+    return Object.entries(m).map(([id,d])=>{
       const card=cards.find(c=>c.id===id);
-      return{name:card?card.name:"미지정",value,color:card?card.color:C.inkLight,sub:[]};
+      return{name:card?card.name:"미지정",cardId:id,value:d.value,color:card?card.color:C.inkLight,
+        sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v})).sort((a,b)=>b.value-a.value)};
     }).sort((a,b)=>b.value-a.value);
   },[txs,cards]);
 
