@@ -2343,10 +2343,24 @@ async function fetchGmailCoupang(token, since, until) {
 
 /* ── 전체 현금흐름 (개인/카페/부동산 통합, 계좌 간 이동은 자동 상쇄) ── */
 const SETTLE_CAT1 = "대표자거래";
-function CashFlowView({txs,year,month,yearView}){
+function CashFlowView({txs,year,month,yearView,cards=[]}){
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   const periodTxs=useMemo(()=>txs.filter(t=>yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey)),
     [txs,year,month,yearView,monthKey]);
+
+  const byCardAll=useMemo(()=>{
+    const m={};
+    periodTxs.filter(t=>t.type==="expense").forEach(t=>{
+      const k=t.cardId||"__none__";
+      if(!m[k])m[k]={value:0};
+      m[k].value+=t.amount;
+    });
+    return Object.entries(m).map(([id,d])=>{
+      const card=cards.find(c=>c.id===id);
+      return{name:card?card.name:"미지정",value:d.value,color:card?card.color:C.inkLight};
+    }).sort((a,b)=>b.value-a.value);
+  },[periodTxs,cards]);
+  const cardTotal=byCardAll.reduce((s,c)=>s+c.value,0)||1;
 
   const rows=ENTITY_KEYS.map(ek=>{
     const etxs=periodTxs.filter(t=>t.entity===ek);
@@ -2389,6 +2403,19 @@ function CashFlowView({txs,year,month,yearView}){
           </div>
         ))}
       </div>
+      <SLabel>전체 카드별 지출 (개인·카페·부동산 합산)</SLabel>
+      <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
+        {byCardAll.map(c=>(
+          <div key={c.name} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
+            background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px"}}>
+            <div style={{width:"8px",height:"8px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
+            <div style={{flex:1,fontSize:"12px",fontFamily:"'Inter',sans-serif",color:C.ink}}>{c.name}</div>
+            <div style={{fontSize:"11px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
+            <div style={{fontSize:"12px",fontWeight:700,color:C.ink}}>{fmt(c.value)}</div>
+          </div>
+        ))}
+      </div>
+
       <div style={{background:C.ink,borderRadius:"16px",padding:"16px 18px",color:"#fff"}}>
         <div style={{fontSize:"11px",opacity:0.7,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
           전체 합산 (계정 간 이동 상쇄 후 실제 순증감)
@@ -3758,7 +3785,7 @@ export default function App(){
         <CardSettings cards={cards} onChange={handleCards}/>
       </Modal>
       <Modal open={modal==="flow"} onClose={()=>setModal(null)}>
-        <CashFlowView txs={txs} year={year} month={month} yearView={yearView}/>
+        <CashFlowView txs={txs} year={year} month={month} yearView={yearView} cards={cards}/>
       </Modal>
       <Modal open={modal==="import"} onClose={()=>setModal(null)}>
         <CoupangImport onRegister={tx=>{ const n=[...txs,tx]; setTxs(n); save(TX_KEY,n); if(isConfigured()) sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))}).catch(console.error); }}/>
