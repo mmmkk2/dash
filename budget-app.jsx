@@ -2347,6 +2347,7 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   const periodTxs=useMemo(()=>txs.filter(t=>yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey)),
     [txs,year,month,yearView,monthKey]);
+  const [drillCard,setDrillCard]=useState(null); // {name,color} | null
 
   const byCardAll=useMemo(()=>{
     const m={};
@@ -2357,10 +2358,16 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
     });
     return Object.entries(m).map(([id,d])=>{
       const card=cards.find(c=>c.id===id);
-      return{name:card?card.name:"미지정",value:d.value,color:card?card.color:C.inkLight};
+      return{id,name:card?card.name:"미지정",value:d.value,color:card?card.color:C.inkLight};
     }).sort((a,b)=>b.value-a.value);
   },[periodTxs,cards]);
   const cardTotal=byCardAll.reduce((s,c)=>s+c.value,0)||1;
+
+  const drillTxs=useMemo(()=>{
+    if(!drillCard)return[];
+    return periodTxs.filter(t=>t.type==="expense"&&(t.cardId||"__none__")===drillCard.id)
+      .sort((a,b)=>b.date.localeCompare(a.date));
+  },[periodTxs,drillCard]);
 
   const rows=ENTITY_KEYS.map(ek=>{
     const etxs=periodTxs.filter(t=>t.entity===ek);
@@ -2406,8 +2413,8 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
       <SLabel>전체 카드별 지출 (개인·카페·부동산 합산)</SLabel>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
         {byCardAll.map(c=>(
-          <div key={c.name} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
-            background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px"}}>
+          <div key={c.name} onClick={()=>setDrillCard(c)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
+            background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px",cursor:"pointer"}}>
             <div style={{width:"8px",height:"8px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
             <div style={{flex:1,fontSize:"12px",fontFamily:"'Inter',sans-serif",color:C.ink}}>{c.name}</div>
             <div style={{fontSize:"11px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
@@ -2415,6 +2422,34 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
           </div>
         ))}
       </div>
+
+      <Modal open={!!drillCard} onClose={()=>setDrillCard(null)}>
+        {drillCard&&(
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px"}}>
+              <div style={{width:"9px",height:"9px",borderRadius:"50%",background:drillCard.color,flexShrink:0}}/>
+              <div style={{fontSize:"15px",fontWeight:800,color:C.ink}}>{drillCard.name}</div>
+              <div style={{marginLeft:"auto",fontSize:"13px",fontWeight:700,color:C.ink}}>{fmt(drillCard.value)}</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+              {drillTxs.length===0&&(
+                <div style={{fontSize:"12px",color:C.inkLight,padding:"20px 0",textAlign:"center"}}>내역이 없어요</div>
+              )}
+              {drillTxs.map(t=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
+                  background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px"}}>
+                  <div style={{fontSize:"10px",color:C.inkLight,width:"52px",flexShrink:0,fontFamily:"'Inter',sans-serif"}}>{t.date?.slice(5)}</div>
+                  <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+                    <div style={{fontSize:"12px",color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
+                    <div style={{fontSize:"10px",color:C.inkLight}}>{ENTITIES[t.entity]?.label||t.entity}{t.cat1?` · ${t.cat1}`:""}</div>
+                  </div>
+                  <div style={{fontSize:"12px",fontWeight:700,color:C.ink,flexShrink:0}}>{fmt(t.amount)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <div style={{background:C.ink,borderRadius:"16px",padding:"16px 18px",color:"#fff"}}>
         <div style={{fontSize:"11px",opacity:0.7,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
