@@ -2351,7 +2351,7 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
 
   const byCardAll=useMemo(()=>{
     const m={};
-    periodTxs.filter(t=>t.type==="expense").forEach(t=>{
+    periodTxs.filter(t=>t.type==="expense"&&t.entity!=="realty").forEach(t=>{
       const k=t.cardId||"__none__";
       if(!m[k])m[k]={value:0};
       m[k].value+=t.amount;
@@ -2365,7 +2365,7 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
 
   const drillTxs=useMemo(()=>{
     if(!drillCard)return[];
-    return periodTxs.filter(t=>t.type==="expense"&&(t.cardId||"__none__")===drillCard.id)
+    return periodTxs.filter(t=>t.type==="expense"&&t.entity!=="realty"&&(t.cardId||"__none__")===drillCard.id)
       .sort((a,b)=>b.date.localeCompare(a.date));
   },[periodTxs,drillCard]);
 
@@ -2410,7 +2410,7 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
           </div>
         ))}
       </div>
-      <SLabel>전체 카드별 지출 (개인·카페·부동산 합산)</SLabel>
+      <SLabel>전체 카드별 지출 (개인·카페 합산, 부동산매매 제외)</SLabel>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
         {byCardAll.map(c=>(
           <div key={c.name} onClick={()=>setDrillCard(c)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
