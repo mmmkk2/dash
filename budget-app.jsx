@@ -2343,8 +2343,16 @@ async function fetchGmailCoupang(token, since, until) {
 
 /* ── 전체 현금흐름 (개인/카페/부동산 통합, 계좌 간 이동은 자동 상쇄) ── */
 const SETTLE_CAT1 = "대표자거래";
-function CashFlowView({txs,year,month,yearView,cards=[]}){
+function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYearView}){
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
+  function prevPeriod(){
+    if(yearView){setYear(y=>y-1);return;}
+    if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);
+  }
+  function nextPeriod(){
+    if(yearView){setYear(y=>y+1);return;}
+    if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);
+  }
   const periodTxs=useMemo(()=>txs.filter(t=>yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey)),
     [txs,year,month,yearView,monthKey]);
   const [drillCard,setDrillCard]=useState(null); // {name,color} | null
@@ -2383,7 +2391,30 @@ function CashFlowView({txs,year,month,yearView,cards=[]}){
 
   return(
     <div>
-      <SLabel>{yearView?`${year}년`:`${year}.${month+1}`} 전체 현금흐름</SLabel>
+      <SLabel>전체 현금흐름</SLabel>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"14px",marginBottom:"10px"}}>
+        <button onClick={prevPeriod} style={{background:C.cream,border:`1px solid ${C.border}`,borderRadius:"8px",padding:"6px",color:C.ink,cursor:"pointer",display:"flex"}}>
+          <ChevronLeft size={16}/>
+        </button>
+        <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+          <div style={{fontSize:"14px",fontWeight:800,color:C.ink,minWidth:"70px",textAlign:"center"}}>
+            {yearView?`${year}년`:`${year}.${month+1}`}
+          </div>
+          <div style={{display:"flex",background:C.cream,borderRadius:"8px",padding:"2px",gap:"2px"}}>
+            {[["월",false],["연",true]].map(([label,isYear])=>(
+              <button key={label} onClick={()=>setYearView(isYear)} style={{border:"none",borderRadius:"6px",
+                padding:"4px 9px",fontSize:"11px",fontWeight:700,cursor:"pointer",
+                background:yearView===isYear?C.ink:"transparent",
+                color:yearView===isYear?"#fff":C.inkLight,transition:"all 0.15s"}}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button onClick={nextPeriod} style={{background:C.cream,border:`1px solid ${C.border}`,borderRadius:"8px",padding:"6px",color:C.ink,cursor:"pointer",display:"flex"}}>
+          <ChevronRight size={16}/>
+        </button>
+      </div>
       <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
         개인·카페·부동산 세 계정을 한 번에 봐. "대표자거래&gt;대표자 인출금"(지출)과 짝을 이루는 "…인출금"(수입) 카테고리는
         실제 지출이 아니라 계정 간 자금 이동이라 아래 전체 합산에서 자동으로 상쇄돼.
@@ -3820,7 +3851,8 @@ export default function App(){
         <CardSettings cards={cards} onChange={handleCards}/>
       </Modal>
       <Modal open={modal==="flow"} onClose={()=>setModal(null)}>
-        <CashFlowView txs={txs} year={year} month={month} yearView={yearView} cards={cards}/>
+        <CashFlowView txs={txs} year={year} month={month} yearView={yearView} cards={cards}
+          setYear={setYear} setMonth={setMonth} setYearView={setYearView}/>
       </Modal>
       <Modal open={modal==="import"} onClose={()=>setModal(null)}>
         <CoupangImport onRegister={tx=>{ const n=[...txs,tx]; setTxs(n); save(TX_KEY,n); if(isConfigured()) sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))}).catch(console.error); }}/>
