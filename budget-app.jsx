@@ -2383,8 +2383,8 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
     const expense=etxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
     const settleOut=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1).reduce((s,t)=>s+t.amount,0);
     const settleIn=etxs.filter(t=>t.type==="income"&&t.cat2&&t.cat2.includes("인출금")).reduce((s,t)=>s+t.amount,0);
-    const principal=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1&&t.cat2==="대출원금상환").reduce((s,t)=>s+t.amount,0);
-    const interest=etxs.filter(t=>t.type==="expense"&&t.cat1==="운영비"&&t.cat2==="이자비용").reduce((s,t)=>s+t.amount,0);
+    const principal=etxs.filter(t=>t.type==="expense"&&((t.cat1===SETTLE_CAT1&&t.cat2==="대출원금상환")||(t.cat1==="지출-고정비"&&t.cat2==="원금상환"))).reduce((s,t)=>s+t.amount,0);
+    const interest=etxs.filter(t=>t.type==="expense"&&((t.cat1==="운영비"&&t.cat2==="이자비용")||(t.cat1==="지출-고정비"&&t.cat2==="이자"))).reduce((s,t)=>s+t.amount,0);
     const realExpense=expense-principal-interest;
     return {ek,income,expense,net:income-expense,settleOut,settleIn,principal,interest,realExpense};
   });
