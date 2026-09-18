@@ -1935,7 +1935,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
       {data.map((item)=>{
         const pct=Math.round((item.value/total)*100);
         const isOpen=expanded===item.name;
-        const subWithColors=item.sub.map((s,i)=>({...s,color:SUB_COLORS[i%SUB_COLORS.length]}));
+        const subWithColors=item.sub.map((s,i)=>({...s,color:SUB_COLORS[i%SUB_COLORS.length],chartValue:Math.abs(s.value)}));
         return(
           <div key={item.name} style={{background:C.white,borderRadius:"14px",border:`1px solid ${isOpen?item.color:C.border}`,overflow:"hidden",transition:"border-color 0.2s"}}>
             <button onClick={()=>{setExpanded(isOpen?null:item.name);setExpandedSub(null);}}
@@ -1958,7 +1958,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                     {subWithColors.length>1&&(
                       <ResponsiveContainer width="100%" height={140}>
                         <PieChart>
-                          <Pie data={subWithColors} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={2}>
+                          <Pie data={subWithColors} dataKey="chartValue" nameKey="name" cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={2}>
                             {subWithColors.map((s,i)=><Cell key={i} fill={s.color}/>)}
                           </Pie>
                           <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
@@ -1973,7 +1973,9 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                       const isSubOpen=expandedSub===subKey;
                       const subTxs=(item.cardId!==undefined
                         ?txs.filter(t=>(t.cardId||"__none__")===item.cardId&&catDisplayName(t.cat1)===s.name)
-                        :txs.filter(t=>(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)
+                        :txs.filter(t=>s.isRefund
+                          ?t.cat1===REFUND_CAT1||t.cat2==="환불"
+                          :(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)
                       ).sort((a,b)=>b.date.localeCompare(a.date));
                       const refundColor="#b5451b";
                       return(
@@ -2034,11 +2036,13 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   function buildBreakdown(filterFn){
     const m={};
     txs.filter(filterFn).forEach(t=>{
-      const isRefund=t.cat2==="환불";
+      const isRefund=t.cat1===REFUND_CAT1||t.cat2==="환불";
       const sign=isRefund?-1:1;
-      if(!m[t.cat1])m[t.cat1]={value:0,sub:{}};
-      m[t.cat1].value+=sign*t.amount;
-      m[t.cat1].sub[t.cat2]=(m[t.cat1].sub[t.cat2]||0)+sign*t.amount;
+      const cat1=isRefund?(entity==="cafe"?"매출":"수입"):t.cat1;
+      const cat2=isRefund?"환불":t.cat2;
+      if(!m[cat1])m[cat1]={value:0,sub:{}};
+      m[cat1].value+=sign*t.amount;
+      m[cat1].sub[cat2]=(m[cat1].sub[cat2]||0)+sign*t.amount;
     });
     return Object.entries(m).map(([name,d])=>({
       name:catDisplayName(name),rawName:name,value:d.value,color:tree[name]?.color||C.inkMid,
@@ -2046,7 +2050,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
     })).sort((a,b)=>b.value-a.value);
   }
 
-  const byIncome=useMemo(()=>buildBreakdown(t=>t.type==="income"),[txs,tree]);
+  const byIncome=useMemo(()=>buildBreakdown(t=>t.type==="income"||(t.type==="expense"&&t.cat1===REFUND_CAT1)),[txs,tree,entity]);
   const byExpense=useMemo(()=>buildBreakdown(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1),[txs,tree]);
   const byCard=useMemo(()=>{
     const m={};
