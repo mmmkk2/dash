@@ -2377,7 +2377,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
       .sort((a,b)=>b.date.localeCompare(a.date));
   },[periodTxs,drillCard]);
 
-  const rows=ENTITY_KEYS.map(ek=>{
+  const rows=ENTITY_KEYS.filter(ek=>ek!=="realty").map(ek=>{
     const etxs=periodTxs.filter(t=>t.entity===ek);
     const income=etxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
     const expense=etxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
@@ -2419,7 +2419,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
         </button>
       </div>
       <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
-        개인·카페·부동산 세 계정을 한 번에 봐. "대표자거래&gt;대표자 인출금"(지출)과 짝을 이루는 "…인출금"(수입) 카테고리는
+        개인·카페 두 계정을 한 번에 봐 (부동산매매는 거래 금액이 커서 현금흐름 왜곡이 심해 제외). "대표자거래&gt;대표자 인출금"(지출)과 짝을 이루는 "…인출금"(수입) 카테고리는
         실제 지출이 아니라 계정 간 자금 이동이라 아래 전체 합산에서 자동으로 상쇄돼.
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"10px",marginBottom:"18px"}}>
