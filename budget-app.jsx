@@ -2023,7 +2023,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
 
   const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0),[txs]);
   const saved=useMemo(()=>txs.filter(t=>t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
-  const expense=useMemo(()=>txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0),[txs]);
+  const expense=useMemo(()=>txs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1).reduce((s,t)=>s+t.amount,0),[txs]);
   const totalIn=incomeAmt+saved;
   const savingsRate=totalIn>0?Math.round((saved/totalIn)*100):0;
 
@@ -3668,7 +3668,7 @@ export default function App(){
   const entityTxs=useMemo(()=>txs.filter(t=>t.entity===entity),[txs,entity]);
   const realtyTags=useMemo(()=>[...new Set(txs.filter(t=>t.entity==="realty"&&t.cat3).map(t=>t.cat3))],[txs]);
   const income =useMemo(()=>viewTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0),[viewTxs]);
-  const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0),[viewTxs]);
+  const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1).reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const bal=income-expense;
   const ent=ENTITIES[entity];
 
