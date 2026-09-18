@@ -2379,7 +2379,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
 
   const rows=ENTITY_KEYS.filter(ek=>ek!=="realty").map(ek=>{
     const etxs=periodTxs.filter(t=>t.entity===ek);
-    const income=etxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const income=etxs.filter(t=>t.type==="income").reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0);
     const expense=etxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
     const settleOut=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1).reduce((s,t)=>s+t.amount,0);
     const settleIn=etxs.filter(t=>t.type==="income"&&t.cat2&&t.cat2.includes("인출금")).reduce((s,t)=>s+t.amount,0);
@@ -3667,7 +3667,7 @@ export default function App(){
   const viewTxs=useMemo(()=>txs.filter(t=>(yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey))&&t.entity===entity),[txs,monthKey,year,yearView,entity]);
   const entityTxs=useMemo(()=>txs.filter(t=>t.entity===entity),[txs,entity]);
   const realtyTags=useMemo(()=>[...new Set(txs.filter(t=>t.entity==="realty"&&t.cat3).map(t=>t.cat3))],[txs]);
-  const income =useMemo(()=>viewTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0),[viewTxs]);
+  const income =useMemo(()=>viewTxs.filter(t=>t.type==="income").reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0),[viewTxs]);
   const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1).reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const bal=income-expense;
   const ent=ENTITIES[entity];
