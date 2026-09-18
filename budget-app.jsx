@@ -2383,7 +2383,10 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
     const expense=etxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
     const settleOut=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1).reduce((s,t)=>s+t.amount,0);
     const settleIn=etxs.filter(t=>t.type==="income"&&t.cat2&&t.cat2.includes("인출금")).reduce((s,t)=>s+t.amount,0);
-    return {ek,income,expense,net:income-expense,settleOut,settleIn};
+    const principal=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1&&t.cat2==="대출원금상환").reduce((s,t)=>s+t.amount,0);
+    const interest=etxs.filter(t=>t.type==="expense"&&t.cat1==="운영비"&&t.cat2==="이자비용").reduce((s,t)=>s+t.amount,0);
+    const realExpense=expense-principal-interest;
+    return {ek,income,expense,net:income-expense,settleOut,settleIn,principal,interest,realExpense};
   });
   const totalIncome=rows.reduce((s,r)=>s+r.income,0);
   const totalExpense=rows.reduce((s,r)=>s+r.expense,0);
@@ -2432,6 +2435,23 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
               <span>수입 {fmt(r.income)}</span>
               <span>지출 {fmt(r.expense)}</span>
             </div>
+            {(r.principal>0||r.interest>0)&&(
+              <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,display:"flex",flexDirection:"column",gap:"3px",fontSize:"11px",color:C.inkLight}}>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
+                  <span>↳ 실지출(운영비 등)</span><span style={{color:C.ink,fontWeight:600}}>{fmt(r.realExpense)}</span>
+                </div>
+                {r.principal>0&&(
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span>↳ 원금상환 (손익 미반영)</span><span>{fmt(r.principal)}</span>
+                  </div>
+                )}
+                {r.interest>0&&(
+                  <div style={{display:"flex",justifyContent:"space-between"}}>
+                    <span>↳ 이자비용</span><span>{fmt(r.interest)}</span>
+                  </div>
+                )}
+              </div>
+            )}
             {(r.settleOut>0||r.settleIn>0)&&(
               <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,fontSize:"11px",color:C.inkLight}}>
                 {r.settleOut>0&&<div>↳ 대표자 인출로 내보냄: {fmt(r.settleOut)}</div>}
