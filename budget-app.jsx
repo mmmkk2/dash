@@ -2021,9 +2021,13 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const [expandedPropSub,setExpandedPropSub]=useState(null);
   const [lightbox,setLightbox]=useState(null);
 
-  const incomeAmt=useMemo(()=>txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0),[txs]);
+  const incomeAmt=useMemo(()=>{
+    const inc=txs.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0);
+    const refund=txs.filter(t=>t.type==="expense"&&t.cat1===REFUND_CAT1).reduce((s,t)=>s+t.amount,0);
+    return inc-refund;
+  },[txs]);
   const saved=useMemo(()=>txs.filter(t=>t.cat1.startsWith("저축")).reduce((s,t)=>s+t.amount,0),[txs]);
-  const expense=useMemo(()=>txs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1).reduce((s,t)=>s+t.amount,0),[txs]);
+  const expense=useMemo(()=>txs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1).reduce((s,t)=>s+t.amount,0),[txs]);
   const totalIn=incomeAmt+saved;
   const savingsRate=totalIn>0?Math.round((saved/totalIn)*100):0;
 
@@ -2043,7 +2047,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   }
 
   const byIncome=useMemo(()=>buildBreakdown(t=>t.type==="income"),[txs,tree]);
-  const byExpense=useMemo(()=>buildBreakdown(t=>t.type==="expense"),[txs,tree]);
+  const byExpense=useMemo(()=>buildBreakdown(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1),[txs,tree]);
   const byCard=useMemo(()=>{
     const m={};
     txs.filter(t=>t.type==="expense").forEach(t=>{
@@ -2343,6 +2347,7 @@ async function fetchGmailCoupang(token, since, until) {
 
 /* ── 전체 현금흐름 (개인/카페/부동산 통합, 계좌 간 이동은 자동 상쇄) ── */
 const SETTLE_CAT1 = "대표자거래";
+const REFUND_CAT1 = "환불";
 function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYearView}){
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   function prevPeriod(){
@@ -2379,8 +2384,9 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
 
   const rows=ENTITY_KEYS.filter(ek=>ek!=="realty").map(ek=>{
     const etxs=periodTxs.filter(t=>t.entity===ek);
-    const income=etxs.filter(t=>t.type==="income").reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0);
-    const expense=etxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+    const refund=etxs.filter(t=>t.type==="expense"&&t.cat1===REFUND_CAT1).reduce((s,t)=>s+t.amount,0);
+    const income=etxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0)-refund;
+    const expense=etxs.filter(t=>t.type==="expense"&&t.cat1!==REFUND_CAT1).reduce((s,t)=>s+t.amount,0);
     const settleOut=etxs.filter(t=>t.type==="expense"&&t.cat1===SETTLE_CAT1).reduce((s,t)=>s+t.amount,0);
     const settleIn=etxs.filter(t=>t.type==="income"&&t.cat2&&t.cat2.includes("인출금")).reduce((s,t)=>s+t.amount,0);
     const principal=etxs.filter(t=>t.type==="expense"&&((t.cat1===SETTLE_CAT1&&t.cat2==="대출원금상환")||(t.cat1==="지출-고정비"&&t.cat2==="원금상환"))).reduce((s,t)=>s+t.amount,0);
@@ -3667,8 +3673,12 @@ export default function App(){
   const viewTxs=useMemo(()=>txs.filter(t=>(yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey))&&t.entity===entity),[txs,monthKey,year,yearView,entity]);
   const entityTxs=useMemo(()=>txs.filter(t=>t.entity===entity),[txs,entity]);
   const realtyTags=useMemo(()=>[...new Set(txs.filter(t=>t.entity==="realty"&&t.cat3).map(t=>t.cat3))],[txs]);
-  const income =useMemo(()=>viewTxs.filter(t=>t.type==="income").reduce((s,t)=>t.cat2==="환불"?s-t.amount:s+t.amount,0),[viewTxs]);
-  const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1).reduce((s,t)=>s+t.amount,0),[viewTxs]);
+  const income =useMemo(()=>{
+    const inc=viewTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const refund=viewTxs.filter(t=>t.type==="expense"&&t.cat1===REFUND_CAT1).reduce((s,t)=>s+t.amount,0);
+    return inc-refund;
+  },[viewTxs]);
+  const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1).reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const bal=income-expense;
   const ent=ENTITIES[entity];
 
