@@ -109,6 +109,15 @@ function isConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON && !SUPABASE_ANON.includes("여기에"));
 }
 
+const saleCalc = sale => {
+  const lots = sale.lots || [];
+  const shares = lots.reduce((s, l) => s + Number(l.shares || 0), 0) || Number(sale.shares || 0);
+  const grossKrw = Math.round(shares * Number(sale.salePriceUsd || 0) * Number(sale.saleRate || 0));
+  const feeKrw = Math.round(Number(sale.feesUsd || 0) * Number(sale.saleRate || 0));
+  const costKrw = Math.round(lots.reduce((s, l) => s + Number(l.shares || 0) * Number(l.costBasisUsd || 0) * Number(l.acquisitionRate || 0), 0));
+  return { shares, grossKrw, feeKrw, costKrw, gainKrw: grossKrw - feeKrw - costKrw };
+};
+
 async function sb(path, opts = {}) {
   if (!SUPABASE_URL || !SUPABASE_ANON) return null;
   const { data: { session } } = await supabase.auth.getSession();
@@ -1372,7 +1381,7 @@ function VestingBatchForm({ onSave }) {
     const stocksToAdd = autoPortfolio
       ? rows.filter(r => r.vested && r.vestPrice && parseFloat(r.vestPrice) > 0 && parseInt(r.shares) > 0)
           .map((r, i) => ({
-            id: base + 1000 + i, ticker: tkr, name: tkr, market: "US",
+            id: base + 1000 + i, ticker: tkr, name: nm, market: "US",
             shares: parseInt(r.shares), avgPrice: parseFloat(r.vestPrice),
             currentPrice: null, lastFetched: null,
             purchaseDate: r.date, purchaseRate: null,
@@ -1507,6 +1516,76 @@ function VestingBatchForm({ onSave }) {
 }
 
 /* ── Main ── */
+function StockSaleForm({ stocks, onSave, saving }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const lots = stocks.filter(s => s.ticker.toUpperCase() === "AMAT" && s.shares > 0);
+  const [saleDate, setSaleDate] = useState(today);
+  const [salePriceUsd, setSalePriceUsd] = useState("");
+  const [feesUsd, setFeesUsd] = useState("");
+  const [saleRate, setSaleRate] = useState("");
+  const [orderRef, setOrderRef] = useState("");
+  const [memo, setMemo] = useState("");
+  const [selected, setSelected] = useState({});
+  const [error, setError] = useState("");
+  const [rateLoading, setRateLoading] = useState(false);
+  const input = { width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 9, padding: "9px 10px", fontSize: 13, boxSizing: "border-box", fontFamily: F };
+  const loadRate = async () => { setRateLoading(true); try { setSaleRate(String(await fetchRateOnDate(saleDate))); } catch { setError("환율을 불러오지 못했어요."); } finally { setRateLoading(false); } };
+  const submit = async () => {
+    const picked = lots.filter(s => Number(selected[s.id]?.shares) > 0).map(s => ({
+      stockId: s.id, sourceName: s.name, sourceType: /espp|^ESP/i.test(s.name) ? "ESPP" : "RSU",
+      acquisitionDate: s.purchaseDate, shares: Number(selected[s.id].shares), costBasisUsd: s.avgPrice,
+      acquisitionRate: Number(selected[s.id].rate || s.purchaseRate || 0), availableShares: s.shares,
+    }));
+    if (!saleDate || !Number(salePriceUsd) || !Number(saleRate) || !picked.length) return setError("매도일·체결가·환율·매도 lot를 확인해줘.");
+    if (picked.some(l => l.shares > l.availableShares || !l.acquisitionRate)) return setError("매도수량 또는 취득환율이 비어 있거나 보유수량을 초과했어.");
+    setError("");
+    try { await onSave({ id: `sale-${Date.now()}`, ticker: "AMAT", saleDate, salePriceUsd: Number(salePriceUsd), feesUsd: Number(feesUsd || 0), saleRate: Number(saleRate), orderRef: orderRef.trim(), memo: memo.trim(), status: "complete", lots: picked }); }
+    catch (e) { setError(e?.message || "매도 처리 중 오류가 났어."); }
+  };
+  return <div style={{ fontFamily: F }}>
+    <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>AMAT 매도 처리</div>
+    <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>UBS Order Summary의 lot별 수량대로 선택해줘.</div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+      <div><SLabel>매도일</SLabel><input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} style={input} /></div>
+      <div><SLabel>체결가 USD</SLabel><input inputMode="decimal" value={salePriceUsd} onChange={e => setSalePriceUsd(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /></div>
+      <div><SLabel>수수료 USD</SLabel><input inputMode="decimal" value={feesUsd} onChange={e => setFeesUsd(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /></div>
+      <div><SLabel>매도환율</SLabel><div style={{ display: "flex", gap: 5 }}><input inputMode="decimal" value={saleRate} onChange={e => setSaleRate(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /><button onClick={loadRate} style={{ border: 0, borderRadius: 8, padding: "0 9px", background: C.cream, color: C.inkMid, fontSize: 10 }}>{rateLoading ? "…" : "조회"}</button></div></div>
+    </div>
+    <div style={{ marginBottom: 10 }}><SLabel>주문번호</SLabel><input value={orderRef} onChange={e => setOrderRef(e.target.value)} placeholder="Q520… (여러 건이면 쉼표)" style={input} /></div>
+    <SLabel>매도 LOT</SLabel>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+      {lots.map(s => { const on = selected[s.id] != null; return <div key={s.id} style={{ border: `1px solid ${on ? "#2d6a4f88" : C.border}`, borderRadius: 10, padding: 9, background: on ? "#f0fdf4" : C.white }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={on} onChange={e => setSelected(p => { const n = { ...p }; if (e.target.checked) n[s.id] = { shares: String(s.shares), rate: String(s.purchaseRate || "") }; else delete n[s.id]; return n; })} />
+          <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700 }}>{s.name}</div><div style={{ fontSize: 10, color: C.inkLight }}>{s.purchaseDate} · 보유 {s.shares}주 · ${s.avgPrice.toFixed(3)}</div></div>
+        </div>
+        {on && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}><input inputMode="decimal" value={selected[s.id].shares} onChange={e => setSelected(p => ({ ...p, [s.id]: { ...p[s.id], shares: e.target.value.replace(/[^0-9.]/g, "") } }))} placeholder="매도수량" style={input} /><input inputMode="decimal" value={selected[s.id].rate} onChange={e => setSelected(p => ({ ...p, [s.id]: { ...p[s.id], rate: e.target.value.replace(/[^0-9.]/g, "") } }))} placeholder="취득환율" style={input} /></div>}
+      </div>; })}
+    </div>
+    <div style={{ marginBottom: 12 }}><SLabel>메모</SLabel><input value={memo} onChange={e => setMemo(e.target.value)} style={input} /></div>
+    {error && <div style={{ color: "#b5451b", fontSize: 11, marginBottom: 9 }}>{error}</div>}
+    <button onClick={submit} disabled={saving} style={{ width: "100%", border: 0, borderRadius: 11, padding: 13, background: "#2d6a4f", color: "#fff", fontWeight: 800, fontFamily: F }}>{saving ? "처리 중…" : "보유량 차감 + 매도 기록"}</button>
+  </div>;
+}
+
+function TaxReportView({ sales, year = 2026 }) {
+  const yearSales = sales.filter(s => String(s.saleDate || "").startsWith(String(year)));
+  const complete = yearSales.filter(s => s.status === "complete");
+  const totals = complete.reduce((a, s) => { const c = saleCalc(s); Object.keys(a).forEach(k => a[k] += c[k] || 0); return a; }, { shares: 0, grossKrw: 0, feeKrw: 0, costKrw: 0, gainKrw: 0 });
+  const taxable = Math.max(0, totals.gainKrw - 2500000), tax = Math.round(taxable * 0.22);
+  return <div style={{ fontFamily: F }}>
+    <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>{year} AMAT 양도소득 리포트</div>
+    <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 14 }}>해외주식 전체 기본공제 250만원 · 예상세율 22%</div>
+    {yearSales.some(s => s.status !== "complete") && <div style={{ padding: 10, borderRadius: 9, background: "#fff8f0", border: "1px solid #f4c5b2", color: "#b5451b", fontSize: 11, marginBottom: 12 }}>미완성 거래가 있어 아래 합계는 확정 전이야. 미완성 거래는 합계에서 제외했어.</div>}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 14 }}>
+      {[["매도대금", totals.grossKrw], ["취득원가", totals.costKrw], ["수수료", totals.feeKrw], ["양도차익", totals.gainKrw], ["과세표준", taxable], ["예상세액", tax]].map(([l, v]) => <div key={l} style={{ padding: 10, background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9 }}><div style={{ fontSize: 10, color: C.inkLight }}>{l}</div><div style={{ fontSize: 14, fontWeight: 800, color: l === "예상세액" ? "#b5451b" : C.ink }}>{fmt(v)}</div></div>)}
+    </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+      {yearSales.sort((a,b) => b.saleDate.localeCompare(a.saleDate)).map(s => { const c = saleCalc(s); return <details key={s.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 11px", background: C.white }}><summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 700 }}>{s.saleDate} · {c.shares}주 · {s.status === "complete" ? `${c.gainKrw >= 0 ? "+" : ""}${fmt(c.gainKrw)}` : "상세 확인 필요"}</summary><div style={{ marginTop: 8, fontSize: 11, color: C.inkMid, lineHeight: 1.65 }}>체결가 ${s.salePriceUsd || "—"} · 수수료 ${s.feesUsd || 0} · 환율 {s.saleRate || "—"}<br />주문 {s.orderRef || "—"}{(s.lots || []).map((l,i) => <div key={i} style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${C.border}` }}>{l.sourceName} · {l.acquisitionDate} · {l.shares}주 · 원가 ${l.costBasisUsd} · 취득환율 {l.acquisitionRate}</div>)}</div></details>; })}
+    </div>
+  </div>;
+}
+
 export default function AssetsApp() {
   const [assets,   setAssets]   = useState([]);
   const [stocks,   setStocks]   = useState([]);
@@ -1529,6 +1608,8 @@ export default function AssetsApp() {
   const [snapshots,     setSnapshots]     = useState([]);
   const [vestings,      setVestings]      = useState([]);
   const [offerings,     setOfferings]     = useState([]);
+  const [stockSales,    setStockSales]    = useState([]);
+  const [saleSaving,    setSaleSaving]    = useState(false);
   const [openHoldings,  setOpenHoldings]  = useState(new Set());
   const [openDCAccts,   setOpenDCAccts]   = useState(new Set());
   const [dcEtfInst,     setDcEtfInst]     = useState("");
@@ -1576,6 +1657,7 @@ export default function AssetsApp() {
         const byKey = Object.fromEntries(dbSettings.map(r => [r.key, r.value]));
         if (byKey.cats?.length) setCats(byKey.cats);
         if (byKey.usdKrw)      setUsdKrw(byKey.usdKrw);
+        if (Array.isArray(byKey.stock_sales)) setStockSales(byKey.stock_sales);
       }
       if (dbSnaps)     setSnapshots(dbSnaps.map(fromDbSnap));
       if (dbVestings)  setVestings(dbVestings.map(fromDbVesting));
@@ -1750,11 +1832,11 @@ export default function AssetsApp() {
     setVestings(p => p.map(x => x.id === v.id ? v : x));
     setModal(null); setEditItem(null);
     upsertVesting(v);
-    // 보유에서 수정한 경우 연결된 stock의 avgPrice/shares 싱크
+    // 베스팅 이력 수량은 매도 후에도 원본으로 유지한다. 연결 lot은 취득가만 동기화한다.
     if (v.vested && v.vestPrice != null) {
-      const linked = stocks.find(s => s.ticker.toUpperCase() === v.ticker.toUpperCase() && s.purchaseDate === v.vestDate && !/espp/i.test(s.name));
-      if (linked && (linked.avgPrice !== v.vestPrice || linked.shares !== v.shares)) {
-        const updated = { ...linked, avgPrice: v.vestPrice, shares: v.shares };
+      const linked = stocks.find(s => s.ticker.toUpperCase() === v.ticker.toUpperCase() && s.name === v.name && s.purchaseDate === v.vestDate);
+      if (linked && linked.avgPrice !== v.vestPrice) {
+        const updated = { ...linked, avgPrice: v.vestPrice };
         setStocks(p => p.map(x => x.id === linked.id ? updated : x));
         upsertStock(updated);
       }
@@ -1769,8 +1851,7 @@ export default function AssetsApp() {
   }
   function deleteGrant(name) {
     const grantVestings = vestings.filter(v => v.name === name);
-    const vestDates     = new Set(grantVestings.filter(v => v.vested).map(v => v.vestDate));
-    const stocksToKill  = stocks.filter(s => s.ticker.toUpperCase() === "AMAT" && !/espp/i.test(s.name) && vestDates.has(s.purchaseDate));
+    const stocksToKill  = stocks.filter(s => s.ticker.toUpperCase() === "AMAT" && s.name === name);
     const vestingIds    = grantVestings.map(v => v.id);
     const stockIds      = stocksToKill.map(s => s.id);
     setVestings(p => p.filter(v => v.name !== name));
@@ -1785,7 +1866,7 @@ export default function AssetsApp() {
     setVestings(p => p.map(x => x.id === item.id ? updated : x));
     sb(`vesting_schedule?id=eq.${item.id}`, { method: "PATCH", body: JSON.stringify({ vest_price: vestPrice, vested: true }), prefer: "return=minimal" }).catch(() => {});
     if (addToPortfolio) {
-      const stock = { id: Date.now(), ticker: item.ticker, name: item.ticker, market: "US", shares: item.shares, avgPrice: vestPrice, currentPrice: null, lastFetched: null, purchaseDate: item.vestDate, purchaseRate: rate || null, institution: item.institution, accountSuffix: item.accountSuffix };
+      const stock = { id: Date.now(), ticker: item.ticker, name: item.name, market: "US", shares: item.shares, avgPrice: vestPrice, currentPrice: null, lastFetched: null, purchaseDate: item.vestDate, purchaseRate: rate || null, institution: item.institution, accountSuffix: item.accountSuffix };
       addStock(stock);
     } else { setModal(null); setEditItem(null); }
   }
@@ -1811,6 +1892,37 @@ export default function AssetsApp() {
   function addStock(s)    { setStocks(p => [...p, s]); setModal(null); upsertStock(s); }
   function updateStock(s) { setStocks(p => p.map(x => x.id === s.id ? s : x)); setModal(null); setEditItem(null); upsertStock(s); }
   function deleteStock(id){ setStocks(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`stocks?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
+
+  async function persistSales(next) {
+    if (isConfigured()) await sb("settings", { method: "POST", body: JSON.stringify({ key: "stock_sales", value: next }), prefer: "resolution=merge-duplicates,return=minimal" });
+  }
+  async function processStockSale(sale) {
+    setSaleSaving(true);
+    const pending = { ...sale, status: "pending" };
+    const withPending = [...stockSales, pending];
+    try {
+      await persistSales(withPending);
+      const nextStocks = [...stocks];
+      for (const lot of sale.lots) {
+        const idx = nextStocks.findIndex(s => String(s.id) === String(lot.stockId));
+        if (idx < 0 || lot.shares <= 0 || lot.shares > nextStocks[idx].shares) throw new Error("보유 lot 수량이 변경됐어요. 새로고침 후 다시 시도해줘.");
+        const remain = Number((nextStocks[idx].shares - lot.shares).toFixed(6));
+        if (isConfigured()) {
+          if (remain <= 0) await sb(`stocks?id=eq.${nextStocks[idx].id}`, { method: "DELETE", prefer: "return=minimal" });
+          else await sb(`stocks?id=eq.${nextStocks[idx].id}`, { method: "PATCH", body: JSON.stringify({ shares: remain }), prefer: "return=minimal" });
+        }
+        if (remain <= 0) nextStocks.splice(idx, 1); else nextStocks[idx] = { ...nextStocks[idx], shares: remain };
+      }
+      const completed = { ...sale, status: "complete" };
+      const finalSales = [...stockSales, completed];
+      await persistSales(finalSales);
+      setStocks(nextStocks); setStockSales(finalSales); setModal(null); markSaved();
+    } catch (e) {
+      console.error("[processStockSale]", e);
+      setStockSales(withPending);
+      throw e;
+    } finally { setSaleSaving(false); }
+  }
 
   /* ── CRUD: assets ── */
   function addAsset(a)    { setAssets(p => [...p, a]); setModal(null); upsertAsset(a); }
@@ -2557,10 +2669,12 @@ export default function AssetsApp() {
 
           const amatPrice    = amatStocks.length > 0 ? (prices[amatStocks[0].id] ?? amatStocks[0].currentPrice) : null;
           const allRsuVestedDates = new Set(vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").map(v => v.vestDate));
-          const amatRsuShares  = vestings.filter(v => v.vested && v.ticker.toUpperCase() === "AMAT").reduce((s, v) => s + v.shares, 0);
-          const amatEsppStocks = amatStocks.filter(s => /espp/i.test(s.name) || !allRsuVestedDates.has(s.purchaseDate));
+          const isEsppLot = s => /espp|^ESP/i.test(s.name);
+          const amatEsppStocks = amatStocks.filter(isEsppLot);
+          const amatRsuStocks  = amatStocks.filter(s => !isEsppLot(s));
+          const amatRsuShares  = amatRsuStocks.reduce((s, x) => s + x.shares, 0);
           const amatEsppShares = amatEsppStocks.reduce((s, x) => s + x.shares, 0);
-          const amatShares   = amatRsuShares + amatEsppShares;
+          const amatShares   = amatStocks.reduce((s, x) => s + x.shares, 0);
           const amatValueUsd = amatPrice ? amatPrice * amatShares : null;
           const amatValue    = amatValueUsd != null ? Math.round(amatValueUsd * rate) : null;
           const amatCostUsd  = amatStocks.reduce((s, x) => s + x.avgPrice * x.shares, 0);
@@ -2582,6 +2696,9 @@ export default function AssetsApp() {
             return db.localeCompare(da);
           });
           const toggleHolding = name => setOpenHoldings(p => { const n = new Set(p); n.has(name) ? n.delete(name) : n.add(name); return n; });
+          const amatYearSales = stockSales.filter(s => s.ticker === "AMAT" && String(s.saleDate || "").startsWith("2026"));
+          const completeSaleGain = amatYearSales.filter(s => s.status === "complete").reduce((sum, s) => sum + saleCalc(s).gainKrw, 0);
+          const estimatedTax = Math.round(Math.max(0, completeSaleGain - 2500000) * 0.22);
 
           return (
             <>
@@ -2619,6 +2736,17 @@ export default function AssetsApp() {
                   </div>
                 </div>
               )}
+
+              <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>2026 양도소득 리포트</div>
+                    <div style={{ fontSize: 11, color: C.inkLight, marginTop: 3 }}>{amatYearSales.length}건 · 확인분 양도차익 {completeSaleGain >= 0 ? "+" : ""}{fmtS(completeSaleGain)} · 예상세액 {fmtS(estimatedTax)}</div>
+                  </div>
+                  <button onClick={() => setModal("taxReport")} style={{ border: `1px solid ${C.border}`, background: C.paper, borderRadius: 8, padding: "7px 10px", color: C.inkMid, fontSize: 11, fontWeight: 700 }}>상세</button>
+                  <button onClick={() => setModal("stockSale")} style={{ border: 0, background: "#2d6a4f", borderRadius: 8, padding: "8px 11px", color: "#fff", fontSize: 11, fontWeight: 800 }}>매도 처리</button>
+                </div>
+              </div>
 
               {/* ─ 누적 베스팅 가치 차트 ─ */}
               {amatPrice && amatUnvested.length > 0 && (() => {
@@ -2673,7 +2801,10 @@ export default function AssetsApp() {
                   const futures   = amatUnvested.filter(v => v.name === grantName);
                   if (vestedVestings.length === 0 && futures.length === 0) return null;
                   const isOpen    = openHoldings.has(grantName);
-                  const heldSh    = vestedVestings.reduce((s, v) => s + v.shares, 0);
+                  const namedGrantStocks = amatRsuStocks.filter(s => s.name === grantName);
+                  const fallbackGrantStocks = namedGrantStocks.length ? [] : amatRsuStocks.filter(s => !/^AMK/i.test(s.name) && gvs.some(v => v.vested && v.vestDate === s.purchaseDate && Math.abs(v.shares - s.shares) < 0.5));
+                  const grantStocks = [...namedGrantStocks, ...fallbackGrantStocks];
+                  const heldSh    = grantStocks.reduce((s, x) => s + x.shares, 0);
                   const futureSh  = futures.reduce((s, v) => s + v.shares, 0);
                   const nextVest  = futures[0];
                   const dl        = nextVest ? Math.ceil((new Date(nextVest.vestDate) - new Date()) / 86400000) : null;
@@ -2725,12 +2856,14 @@ export default function AssetsApp() {
                         <div style={{ borderTop: `1px solid ${C.border}` }}>
                           {/* 베스팅 기반 보유 행 */}
                           {vestedVestings.map((v, vi) => {
-                            const linkedStock = amatStocks.find(s => s.purchaseDate === v.vestDate && Math.abs(s.shares - v.shares) < 0.5);
+                            const linkedStock = amatRsuStocks.find(s => s.name === grantName && s.purchaseDate === v.vestDate)
+                              || amatRsuStocks.find(s => !/^AMK/i.test(s.name) && s.purchaseDate === v.vestDate && Math.abs(s.shares - v.shares) < 0.5);
+                            const heldForVest = linkedStock?.shares || 0;
                             const p        = linkedStock ? (prices[linkedStock.id] ?? linkedStock.currentPrice) : null;
                             const costUsd  = v.vestPrice ?? v.grantPrice;
                             const purchRate = linkedStock?.purchaseRate ?? rate;
-                            const valKrw   = p ? Math.round(p * v.shares * rate) : null;
-                            const costKrw  = costUsd ? Math.round(costUsd * v.shares * purchRate) : null;
+                            const valKrw   = p ? Math.round(p * heldForVest * rate) : null;
+                            const costKrw  = costUsd && heldForVest ? Math.round(costUsd * heldForVest * purchRate) : null;
                             const gain     = valKrw != null && costKrw != null ? valKrw - costKrw : null;
                             const gainPct  = costKrw && costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
                             const gainColor = gain != null && gain >= 0 ? "#2d6a4f" : "#b5451b";
@@ -2738,7 +2871,7 @@ export default function AssetsApp() {
                               <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: vi < vestedVestings.length - 1 || futures.length > 0 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid }}>{v.shares}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid }}>베스팅 {v.shares}주 · 현재 {heldForVest}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                                   <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}{p ? <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>${(p * v.shares).toFixed(0)}</span> : null}</div>
@@ -2992,6 +3125,12 @@ export default function AssetsApp() {
       </Modal>
       <Modal open={modal === "editOffering" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <EsppForm initial={editItem} onSave={s => { updateStock(s); }} onDelete={() => { deleteStock(editItem.id); }} />}
+      </Modal>
+      <Modal open={modal === "stockSale"} onClose={() => setModal(null)}>
+        <StockSaleForm stocks={stocks} onSave={processStockSale} saving={saleSaving} />
+      </Modal>
+      <Modal open={modal === "taxReport"} onClose={() => setModal(null)}>
+        <TaxReportView sales={stockSales} year={2026} />
       </Modal>
 
       {/* Build time footer */}
