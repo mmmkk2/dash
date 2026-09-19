@@ -1208,18 +1208,19 @@ function EsppForm({ initial, onSave, onDelete }) {
   const defaultPlanId = init.accountSuffix || (init.name && !/^\s*AMAT\s*\(ESPP\)\s*$/i.test(init.name) ? init.name : "");
   const [planId,   setPlanId]   = useState(defaultPlanId);
   const [date,     setDate]     = useState(init.purchaseDate  || "");
-  const [shares,   setShares]   = useState(init.shares        ? String(init.shares) : "");
+  const [shares,   setShares]   = useState(init.shares != null ? String(init.shares) : "");
   const [avgPrice, setAvgPrice] = useState(init.avgPrice      ? String(init.avgPrice) : "");
   const [err, setErr] = useState(false);
   const isEdit = !!onDelete;
 
   function submit() {
     const sh = parseInt(shares);
+    const shOk = isEdit ? Number.isInteger(sh) && sh >= 0 : sh > 0;
     const ap = parseFloat(avgPrice);
-    if (!date || !sh || sh <= 0 || !ap || ap <= 0) {
+    if (!date || !shOk || !ap || ap <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
-    onSave({ id: init.id || Date.now(), ticker: "AMAT", name: "AMAT (ESPP)", market: "US", shares: sh, avgPrice: ap, currentPrice: null, lastFetched: null, purchaseDate: date, purchaseRate: null, institution: init.institution || "UBS", accountSuffix: planId.trim() });
+    onSave({ id: init.id || Date.now(), ticker: "AMAT", name: "AMAT (ESPP)", market: "US", shares: sh, avgPrice: ap, currentPrice: init.currentPrice ?? null, lastFetched: init.lastFetched ?? null, purchaseDate: date, purchaseRate: init.purchaseRate ?? null, institution: init.institution || "UBS", accountSuffix: planId.trim() });
   }
 
   return (
