@@ -230,7 +230,8 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
   function submit() {
     const sh = parseFloat(String(shares).replace(/,/g, ""));
     const ap = parseFloat(String(avgPrice).replace(/,/g, ""));
-    if (!ticker.trim() || !sh || sh <= 0 || !ap || ap <= 0) {
+    const shOk = isEdit ? Number.isFinite(sh) && sh >= 0 : Number.isFinite(sh) && sh > 0;
+    if (!ticker.trim() || !shOk || !ap || ap <= 0) {
       setErr(true); setTimeout(() => setErr(false), 400); return;
     }
     const pr = purchaseRate ? parseFloat(purchaseRate) : null;
@@ -282,7 +283,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
         <div>
           <SLabel>보유수량</SLabel>
           <input type="text" inputMode="decimal" value={shares} onChange={e => setShares(e.target.value)} placeholder="0"
-            style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(shares) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
+            style={{ width: "100%", border: `1.5px solid ${err && !(isEdit ? shares !== "" && parseFloat(shares) >= 0 : parseFloat(shares) > 0) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
         </div>
         <div>
           <SLabel>평균단가 ({market === "US" ? "USD" : "KRW"})</SLabel>
