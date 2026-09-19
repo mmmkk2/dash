@@ -1565,6 +1565,16 @@ function StockSaleForm({ stocks, onSave, saving }) {
       </div>; })}
     </div>
     <div style={{ marginBottom: 12 }}><SLabel>메모</SLabel><input value={memo} onChange={e => setMemo(e.target.value)} style={input} /></div>
+    {Number(salePriceUsd) > 0 && Number(saleRate) > 0 && Object.keys(selected).length > 0 && (() => {
+      const shares  = Object.values(selected).reduce((s, v) => s + Number(v.shares || 0), 0);
+      const grossKrw = Math.round(shares * Number(salePriceUsd) * Number(saleRate));
+      const feeKrw   = Math.round(Number(feesUsd || 0) * Number(saleRate));
+      const costKrw  = lots.reduce((s, l) => { const sel = selected[l.id]; if (!sel) return s; return s + Math.round(Number(sel.shares || 0) * l.avgPrice * Number(sel.rate || l.purchaseRate || 0)); }, 0);
+      const gainKrw  = grossKrw - feeKrw - costKrw;
+      return <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 11px", background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9, marginBottom: 12, fontSize: 11, color: C.inkMid }}>
+        <span>매도대금 {fmtS(grossKrw)}</span><span>원가 {fmtS(costKrw)}</span><span style={{ color: gainKrw >= 0 ? "#2d6a4f" : "#b5451b", fontWeight: 700 }}>{gainKrw >= 0 ? "+" : ""}{fmtS(gainKrw)}</span>
+      </div>;
+    })()}
     {error && <div style={{ color: "#b5451b", fontSize: 11, marginBottom: 9 }}>{error}</div>}
     <button onClick={submit} disabled={saving} style={{ width: "100%", border: 0, borderRadius: 11, padding: 13, background: "#2d6a4f", color: "#fff", fontWeight: 800, fontFamily: F }}>{saving ? "처리 중…" : "보유량 차감 + 매도 기록"}</button>
   </div>;
@@ -1583,7 +1593,7 @@ function TaxReportView({ sales, year = 2026 }) {
       {[["매도대금", totals.grossKrw], ["취득원가", totals.costKrw], ["수수료", totals.feeKrw], ["양도차익", totals.gainKrw], ["과세표준", taxable], ["예상세액", tax]].map(([l, v]) => <div key={l} style={{ padding: 10, background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9 }}><div style={{ fontSize: 10, color: C.inkLight }}>{l}</div><div style={{ fontSize: 14, fontWeight: 800, color: l === "예상세액" ? "#b5451b" : C.ink }}>{fmt(v)}</div></div>)}
     </div>
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      {yearSales.sort((a,b) => b.saleDate.localeCompare(a.saleDate)).map(s => { const c = saleCalc(s); return <details key={s.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 11px", background: C.white }}><summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 700 }}>{s.saleDate} · {c.shares}주 · {s.status === "complete" ? `${c.gainKrw >= 0 ? "+" : ""}${fmt(c.gainKrw)}` : "상세 확인 필요"}</summary><div style={{ marginTop: 8, fontSize: 11, color: C.inkMid, lineHeight: 1.65 }}>체결가 ${s.salePriceUsd || "—"} · 수수료 ${s.feesUsd || 0} · 환율 {s.saleRate || "—"}<br />주문 {s.orderRef || "—"}{(s.lots || []).map((l,i) => <div key={i} style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${C.border}` }}>{l.sourceName} · {l.acquisitionDate} · {l.shares}주 · 원가 ${l.costBasisUsd} · 취득환율 {l.acquisitionRate}</div>)}</div></details>; })}
+      {yearSales.sort((a,b) => b.saleDate.localeCompare(a.saleDate)).map(s => { const c = saleCalc(s); return <details key={s.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 11px", background: C.white }}><summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 700 }}>{s.saleDate} · {c.shares}주 · {s.status === "complete" ? `${c.gainKrw >= 0 ? "+" : ""}${fmt(c.gainKrw)}` : "상세 확인 필요"}</summary><div style={{ marginTop: 8, fontSize: 11, color: C.inkMid, lineHeight: 1.65 }}>체결가 ${s.salePriceUsd || "—"} · 수수료 ${s.feesUsd || 0} · 환율 {s.saleRate || "—"} <span style={{ color: C.inkLight }}>(매도대금 {fmt(c.grossKrw)} · 수수료 {fmt(c.feeKrw)})</span><br />주문 {s.orderRef || "—"}{(s.lots || []).map((l,i) => <div key={i} style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${C.border}` }}>{l.sourceName} · {l.acquisitionDate} · {l.shares}주 · 원가 ${l.costBasisUsd} · 취득환율 {l.acquisitionRate} <span style={{ color: C.inkLight }}>(원가 {fmt(Math.round(Number(l.shares || 0) * Number(l.costBasisUsd || 0) * Number(l.acquisitionRate || 0)))})</span></div>)}</div></details>; })}
     </div>
   </div>;
 }
@@ -2968,11 +2978,12 @@ export default function AssetsApp() {
                                     {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: "#2469b3" }}>{s.accountSuffix || s.name}</span>}
                                   </div>
                                   <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
-                                    {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)}</span>
+                                    {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)} ({fmtS(costKrw)})</span>
                                   </div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  {valUsd && <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
+                                  {valKrw != null && <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(valKrw)}</div>}
+                                  {valUsd && <div style={{ fontSize: 10, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
                                   {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                 </div>
                                 <button onClick={() => { setEditItem(s); setModal("editOffering"); }}
