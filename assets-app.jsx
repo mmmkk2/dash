@@ -2935,69 +2935,87 @@ export default function AssetsApp() {
                     </div>
                   );
                 })}
-                {/* ESPP */}
+                {/* ESPP — 매수일자별 분리 */}
                 {(() => {
-                  const esppStocks  = amatStocks.filter(s => /espp/i.test(s.name) || !allRsuVestedDates.has(s.purchaseDate)).sort((a, b) => (b.purchaseDate || "").localeCompare(a.purchaseDate || ""));
+                  const esppStocks = amatStocks.filter(s => /espp/i.test(s.name) || !allRsuVestedDates.has(s.purchaseDate));
                   if (esppStocks.length === 0) return null;
-                  const isOpen      = openHoldings.has("__ESPP__");
-                  const totalSh     = esppStocks.reduce((s, x) => s + x.shares, 0);
-                  const esppPrice   = amatPrice;
-                  const totalUsd    = esppPrice ? esppPrice * totalSh : null;
-                  const latestDate  = esppStocks[0]?.purchaseDate;
-                  return (
-                    <div style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                      <button onClick={() => toggleHolding("__ESPP__")} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>ESPP</span>
-                              {latestDate && <span style={{ fontSize: 10, color: C.inkLight }}>{latestDate}</span>}
+                  const esppGroups = {};
+                  esppStocks.forEach(s => { const k = s.purchaseDate || "—"; (esppGroups[k] = esppGroups[k] || []).push(s); });
+                  const esppEntries = Object.entries(esppGroups).sort(([a], [b]) => b.localeCompare(a));
+                  return esppEntries.map(([purchaseDate, group]) => {
+                    const key       = `__ESPP_${purchaseDate}__`;
+                    const isOpen    = openHoldings.has(key);
+                    const totalSh   = group.reduce((s, x) => s + x.shares, 0);
+                    const totalUsd  = amatPrice ? amatPrice * totalSh : null;
+                    const totalCostKrw = group.reduce((s, x) => s + Math.round(x.avgPrice * x.shares * (x.purchaseRate ?? rate)), 0);
+                    const totalValKrw  = amatPrice ? Math.round(amatPrice * totalSh * rate) : null;
+                    const totalGain    = totalValKrw != null ? totalValKrw - totalCostKrw : null;
+                    const totalGainPct = totalCostKrw > 0 && totalGain != null ? ((totalGain / totalCostKrw) * 100).toFixed(1) : null;
+                    const label     = group[0].accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(group[0].name) && group[0].name) || "";
+                    return (
+                      <div key={key} style={{ background: C.white, borderRadius: 13, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+                        <button onClick={() => toggleHolding(key)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "11px 14px", fontFamily: F, textAlign: "left" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: "#2469b3" }}>ESPP</span>
+                                <span style={{ fontSize: 10, color: C.inkLight }}>{purchaseDate}</span>
+                                {label && <span style={{ fontSize: 11, fontWeight: 600, color: "#2469b3" }}>{label}</span>}
+                              </div>
+                              <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                                <span style={{ fontWeight: 700, color: C.inkMid }}>{totalSh}주</span>
+                                {totalUsd && <span style={{ marginLeft: 6 }}>${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>}
+                              </div>
                             </div>
-                            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
-                              <span style={{ fontWeight: 700, color: C.inkMid }}>{totalSh}주</span>
-                              {totalUsd && <span style={{ marginLeft: 6 }}>${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>}
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              {totalValKrw != null && <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(totalValKrw)}</div>}
+                              {totalGain != null && (
+                                <div style={{ fontSize: 10, color: totalGain >= 0 ? "#2d6a4f" : "#b5451b", fontVariantNumeric: "tabular-nums" }}>
+                                  {totalGain >= 0 ? "+" : ""}{fmtS(totalGain)}{totalGainPct != null ? ` (${totalGainPct}%)` : ""}
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </button>
-                      {isOpen && (
-                        <div style={{ borderTop: `1px solid ${C.border}` }}>
-                          {esppStocks.map((s, si) => {
-                            const p        = prices[s.id] ?? s.currentPrice;
-                            const valUsd   = p ? p * s.shares : null;
-                            const costKrw  = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
-                            const valKrw   = p ? Math.round(p * s.shares * rate) : null;
-                            const gain     = valKrw != null ? valKrw - costKrw : null;
-                            const gainPct  = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
-                            const gainColor = gain != null && gain >= 0 ? "#2d6a4f" : "#b5451b";
-                            return (
-                              <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: si < esppStocks.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
-                                    {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: "#2469b3" }}>{s.accountSuffix || s.name}</span>}
+                        </button>
+                        {isOpen && (
+                          <div style={{ borderTop: `1px solid ${C.border}` }}>
+                            {group.map((s, si) => {
+                              const p        = prices[s.id] ?? s.currentPrice;
+                              const valUsd   = p ? p * s.shares : null;
+                              const costKrw  = Math.round(s.avgPrice * s.shares * (s.purchaseRate ?? rate));
+                              const valKrw   = p ? Math.round(p * s.shares * rate) : null;
+                              const gain     = valKrw != null ? valKrw - costKrw : null;
+                              const gainPct  = costKrw > 0 && gain != null ? ((gain / costKrw) * 100).toFixed(1) : null;
+                              const gainColor = gain != null && gain >= 0 ? "#2d6a4f" : "#b5451b";
+                              return (
+                                <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: si < group.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                      <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
+                                      {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: "#2469b3" }}>{s.accountSuffix || s.name}</span>}
+                                    </div>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
+                                      {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)} ({fmtS(costKrw)})</span>
+                                    </div>
                                   </div>
-                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
-                                    {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)} ({fmtS(costKrw)})</span>
+                                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                    {valKrw != null && <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(valKrw)}</div>}
+                                    {valUsd && <div style={{ fontSize: 10, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
+                                    {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                   </div>
+                                  <button onClick={() => { setEditItem(s); setModal("editOffering"); }}
+                                    style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                                    <Pencil size={10} />
+                                  </button>
                                 </div>
-                                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  {valKrw != null && <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(valKrw)}</div>}
-                                  {valUsd && <div style={{ fontSize: 10, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
-                                  {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
-                                </div>
-                                <button onClick={() => { setEditItem(s); setModal("editOffering"); }}
-                                  style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
-                                  <Pencil size={10} />
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
                 })()}
               </div>
 
