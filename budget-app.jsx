@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, Receipt, MoreHorizontal } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -3974,21 +3974,22 @@ export default function App(){
                   borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
                   <CreditCard size={14}/>
                 </button>
-                <button onClick={()=>setModal("taxdoc")} title="세무자료 체크리스트 (개인/카페/부동산 통합)" style={{
-                  position:"relative",
-                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                  borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
-                  <Receipt size={14}/>
-                  {taxDocIds.length>0&&<span style={{position:"absolute",top:"-5px",right:"-5px",
-                    background:"#e07a5f",color:"#fff",borderRadius:"99px",minWidth:"16px",height:"16px",
-                    fontSize:"9px",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
-                    padding:"0 3px",fontFamily:"'Inter',sans-serif"}}>{taxDocIds.length}</span>}
+                <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
+                  background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
+                  borderRadius:"10px",padding:"7px 12px",color:"rgba(255,255,255,0.75)",cursor:"pointer",
+                  fontSize:"12px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>
+                  자산
                 </button>
                 <button onClick={()=>setShowMore(v=>!v)} title="더보기" style={{
+                  position:"relative",
                   background:showMore?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                   borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",
                   alignItems:"center",fontSize:"13px",lineHeight:1,flexShrink:0}}>
                   <MoreHorizontal size={14}/>
+                  {taxDocIds.length>0&&<span style={{position:"absolute",top:"-5px",right:"-5px",
+                    background:"#e07a5f",color:"#fff",borderRadius:"99px",minWidth:"16px",height:"16px",
+                    fontSize:"9px",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
+                    padding:"0 3px",fontFamily:"'Inter',sans-serif"}}>{taxDocIds.length}</span>}
                 </button>
                 {showMore&&<>
                   <div onClick={()=>setShowMore(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
@@ -3998,7 +3999,7 @@ export default function App(){
                     {[
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
-                      {label:"자산 관리",emoji:"💰",action:()=>window.location.href="/assets"},
+                      {label:`세무자료 체크리스트${taxDocIds.length>0?` (${taxDocIds.length})`:""}`,emoji:"🧾",action:()=>setModal("taxdoc")},
                       {label:"로그아웃",emoji:"🚪",action:handleLogout},
                     ].map(item=>(
                       <button key={item.label} onClick={()=>{setShowMore(false);item.action();}} style={{
