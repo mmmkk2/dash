@@ -227,11 +227,11 @@ const DEFAULT_CARDS = [
 
 const CARD_COLORS = ["#1a1410","#1d4e89","#2d6a4f","#b5451b","#7b2d00","#4a1942","#0077b6","#831843","#b8860b","#4a3f35"];
 
-// 월 실적(전월실적) 기준 카드 — 카드명으로 매칭
+// 월 실적(전월실적) 기준 카드 — 카드 ID로 매칭 (이름이 바뀌어도 안 깨지도록)
 const CARD_PERFORMANCE_GOALS = {
-  "KT NU Plus 우리": 400000,
-  "네이버 현대": 300000,
-  "카카오뱅크 BUSINESS 현대": 500000,
+  "c5": 400000, // KT NU Plus 우리
+  "c6": 300000, // 네이버 현대
+  "c4": 500000, // 카카오뱅크 BUSINESS 현대
 };
 
 const fmt  = n => n.toLocaleString("ko-KR")+"원";
@@ -2552,7 +2552,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
       <SLabel>전체 카드별 지출 (개인·카페·부동산매매 합산)</SLabel>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
         {byCardAll.map(c=>{
-          const goal=CARD_PERFORMANCE_GOALS[c.name];
+          const goal=CARD_PERFORMANCE_GOALS[c.id];
           const pct=goal?Math.min(100,Math.round(c.value/goal*100)):0;
           const met=goal&&c.value>=goal;
           return(
