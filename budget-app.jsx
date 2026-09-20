@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, Receipt } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -1464,7 +1464,7 @@ function PropTagDropdown({tags, value, onChange}){
   );
 }
 
-function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
+function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], onToggleTaxDoc}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
   const isRealty=entity==="realty";
   const [tagFilter,setTagFilter]=useState("전체");
@@ -1609,6 +1609,9 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
                       {tx.isFixed&&<span style={{fontSize:"9px",background:"#fff8f0",color:"#b5451b",
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
                         border:"1px solid #f4c5b2"}}>반복</span>}
+                      {taxDocIds.includes(tx.id)&&<span style={{fontSize:"9px",background:"#eef6ff",color:"#1d4e89",
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:"'Inter',sans-serif",
+                        border:"1px solid #bcd6f2"}}>세무자료</span>}
                       {card&&<span style={{fontSize:"9px",background:card.color+"14",color:card.color,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{card.name}</span>}
                     </div>
@@ -1618,6 +1621,11 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[]}){
                     fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
+                  {onToggleTaxDoc&&<button onClick={e=>{e.stopPropagation();onToggleTaxDoc(tx.id);}}
+                    title="세무자료 체크" style={{flexShrink:0,display:"flex",border:"none",background:"none",
+                    cursor:"pointer",padding:"2px",color:taxDocIds.includes(tx.id)?"#1d4e89":C.border}}>
+                    <Receipt size={14}/>
+                  </button>}
                   <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
                 </div>
               );
@@ -2627,6 +2635,67 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
   );
 }
 
+function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
+  const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
+  const flagged=useMemo(()=>
+    txs.filter(t=>taxDocIds.includes(t.id)).sort((a,b)=>b.date.localeCompare(a.date)),
+    [txs,taxDocIds]);
+  const total=flagged.reduce((s,t)=>s+(t.type==="income"?t.amount:t.amount),0);
+  return(
+    <div>
+      <SLabel>세무자료 체크리스트 (개인·앤딩스터디카페·부동산매매 통합)</SLabel>
+      <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
+        거래 목록에서 영수증 아이콘을 눌러 체크하면 여기 모여요. 세금 신고 때 이 화면만 확인하면 빠뜨리는 항목 없이 챙길 수 있어요. 제출 끝난 항목은 아이콘을 다시 눌러 체크 해제하세요.
+      </div>
+      {flagged.length===0?(
+        <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
+          <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>🧾</div>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color:C.inkMid,marginBottom:"4px"}}>체크된 항목이 없어요</div>
+          <div style={{fontSize:"12px",color:C.inkLight}}>내역에서 영수증 아이콘을 눌러 추가해보세요</div>
+        </div>
+      ):(
+        <>
+          <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"14px"}}>
+            {flagged.map(tx=>{
+              const card=tx.cardId?cardMap[tx.cardId]:null;
+              const ent=ENTITIES[tx.entity];
+              return(
+                <div key={tx.id} onClick={()=>onEdit(tx)} style={{display:"flex",alignItems:"center",gap:"10px",
+                  padding:"11px 12px",background:C.white,border:`1px solid ${C.border}`,borderRadius:"12px",cursor:"pointer"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
+                      <span style={{fontSize:"10px",color:ent?.color||C.inkLight,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{ent?.label||tx.entity}</span>
+                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.date}</span>
+                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.cat1} · {tx.cat2}</span>
+                    </div>
+                    <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif",
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
+                    {card&&<div style={{fontSize:"9px",color:card.color,marginTop:"2px",fontFamily:"'Inter',sans-serif"}}>{card.name}</div>}
+                  </div>
+                  <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,
+                    color:tx.type==="income"?"#2d6a4f":"#b5451b",fontFamily:"'Inter',sans-serif"}}>
+                    {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
+                  </div>
+                  <button onClick={e=>{e.stopPropagation();onToggle(tx.id);}} title="체크 해제"
+                    style={{flexShrink:0,display:"flex",border:"none",background:"none",cursor:"pointer",
+                    padding:"4px",color:"#1d4e89"}}>
+                    <Receipt size={15}/>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{background:C.ink,borderRadius:"16px",padding:"16px 18px",color:"#fff",
+            display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+            <div style={{fontSize:"12px",opacity:0.8}}>체크된 항목 {flagged.length}건</div>
+            <div style={{fontSize:"18px",fontWeight:800}}>{fmt(total)}</div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function parseMailSnippets(snippets) {
   return snippets.map(({ date, snippet }) => {
     const amtAll = [...snippet.matchAll(/(\d{1,3}(?:,\d{3})+|\d{4,})\s*원/g)]
@@ -3584,6 +3653,7 @@ export default function App(){
   const [cards, setCards] =useState(DEFAULT_CARDS);
   const [trees, setTrees] =useState(loadTrees);
   const [supplies, setSupplies] = useState([]);
+  const [taxDocIds, setTaxDocIds] = useState([]);
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
@@ -3638,6 +3708,14 @@ export default function App(){
     }
   }
 
+  function toggleTaxDoc(id){
+    setTaxDocIds(prev=>{
+      const next=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];
+      if(isConfigured()) sb("settings",{method:"POST",body:JSON.stringify({key:"tax_doc_ids",value:next}),prefer:"resolution=merge-duplicates,return=minimal"}).catch(()=>{});
+      return next;
+    });
+  }
+
   // URL 주소 변경(뒤로가기/링크 진입) → entity 동기화
   useEffect(()=>{ setEntity(SLUG_ENTITY[routeParams.entity||""]||"personal"); }, [routeParams.entity]);
 
@@ -3657,15 +3735,17 @@ export default function App(){
     if(!isConfigured())return;
     setLoading(true);
     try{
-      const [rows, cardRows, supplyRows, settingsRows] = await Promise.all([
+      const [rows, cardRows, supplyRows, settingsRows, taxDocRows] = await Promise.all([
         sb("transactions?select=*&order=date.desc"),
         sb("cards?select=*&order=sort_order.asc"),
         sb("supplies?select=*&order=created_at.asc"),
         sb("settings?select=*&key=eq.trees"),
+        sb("settings?select=*&key=eq.tax_doc_ids"),
       ]);
       setTxs(rows.map(rowToTx));
       if(cardRows.length) setCards(cardRows.map(rowToCard));
       setSupplies(supplyRows);
+      setTaxDocIds(taxDocRows?.[0]?.value||[]);
       const dbTrees = settingsRows?.[0]?.value;
       if(dbTrees){
         TREES=dbTrees; setTrees(dbTrees);
@@ -3762,6 +3842,7 @@ export default function App(){
       if(tx?.images?.length) await deleteTxImages(tx.images).catch(()=>{});
       await sb(`transactions?id=eq.${id}`,{method:"DELETE",prefer:"return=minimal"});
       setTxs(p=>p.filter(t=>t.id!==id));
+      if(taxDocIds.includes(id)) toggleTaxDoc(id);
     }catch(e){console.error(e);}
     finally{setSaving(false);setModal(null);setEditTx(null);}
   }
@@ -3883,6 +3964,16 @@ export default function App(){
                   borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
                   <CreditCard size={14}/>
                 </button>
+                <button onClick={()=>setModal("taxdoc")} title="세무자료 체크리스트 (개인/카페/부동산 통합)" style={{
+                  position:"relative",
+                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
+                  <Receipt size={14}/>
+                  {taxDocIds.length>0&&<span style={{position:"absolute",top:"-5px",right:"-5px",
+                    background:"#e07a5f",color:"#fff",borderRadius:"99px",minWidth:"16px",height:"16px",
+                    fontSize:"9px",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
+                    padding:"0 3px",fontFamily:"'Inter',sans-serif"}}>{taxDocIds.length}</span>}
+                </button>
                 <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
                   background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
                   borderRadius:"10px",padding:"7px 12px",color:"rgba(255,255,255,0.75)",cursor:"pointer",
@@ -3999,7 +4090,7 @@ export default function App(){
             <RefreshCw size={20} className="spin" style={{marginBottom:"8px",display:"block",margin:"0 auto 10px"}}/> 불러오는 중...
           </div>
           :<div className="fade-in" key={entity+tab}>
-            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies}/>
+            {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
 :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
@@ -4025,6 +4116,10 @@ export default function App(){
       </Modal>
       <Modal open={modal==="import"} onClose={()=>setModal(null)}>
         <CoupangImport onRegister={tx=>{ const n=[...txs,tx]; setTxs(n); save(TX_KEY,n); if(isConfigured()) sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))}).catch(console.error); }}/>
+      </Modal>
+      <Modal open={modal==="taxdoc"} onClose={()=>setModal(null)}>
+        <TaxDocChecklist txs={txs} taxDocIds={taxDocIds} onToggle={toggleTaxDoc} cards={cards}
+          onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
       </Modal>
       <Modal open={modal==="theme"} onClose={()=>setModal(null)}>
         <ThemePicker current={themeKey} onChange={k=>{changeTheme(k);setModal(null);}}/>
