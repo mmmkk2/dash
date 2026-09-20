@@ -2441,8 +2441,9 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
   const [drillCard,setDrillCard]=useState(null); // {name,color} | null
 
   const byCardAll=useMemo(()=>{
+    const cashCardId=cards.find(c=>c.name==="현금")?.id;
     const m={};
-    periodTxs.filter(t=>t.type==="expense").forEach(t=>{
+    periodTxs.filter(t=>t.type==="expense"&&t.cardId!==cashCardId).forEach(t=>{
       const k=t.cardId||"__none__";
       if(!m[k])m[k]={value:0};
       m[k].value+=t.amount;
