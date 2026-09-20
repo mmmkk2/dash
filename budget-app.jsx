@@ -378,6 +378,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [vendor,setVendor]=useState(_initVendor);
   const [vendorOpen,setVendorOpen]=useState(false);
   const [knownVendors]=useState(()=>loadVendors());
+  const [isInstallment,setIsInstallment]=useState(false);
+  const [installmentMonths,setInstallmentMonths]=useState("");
   const [isSupply,setIsSupply]=useState(false);
   const [supplyName,setSupplyName]=useState("");
   const [supplyCat,setSupplyCat]=useState("소모품");
@@ -443,11 +445,13 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       }catch(e){console.error("image upload failed",e);}
       finally{setUploadingImages(false);}
     }
+    const months=(!isEdit&&!isIncome&&isInstallment)?parseInt(installmentMonths):0;
     onSave({id:txId,entity,cat1,cat2,cat3:cat3||"",
       amount:num,memo:finalMemo,date,cardId,
       isFixed,fixedDay:isFixed&&fixedDay?parseInt(fixedDay):null,
       type:isIncome?"income":"expense",supplyData,
-      images:[...existingImages,...uploadedPaths]});
+      images:[...existingImages,...uploadedPaths],
+      installmentMonths:months>1?months:null});
   }
 
   return(
@@ -768,6 +772,69 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           </div>
         )}
       </div>
+
+      {/* 할부 toggle — 신규 지출 등록 시에만 */}
+      {!isEdit&&!isIncomeCat&&(
+        <div style={{marginBottom:"12px"}}>
+          <button onClick={()=>setIsInstallment(v=>!v)} style={{
+            display:"flex",alignItems:"center",gap:"10px",width:"100%",
+            background:isInstallment?"#eff6ff":"#fff",
+            border:`1.5px solid ${isInstallment?"#2563eb":C.border}`,
+            borderRadius:isInstallment?"12px 12px 0 0":"12px",padding:"11px 14px",cursor:"pointer",transition:"all 0.2s"}}>
+            <div style={{width:"38px",height:"22px",borderRadius:"99px",flexShrink:0,
+              background:isInstallment?"#2563eb":C.border,position:"relative",transition:"background 0.2s"}}>
+              <div style={{width:"16px",height:"16px",borderRadius:"50%",background:"#fff",
+                position:"absolute",top:"3px",transition:"left 0.2s",
+                left:isInstallment?"19px":"3px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+            </div>
+            <div style={{flex:1,textAlign:"left"}}>
+              <div style={{fontSize:"13px",fontWeight:600,color:isInstallment?"#2563eb":C.inkMid,fontFamily:"'Inter',sans-serif"}}>할부</div>
+              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
+                {isInstallment?"매달 분할된 거래로 자동 등록":"일시불"}
+              </div>
+            </div>
+          </button>
+          {isInstallment&&(()=>{
+            const num=parseInt(String(amount).replace(/,/g,""))||0;
+            const months=parseInt(installmentMonths)||0;
+            const per=months>1?Math.floor(num/months):0;
+            return(
+              <div style={{background:"#eff6ff",border:"1.5px solid #2563eb",borderTop:"1px solid #bfdbfe",
+                borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+                  <div style={{fontSize:"11px",fontWeight:600,color:"#2563eb",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                    개월수
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
+                    {[2,3,4,5,6,10,12].map(m=>{
+                      const sel=parseInt(installmentMonths)===m;
+                      return(
+                        <button key={m} onClick={()=>setInstallmentMonths(sel?"":String(m))} style={{
+                          padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                          border:`1.5px solid ${sel?"#2563eb":"#bfdbfe"}`,
+                          background:sel?"#2563eb":"#fff",color:sel?"#fff":"#2563eb",
+                          fontFamily:"'Inter',sans-serif"}}>
+                          {m}개월
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="number" value={installmentMonths} onChange={e=>setInstallmentMonths(e.target.value)}
+                    placeholder="직접입력" min="2" max="36"
+                    style={{width:"70px",border:"1.5px solid #bfdbfe",borderRadius:"8px",
+                      padding:"5px 8px",fontSize:"12px",color:"#2563eb",outline:"none",
+                      background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
+                </div>
+                {months>1&&num>0&&(
+                  <div style={{fontSize:"11px",color:"#2563eb",marginTop:"8px",fontFamily:"'Inter',sans-serif"}}>
+                    월 {per.toLocaleString("ko-KR")}원 × {months}개월로 나눠서 매달 등록돼요
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* 소모품 매칭 안내 (토글 off 상태에서도 표시) */}
       {showSupplyToggle&&!isSupply&&(()=>{
@@ -3608,11 +3675,26 @@ export default function App(){
 
   /* ── TX CRUD ── */
   async function addTx(tx){
-    const {supplyData,...txData}=tx;
+    const {supplyData,installmentMonths,...txData}=tx;
     setSaving(true);
     try{
-      const [row]=await sb("transactions",{method:"POST",body:JSON.stringify(txToRow(txData))});
-      setTxs(p=>[rowToTx(row),...p]);
+      if(installmentMonths&&installmentMonths>1){
+        const base=Math.floor(txData.amount/installmentMonths);
+        const remainder=txData.amount-base*installmentMonths;
+        const rows=Array.from({length:installmentMonths},(_,i)=>{
+          const d=new Date(txData.date);
+          d.setMonth(d.getMonth()+i);
+          return txToRow({...txData,id:txData.id+i,
+            amount:i===0?base+remainder:base,
+            memo:`${txData.memo} (${i+1}/${installmentMonths} 할부)`,
+            date:d.toISOString().slice(0,10)});
+        });
+        const inserted=await sb("transactions",{method:"POST",body:JSON.stringify(rows)});
+        setTxs(p=>[...inserted.map(rowToTx),...p]);
+      }else{
+        const [row]=await sb("transactions",{method:"POST",body:JSON.stringify(txToRow(txData))});
+        setTxs(p=>[rowToTx(row),...p]);
+      }
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
