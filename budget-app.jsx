@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, Receipt } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, Receipt, MoreHorizontal } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -3648,6 +3648,7 @@ export default function App(){
   const [entity,setEntity]=useState(urlEntity);
   const [tab,   setTab]   =useState("list");
   const [modal, setModal] =useState(null);
+  const [showMore,setShowMore]=useState(false);
   const [editTx,setEditTx]=useState(null);
   const [txs,   setTxs]   =useState([]);
   const [cards, setCards] =useState(DEFAULT_CARDS);
@@ -3938,20 +3939,7 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
-              <div style={{display:"flex",gap:"5px"}}>
-                <button onClick={()=>setModal("theme")} title="테마 변경" style={{
-                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                  borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",
-                  cursor:"pointer",display:"flex",alignItems:"center",
-                  fontSize:"13px",lineHeight:1,flexShrink:0}}>
-                  {THEMES[themeKey].emoji}
-                </button>
-                <button onClick={()=>setModal("cats")} title="카테고리 관리" style={{
-                  background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
-                  borderRadius:"10px",padding:"6px 9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",
-                  fontSize:"11px",fontWeight:600,display:"flex",alignItems:"center",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",flexShrink:0}}>
-                  CAT
-                </button>
+              <div style={{display:"flex",gap:"5px",position:"relative"}}>
                 <button onClick={()=>setModal("flow")} title="전체 현금흐름 (개인/카페/부동산 통합)" style={{
                   background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                   borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",
@@ -3959,7 +3947,7 @@ export default function App(){
                   fontSize:"13px",lineHeight:1,flexShrink:0}}>
                   🔀
                 </button>
-                <button onClick={()=>setModal("cards")} style={{
+                <button onClick={()=>setModal("cards")} title="카드 관리" style={{
                   background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
                   borderRadius:"10px",padding:"9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",flexShrink:0}}>
                   <CreditCard size={14}/>
@@ -3974,20 +3962,35 @@ export default function App(){
                     fontSize:"9px",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",
                     padding:"0 3px",fontFamily:"'Inter',sans-serif"}}>{taxDocIds.length}</span>}
                 </button>
-                <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
-                  background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
-                  borderRadius:"10px",padding:"7px 12px",color:"rgba(255,255,255,0.75)",cursor:"pointer",
-                  fontSize:"12px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>
-                  자산
+                <button onClick={()=>setShowMore(v=>!v)} title="더보기" style={{
+                  background:showMore?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
+                  borderRadius:"10px",padding:"7px 9px",color:"rgba(255,255,255,0.6)",cursor:"pointer",display:"flex",
+                  alignItems:"center",fontSize:"13px",lineHeight:1,flexShrink:0}}>
+                  <MoreHorizontal size={14}/>
                 </button>
+                {showMore&&<>
+                  <div onClick={()=>setShowMore(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
+                  <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:41,
+                    background:"#fff",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.25)",
+                    padding:"6px",minWidth:"160px",display:"flex",flexDirection:"column",gap:"2px"}}>
+                    {[
+                      {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
+                      {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
+                      {label:"자산 관리",emoji:"💰",action:()=>window.location.href="/assets"},
+                      {label:"로그아웃",emoji:"🚪",action:handleLogout},
+                    ].map(item=>(
+                      <button key={item.label} onClick={()=>{setShowMore(false);item.action();}} style={{
+                        display:"flex",alignItems:"center",gap:"8px",background:"none",border:"none",
+                        padding:"9px 10px",borderRadius:"8px",cursor:"pointer",textAlign:"left",
+                        fontSize:"13px",fontWeight:500,color:"#3d2b20",fontFamily:"'Inter',sans-serif"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="#f5f0e8"}
+                        onMouseLeave={e=>e.currentTarget.style.background="none"}>
+                        <span style={{fontSize:"14px"}}>{item.emoji}</span>{item.label}
+                      </button>
+                    ))}
+                  </div>
+                </>}
               </div>
-              <button onClick={handleLogout} title="로그아웃" style={{
-                background:"none",border:"none",padding:0,
-                color:"rgba(255,255,255,0.25)",cursor:"pointer",
-                fontSize:"9px",fontWeight:600,fontFamily:"'Inter',sans-serif",
-                letterSpacing:"0.08em"}}>
-                LOG OUT
-              </button>
             </div>
           </div>
 
