@@ -2447,12 +2447,13 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
     const m={};
     periodTxs.filter(t=>t.type==="expense"&&isNotableCash(t)).forEach(t=>{
       const k=t.cardId||"__none__";
-      if(!m[k])m[k]={value:0};
+      if(!m[k])m[k]={value:0,byEntity:{}};
       m[k].value+=t.amount;
+      m[k].byEntity[t.entity]=(m[k].byEntity[t.entity]||0)+t.amount;
     });
     return Object.entries(m).map(([id,d])=>{
       const card=cards.find(c=>c.id===id);
-      return{id,name:card?card.name:"미지정",value:d.value,color:card?card.color:C.inkLight};
+      return{id,name:card?card.name:"미지정",value:d.value,color:card?card.color:C.inkLight,byEntity:d.byEntity};
     }).sort((a,b)=>b.value-a.value);
   },[periodTxs,cards]);
   const cardTotal=byCardAll.reduce((s,c)=>s+c.value,0)||1;
@@ -2563,6 +2564,11 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
               <div style={{fontSize:"11px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
               <div style={{fontSize:"12px",fontWeight:700,color:C.ink}}>{fmt(c.value)}</div>
             </div>
+            {c.byEntity&&Object.keys(c.byEntity).length>1&&(
+              <div style={{fontSize:"10px",color:C.inkLight,paddingLeft:"18px"}}>
+                {ENTITY_KEYS.filter(ek=>c.byEntity[ek]>0).map(ek=>`${ENTITIES[ek]?.label||ek} ${fmt(c.byEntity[ek])}`).join(" · ")}
+              </div>
+            )}
             {goal&&(
               <div>
                 <div style={{height:"5px",borderRadius:"3px",background:C.cream,overflow:"hidden"}}>
