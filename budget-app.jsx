@@ -445,7 +445,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       }catch(e){console.error("image upload failed",e);}
       finally{setUploadingImages(false);}
     }
-    const months=(!isEdit&&!isIncome&&isInstallment)?parseInt(installmentMonths):0;
+    const months=(!isIncome&&isInstallment)?parseInt(installmentMonths):0;
     onSave({id:txId,entity,cat1,cat2,cat3:cat3||"",
       amount:num,memo:finalMemo,date,cardId,
       isFixed,fixedDay:isFixed&&fixedDay?parseInt(fixedDay):null,
@@ -773,8 +773,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         )}
       </div>
 
-      {/* 할부 toggle — 신규 지출 등록 시에만 */}
-      {!isEdit&&!isIncomeCat&&(
+      {/* 할부 toggle — 지출 등록/수정 모두. 수정 시 켜면 기존 거래를 지우고 분할 재등록 */}
+      {!isIncomeCat&&(
         <div style={{marginBottom:"12px"}}>
           <button onClick={()=>setIsInstallment(v=>!v)} style={{
             display:"flex",alignItems:"center",gap:"10px",width:"100%",
@@ -790,7 +790,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             <div style={{flex:1,textAlign:"left"}}>
               <div style={{fontSize:"13px",fontWeight:600,color:isInstallment?"#2563eb":C.inkMid,fontFamily:"'Inter',sans-serif"}}>할부</div>
               <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
-                {isInstallment?"매달 분할된 거래로 자동 등록":"일시불"}
+                {isInstallment?(isEdit?"저장 시 이 거래를 지우고 매달 분할로 재등록":"매달 분할된 거래로 자동 등록"):"일시불"}
               </div>
             </div>
           </button>
@@ -3709,11 +3709,28 @@ export default function App(){
     finally{setSaving(false);setModal(null);}
   }
   async function updateTx(tx){
-    const {supplyData,...txData}=tx;
+    const {supplyData,installmentMonths,...txData}=tx;
     setSaving(true);
     try{
-      await sb(`transactions?id=eq.${txData.id}`,{method:"PATCH",body:JSON.stringify(txToRow(txData)),prefer:"return=minimal"});
-      setTxs(p=>p.map(t=>t.id===txData.id?txData:t));
+      if(installmentMonths&&installmentMonths>1){
+        const origId=txData.id;
+        const base=Math.floor(txData.amount/installmentMonths);
+        const remainder=txData.amount-base*installmentMonths;
+        const rows=Array.from({length:installmentMonths},(_,i)=>{
+          const d=new Date(txData.date);
+          d.setMonth(d.getMonth()+i);
+          return txToRow({...txData,id:Date.now()+i,
+            amount:i===0?base+remainder:base,
+            memo:`${txData.memo} (${i+1}/${installmentMonths} 할부)`,
+            date:d.toISOString().slice(0,10)});
+        });
+        const inserted=await sb("transactions",{method:"POST",body:JSON.stringify(rows)});
+        await sb(`transactions?id=eq.${origId}`,{method:"DELETE",prefer:"return=minimal"});
+        setTxs(p=>[...inserted.map(rowToTx),...p.filter(t=>t.id!==origId)]);
+      }else{
+        await sb(`transactions?id=eq.${txData.id}`,{method:"PATCH",body:JSON.stringify(txToRow(txData)),prefer:"return=minimal"});
+        setTxs(p=>p.map(t=>t.id===txData.id?txData:t));
+      }
       if(supplyData){
         const existing=supplies.find(s=>s.name===supplyData.name);
         if(existing){
