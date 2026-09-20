@@ -227,6 +227,13 @@ const DEFAULT_CARDS = [
 
 const CARD_COLORS = ["#1a1410","#1d4e89","#2d6a4f","#b5451b","#7b2d00","#4a1942","#0077b6","#831843","#b8860b","#4a3f35"];
 
+// 월 실적(전월실적) 기준 카드 — 카드명으로 매칭
+const CARD_PERFORMANCE_GOALS = {
+  "KT NU Plus 우리": 400000,
+  "네이버 현대": 300000,
+  "카카오뱅크 BUSINESS 현대": 500000,
+};
+
 const fmt  = n => n.toLocaleString("ko-KR")+"원";
 const fmtS = n => n.toLocaleString("ko-KR")+"원";
 const MONTHS    = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -2473,15 +2480,32 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
       </div>
       <SLabel>전체 카드별 지출 (개인·카페 합산, 부동산매매 제외)</SLabel>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
-        {byCardAll.map(c=>(
-          <div key={c.name} onClick={()=>setDrillCard(c)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
+        {byCardAll.map(c=>{
+          const goal=CARD_PERFORMANCE_GOALS[c.name];
+          const pct=goal?Math.min(100,Math.round(c.value/goal*100)):0;
+          const met=goal&&c.value>=goal;
+          return(
+          <div key={c.name} onClick={()=>setDrillCard(c)} style={{display:"flex",flexDirection:"column",gap:"6px",padding:"9px 12px",
             background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px",cursor:"pointer"}}>
-            <div style={{width:"8px",height:"8px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
-            <div style={{flex:1,fontSize:"12px",fontFamily:"'Inter',sans-serif",color:C.ink}}>{c.name}</div>
-            <div style={{fontSize:"11px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
-            <div style={{fontSize:"12px",fontWeight:700,color:C.ink}}>{fmt(c.value)}</div>
+            <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <div style={{width:"8px",height:"8px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
+              <div style={{flex:1,fontSize:"12px",fontFamily:"'Inter',sans-serif",color:C.ink}}>{c.name}</div>
+              <div style={{fontSize:"11px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
+              <div style={{fontSize:"12px",fontWeight:700,color:C.ink}}>{fmt(c.value)}</div>
+            </div>
+            {goal&&(
+              <div>
+                <div style={{height:"5px",borderRadius:"3px",background:C.cream,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${pct}%`,borderRadius:"3px",background:met?"#2d6a4f":c.color,transition:"width 0.2s"}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:"3px",fontSize:"10px",color:met?"#2d6a4f":C.inkLight,fontWeight:met?700:400}}>
+                  <span>{met?"실적 달성":"실적 목표"} {fmt(goal)}</span>
+                  <span>{pct}%</span>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+        );})}
       </div>
 
       <Modal open={!!drillCard} onClose={()=>setDrillCard(null)}>
