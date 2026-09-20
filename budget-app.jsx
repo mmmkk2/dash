@@ -1622,9 +1622,12 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
                   {onToggleTaxDoc&&<button onClick={e=>{e.stopPropagation();onToggleTaxDoc(tx.id);}}
-                    title="세무자료 체크" style={{flexShrink:0,display:"flex",border:"none",background:"none",
-                    cursor:"pointer",padding:"2px",color:taxDocIds.includes(tx.id)?"#1d4e89":C.border}}>
-                    <Receipt size={14}/>
+                    title={tx.isFixed?"세무자료 체크 (같은 이름의 반복 거래 전체에 적용)":"세무자료 체크"}
+                    style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                    width:"20px",height:"20px",borderRadius:"6px",cursor:"pointer",
+                    border:`1.5px solid ${taxDocIds.includes(tx.id)?"#1d4e89":C.border}`,
+                    background:taxDocIds.includes(tx.id)?"#1d4e89":"transparent"}}>
+                    {taxDocIds.includes(tx.id)&&<Check size={13} color="#fff" strokeWidth={3}/>}
                   </button>}
                   <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
                 </div>
@@ -2645,13 +2648,13 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
     <div>
       <SLabel>세무자료 체크리스트 (개인·앤딩스터디카페·부동산매매 통합)</SLabel>
       <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
-        거래 목록에서 영수증 아이콘을 눌러 체크하면 여기 모여요. 세금 신고 때 이 화면만 확인하면 빠뜨리는 항목 없이 챙길 수 있어요. 제출 끝난 항목은 아이콘을 다시 눌러 체크 해제하세요.
+        거래 목록에서 체크박스를 눌러 체크하면 여기 모여요. 반복지출/반복수입은 같은 이름의 다른 달 거래도 함께 체크·해제돼요. 세금 신고 때 이 화면만 확인하면 빠뜨리는 항목 없이 챙길 수 있어요. 제출 끝난 항목은 체크박스를 다시 눌러 해제하세요.
       </div>
       {flagged.length===0?(
         <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>🧾</div>
           <div style={{fontFamily:"'Inter',sans-serif",fontSize:"15px",color:C.inkMid,marginBottom:"4px"}}>체크된 항목이 없어요</div>
-          <div style={{fontSize:"12px",color:C.inkLight}}>내역에서 영수증 아이콘을 눌러 추가해보세요</div>
+          <div style={{fontSize:"12px",color:C.inkLight}}>내역에서 체크박스를 눌러 추가해보세요</div>
         </div>
       ):(
         <>
@@ -2676,10 +2679,12 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
                     color:tx.type==="income"?"#2d6a4f":"#b5451b",fontFamily:"'Inter',sans-serif"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
-                  <button onClick={e=>{e.stopPropagation();onToggle(tx.id);}} title="체크 해제"
-                    style={{flexShrink:0,display:"flex",border:"none",background:"none",cursor:"pointer",
-                    padding:"4px",color:"#1d4e89"}}>
-                    <Receipt size={15}/>
+                  <button onClick={e=>{e.stopPropagation();onToggle(tx.id);}}
+                    title={tx.isFixed?"체크 해제 (같은 이름의 반복 거래 전체에 적용)":"체크 해제"}
+                    style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                    width:"20px",height:"20px",borderRadius:"6px",cursor:"pointer",
+                    border:"1.5px solid #1d4e89",background:"#1d4e89"}}>
+                    <Check size={13} color="#fff" strokeWidth={3}/>
                   </button>
                 </div>
               );
@@ -3710,8 +3715,25 @@ export default function App(){
   }
 
   function toggleTaxDoc(id){
+    const tx=txs.find(t=>t.id===id);
+    const turningOn=!taxDocIds.includes(id);
+    // 반복지출/반복수입(isFixed)은 같은 이름(memo)의 다른 달 거래도 같은 항목으로 보고 함께 체크/해제.
+    // 반복이 아닌 일반 거래는 이름이 같아도 각자 다른 거래로 보고 개별로만 체크/해제.
+    const groupIds=(tx?.isFixed&&tx?.memo)
+      ?txs.filter(t=>t.isFixed&&t.entity===tx.entity&&t.memo===tx.memo).map(t=>t.id)
+      :[id];
     setTaxDocIds(prev=>{
-      const next=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];
+      const next=turningOn
+        ?Array.from(new Set([...prev,...groupIds]))
+        :prev.filter(x=>!groupIds.includes(x));
+      if(isConfigured()) sb("settings",{method:"POST",body:JSON.stringify({key:"tax_doc_ids",value:next}),prefer:"resolution=merge-duplicates,return=minimal"}).catch(()=>{});
+      return next;
+    });
+  }
+  function removeTaxDocId(id){
+    setTaxDocIds(prev=>{
+      if(!prev.includes(id)) return prev;
+      const next=prev.filter(x=>x!==id);
       if(isConfigured()) sb("settings",{method:"POST",body:JSON.stringify({key:"tax_doc_ids",value:next}),prefer:"resolution=merge-duplicates,return=minimal"}).catch(()=>{});
       return next;
     });
@@ -3843,7 +3865,7 @@ export default function App(){
       if(tx?.images?.length) await deleteTxImages(tx.images).catch(()=>{});
       await sb(`transactions?id=eq.${id}`,{method:"DELETE",prefer:"return=minimal"});
       setTxs(p=>p.filter(t=>t.id!==id));
-      if(taxDocIds.includes(id)) toggleTaxDoc(id);
+      removeTaxDocId(id);
     }catch(e){console.error(e);}
     finally{setSaving(false);setModal(null);setEditTx(null);}
   }
