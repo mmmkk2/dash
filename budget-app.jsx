@@ -2440,10 +2440,12 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
     [txs,year,month,yearView,monthKey]);
   const [drillCard,setDrillCard]=useState(null); // {name,color} | null
 
+  const cashCardId=cards.find(c=>c.name==="현금")?.id;
+  // 현금은 카페 고정비·부동산 거래가 몰려 규모가 왜곡되므로, 특이(비고정) 현금거래만 집계
+  const isNotableCash=t=>t.cardId!==cashCardId||(t.entity!=="realty"&&!t.isFixed);
   const byCardAll=useMemo(()=>{
-    const cashCardId=cards.find(c=>c.name==="현금")?.id;
     const m={};
-    periodTxs.filter(t=>t.type==="expense"&&t.cardId!==cashCardId).forEach(t=>{
+    periodTxs.filter(t=>t.type==="expense"&&isNotableCash(t)).forEach(t=>{
       const k=t.cardId||"__none__";
       if(!m[k])m[k]={value:0};
       m[k].value+=t.amount;
@@ -2457,7 +2459,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
 
   const drillTxs=useMemo(()=>{
     if(!drillCard)return[];
-    return periodTxs.filter(t=>t.type==="expense"&&(t.cardId||"__none__")===drillCard.id)
+    return periodTxs.filter(t=>t.type==="expense"&&(t.cardId||"__none__")===drillCard.id&&isNotableCash(t))
       .sort((a,b)=>b.date.localeCompare(a.date));
   },[periodTxs,drillCard]);
 
