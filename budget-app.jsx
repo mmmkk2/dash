@@ -341,7 +341,7 @@ function SetupGuide(){
 }
 
 /* ── TxForm ── */
-function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="personal",saving,supplies=[],propertyTags=[]}){
+function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="personal",saving,supplies=[],propertyTags=[],taxDocIds=[],onToggleTaxDoc}){
   const today=new Date().toISOString().slice(0,10);
   const init=initial||{};
   const [entity,setEntity]=useState(init.entity||defaultEntity);
@@ -774,6 +774,30 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           </div>
         )}
       </div>
+
+      {/* 세무자료 toggle — 이 거래를 저장한 뒤(수정 화면)에만 노출. 반복거래는 같은 이름 전체에 적용 */}
+      {isEdit&&onToggleTaxDoc&&(
+        <div style={{marginBottom:"12px"}}>
+          <button onClick={()=>onToggleTaxDoc(initial.id)} style={{
+            display:"flex",alignItems:"center",gap:"10px",width:"100%",
+            background:taxDocIds.includes(initial.id)?"#eef6ff":"#fff",
+            border:`1.5px solid ${taxDocIds.includes(initial.id)?"#1d4e89":C.border}`,
+            borderRadius:"12px",padding:"11px 14px",cursor:"pointer",transition:"all 0.2s"}}>
+            <div style={{width:"38px",height:"22px",borderRadius:"99px",flexShrink:0,
+              background:taxDocIds.includes(initial.id)?"#1d4e89":C.border,position:"relative",transition:"background 0.2s"}}>
+              <div style={{width:"16px",height:"16px",borderRadius:"50%",background:"#fff",
+                position:"absolute",top:"3px",transition:"left 0.2s",
+                left:taxDocIds.includes(initial.id)?"19px":"3px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+            </div>
+            <div style={{flex:1,textAlign:"left"}}>
+              <div style={{fontSize:"13px",fontWeight:600,color:taxDocIds.includes(initial.id)?"#1d4e89":C.inkMid,fontFamily:"'Inter',sans-serif"}}>세무자료 필요</div>
+              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
+                {isFixed?"반복거래라 같은 이름의 다른 달 거래에도 같이 적용돼요":"세금 신고 체크리스트에 추가돼요"}
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* 할부 toggle — 지출 등록/수정 모두. 수정 시 켜면 기존 거래를 지우고 분할 재등록 */}
       {!isIncomeCat&&(
@@ -1621,14 +1645,6 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
                     fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
-                  {onToggleTaxDoc&&<button onClick={e=>{e.stopPropagation();onToggleTaxDoc(tx.id);}}
-                    title={tx.isFixed?"세무자료 체크 (같은 이름의 반복 거래 전체에 적용)":"세무자료 체크"}
-                    style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-                    width:"20px",height:"20px",borderRadius:"6px",cursor:"pointer",
-                    border:`1.5px solid ${taxDocIds.includes(tx.id)?"#1d4e89":C.border}`,
-                    background:taxDocIds.includes(tx.id)?"#1d4e89":"transparent"}}>
-                    {taxDocIds.includes(tx.id)&&<Check size={13} color="#fff" strokeWidth={3}/>}
-                  </button>}
                   <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
                 </div>
               );
@@ -4125,10 +4141,10 @@ export default function App(){
       </div>
 
       <Modal open={modal==="add"} onClose={()=>{setModal(null);setEditTx(null);}}>
-        <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>
+        <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
       </Modal>
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
-        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{setEditTx({...editTx,id:null});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags}/>}
+        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{setEditTx({...editTx,id:null});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>}
       </Modal>
       <Modal open={modal==="cats"} onClose={()=>setModal(null)}>
         <CategorySettings trees={trees} onChange={handleTrees}/>
