@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy } from "lucide-react";
@@ -290,7 +291,7 @@ function LoginScreen({onLogin}){
 /* ── Modal ── */
 function Modal({open,onClose,children}){
   if(!open)return null;
-  return(
+  return createPortal(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(26,20,16,0.6)",
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
@@ -301,7 +302,8 @@ function Modal({open,onClose,children}){
           margin:"10px auto 18px",cursor:"pointer"}} onClick={onClose}/>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
