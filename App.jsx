@@ -24,6 +24,12 @@ function TitleManager() {
   useEffect(() => {
     const path = pathname.replace(/\/$/, '') || '/'
     document.title = PAGE_TITLES[path] || (path.startsWith('/budget') ? '가계부' : '내 도구')
+
+    const iconHref = path.startsWith('/assets') ? '/favicon-assets.svg' : '/favicon.svg'
+    const favicon = document.getElementById('favicon')
+    const appleIcon = document.getElementById('apple-touch-icon')
+    if (favicon) favicon.href = iconHref
+    if (appleIcon) appleIcon.href = iconHref
   }, [pathname])
   return null
 }
