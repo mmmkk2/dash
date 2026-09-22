@@ -2455,7 +2455,7 @@ async function fetchGmailCoupang(token, since, until) {
 /* ── 전체 현금흐름 (개인/카페/부동산 통합, 계좌 간 이동은 자동 상쇄) ── */
 const SETTLE_CAT1 = "대표자거래";
 const REFUND_CAT1 = "환불";
-function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYearView}){
+function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYearView,onEdit}){
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
   function prevPeriod(){
     if(yearView){setYear(y=>y-1);return;}
@@ -2626,14 +2626,18 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
                 <div style={{fontSize:"12px",color:C.inkLight,padding:"20px 0",textAlign:"center"}}>내역이 없어요</div>
               )}
               {drillTxs.map(t=>(
-                <div key={t.id} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
-                  background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px"}}>
+                <div key={t.id} onClick={()=>onEdit&&onEdit(t)} style={{display:"flex",alignItems:"center",gap:"10px",padding:"9px 12px",
+                  background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px",
+                  cursor:onEdit?"pointer":"default",transition:"background 0.1s"}}
+                  onMouseEnter={e=>onEdit&&(e.currentTarget.style.background=C.cream)}
+                  onMouseLeave={e=>onEdit&&(e.currentTarget.style.background=C.white)}>
                   <div style={{fontSize:"10px",color:C.inkLight,width:"52px",flexShrink:0,fontFamily:"'Inter',sans-serif"}}>{t.date?.slice(5)}</div>
                   <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
                     <div style={{fontSize:"12px",color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
                     <div style={{fontSize:"10px",color:C.inkLight}}>{ENTITIES[t.entity]?.label||t.entity}{t.cat1?` · ${t.cat1}`:""}</div>
                   </div>
                   <div style={{fontSize:"12px",fontWeight:700,color:C.ink,flexShrink:0}}>{fmt(t.amount)}</div>
+                  {onEdit&&<Pencil size={11} style={{color:C.border,flexShrink:0}}/>}
                 </div>
               ))}
             </div>
@@ -4150,7 +4154,8 @@ export default function App(){
       </Modal>
       <Modal open={modal==="flow"} onClose={()=>setModal(null)}>
         <CashFlowView txs={txs} year={year} month={month} yearView={yearView} cards={cards}
-          setYear={setYear} setMonth={setMonth} setYearView={setYearView}/>
+          setYear={setYear} setMonth={setMonth} setYearView={setYearView}
+          onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
       </Modal>
       <Modal open={modal==="import"} onClose={()=>setModal(null)}>
         <CoupangImport onRegister={tx=>{ const n=[...txs,tx]; setTxs(n); save(TX_KEY,n); if(isConfigured()) sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))}).catch(console.error); }}/>
