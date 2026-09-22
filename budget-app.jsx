@@ -2486,6 +2486,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
     }).sort((a,b)=>b.value-a.value);
   },[periodTxs,cards]);
   const cardTotal=byCardAll.reduce((s,c)=>s+c.value,0)||1;
+  const cardOnlyTotal=byCardAll.filter(c=>c.name!=="현금").reduce((s,c)=>s+c.value,0);
 
   const drillTxs=useMemo(()=>{
     if(!drillCard)return[];
@@ -2579,6 +2580,11 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
         ))}
       </div>
       <SLabel>전체 카드별 지출 (개인·카페·부동산매매 합산)</SLabel>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:"10px",
+        padding:"10px 12px",background:C.cream,borderRadius:"10px"}}>
+        <div style={{fontSize:"11px",color:C.inkLight}}>카드만 합계 (현금 제외)</div>
+        <div style={{fontSize:"14px",fontWeight:800,color:C.ink}}>{fmt(cardOnlyTotal)}</div>
+      </div>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
         {byCardAll.map(c=>{
           const goal=CARD_PERFORMANCE_GOALS[c.id];
