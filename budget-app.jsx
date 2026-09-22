@@ -2472,17 +2472,23 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
   const cashCardId=cards.find(c=>c.name==="현금")?.id;
   // 현금은 카페 고정비·부동산 거래가 몰려 규모가 왜곡되므로, 특이(비고정) 현금거래만 집계
   const isNotableCash=t=>t.cardId!==cashCardId||(t.entity!=="realty"&&!t.isFixed);
+  // 카드 실적(전월실적)은 할부 최초 거래월에만 잡히고, 이후 할부 청구월엔 실적 미반영
+  const isInstallmentContinuation=t=>{
+    const m=/\((\d+)\/(\d+) 할부\)/.exec(t.memo||"");
+    return !!(m&&parseInt(m[1],10)>1);
+  };
   const byCardAll=useMemo(()=>{
     const m={};
     periodTxs.filter(t=>t.type==="expense"&&isNotableCash(t)).forEach(t=>{
       const k=t.cardId||"__none__";
-      if(!m[k])m[k]={value:0,byEntity:{}};
+      if(!m[k])m[k]={value:0,perfValue:0,byEntity:{}};
       m[k].value+=t.amount;
+      if(!isInstallmentContinuation(t))m[k].perfValue+=t.amount;
       m[k].byEntity[t.entity]=(m[k].byEntity[t.entity]||0)+t.amount;
     });
     return Object.entries(m).map(([id,d])=>{
       const card=cards.find(c=>c.id===id);
-      return{id,name:card?card.name:"미지정",value:d.value,color:card?card.color:C.inkLight,byEntity:d.byEntity};
+      return{id,name:card?card.name:"미지정",value:d.value,perfValue:d.perfValue,color:card?card.color:C.inkLight,byEntity:d.byEntity};
     }).sort((a,b)=>b.value-a.value);
   },[periodTxs,cards]);
   const cardTotal=byCardAll.reduce((s,c)=>s+c.value,0)||1;
@@ -2607,8 +2613,8 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
         {byCardAll.map(c=>{
           const goal=CARD_PERFORMANCE_GOALS[c.id];
-          const pct=goal?Math.min(100,Math.round(c.value/goal*100)):0;
-          const met=goal&&c.value>=goal;
+          const pct=goal?Math.min(100,Math.round(c.perfValue/goal*100)):0;
+          const met=goal&&c.perfValue>=goal;
           return(
           <div key={c.name} onClick={()=>setDrillCard(c)} style={{display:"flex",flexDirection:"column",gap:"6px",padding:"9px 12px",
             background:C.white,border:`1px solid ${C.border}`,borderRadius:"10px",cursor:"pointer"}}>
