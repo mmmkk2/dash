@@ -296,7 +296,7 @@ function Modal({open,onClose,children}){
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px calc(36px + env(safe-area-inset-bottom))",
-        width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"78vh",overflowY:"auto",
+        width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"min(78vh,calc(100dvh - 80px))",overflowY:"auto",
         boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`,borderBottom:"none"}}>
         <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
           margin:"10px auto 18px",cursor:"pointer"}} onClick={onClose}/>
