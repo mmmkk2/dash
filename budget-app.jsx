@@ -2474,7 +2474,8 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
   const isNotableCash=t=>t.cardId!==cashCardId||(t.entity!=="realty"&&!t.isFixed);
   // 카드 실적(전월실적)은 할부 최초 거래월에만 잡히고, 이후 할부 청구월엔 실적 미반영
   const isInstallmentContinuation=t=>{
-    const m=/\((\d+)\/(\d+) 할부\)/.exec(t.memo||"");
+    const memo=t.memo||"";
+    const m=/\((\d+)\/(\d+) 할부\)/.exec(memo)||/할부\s*(\d+)\/(\d+)/.exec(memo);
     return !!(m&&parseInt(m[1],10)>1);
   };
   const byCardAll=useMemo(()=>{
