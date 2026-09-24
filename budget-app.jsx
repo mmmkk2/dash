@@ -3272,7 +3272,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     if(da===null) return 1;
     if(db===null) return -1;
     return da - db;
-  }), [supplies]);
+  }), [supplies, txs]);
 
   const getStatus = (s) => {
     const d = daysUntil(s);
@@ -3310,6 +3310,23 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     setSaving(true);
     try {
       await onChange(s, "update");
+      // 마지막 구매일을 새 날짜로 바꾼 경우 실제 구매 이력으로도 남겨서
+      // 평균 소모기간 계산(computeActualCycle)에 반영되도록 한다
+      const norm = s.name.toLowerCase();
+      const dateChanged = form.last_bought && form.last_bought !== modal.last_bought;
+      const alreadyLogged = cafeTxs.some(t =>
+        t.date === form.last_bought &&
+        ((t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      );
+      if (dateChanged && !alreadyLogged && s.base_amount > 0 && onAddTx) {
+        await onAddTx({
+          id: Date.now(), entity:"cafe", cat1:"매입/원가",
+          cat2: s.category, cat3: s.name, memo: s.name,
+          amount: s.base_amount, date: s.last_bought,
+          cardId:"", isFixed:false, fixedDay:null,
+          type:"expense", images:[],
+        });
+      }
     } catch(e) {
       console.error("supply edit failed", e);
     }
