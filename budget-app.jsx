@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -1657,11 +1657,13 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
 }
 
 /* ── Fixed View ── */
-function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
+function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, month}){
   const today = new Date();
   const todayDay = today.getDate();
   const isCurrentMonth = today.getFullYear()===year && today.getMonth()===month;
   const [registering, setRegistering] = useState(new Set());
+  const [linkOpenFor, setLinkOpenFor] = useState(null); // 연결 후보 목록을 펼친 템플릿 memo
+  const [linkBusy, setLinkBusy] = useState(new Set());
 
   // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
   const fixedTemplates = useMemo(()=>{
@@ -1732,6 +1734,21 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     finally{ setRegistering(p=>{ const n=new Set(p); n.delete(tx.memo); return n; }); }
   }
 
+  // 반복 템플릿에 연결할 후보: 이번 달, 같은 entity/type, 아직 다른 반복 항목에 연결 안 된(isFixed 아닌) 거래
+  // 템플릿 금액과 가까운 순으로 정렬
+  function candidatesFor(template){
+    return [...txs]
+      .filter(t=>t.entity===entity&&t.type===template.type&&!t.isFixed&&t.date.startsWith(monthKey))
+      .sort((a,b)=>Math.abs(a.amount-template.amount)-Math.abs(b.amount-template.amount));
+  }
+
+  async function handleLink(tx, template){
+    if(!onLink||linkBusy.has(template.memo)) return;
+    setLinkBusy(p=>new Set(p).add(template.memo));
+    try{ await onLink({...tx, isFixed:true, memo:template.memo}); setLinkOpenFor(null); }
+    finally{ setLinkBusy(p=>{ const n=new Set(p); n.delete(template.memo); return n; }); }
+  }
+
   const FixedCard = ({tx, isScheduled}) => {
     const biMonthly = isBiMonthly(tx.memo);
     const isPast = isScheduled && isCurrentMonth && tx.fixedDay && tx.fixedDay < todayDay;
@@ -1755,11 +1772,15 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
     const barColor = isScheduled
       ? (isToday?"#b5451b":isPast?"#e07a5f":(isIncome?"#52b788":"#d4c8b8"))
       : (isIncome?"#52b788":"#d4c8b8");
+    const isLinkOpen = isScheduled && linkOpenFor===tx.memo;
+    const isLinking = linkBusy.has(tx.memo);
+    const candidates = isLinkOpen ? candidatesFor(tx) : [];
     return(
-      <div style={{display:"flex",alignItems:"center",gap:"12px",
-        background:bgColor,borderRadius:"13px",padding:"12px 14px",
+      <div style={{display:"flex",flexDirection:"column",
+        background:bgColor,borderRadius:"13px",
         border:`1px solid ${borderColor}`,
         position:"relative",overflow:"hidden"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px"}}>
         <div style={{position:"absolute",top:0,left:0,bottom:0,width:"3px",background:barColor}}/>
         <div style={{flex:1,minWidth:0,paddingLeft:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
@@ -1840,13 +1861,25 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
               </button>
             </div>
           ):(
-            <button onClick={()=>setEditAmount(tx.amount.toLocaleString("ko-KR"))} disabled={isReg}
-              style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
-                padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
-                flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
-                opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
-              {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
-            </button>
+            <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
+              {onLink&&(
+                <button onClick={()=>setLinkOpenFor(isLinkOpen?null:tx.memo)} disabled={isReg}
+                  title="이미 내역에 있는 거래에 연결"
+                  style={{background:isLinkOpen?"#eef2ff":"#fff",
+                    border:`1px solid ${isLinkOpen?"#b0c4de":"#f4c5b2"}`,borderRadius:"8px",
+                    padding:"5px 7px",cursor:"pointer",color:isLinkOpen?"#1d4e89":"#b5451b",
+                    display:"flex",alignItems:"center"}}>
+                  <Link2 size={12}/>
+                </button>
+              )}
+              <button onClick={()=>setEditAmount(tx.amount.toLocaleString("ko-KR"))} disabled={isReg}
+                style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
+                  padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
+                  flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
+                  opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
+                {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
+              </button>
+            </div>
           )
         ):(
           <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
@@ -1863,6 +1896,35 @@ function FixedView({txs, onDelete, onEdit, onRegister, entity, year, month}){
             </button>
           </div>
         )}
+      </div>
+      {isLinkOpen&&(
+        <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
+          <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
+            이미 내역에 있는 거래를 고르면 새로 만들지 않고 이 반복 항목이 "발생"으로 표시돼요
+          </div>
+          {candidates.length===0?(
+            <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>이번 달 연결할 후보 거래가 없어요</div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              {candidates.slice(0,8).map(c=>(
+                <button key={c.id} onClick={()=>handleLink(c,tx)} disabled={isLinking}
+                  style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px",
+                    background:"#fff",border:`1px solid ${C.border}`,borderRadius:"8px",
+                    padding:"6px 10px",cursor:isLinking?"not-allowed":"pointer",textAlign:"left",
+                    fontFamily:"'Inter',sans-serif",width:"100%",opacity:isLinking?0.6:1}}>
+                  <span style={{fontSize:"11px",color:C.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {c.date} · {c.memo}
+                  </span>
+                  <span style={{fontSize:"12px",fontWeight:700,flexShrink:0,
+                    color:c.type==="income"?"#2d6a4f":"#b5451b"}}>
+                    {c.type==="income"?"+":"-"}{fmtS(c.amount)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       </div>
     );
   };
@@ -4184,7 +4246,7 @@ export default function App(){
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
 :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
-             :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} entity={entity} year={year} month={month}/>}
+             :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} onLink={updateTx} entity={entity} year={year} month={month}/>}
           </div>
         }
       </div>
