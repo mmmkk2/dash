@@ -1656,6 +1656,151 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
   );
 }
 
+/* ── Calendar View ── */
+function fmtCompact(n){
+  if(n>=10000){
+    const man=n/10000;
+    return `${man%1===0?man:man.toFixed(1)}만`;
+  }
+  return n.toLocaleString("ko-KR");
+}
+function CalendarView({txs, year, month, onEdit, cards}){
+  const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
+  const todayStr=useMemo(()=>{
+    const t=new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+  },[]);
+  const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
+  const todayInView=todayStr.startsWith(monthKey);
+  const [selected,setSelected]=useState(todayInView?todayStr:null);
+
+  useEffect(()=>{setSelected(todayInView?todayStr:null);},[monthKey]); // eslint-disable-line
+
+  const byDate=useMemo(()=>{
+    const m={};
+    txs.forEach(t=>{
+      if(!m[t.date])m[t.date]={income:0,expense:0,items:[]};
+      if(t.type==="income")m[t.date].income+=t.amount;
+      else m[t.date].expense+=t.amount;
+      m[t.date].items.push(t);
+    });
+    return m;
+  },[txs]);
+
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const firstDow=new Date(year,month,1).getDay();
+  const cells=[];
+  for(let i=0;i<firstDow;i++)cells.push(null);
+  for(let d=1;d<=daysInMonth;d++)cells.push(d);
+
+  const selectedItems=useMemo(()=>{
+    if(!selected||!byDate[selected])return[];
+    return [...byDate[selected].items].sort((a,b)=>b.amount-a.amount);
+  },[selected,byDate]);
+
+  const WEEKDAYS=["일","월","화","수","목","금","토"];
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:"4px"}}>
+        {WEEKDAYS.map((w,i)=>(
+          <div key={w} style={{textAlign:"center",fontSize:"10px",fontWeight:700,
+            color:i===0?"#b5451b":i===6?"#1d4e89":C.inkLight,
+            fontFamily:"'Inter',sans-serif",padding:"4px 0"}}>{w}</div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"3px"}}>
+        {cells.map((d,i)=>{
+          if(d===null)return <div key={i}/>;
+          const dateStr=`${monthKey}-${String(d).padStart(2,"0")}`;
+          const day=byDate[dateStr];
+          const dow=(firstDow+d-1)%7;
+          const isToday=dateStr===todayStr;
+          const isSelected=dateStr===selected;
+          return(
+            <button key={i} onClick={()=>setSelected(dateStr)}
+              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",
+                minHeight:"52px",padding:"5px 2px",borderRadius:"10px",cursor:"pointer",
+                background:isSelected?C.ink:isToday?C.borderDark+"55":"transparent",
+                border:isSelected?`1px solid ${C.ink}`:`1px solid transparent`,
+                transition:"all 0.15s"}}>
+              <div style={{fontSize:"11px",fontWeight:isToday?800:500,
+                color:isSelected?C.white:dow===0?"#b5451b":dow===6?"#1d4e89":C.ink,
+                fontFamily:"'Inter',sans-serif"}}>{d}</div>
+              {day&&(
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1px"}}>
+                  {day.expense>0&&<div style={{fontSize:"8.5px",fontWeight:700,fontFamily:"'Inter',sans-serif",
+                    color:isSelected?"#f4b8a0":"#b5451b"}}>-{fmtCompact(day.expense)}</div>}
+                  {day.income>0&&<div style={{fontSize:"8.5px",fontWeight:700,fontFamily:"'Inter',sans-serif",
+                    color:isSelected?"#a8d8bc":"#2d6a4f"}}>+{fmtCompact(day.income)}</div>}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{marginTop:"18px"}}>
+        {!selected?(
+          <div style={{textAlign:"center",padding:"24px 20px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>
+            날짜를 선택하면 거래 내역이 보여요
+          </div>
+        ):selectedItems.length===0?(
+          <div style={{textAlign:"center",padding:"24px 20px",color:C.inkLight,fontFamily:"'Inter',sans-serif",fontSize:"13px"}}>
+            {selected} · 거래 없어요
+          </div>
+        ):(
+          <div style={{background:C.white,borderRadius:"16px",overflow:"hidden",border:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:"9px 16px 8px",background:C.paper,borderBottom:`1px solid ${C.border}`}}>
+              <div style={{fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:700,color:C.ink}}>{selected}</div>
+              <div style={{display:"flex",gap:"10px"}}>
+                {byDate[selected].income>0&&<span style={{fontSize:"11px",color:"#2d6a4f",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>+{fmtS(byDate[selected].income)}</span>}
+                {byDate[selected].expense>0&&<span style={{fontSize:"11px",color:"#b5451b",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>-{fmtS(byDate[selected].expense)}</span>}
+              </div>
+            </div>
+            {selectedItems.map((tx,idx)=>{
+              const card=tx.cardId?cardMap[tx.cardId]:null;
+              const tree=TREES[tx.entity]||TREE_PERSONAL;
+              const m1=tree[tx.cat1]||{color:C.inkMid,accent:C.inkLight};
+              return(
+                <div key={tx.id} className="tx-row" onClick={()=>onEdit(tx)}
+                  style={{display:"flex",alignItems:"center",gap:"10px",padding:"11px 16px",
+                    borderTop:idx>0?`1px solid ${C.border}`:"none",
+                    cursor:"pointer",transition:"background 0.15s"}}>
+                  <div style={{width:"3px",height:"36px",borderRadius:"99px",flexShrink:0,
+                    background:`linear-gradient(180deg,${m1.color},${m1.accent})`}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
+                      <span style={{fontSize:"10px",background:m1.color+"18",color:m1.color,
+                        borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+                        fontFamily:"'Inter',sans-serif"}}>{catDisplayName(tx.cat1)}</span>
+                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.cat2}</span>
+                      {tx.cat3&&<span style={{fontSize:"10px",background:m1.accent+"18",color:m1.color,
+                        borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
+                        fontFamily:"'Inter',sans-serif"}}>{tx.cat3}</span>}
+                    </div>
+                    <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:"'Inter',sans-serif",
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
+                    {card&&<div style={{marginTop:"2px"}}><span style={{fontSize:"9px",background:card.color+"14",color:card.color,
+                      borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{card.name}</span></div>}
+                  </div>
+                  <div style={{fontSize:"14px",fontWeight:700,flexShrink:0,
+                    color:tx.type==="income"?"#2d6a4f":"#b5451b",
+                    fontFamily:"'Inter',sans-serif",letterSpacing:"-0.2px"}}>
+                    {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
+                  </div>
+                  <div style={{color:C.border,flexShrink:0,display:"flex"}}><Pencil size={12}/></div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Fixed View ── */
 function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, month}){
   const today = new Date();
@@ -4167,7 +4312,7 @@ export default function App(){
             <div style={{display:"flex",justifyContent:"center",marginBottom:"12px"}}>
               <div style={{display:"flex",background:"rgba(255,255,255,0.08)",borderRadius:"10px",padding:"3px",gap:"2px"}}>
                 {[["월별",false],["연간",true]].map(([label,isYear])=>(
-                  <button key={label} onClick={()=>{setYearView(isYear);if(isYear&&tab==="fixed")setTab("stats");}} style={{
+                  <button key={label} onClick={()=>{setYearView(isYear);if(isYear&&(tab==="fixed"||tab==="calendar"))setTab("stats");}} style={{
                     padding:"5px 18px",border:"none",borderRadius:"8px",cursor:"pointer",
                     fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:yearView===isYear?700:400,
                     background:yearView===isYear?"rgba(255,255,255,0.18)":"transparent",
@@ -4225,7 +4370,9 @@ export default function App(){
         {!isConfigured()&&<SetupGuide/>}
 
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
-          {[["list","내역"],["stats","통계"],
+          {[["list","내역"],
+            ...(!yearView?[["calendar","캘린더"]]:[]),
+            ["stats","통계"],
             ...(!yearView?[["fixed","반복"]]:[]),
             ...(entity==="cafe"?[["supplies","소모품"]]:[])
           ].map(([k,l])=>(
@@ -4244,6 +4391,7 @@ export default function App(){
           </div>
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
+             :tab==="calendar"?<CalendarView txs={viewTxs} year={year} month={month} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
 :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} onLink={updateTx} entity={entity} year={year} month={month}/>}
