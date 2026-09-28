@@ -131,6 +131,7 @@ const THEMES = {
 };
 
 const THEME_KEY = "gagibu_theme";
+const HIDE_CAFE_KEY = "gagibu_hide_cafe";
 let _theme = THEMES[localStorage.getItem(THEME_KEY)||"cream"] || THEMES.cream;
 // C는 전역으로 노출 — 컴포넌트 렌더 시점에 최신값 참조
 let C = _theme;
@@ -3930,6 +3931,7 @@ export default function App(){
   const [tab,   setTab]   =useState("list");
   const [modal, setModal] =useState(null);
   const [showMore,setShowMore]=useState(false);
+  const [hideCafe,setHideCafe]=useState(()=>localStorage.getItem(HIDE_CAFE_KEY)==="true");
   const [editTx,setEditTx]=useState(null);
   const [txs,   setTxs]   =useState([]);
   const [cards, setCards] =useState(DEFAULT_CARDS);
@@ -4016,7 +4018,15 @@ export default function App(){
   }
 
   // URL 주소 변경(뒤로가기/링크 진입) → entity 동기화
-  useEffect(()=>{ setEntity(SLUG_ENTITY[routeParams.entity||""]||"personal"); }, [routeParams.entity]);
+  useEffect(()=>{
+    const nextEntity=SLUG_ENTITY[routeParams.entity||""]||"personal";
+    if(hideCafe&&nextEntity==="cafe"){
+      setEntity("personal");
+      navigate("/budget",{replace:true});
+      return;
+    }
+    setEntity(nextEntity);
+  }, [routeParams.entity,hideCafe,navigate]);
 
   // entity 변경 시 테마 동기화
   useEffect(()=>{ setThemeKey(ENTITY_THEME[entity]||"cream"); }, [entity]);
@@ -4027,6 +4037,18 @@ export default function App(){
   function changeTheme(key){
     setThemeKey(key);
     C = THEMES[key] || THEMES.cream;
+  }
+
+  function toggleCafeVisibility(){
+    const next=!hideCafe;
+    localStorage.setItem(HIDE_CAFE_KEY,String(next));
+    setHideCafe(next);
+    if(next&&entity==="cafe"){
+      setEntity("personal");
+      setTab("list");
+      changeTheme(ENTITY_THEME.personal);
+      navigate("/budget",{replace:true});
+    }
   }
 
   /* ── DB 로드 ── */
@@ -4272,6 +4294,7 @@ export default function App(){
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
                       {label:"세무자료 체크리스트",emoji:"🧾",action:()=>setModal("taxdoc")},
+                      {label:`앤딩스터디카페 ${hideCafe?"보이기":"숨기기"}`,emoji:hideCafe?"👁️":"🙈",action:toggleCafeVisibility},
                       {label:"로그아웃",emoji:"🚪",action:handleLogout},
                     ].map(item=>(
                       <button key={item.label} onClick={()=>{setShowMore(false);item.action();}} style={{
@@ -4291,7 +4314,7 @@ export default function App(){
 
           {/* Entity tabs */}
           <div style={{display:"flex",gap:"5px",marginBottom:"18px"}}>
-            {ENTITY_KEYS.map(ek=>{
+            {ENTITY_KEYS.filter(ek=>ek!=="cafe"||!hideCafe).map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
                 <button key={ek} onClick={()=>{setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");navigate(entityPath(ek));}} style={{
