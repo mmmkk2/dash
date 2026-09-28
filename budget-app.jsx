@@ -2709,6 +2709,21 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
     });
     return ENTITY_KEYS.filter(ek=>m[ek]>0).map(ek=>({ek,value:m[ek]}));
   },[byCardAll]);
+  const isInstallmentTx=t=>{
+    const memo=t.memo||"";
+    return /\((\d+)\/(\d+) 할부\)/.test(memo)||/할부\s*(\d+)\/(\d+)/.test(memo);
+  };
+  const cardOnlyInstallLump=useMemo(()=>{
+    let installment=0,lumpsum=0;
+    const byEntity={};
+    periodTxs.filter(t=>t.type==="expense"&&t.cardId!==cashCardId).forEach(t=>{
+      const inst=isInstallmentTx(t);
+      if(inst)installment+=t.amount;else lumpsum+=t.amount;
+      if(!byEntity[t.entity])byEntity[t.entity]={installment:0,lumpsum:0};
+      if(inst)byEntity[t.entity].installment+=t.amount;else byEntity[t.entity].lumpsum+=t.amount;
+    });
+    return{installment,lumpsum,byEntity};
+  },[periodTxs,cashCardId]);
 
   const drillTxs=useMemo(()=>{
     if(!drillCard)return[];
@@ -2818,6 +2833,22 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
             ))}
           </div>
         )}
+        <div style={{display:"flex",flexDirection:"column",gap:"3px",paddingTop:"6px",borderTop:`1px dashed ${C.border}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
+            <span style={{color:C.inkLight,fontWeight:600}}>↳ 할부</span>
+            <span style={{color:C.ink,fontWeight:700}}>{fmt(cardOnlyInstallLump.installment)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
+            <span style={{color:C.inkLight,fontWeight:600}}>↳ 일시불</span>
+            <span style={{color:C.ink,fontWeight:700}}>{fmt(cardOnlyInstallLump.lumpsum)}</span>
+          </div>
+          {ENTITY_KEYS.filter(ek=>cardOnlyInstallLump.byEntity[ek]&&(cardOnlyInstallLump.byEntity[ek].installment>0||cardOnlyInstallLump.byEntity[ek].lumpsum>0)).map(ek=>(
+            <div key={ek} style={{display:"flex",justifyContent:"space-between",fontSize:"10px",paddingLeft:"10px"}}>
+              <span style={{color:ENTITIES[ek]?.color||C.inkLight}}>{ENTITIES[ek]?.label||ek}</span>
+              <span style={{color:C.inkLight}}>할부 {fmt(cardOnlyInstallLump.byEntity[ek].installment)} · 일시불 {fmt(cardOnlyInstallLump.byEntity[ek].lumpsum)}</span>
+            </div>
+          ))}
+        </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"18px"}}>
         {byCardAll.map(c=>{
