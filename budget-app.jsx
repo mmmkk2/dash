@@ -383,6 +383,9 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [knownVendors]=useState(()=>loadVendors());
   const [isInstallment,setIsInstallment]=useState(false);
   const [installmentMonths,setInstallmentMonths]=useState("");
+  const [isDutch,setIsDutch]=useState(false);
+  const [dutchTotal,setDutchTotal]=useState(""); // 더치페이 켤 때의 원래 총액(콤마 포함 문자열)
+  const [dutchPeople,setDutchPeople]=useState("");
   const [isSupply,setIsSupply]=useState(false);
   const [supplyName,setSupplyName]=useState("");
   const [supplyCat,setSupplyCat]=useState("소모품");
@@ -685,6 +688,90 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           <span style={{color:C.inkLight,fontSize:"13px"}}>원</span>
         </div>
       </div>
+
+      {/* 더치페이 계산기 — 총액을 인원수로 나눠 금액 필드에 반영 */}
+      {!isIncomeCat&&(
+        <div style={{marginBottom:"12px"}}>
+          <button onClick={()=>{
+            if(!isDutch){
+              // 켤 때: 현재 금액을 원래 총액으로 기억
+              setDutchTotal(amount);
+              setDutchPeople("");
+            }else{
+              // 끌 때: 원래 총액으로 복원
+              if(dutchTotal)setAmount(dutchTotal);
+              setDutchTotal("");setDutchPeople("");
+            }
+            setIsDutch(v=>!v);
+          }} style={{
+            display:"flex",alignItems:"center",gap:"10px",width:"100%",
+            background:isDutch?"#faf5ff":"#fff",
+            border:`1.5px solid ${isDutch?"#7c3aed":C.border}`,
+            borderRadius:isDutch?"12px 12px 0 0":"12px",padding:"11px 14px",cursor:"pointer",transition:"all 0.2s"}}>
+            <div style={{width:"38px",height:"22px",borderRadius:"99px",flexShrink:0,
+              background:isDutch?"#7c3aed":C.border,position:"relative",transition:"background 0.2s"}}>
+              <div style={{width:"16px",height:"16px",borderRadius:"50%",background:"#fff",
+                position:"absolute",top:"3px",transition:"left 0.2s",
+                left:isDutch?"19px":"3px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+            </div>
+            <div style={{flex:1,textAlign:"left"}}>
+              <div style={{fontSize:"13px",fontWeight:600,color:isDutch?"#7c3aed":C.inkMid,fontFamily:"'Inter',sans-serif"}}>더치페이</div>
+              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:"'Inter',sans-serif"}}>
+                {isDutch?"인원수를 눌러 총액을 나눠요":"총액을 인원수로 나눠 내 몫만 기록"}
+              </div>
+            </div>
+          </button>
+          {isDutch&&(()=>{
+            const total=parseInt(String(dutchTotal).replace(/,/g,""))||0;
+            const n=parseInt(dutchPeople)||0;
+            const per=n>0?Math.round(total/n):0;
+            return(
+              <div style={{background:"#faf5ff",border:"1.5px solid #7c3aed",borderTop:"1px solid #e9d5ff",
+                borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:n>0?"8px":0}}>
+                  <div style={{fontSize:"11px",fontWeight:600,color:"#7c3aed",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                    인원수
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
+                    {[2,3,4,5,6].map(p=>{
+                      const sel=n===p;
+                      return(
+                        <button key={p} onClick={()=>{
+                          setDutchPeople(String(p));
+                          const per2=Math.round(total/p);
+                          setAmount(per2.toLocaleString("ko-KR"));
+                        }} style={{
+                          padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                          border:`1.5px solid ${sel?"#7c3aed":"#e9d5ff"}`,
+                          background:sel?"#7c3aed":"#fff",color:sel?"#fff":"#7c3aed",
+                          fontFamily:"'Inter',sans-serif"}}>
+                          {p}명
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input type="number" value={n&&![2,3,4,5,6].includes(n)?dutchPeople:""}
+                    onChange={e=>{
+                      const v=e.target.value;
+                      setDutchPeople(v);
+                      const p=parseInt(v)||0;
+                      if(p>0)setAmount(Math.round(total/p).toLocaleString("ko-KR"));
+                    }} placeholder="직접입력"
+                    min="2" max="99"
+                    style={{width:"70px",border:"1.5px solid #e9d5ff",borderRadius:"8px",
+                      padding:"5px 8px",fontSize:"12px",color:"#7c3aed",outline:"none",
+                      background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
+                </div>
+                {n>0&&(
+                  <div style={{fontSize:"11px",color:"#7c3aed",fontFamily:"'Inter',sans-serif"}}>
+                    총 {total.toLocaleString("ko-KR")}원 ÷ {n}명 = <b>{per.toLocaleString("ko-KR")}원</b>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Card */}
       {cards.length>0&&(
