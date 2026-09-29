@@ -434,7 +434,11 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         last_amount:num,base_amount:num}
       :null;
     if(vendor.trim()) saveVendor(vendor.trim());
-    const finalMemo=[vendor.trim(),memo.trim()||cat3||cat2].filter(Boolean).join(" · ");
+    const dutchTotalNum=parseInt(String(dutchTotal).replace(/,/g,""))||0;
+    const dutchN=parseInt(dutchPeople)||0;
+    const dutchSuffix=(isDutch&&dutchN>0&&dutchTotalNum>0)
+      ?` (더치 1/${dutchN}, 원 ${dutchTotalNum.toLocaleString("ko-KR")}원)`:"";
+    const finalMemo=[vendor.trim(),memo.trim()||cat3||cat2].filter(Boolean).join(" · ")+dutchSuffix;
     try{
       const bmKey="gagibu_bimonthly";
       const key=`${entity}:${finalMemo}`;
