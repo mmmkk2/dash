@@ -2052,7 +2052,8 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         background:bgColor,borderRadius:"13px",
         border:`1px solid ${borderColor}`,
         position:"relative",overflow:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px"}}>
+      <div onClick={()=>setHistoryOpenFor(isHistoryOpen?null:tx.memo)}
+        style={{display:"flex",alignItems:"center",gap:"12px",padding:"12px 14px",cursor:"pointer"}}>
         <div style={{position:"absolute",top:0,left:0,bottom:0,width:"3px",background:barColor}}/>
         <div style={{flex:1,minWidth:0,paddingLeft:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
@@ -2070,15 +2071,11 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
               fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>격월</button>
-            <button onClick={e=>{e.stopPropagation();setHistoryOpenFor(isHistoryOpen?null:tx.memo);}} style={{
-              fontSize:"9px",background:isHistoryOpen?"#f0f4ff":"transparent",
-              color:isHistoryOpen?"#1d4e89":C.border,
-              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              border:`1px solid ${isHistoryOpen?"#b0c4de":C.border}`,
-              fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s",
-              display:"flex",alignItems:"center",gap:"2px"}}>
-              <Clock size={9}/> 이력{historyList.length>0?` ${historyList.length}`:""}
-            </button>
+            {historyList.length>0&&<span style={{fontSize:"9px",color:C.inkLight,
+              display:"flex",alignItems:"center",gap:"2px",flexShrink:0,
+              fontFamily:"'Inter',sans-serif"}}>
+              <Clock size={9}/> {historyList.length}
+            </span>}
             {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               fontFamily:"'Inter',sans-serif"}}>오늘</span>}
@@ -2110,6 +2107,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             </div>
           )}
         </div>
+        <div onClick={e=>e.stopPropagation()} style={{display:"contents"}}>
         {isScheduled?(
           editAmount!==null?(
             <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
@@ -2177,6 +2175,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             </button>
           </div>
         )}
+        </div>
       </div>
       {isLinkOpen&&(
         <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
