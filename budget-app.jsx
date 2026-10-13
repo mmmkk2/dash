@@ -1930,6 +1930,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   const [registering, setRegistering] = useState(new Set());
   const [linkOpenFor, setLinkOpenFor] = useState(null); // 연결 후보 목록을 펼친 템플릿 memo
   const [linkBusy, setLinkBusy] = useState(new Set());
+  const [historyOpenFor, setHistoryOpenFor] = useState(null); // 이력 목록을 펼친 템플릿 memo
 
   // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
   const fixedTemplates = useMemo(()=>{
@@ -2041,6 +2042,11 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
     const isLinkOpen = isScheduled && linkOpenFor===tx.memo;
     const isLinking = linkBusy.has(tx.memo);
     const candidates = isLinkOpen ? candidatesFor(tx) : [];
+    const isHistoryOpen = historyOpenFor===tx.memo;
+    const historyList = useMemo(()=>
+      [...txs].filter(t=>t.entity===entity&&t.memo===tx.memo&&t.isFixed)
+        .sort((a,b)=>b.date.localeCompare(a.date))
+    ,[txs,entity,tx.memo]);
     return(
       <div style={{display:"flex",flexDirection:"column",
         background:bgColor,borderRadius:"13px",
@@ -2064,6 +2070,15 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
               fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>격월</button>
+            <button onClick={e=>{e.stopPropagation();setHistoryOpenFor(isHistoryOpen?null:tx.memo);}} style={{
+              fontSize:"9px",background:isHistoryOpen?"#f0f4ff":"transparent",
+              color:isHistoryOpen?"#1d4e89":C.border,
+              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+              border:`1px solid ${isHistoryOpen?"#b0c4de":C.border}`,
+              fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s",
+              display:"flex",alignItems:"center",gap:"2px"}}>
+              <Clock size={9}/> 이력{historyList.length>0?` ${historyList.length}`:""}
+            </button>
             {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               fontFamily:"'Inter',sans-serif"}}>오늘</span>}
@@ -2186,6 +2201,35 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                     {c.type==="income"?"+":"-"}{fmtS(c.amount)}
                   </span>
                 </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {isHistoryOpen&&(
+        <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
+          <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
+            "{tx.memo}" 반복으로 등록된 과거 거래 — 여기서 지우면 다음 달부터 반복에서 빠져요
+          </div>
+          {historyList.length===0?(
+            <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>이력이 없어요</div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              {historyList.map(h=>(
+                <div key={h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px",
+                  background:"#fff",border:`1px solid ${C.border}`,borderRadius:"8px",
+                  padding:"6px 10px",fontFamily:"'Inter',sans-serif"}}>
+                  <span style={{fontSize:"11px",color:C.inkMid}}>{h.date}</span>
+                  <span style={{fontSize:"12px",fontWeight:700,flexShrink:0,
+                    color:h.type==="income"?"#2d6a4f":"#b5451b"}}>
+                    {h.type==="income"?"+":"-"}{fmtS(h.amount)}
+                  </span>
+                  <button onClick={()=>onDelete(h.id)} title="이 과거 거래 삭제" style={{background:"none",
+                    border:`1px solid ${C.border}`,borderRadius:"6px",padding:"4px 6px",
+                    cursor:"pointer",color:C.inkLight,display:"flex",flexShrink:0}}>
+                    <Trash2 size={11}/>
+                  </button>
+                </div>
               ))}
             </div>
           )}
