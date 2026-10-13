@@ -4142,12 +4142,16 @@ export default function App(){
   const supplyAlerts = useMemo(()=>
     entity==="cafe" ? computeSupplyAlerts(supplies, txs).filter(s=>s.days<=3) : []
   ,[entity, supplies, txs]);
+  const supplyOverdue = useMemo(()=>supplyAlerts.filter(s=>s.days<0).length,[supplyAlerts]);
+  const supplyUpcoming = useMemo(()=>supplyAlerts.filter(s=>s.days>=0).length,[supplyAlerts]);
   const isCurrentViewMonth = now.getFullYear()===year && now.getMonth()===month;
   const fixedAlerts = useMemo(()=>
     entity==="cafe" && isCurrentViewMonth
       ? computeFixedAlerts(txs, entity, year, month).filter(f=>f.daysAway<=3)
       : []
   ,[entity, txs, year, month, isCurrentViewMonth]);
+  const fixedOverdue = useMemo(()=>fixedAlerts.filter(f=>f.daysAway<0).length,[fixedAlerts]);
+  const fixedUpcoming = useMemo(()=>fixedAlerts.filter(f=>f.daysAway>=0).length,[fixedAlerts]);
   const [taxDocIds, setTaxDocIds] = useState([]);
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
@@ -4604,12 +4608,12 @@ export default function App(){
         {!isConfigured()&&<SetupGuide/>}
 
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
-          {[["list","내역",0],
-            ...(!yearView?[["calendar","캘린더",0]]:[]),
-            ["stats","통계",0],
-            ...(!yearView?[["fixed","반복",fixedAlerts.length]]:[]),
-            ...(entity==="cafe"?[["supplies","소모품",supplyAlerts.length]]:[])
-          ].map(([k,l,badge])=>(
+          {[["list","내역",0,0],
+            ...(!yearView?[["calendar","캘린더",0,0]]:[]),
+            ["stats","통계",0,0],
+            ...(!yearView?[["fixed","반복",fixedOverdue,fixedUpcoming]]:[]),
+            ...(entity==="cafe"?[["supplies","소모품",supplyOverdue,supplyUpcoming]]:[])
+          ].map(([k,l,overdue,upcoming])=>(
             <button key={k} onClick={()=>setTab(k)} style={{
               flex:1,padding:"12px 10px",border:"none",background:"transparent",cursor:"pointer",position:"relative",
               fontWeight:tab===k?700:400,fontSize:"13px",
@@ -4617,9 +4621,15 @@ export default function App(){
               borderBottom:`2px solid ${tab===k?ent.color:"transparent"}`,
               marginBottom:"-1px",fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}>
               {l}
-              {badge>0&&<span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",minWidth:"14px",height:"14px",padding:"0 3px",
-                borderRadius:"7px",background:"#b5451b",color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
-                textAlign:"center",fontFamily:"'Inter',sans-serif"}}>{badge}</span>}
+              {(overdue>0||upcoming>0)&&
+                <span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",display:"flex",gap:"2px"}}>
+                  {overdue>0&&<span title="지남" style={{minWidth:"14px",height:"14px",padding:"0 3px",
+                    borderRadius:"7px",background:"#b5451b",color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
+                    textAlign:"center",fontFamily:"'Inter',sans-serif"}}>{overdue}</span>}
+                  {upcoming>0&&<span title="예정" style={{minWidth:"14px",height:"14px",padding:"0 3px",
+                    borderRadius:"7px",background:"#b8860b",color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
+                    textAlign:"center",fontFamily:"'Inter',sans-serif"}}>{upcoming}</span>}
+                </span>}
             </button>
           ))}
         </div>
