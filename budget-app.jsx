@@ -1965,6 +1965,20 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
     localStorage.setItem(BM_KEY,JSON.stringify([...next]));
   }
 
+  // 반복 중단 — 과거 거래(이력)는 그대로 두고 앞으로 반복 예정에만 안 뜨게
+  const STOP_KEY="gagibu_fixed_stopped";
+  const [stoppedSet,setStoppedSet]=useState(()=>{
+    try{return new Set(JSON.parse(localStorage.getItem(STOP_KEY)||"[]"));}catch{return new Set();}
+  });
+  function isStopped(memo){ return stoppedSet.has(`${entity}:${memo}`); }
+  function stopRecurring(memo){
+    const key=`${entity}:${memo}`;
+    const next=new Set(stoppedSet);
+    next.add(key);
+    setStoppedSet(next);
+    localStorage.setItem(STOP_KEY,JSON.stringify([...next]));
+  }
+
   // 격월 항목이 이번 달 예정인지: 마지막 납부가 이번 달 기준 45일 이내면 skip
   function isDueThisMonth(t){
     if(!isBiMonthly(t.memo)) return true;
@@ -1980,9 +1994,9 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   // 이번 달 아직 미발생인 예정 항목 (fixedDay 유무와 무관하게 표시)
   const scheduled = useMemo(()=>
     fixedTemplates
-      .filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo)&&isDueThisMonth(t))
+      .filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo)&&isDueThisMonth(t)&&!isStopped(t.memo))
       .sort((a,b)=>(a.fixedDay||99)-(b.fixedDay||99)),
-  [fixedTemplates,thisMonthFixed,txs,year,month]);
+  [fixedTemplates,thisMonthFixed,txs,year,month,stoppedSet]);
 
   // 이번 달 실제 발생 목록
   const occurred = useMemo(()=>
@@ -2071,6 +2085,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
               fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>격월</button>
+            {isScheduled&&(
+              <button onClick={e=>{
+                e.stopPropagation();
+                if(window.confirm(`"${tx.memo}" 반복을 완전히 중단할까요?\n과거 거래 기록은 그대로 남고, 앞으로 예정에만 다시 안 떠요.`)) stopRecurring(tx.memo);
+              }} title="반복 중단 (과거 기록은 유지)" style={{
+                fontSize:"9px",background:"transparent",color:C.border,
+                borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+                border:`1px solid ${C.border}`,fontFamily:"'Inter',sans-serif",
+                cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"2px"}}>
+                <Trash2 size={9}/> 반복삭제
+              </button>
+            )}
             {historyList.length>0&&<span style={{fontSize:"9px",color:C.inkLight,
               display:"flex",alignItems:"center",gap:"2px",flexShrink:0,
               fontFamily:"'Inter',sans-serif"}}>
