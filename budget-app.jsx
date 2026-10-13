@@ -1931,6 +1931,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   const [linkOpenFor, setLinkOpenFor] = useState(null); // 연결 후보 목록을 펼친 템플릿 memo
   const [linkBusy, setLinkBusy] = useState(new Set());
   const [historyOpenFor, setHistoryOpenFor] = useState(null); // 이력 목록을 펼친 템플릿 memo
+  const [fixedMenuOpenFor, setFixedMenuOpenFor] = useState(null); // 날짜수정/반복삭제 메뉴를 펼친 템플릿 memo
 
   // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
   const fixedTemplates = useMemo(()=>{
@@ -2047,6 +2048,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
     })();
     const isReg = registering.has(tx.memo);
     const [editAmount, setEditAmount] = useState(null);
+    const isFixedMenuOpen = isScheduled && fixedMenuOpenFor===tx.memo;
     const isIncome = tx.type==="income";
     const borderColor = isToday?"#b5451b":isPast?"#e07a5f":C.border;
     const bgColor = isToday?"#fff8f0":isPast?"#fffaf8":isIncome?"#f8fdfa":C.white;
@@ -2086,15 +2088,14 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
               fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>격월</button>
             {isScheduled&&(
-              <button onClick={e=>{
-                e.stopPropagation();
-                if(window.confirm(`"${tx.memo}" 반복을 완전히 중단할까요?\n과거 거래 기록은 그대로 남고, 앞으로 예정에만 다시 안 떠요.`)) stopRecurring(tx.memo);
-              }} title="반복 중단 (과거 기록은 유지)" style={{
-                fontSize:"9px",background:"transparent",color:C.border,
+              <button onClick={e=>{e.stopPropagation();setFixedMenuOpenFor(isFixedMenuOpen?null:tx.memo);}}
+                title="날짜 수정 / 반복 삭제" style={{
+                fontSize:"9px",background:isFixedMenuOpen?"#f0f4ff":"transparent",
+                color:isFixedMenuOpen?"#1d4e89":C.border,
                 borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-                border:`1px solid ${C.border}`,fontFamily:"'Inter',sans-serif",
+                border:`1px solid ${isFixedMenuOpen?"#b0c4de":C.border}`,fontFamily:"'Inter',sans-serif",
                 cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"2px"}}>
-                <Trash2 size={9}/> 반복삭제
+                <Pencil size={9}/> 편집
               </button>
             )}
             {historyList.length>0&&<span style={{fontSize:"9px",color:C.inkLight,
@@ -2203,6 +2204,25 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         )}
         </div>
       </div>
+      {isFixedMenuOpen&&(
+        <div onClick={e=>e.stopPropagation()} style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9",
+          display:"flex",flexDirection:"column",gap:"6px"}}>
+          <button onClick={()=>{setFixedMenuOpenFor(null);onEdit(tx);}} style={{display:"flex",alignItems:"center",gap:"6px",
+            background:"#fff",border:`1px solid ${C.border}`,borderRadius:"8px",padding:"7px 10px",
+            cursor:"pointer",fontSize:"11px",color:C.ink,fontFamily:"'Inter',sans-serif",textAlign:"left"}}>
+            <Pencil size={11}/> 날짜/금액 수정
+          </button>
+          <button onClick={()=>{
+            if(window.confirm(`"${tx.memo}" 반복을 완전히 중단할까요?\n과거 거래 기록은 그대로 남고, 앞으로 예정에만 다시 안 떠요.`)){
+              stopRecurring(tx.memo); setFixedMenuOpenFor(null);
+            }
+          }} style={{display:"flex",alignItems:"center",gap:"6px",
+            background:"#fff",border:"1px solid #f4c5b2",borderRadius:"8px",padding:"7px 10px",
+            cursor:"pointer",fontSize:"11px",color:"#b5451b",fontFamily:"'Inter',sans-serif",textAlign:"left"}}>
+            <Trash2 size={11}/> 반복 중단 (이력은 유지)
+          </button>
+        </div>
+      )}
       {isLinkOpen&&(
         <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
           <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
