@@ -4603,60 +4603,24 @@ export default function App(){
 
         {!isConfigured()&&<SetupGuide/>}
 
-        {(supplyAlerts.length>0||fixedAlerts.length>0)&&(
-          <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"16px"}}>
-            {supplyAlerts.length>0&&(
-              <div onClick={()=>setTab("supplies")} style={{cursor:"pointer",background:"#fff8f0",borderRadius:"14px",padding:"14px 16px",
-                border:"1px solid #f4c5b2",display:"flex",alignItems:"center",gap:"10px"}}>
-                <AlertTriangle size={16} color="#b5451b"/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
-                    {supplyAlerts.filter(s=>s.days<0).length>0
-                      ? `${supplyAlerts.filter(s=>s.days<0).length}개 구매 필요 · ${supplyAlerts.filter(s=>s.days>=0).length>0?`${supplyAlerts.filter(s=>s.days>=0).length}개 임박`:""}`
-                      : `${supplyAlerts.length}개 소모품 구매 임박`}
-                  </div>
-                  <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:"'Inter',sans-serif",
-                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {supplyAlerts.map(s=>s.name).join(", ")}
-                  </div>
-                </div>
-                <ChevronRight size={15} color="#b5451b" style={{opacity:0.6,flexShrink:0}}/>
-              </div>
-            )}
-            {fixedAlerts.length>0&&(
-              <div onClick={()=>setTab("fixed")} style={{cursor:"pointer",background:"#fff8f0",borderRadius:"14px",padding:"14px 16px",
-                border:"1px solid #f4c5b2",display:"flex",alignItems:"center",gap:"10px"}}>
-                <Clock size={16} color="#b5451b"/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
-                    {fixedAlerts.filter(f=>f.daysAway<0).length>0
-                      ? `${fixedAlerts.filter(f=>f.daysAway<0).length}건 미발생 · ${fixedAlerts.filter(f=>f.daysAway>=0).length>0?`${fixedAlerts.filter(f=>f.daysAway>=0).length}건 예정`:""}`
-                      : `${fixedAlerts.length}건 반복 예정`}
-                  </div>
-                  <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:"'Inter',sans-serif",
-                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {fixedAlerts.map(f=>f.memo).join(", ")}
-                  </div>
-                </div>
-                <ChevronRight size={15} color="#b5451b" style={{opacity:0.6,flexShrink:0}}/>
-              </div>
-            )}
-          </div>
-        )}
-
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
-          {[["list","내역"],
-            ...(!yearView?[["calendar","캘린더"]]:[]),
-            ["stats","통계"],
-            ...(!yearView?[["fixed","반복"]]:[]),
-            ...(entity==="cafe"?[["supplies","소모품"]]:[])
-          ].map(([k,l])=>(
+          {[["list","내역",0],
+            ...(!yearView?[["calendar","캘린더",0]]:[]),
+            ["stats","통계",0],
+            ...(!yearView?[["fixed","반복",fixedAlerts.length]]:[]),
+            ...(entity==="cafe"?[["supplies","소모품",supplyAlerts.length]]:[])
+          ].map(([k,l,badge])=>(
             <button key={k} onClick={()=>setTab(k)} style={{
-              flex:1,padding:"12px 10px",border:"none",background:"transparent",cursor:"pointer",
+              flex:1,padding:"12px 10px",border:"none",background:"transparent",cursor:"pointer",position:"relative",
               fontWeight:tab===k?700:400,fontSize:"13px",
               color:tab===k?C.ink:C.inkLight,
               borderBottom:`2px solid ${tab===k?ent.color:"transparent"}`,
-              marginBottom:"-1px",fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}>{l}</button>
+              marginBottom:"-1px",fontFamily:"'Inter',sans-serif",transition:"all 0.2s"}}>
+              {l}
+              {badge>0&&<span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",minWidth:"14px",height:"14px",padding:"0 3px",
+                borderRadius:"7px",background:"#b5451b",color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
+                textAlign:"center",fontFamily:"'Inter',sans-serif"}}>{badge}</span>}
+            </button>
           ))}
         </div>
 
