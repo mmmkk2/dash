@@ -1893,6 +1893,35 @@ function CalendarView({txs, year, month, onEdit, cards}){
   );
 }
 
+// 반복(고정지출) 근접 항목 계산 — FixedView의 scheduled 로직과 동일, 상단 배너용
+function computeFixedAlerts(txs, entity, year, month){
+  const todayDay = new Date().getDate();
+  const monthKey = `${year}-${String(month+1).padStart(2,"0")}`;
+  const map = {};
+  [...txs].filter(t=>t.isFixed&&t.entity===entity).sort((a,b)=>b.date.localeCompare(a.date)).forEach(t=>{
+    if(!map[t.memo]) map[t.memo]=t;
+  });
+  const fixedTemplates = Object.values(map);
+  const seen = new Set();
+  const thisMonthFixed = [...txs]
+    .filter(t=>t.isFixed&&t.entity===entity&&t.date.startsWith(monthKey))
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .filter(t=>{ if(seen.has(t.memo))return false; seen.add(t.memo); return true; });
+  let biMonthlySet;
+  try{ biMonthlySet = new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]")); }catch{ biMonthlySet = new Set(); }
+  function isDueThisMonth(t){
+    if(!biMonthlySet.has(`${entity}:${t.memo}`)) return true;
+    const history = [...txs].filter(tx=>tx.entity===entity&&tx.memo===t.memo).sort((a,b)=>b.date.localeCompare(a.date));
+    if(!history.length) return true;
+    const lastPaid = new Date(history[0].date);
+    const monthDiff = (year-lastPaid.getFullYear())*12+(month-lastPaid.getMonth());
+    return monthDiff>=2;
+  }
+  return fixedTemplates
+    .filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo)&&isDueThisMonth(t)&&t.fixedDay)
+    .map(t=>({ memo:t.memo, daysAway:t.fixedDay-todayDay }));
+}
+
 /* ── Fixed View ── */
 function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, month}){
   const today = new Date();
@@ -3524,6 +3553,57 @@ function CoupangImport({ onRegister }) {
 }
 
 /* ── Supplies View (앤딩 전용) ── */
+// 소모품 구매 임박 항목 계산 — SuppliesView의 needAction 로직과 동일, 상단 배너용
+function computeSupplyAlerts(supplies, txs){
+  const today = new Date();
+  const cafeTxs = txs.filter(t=>t.entity==="cafe"&&t.type==="expense");
+  function computeActualCycle(name){
+    const norm = name.toLowerCase();
+    const matches = cafeTxs
+      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    if(matches.length<2) return null;
+    const intervals=[];
+    for(let i=1;i<matches.length;i++){
+      const days=Math.round((new Date(matches[i].date)-new Date(matches[i-1].date))/86400000);
+      if(days>0) intervals.push(days);
+    }
+    if(!intervals.length) return null;
+    return { days: Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length) };
+  }
+  const effectiveCycle = (s) => {
+    const actual = computeActualCycle(s.name);
+    if(!actual) return null;
+    if(s.base_amount>0 && s.last_amount>0) return Math.round(actual.days * s.last_amount / s.base_amount);
+    return actual.days;
+  };
+  const effectiveLastBought = (s) => {
+    const norm = (s.name||"").toLowerCase();
+    const latest = cafeTxs
+      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .map(t=>t.date).sort().at(-1);
+    if(!latest) return s.last_bought;
+    return latest > (s.last_bought||"") ? latest : s.last_bought;
+  };
+  const nextBuy = (s) => {
+    const cyc = effectiveCycle(s);
+    if(!cyc) return null;
+    const base = effectiveLastBought(s);
+    if(!base) return null;
+    const d = new Date(base);
+    d.setDate(d.getDate() + cyc);
+    return d.toISOString().slice(0,10);
+  };
+  return supplies
+    .map(s=>{
+      const n = nextBuy(s);
+      if(!n) return null;
+      return { ...s, days: Math.round((new Date(n) - today) / 86400000) };
+    })
+    .filter(Boolean)
+    .sort((a,b)=>a.days-b.days);
+}
+
 const SUPPLY_CATS = ["음료재료","소모품","청소","사무용품","비품","기타"];
 
 function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddTx, cards=[] }){
@@ -4059,6 +4139,15 @@ export default function App(){
   const [cards, setCards] =useState(DEFAULT_CARDS);
   const [trees, setTrees] =useState(loadTrees);
   const [supplies, setSupplies] = useState([]);
+  const supplyAlerts = useMemo(()=>
+    entity==="cafe" ? computeSupplyAlerts(supplies, txs).filter(s=>s.days<=3) : []
+  ,[entity, supplies, txs]);
+  const isCurrentViewMonth = now.getFullYear()===year && now.getMonth()===month;
+  const fixedAlerts = useMemo(()=>
+    entity==="cafe" && isCurrentViewMonth
+      ? computeFixedAlerts(txs, entity, year, month).filter(f=>f.daysAway<=3)
+      : []
+  ,[entity, txs, year, month, isCurrentViewMonth]);
   const [taxDocIds, setTaxDocIds] = useState([]);
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
@@ -4513,6 +4602,47 @@ export default function App(){
         background:C.paper,borderLeft:`1px solid ${C.border}`,borderRight:`1px solid ${C.border}`}}>
 
         {!isConfigured()&&<SetupGuide/>}
+
+        {(supplyAlerts.length>0||fixedAlerts.length>0)&&(
+          <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"16px"}}>
+            {supplyAlerts.length>0&&(
+              <div onClick={()=>setTab("supplies")} style={{cursor:"pointer",background:"#fff8f0",borderRadius:"14px",padding:"14px 16px",
+                border:"1px solid #f4c5b2",display:"flex",alignItems:"center",gap:"10px"}}>
+                <AlertTriangle size={16} color="#b5451b"/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
+                    {supplyAlerts.filter(s=>s.days<0).length>0
+                      ? `${supplyAlerts.filter(s=>s.days<0).length}개 구매 필요 · ${supplyAlerts.filter(s=>s.days>=0).length>0?`${supplyAlerts.filter(s=>s.days>=0).length}개 임박`:""}`
+                      : `${supplyAlerts.length}개 소모품 구매 임박`}
+                  </div>
+                  <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:"'Inter',sans-serif",
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {supplyAlerts.map(s=>s.name).join(", ")}
+                  </div>
+                </div>
+                <ChevronRight size={15} color="#b5451b" style={{opacity:0.6,flexShrink:0}}/>
+              </div>
+            )}
+            {fixedAlerts.length>0&&(
+              <div onClick={()=>setTab("fixed")} style={{cursor:"pointer",background:"#fff8f0",borderRadius:"14px",padding:"14px 16px",
+                border:"1px solid #f4c5b2",display:"flex",alignItems:"center",gap:"10px"}}>
+                <Clock size={16} color="#b5451b"/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
+                    {fixedAlerts.filter(f=>f.daysAway<0).length>0
+                      ? `${fixedAlerts.filter(f=>f.daysAway<0).length}건 미발생 · ${fixedAlerts.filter(f=>f.daysAway>=0).length>0?`${fixedAlerts.filter(f=>f.daysAway>=0).length}건 예정`:""}`
+                      : `${fixedAlerts.length}건 반복 예정`}
+                  </div>
+                  <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:"'Inter',sans-serif",
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {fixedAlerts.map(f=>f.memo).join(", ")}
+                  </div>
+                </div>
+                <ChevronRight size={15} color="#b5451b" style={{opacity:0.6,flexShrink:0}}/>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,marginBottom:"16px"}}>
           {[["list","내역"],
