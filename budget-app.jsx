@@ -2208,7 +2208,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       {isHistoryOpen&&(
         <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
           <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontFamily:"'Inter',sans-serif"}}>
-            "{tx.memo}" 반복으로 등록된 과거 거래 — 여기서 지우면 다음 달부터 반복에서 빠져요
+            "{tx.memo}" 반복으로 등록된 과거 거래 — 편집에서 삭제하면 반복 패턴에서도 빠져요
           </div>
           {historyList.length===0?(
             <div style={{fontSize:"11px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>이력이 없어요</div>
@@ -2223,10 +2223,10 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                     color:h.type==="income"?"#2d6a4f":"#b5451b"}}>
                     {h.type==="income"?"+":"-"}{fmtS(h.amount)}
                   </span>
-                  <button onClick={()=>onDelete(h.id)} title="이 과거 거래 삭제" style={{background:"none",
+                  <button onClick={()=>onEdit(h)} title="이 거래 수정/삭제" style={{background:"none",
                     border:`1px solid ${C.border}`,borderRadius:"6px",padding:"4px 6px",
                     cursor:"pointer",color:C.inkLight,display:"flex",flexShrink:0}}>
-                    <Trash2 size={11}/>
+                    <Pencil size={11}/>
                   </button>
                 </div>
               ))}
