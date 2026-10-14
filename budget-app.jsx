@@ -3663,12 +3663,17 @@ function computeSupplyAlerts(supplies, txs){
       intervals.push(prevAmount>0&&avgAmount>0 ? days*(avgAmount/prevAmount) : days);
     }
     if(!intervals.length) return null;
-    return { days: Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length) };
+    return {
+      days: Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length),
+      avgAmount, latestAmount: parseInt(matches.at(-1).amount)||0,
+    };
   }
   const effectiveCycle = (s) => {
     const actual = computeActualCycle(s.name);
     if(!actual) return null;
     if(s.base_amount>0 && s.last_amount>0) return Math.round(actual.days * s.last_amount / s.base_amount);
+    // 가장 최근 구매가 평균보다 많았으면(=더 많이 샀으면) 다음 구매까지의 간격도 그만큼 늘려 예측
+    if(actual.avgAmount>0 && actual.latestAmount>0) return Math.round(actual.days * actual.latestAmount / actual.avgAmount);
     return actual.days;
   };
   const effectiveLastBought = (s) => {
@@ -3736,6 +3741,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     return {
       days: Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length),
       count: matches.length,
+      avgAmount, latestAmount: parseInt(matches.at(-1).amount)||0,
     };
   }
 
@@ -3745,6 +3751,9 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     if(!actual) return null;
     if(s.base_amount>0 && s.last_amount>0)
       return Math.round(actual.days * s.last_amount / s.base_amount);
+    // 가장 최근 구매가 평균보다 많았으면(=더 많이 샀으면) 다음 구매까지의 간격도 그만큼 늘려 예측
+    if(actual.avgAmount>0 && actual.latestAmount>0)
+      return Math.round(actual.days * actual.latestAmount / actual.avgAmount);
     return actual.days;
   };
 
