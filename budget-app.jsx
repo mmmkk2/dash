@@ -3652,10 +3652,15 @@ function computeSupplyAlerts(supplies, txs){
       .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(matches.length<2) return null;
+    // 구매 금액이 평균보다 많았던 회차(= 더 많이 산 경우)는 다음 구매까지의 간격도
+    // 자연히 길어지므로, 금액 비율로 나눠 "평균 구매량 기준" 간격으로 보정한다
+    const avgAmount = matches.reduce((s,t)=>s+(parseInt(t.amount)||0),0) / matches.length;
     const intervals=[];
     for(let i=1;i<matches.length;i++){
       const days=Math.round((new Date(matches[i].date)-new Date(matches[i-1].date))/86400000);
-      if(days>0) intervals.push(days);
+      if(days<=0) continue;
+      const prevAmount=parseInt(matches[i-1].amount)||0;
+      intervals.push(prevAmount>0&&avgAmount>0 ? days*(avgAmount/prevAmount) : days);
     }
     if(!intervals.length) return null;
     return { days: Math.round(intervals.reduce((s,d)=>s+d,0)/intervals.length) };
@@ -3717,10 +3722,15 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
       .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(matches.length<2) return null;
+    // 구매 금액이 평균보다 많았던 회차(= 더 많이 산 경우)는 다음 구매까지의 간격도
+    // 자연히 길어지므로, 금액 비율로 나눠 "평균 구매량 기준" 간격으로 보정한다
+    const avgAmount = matches.reduce((s,t)=>s+(parseInt(t.amount)||0),0) / matches.length;
     const intervals=[];
     for(let i=1;i<matches.length;i++){
       const days=Math.round((new Date(matches[i].date)-new Date(matches[i-1].date))/86400000);
-      if(days>0) intervals.push(days);
+      if(days<=0) continue;
+      const prevAmount=parseInt(matches[i-1].amount)||0;
+      intervals.push(prevAmount>0&&avgAmount>0 ? days*(avgAmount/prevAmount) : days);
     }
     if(!intervals.length) return null;
     return {
