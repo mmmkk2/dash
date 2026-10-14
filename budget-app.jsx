@@ -3642,16 +3642,24 @@ function CoupangImport({ onRegister }) {
 }
 
 /* ── Supplies View (앤딩 전용) ── */
-// 소모품 이름 ↔ 거래 메모/분류 매칭 — 완전 일치가 아니라 부분 포함으로 비교한다.
+// 메모(자유 텍스트)는 부분 포함으로, 분류(cat2/cat3, 고정된 카테고리 값)는 완전 일치로 비교한다.
 // 쿠팡 등 자동 수입 거래는 메모가 "쿠팡 · 상품명 (옵션)"처럼 들어오고,
-// "차-둥굴레차"처럼 "차-" 접두사가 붙은 품목명은 거래 메모엔 접두사 없이 들어오는 경우가 많기 때문.
-function supplyNameMatches(name, text){
-  if(!name||!text) return false;
-  const a=name.toLowerCase().trim(), b=text.toLowerCase().trim();
+// "차-둥굴레차"처럼 "차-" 접두사가 붙은 품목명은 거래 메모엔 접두사 없이 들어오는 경우가 많아 부분 매칭이 필요하지만,
+// cat2/cat3는 "책" 같은 짧은 카테고리 단어가 "책상LED" 같은 무관한 품목명에 우연히 포함되는 오탐을 막기 위해 완전 일치만 허용한다.
+function supplyMemoMatches(name, memo){
+  if(!name||!memo) return false;
+  const a=name.toLowerCase().trim(), b=memo.toLowerCase().trim();
   if(!a||!b) return false;
   if(a===b||b.includes(a)||a.includes(b)) return true;
   const tail=a.includes("-")?a.split("-").pop():null;
   return !!(tail&&tail.length>=2&&b.includes(tail));
+}
+function supplyCatMatches(name, cat){
+  if(!name||!cat) return false;
+  return name.toLowerCase().trim()===cat.toLowerCase().trim();
+}
+function supplyTxMatches(name, t){
+  return supplyMemoMatches(name,t.memo)||supplyCatMatches(name,t.cat2)||supplyCatMatches(name,t.cat3);
 }
 // 소모품 구매 임박 항목 계산 — SuppliesView의 needAction 로직과 동일, 상단 배너용
 function computeSupplyAlerts(supplies, txs){
@@ -3659,7 +3667,7 @@ function computeSupplyAlerts(supplies, txs){
   const cafeTxs = txs.filter(t=>t.entity==="cafe"&&t.type==="expense");
   function computeActualCycle(name){
     const matches = cafeTxs
-      .filter(t=>supplyNameMatches(name,t.memo)||supplyNameMatches(name,t.cat2)||supplyNameMatches(name,t.cat3))
+      .filter(t=>supplyTxMatches(name,t))
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(matches.length<2) return null;
     // 구매 금액이 평균보다 많았던 회차(= 더 많이 산 경우)는 다음 구매까지의 간격도
@@ -3688,7 +3696,7 @@ function computeSupplyAlerts(supplies, txs){
   };
   const effectiveLastBought = (s) => {
     const latest = cafeTxs
-      .filter(t=>supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat2)||supplyNameMatches(s.name,t.cat3))
+      .filter(t=>supplyTxMatches(s.name,t))
       .map(t=>t.date).sort().at(-1);
     if(!latest) return s.last_bought;
     return latest > (s.last_bought||"") ? latest : s.last_bought;
@@ -3732,7 +3740,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
 
   function computeActualCycle(name){
     const matches = cafeTxs
-      .filter(t=>supplyNameMatches(name,t.memo)||supplyNameMatches(name,t.cat2)||supplyNameMatches(name,t.cat3))
+      .filter(t=>supplyTxMatches(name,t))
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(matches.length<2) return null;
     // 구매 금액이 평균보다 많았던 회차(= 더 많이 산 경우)는 다음 구매까지의 간격도
@@ -3770,7 +3778,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
   // 거래 이력 최신 구매일 vs DB last_bought 중 더 최근 날짜 사용
   const effectiveLastBought = (s) => {
     const latest = cafeTxs
-      .filter(t=>supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat2)||supplyNameMatches(s.name,t.cat3))
+      .filter(t=>supplyTxMatches(s.name,t))
       .map(t=>t.date).sort().at(-1);
     if(!latest) return s.last_bought;
     return latest > (s.last_bought||"") ? latest : s.last_bought;
@@ -3840,7 +3848,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
       const dateChanged = form.last_bought && form.last_bought !== modal.last_bought;
       const alreadyLogged = cafeTxs.some(t =>
         t.date === form.last_bought &&
-        (supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat2)||supplyNameMatches(s.name,t.cat3))
+        supplyTxMatches(s.name,t)
       );
       if (dateChanged && !alreadyLogged && s.base_amount > 0 && onAddTx) {
         await onAddTx({
@@ -4040,7 +4048,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
           const next = nextBuy(s);
           const isExpanded = expandedId === s.id;
           const history = txs.filter(t=>
-            supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat3)||supplyNameMatches(s.name,t.cat2)
+            supplyTxMatches(s.name,t)
           ).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
           return(
             <div key={s.id} style={{background:C.white,borderRadius:"16px",
