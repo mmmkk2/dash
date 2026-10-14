@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react'
 import Calculator from './pages/calculator'
 import Budget from './pages/budget'
 import Assets from './pages/assets'
+import InfiniteBuying from './pages/infinite-buying'
 import Login, { supabase } from './pages/login'
 
 // 페이지(주소)별 브라우저 탭 제목
@@ -17,6 +18,7 @@ const PAGE_TITLES = {
   '/budget/cafe': '가계부 · 앤딩스터디카페',
   '/budget/realty': '가계부 · 부동산매매',
   '/assets': '내 자산',
+  '/infinite-buying': '무한매수 · 매일 주문표',
 }
 
 function TitleManager() {
@@ -56,6 +58,7 @@ export default function App() {
             <Route path="/budget" element={<Budget />} />
             <Route path="/budget/:entity" element={<Budget />} />
             <Route path="/assets" element={<Assets />} />
+            <Route path="/infinite-buying" element={<InfiniteBuying />} />
           </>
         ) : (
           <>
@@ -63,6 +66,7 @@ export default function App() {
             <Route path="/budget" element={<Login onLogin={setSession} />} />
             <Route path="/budget/:entity" element={<Login onLogin={setSession} />} />
             <Route path="/assets" element={<Login onLogin={setSession} />} />
+            <Route path="/infinite-buying" element={<Login onLogin={setSession} />} />
           </>
         )}
       </Routes>
