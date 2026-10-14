@@ -3642,14 +3642,24 @@ function CoupangImport({ onRegister }) {
 }
 
 /* ── Supplies View (앤딩 전용) ── */
+// 소모품 이름 ↔ 거래 메모/분류 매칭 — 완전 일치가 아니라 부분 포함으로 비교한다.
+// 쿠팡 등 자동 수입 거래는 메모가 "쿠팡 · 상품명 (옵션)"처럼 들어오고,
+// "차-둥굴레차"처럼 "차-" 접두사가 붙은 품목명은 거래 메모엔 접두사 없이 들어오는 경우가 많기 때문.
+function supplyNameMatches(name, text){
+  if(!name||!text) return false;
+  const a=name.toLowerCase().trim(), b=text.toLowerCase().trim();
+  if(!a||!b) return false;
+  if(a===b||b.includes(a)||a.includes(b)) return true;
+  const tail=a.includes("-")?a.split("-").pop():null;
+  return !!(tail&&tail.length>=2&&b.includes(tail));
+}
 // 소모품 구매 임박 항목 계산 — SuppliesView의 needAction 로직과 동일, 상단 배너용
 function computeSupplyAlerts(supplies, txs){
   const today = new Date();
   const cafeTxs = txs.filter(t=>t.entity==="cafe"&&t.type==="expense");
   function computeActualCycle(name){
-    const norm = name.toLowerCase();
     const matches = cafeTxs
-      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .filter(t=>supplyNameMatches(name,t.memo)||supplyNameMatches(name,t.cat2)||supplyNameMatches(name,t.cat3))
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(matches.length<2) return null;
     // 구매 금액이 평균보다 많았던 회차(= 더 많이 산 경우)는 다음 구매까지의 간격도
@@ -3677,9 +3687,8 @@ function computeSupplyAlerts(supplies, txs){
     return actual.days;
   };
   const effectiveLastBought = (s) => {
-    const norm = (s.name||"").toLowerCase();
     const latest = cafeTxs
-      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .filter(t=>supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat2)||supplyNameMatches(s.name,t.cat3))
       .map(t=>t.date).sort().at(-1);
     if(!latest) return s.last_bought;
     return latest > (s.last_bought||"") ? latest : s.last_bought;
@@ -3722,9 +3731,8 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
   const cafeTxs = useMemo(()=>txs.filter(t=>t.entity==="cafe"&&t.type==="expense"),[txs]);
 
   function computeActualCycle(name){
-    const norm = name.toLowerCase();
     const matches = cafeTxs
-      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .filter(t=>supplyNameMatches(name,t.memo)||supplyNameMatches(name,t.cat2)||supplyNameMatches(name,t.cat3))
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(matches.length<2) return null;
     // 구매 금액이 평균보다 많았던 회차(= 더 많이 산 경우)는 다음 구매까지의 간격도
@@ -3761,9 +3769,8 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
 
   // 거래 이력 최신 구매일 vs DB last_bought 중 더 최근 날짜 사용
   const effectiveLastBought = (s) => {
-    const norm = (s.name||"").toLowerCase();
     const latest = cafeTxs
-      .filter(t=>(t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+      .filter(t=>supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat2)||supplyNameMatches(s.name,t.cat3))
       .map(t=>t.date).sort().at(-1);
     if(!latest) return s.last_bought;
     return latest > (s.last_bought||"") ? latest : s.last_bought;
@@ -3830,11 +3837,10 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
       await onChange(s, "update");
       // 마지막 구매일을 새 날짜로 바꾼 경우 실제 구매 이력으로도 남겨서
       // 평균 소모기간 계산(computeActualCycle)에 반영되도록 한다
-      const norm = s.name.toLowerCase();
       const dateChanged = form.last_bought && form.last_bought !== modal.last_bought;
       const alreadyLogged = cafeTxs.some(t =>
         t.date === form.last_bought &&
-        ((t.memo||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm)
+        (supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat2)||supplyNameMatches(s.name,t.cat3))
       );
       if (dateChanged && !alreadyLogged && s.base_amount > 0 && onAddTx) {
         await onAddTx({
@@ -4033,9 +4039,8 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
           const progress = cyc ? Math.min(100, Math.max(0, (daysDiff(lastB) / cyc) * 100)) : null;
           const next = nextBuy(s);
           const isExpanded = expandedId === s.id;
-          const norm = (s.name||"").toLowerCase();
           const history = txs.filter(t=>
-            (t.memo||"").toLowerCase()===norm||(t.cat3||"").toLowerCase()===norm||(t.cat2||"").toLowerCase()===norm
+            supplyNameMatches(s.name,t.memo)||supplyNameMatches(s.name,t.cat3)||supplyNameMatches(s.name,t.cat2)
           ).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
           return(
             <div key={s.id} style={{background:C.white,borderRadius:"16px",
