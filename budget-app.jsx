@@ -4270,7 +4270,7 @@ export default function App(){
       ? computeFixedAlerts(txs, entity, year, month).filter(f=>f.daysAway<=3)
       : []
   ,[entity, txs, year, month, isCurrentViewMonth]);
-  const fixedOverdue = useMemo(()=>fixedAlerts.filter(f=>f.daysAway<0).length,[fixedAlerts]);
+  const fixedOverdue = useMemo(()=>fixedAlerts.filter(f=>f.daysAway<=0).length,[fixedAlerts]);
   const [taxDocIds, setTaxDocIds] = useState([]);
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
