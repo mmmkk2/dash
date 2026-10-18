@@ -4612,12 +4612,6 @@ export default function App(){
                   fontSize:"12px",fontWeight:600,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>
                   자산
                 </button>
-                <button onClick={()=>navigate("/infinite-buying")} title="매일 매수·매도 주문표" style={{
-                  background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",
-                  borderRadius:"10px",padding:"7px 10px",color:"rgba(255,255,255,0.75)",cursor:"pointer",
-                  fontSize:"12px",fontWeight:600,whiteSpace:"nowrap"}}>
-                  무한매수
-                </button>
                 <button onClick={()=>setShowMore(v=>!v)} title="더보기" style={{
                   position:"relative",
                   background:showMore?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",
@@ -4631,6 +4625,7 @@ export default function App(){
                     background:"#fff",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.25)",
                     padding:"6px",minWidth:"160px",display:"flex",flexDirection:"column",gap:"2px"}}>
                     {[
+                      {label:"무한매수",emoji:"📈",action:()=>navigate("/infinite-buying")},
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
                       {label:"세무자료 체크리스트",emoji:"🧾",action:()=>setModal("taxdoc")},
