@@ -4629,7 +4629,6 @@ export default function App(){
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
                       {label:"세무자료 체크리스트",emoji:"🧾",action:()=>setModal("taxdoc")},
-                      {label:`앤딩스터디카페 ${hideCafe?"보이기":"숨기기"}`,emoji:hideCafe?"👁️":"🙈",action:toggleCafeVisibility},
                       {label:"로그아웃",emoji:"🚪",action:handleLogout},
                     ].map(item=>(
                       <button key={item.label} onClick={()=>{setShowMore(false);item.action();}} style={{
