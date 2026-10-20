@@ -4266,7 +4266,7 @@ export default function App(){
   const supplyOverdue = useMemo(()=>supplyAlerts.filter(s=>s.days<0).length,[supplyAlerts]);
   const isCurrentViewMonth = now.getFullYear()===year && now.getMonth()===month;
   const fixedAlerts = useMemo(()=>
-    entity==="cafe" && isCurrentViewMonth
+    isCurrentViewMonth
       ? computeFixedAlerts(txs, entity, year, month).filter(f=>f.daysAway<=3)
       : []
   ,[entity, txs, year, month, isCurrentViewMonth]);
