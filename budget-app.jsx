@@ -4096,7 +4096,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
           const progress = cyc ? Math.min(100, Math.max(0, (daysDiff(lastB) / cyc) * 100)) : null;
           const next = nextBuy(s);
           const isExpanded = expandedId === s.id;
-          const history = txs.filter(t=>
+          const history = cafeTxs.filter(t=>
             supplyTxMatches(s.name,t)
           ).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
           return(
