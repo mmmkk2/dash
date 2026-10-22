@@ -375,8 +375,15 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [fixedDay,setFixedDay]=useState(init.fixedDay||"");
   const [fixedStartDate,setFixedStartDate]=useState(init.fixedStartDate||"");
   const [fixedEndDate,setFixedEndDate]=useState(init.fixedEndDate||"");
-  const [isBiMonthly,setIsBiMonthly]=useState(()=>{
-    try{const s=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));return s.has(`${init.entity||defaultEntity}:${init.memo||""}`);}catch{return false;}
+  const [fixedInterval,setFixedInterval]=useState(()=>{
+    try{
+      const key=`${init.entity||defaultEntity}:${init.memo||""}`;
+      const m=JSON.parse(localStorage.getItem("gagibu_interval")||"{}");
+      if(m[key]) return m[key];
+      const bm=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));
+      if(bm.has(key)) return 2;
+    }catch{}
+    return 1;
   });
   const [vendor,setVendor]=useState(_initVendor);
   const [vendorOpen,setVendorOpen]=useState(false);
@@ -440,11 +447,15 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       ?` (더치 1/${dutchN}, 원 ${dutchTotalNum.toLocaleString("ko-KR")}원)`:"";
     const finalMemo=[vendor.trim(),memo.trim()||cat3||cat2].filter(Boolean).join(" · ")+dutchSuffix;
     try{
-      const bmKey="gagibu_bimonthly";
       const key=`${entity}:${finalMemo}`;
+      const ikey="gagibu_interval";
+      const m=JSON.parse(localStorage.getItem(ikey)||"{}");
+      if(isFixed&&fixedInterval>1) m[key]=fixedInterval; else delete m[key];
+      localStorage.setItem(ikey,JSON.stringify(m));
+      // 레거시 격월 플래그 정리(새 interval 저장소로 이전)
+      const bmKey="gagibu_bimonthly";
       const s=new Set(JSON.parse(localStorage.getItem(bmKey)||"[]"));
-      if(isFixed&&isBiMonthly)s.add(key); else s.delete(key);
-      localStorage.setItem(bmKey,JSON.stringify([...s]));
+      if(s.has(key)){ s.delete(key); localStorage.setItem(bmKey,JSON.stringify([...s])); }
     }catch{}
     const txId=init.id||Date.now();
     let uploadedPaths=[];
@@ -850,19 +861,33 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
                   background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
             </div>
-            {/* 격월 토글 */}
-            <button onClick={()=>setIsBiMonthly(b=>!b)} style={{
-              display:"flex",alignItems:"center",gap:"8px",background:"none",border:"none",cursor:"pointer",padding:"2px 0"}}>
-              <div style={{width:"32px",height:"18px",borderRadius:"99px",flexShrink:0,position:"relative",
-                background:isBiMonthly?"#b5451b":"#f4c5b2",transition:"background 0.2s"}}>
-                <div style={{width:"14px",height:"14px",borderRadius:"50%",background:"#fff",
-                  position:"absolute",top:"2px",transition:"left 0.2s",
-                  left:isBiMonthly?"16px":"2px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+            {/* 반복 주기 — 매월 외 N개월마다 설정 가능 */}
+            <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+              <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                반복 주기
               </div>
-              <span style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:"'Inter',sans-serif"}}>
-                격월 (두 달에 한 번)
-              </span>
-            </button>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1,alignItems:"center"}}>
+                {[1,2,3,6,12].map(n=>{
+                  const label=n===1?"매월":`${n}개월마다`;
+                  const sel=fixedInterval===n;
+                  return(
+                    <button key={n} onClick={()=>setFixedInterval(n)} style={{
+                      padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                      border:`1.5px solid ${sel?"#b5451b":"#f4c5b2"}`,
+                      background:sel?"#b5451b":"#fff",color:sel?"#fff":"#b5451b",
+                      fontFamily:"'Inter',sans-serif"}}>
+                      {label}
+                    </button>
+                  );
+                })}
+                <input type="number" value={[1,2,3,6,12].includes(fixedInterval)?"":fixedInterval}
+                  onChange={e=>{const v=parseInt(e.target.value);setFixedInterval(v>=1?v:1);}}
+                  placeholder="직접입력" min="1" max="24"
+                  style={{width:"70px",border:"1.5px solid #f4c5b2",borderRadius:"8px",
+                    padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
+                    background:"#fff",fontFamily:"'Inter',sans-serif",textAlign:"center"}}/>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -1893,6 +1918,19 @@ function CalendarView({txs, year, month, onEdit, cards}){
   );
 }
 
+// 반복 항목의 간격(개월). localStorage "gagibu_interval"={`${entity}:${memo}`: N}.
+// 레거시 "gagibu_bimonthly"(격월 불린 셋)는 interval=2로 간주해 자동 이전.
+function getFixedInterval(entity, memo){
+  try{
+    const key = `${entity}:${memo}`;
+    const m = JSON.parse(localStorage.getItem("gagibu_interval")||"{}");
+    if(m[key]) return m[key];
+    const bm = new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));
+    if(bm.has(key)) return 2;
+  }catch{}
+  return 1;
+}
+
 // 반복(고정지출) 근접 항목 계산 — FixedView의 scheduled 로직과 동일, 상단 배너용
 function computeFixedAlerts(txs, entity, year, month){
   const todayDay = new Date().getDate();
@@ -1907,15 +1945,14 @@ function computeFixedAlerts(txs, entity, year, month){
     .filter(t=>t.isFixed&&t.entity===entity&&t.date.startsWith(monthKey))
     .sort((a,b)=>b.date.localeCompare(a.date))
     .filter(t=>{ if(seen.has(t.memo))return false; seen.add(t.memo); return true; });
-  let biMonthlySet;
-  try{ biMonthlySet = new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]")); }catch{ biMonthlySet = new Set(); }
   function isDueThisMonth(t){
-    if(!biMonthlySet.has(`${entity}:${t.memo}`)) return true;
+    const interval = getFixedInterval(entity, t.memo);
+    if(interval<=1) return true;
     const history = [...txs].filter(tx=>tx.entity===entity&&tx.memo===t.memo).sort((a,b)=>b.date.localeCompare(a.date));
     if(!history.length) return true;
     const lastPaid = new Date(history[0].date);
     const monthDiff = (year-lastPaid.getFullYear())*12+(month-lastPaid.getMonth());
-    return monthDiff>=2;
+    return monthDiff>=interval;
   }
   return fixedTemplates
     .filter(t=>!thisMonthFixed.some(m=>m.memo===t.memo)&&isDueThisMonth(t)&&t.fixedDay)
@@ -1952,18 +1989,26 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       .filter(t=>{ if(seen.has(t.memo))return false; seen.add(t.memo); return true; });
   },[txs,entity,monthKey]);
 
-  // 격월 토글 — localStorage 저장
-  const BM_KEY="gagibu_bimonthly";
-  const [biMonthlySet,setBiMonthlySet]=useState(()=>{
-    try{return new Set(JSON.parse(localStorage.getItem(BM_KEY)||"[]"));}catch{return new Set();}
+  // 반복 주기(개월) — localStorage 저장. 클릭할 때마다 1→2→3→6→12→1로 순환.
+  const IV_KEY="gagibu_interval";
+  const [intervalMap,setIntervalMap]=useState(()=>{
+    try{
+      const m=JSON.parse(localStorage.getItem(IV_KEY)||"{}");
+      const bm=new Set(JSON.parse(localStorage.getItem("gagibu_bimonthly")||"[]"));
+      bm.forEach(key=>{ if(!(key in m)) m[key]=2; });
+      return m;
+    }catch{return {};}
   });
-  function isBiMonthly(memo){ return biMonthlySet.has(`${entity}:${memo}`); }
-  function toggleBiMonthly(memo){
+  function getInterval(memo){ return intervalMap[`${entity}:${memo}`]||1; }
+  function cycleInterval(memo){
     const key=`${entity}:${memo}`;
-    const next=new Set(biMonthlySet);
-    if(next.has(key))next.delete(key);else next.add(key);
-    setBiMonthlySet(next);
-    localStorage.setItem(BM_KEY,JSON.stringify([...next]));
+    const steps=[1,2,3,6,12];
+    const cur=intervalMap[key]||1;
+    const next=steps[(steps.indexOf(cur)+1)%steps.length];
+    const nextMap={...intervalMap};
+    if(next<=1) delete nextMap[key]; else nextMap[key]=next;
+    setIntervalMap(nextMap);
+    localStorage.setItem(IV_KEY,JSON.stringify(nextMap));
   }
 
   // 반복 중단 — 과거 거래(이력)는 그대로 두고 앞으로 반복 예정에만 안 뜨게
@@ -1980,16 +2025,17 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
     localStorage.setItem(STOP_KEY,JSON.stringify([...next]));
   }
 
-  // 격월 항목이 이번 달 예정인지: 마지막 납부가 이번 달 기준 45일 이내면 skip
+  // N개월 주기 항목이 이번 달 예정인지: 마지막 납부가 interval개월 미만이면 skip
   function isDueThisMonth(t){
-    if(!isBiMonthly(t.memo)) return true;
+    const interval=getInterval(t.memo);
+    if(interval<=1) return true;
     const history=[...txs]
       .filter(tx=>tx.entity===entity&&tx.memo===t.memo)
       .sort((a,b)=>b.date.localeCompare(a.date));
     if(!history.length) return true;
     const lastPaid=new Date(history[0].date);
     const monthDiff=(year-lastPaid.getFullYear())*12+(month-lastPaid.getMonth());
-    return monthDiff>=2;
+    return monthDiff>=interval;
   }
 
   // 이번 달 아직 미발생인 예정 항목 (fixedDay 유무와 무관하게 표시)
@@ -2032,7 +2078,9 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   }
 
   const FixedCard = ({tx, isScheduled}) => {
-    const biMonthly = isBiMonthly(tx.memo);
+    const interval = getInterval(tx.memo);
+    const biMonthly = interval>1;
+    const intervalLabel = {1:"매월",2:"격월",3:"분기",6:"반기",12:"연간"}[interval]||`${interval}개월`;
     const isPast = isScheduled && isCurrentMonth && tx.fixedDay && tx.fixedDay < todayDay;
     const isToday = isScheduled && isCurrentMonth && tx.fixedDay === todayDay;
     const recentAmounts = useMemo(()=>
@@ -2081,12 +2129,13 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
               fontFamily:"'Inter',sans-serif",overflow:"hidden",
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
-            <button onClick={e=>{e.stopPropagation();toggleBiMonthly(tx.memo);}} style={{
+            <button onClick={e=>{e.stopPropagation();cycleInterval(tx.memo);}}
+              title="클릭마다 매월→격월→분기→반기→연간 순으로 바뀌어요" style={{
               fontSize:"9px",background:biMonthly?"#f0f4ff":"transparent",
               color:biMonthly?"#1d4e89":C.border,
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
-              fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>격월</button>
+              fontFamily:"'Inter',sans-serif",cursor:"pointer",transition:"all 0.15s"}}>{intervalLabel}</button>
             {isScheduled&&(
               <button onClick={e=>{e.stopPropagation();setFixedMenuOpenFor(isFixedMenuOpen?null:tx.memo);}}
                 title="날짜 수정 / 반복 삭제" style={{
