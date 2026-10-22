@@ -398,7 +398,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   const [supplyCat,setSupplyCat]=useState("소모품");
   const [err,setErr]=useState(false);
   const isEdit=!!(initial?.id);
-  const showSupplyToggle = entity==="cafe" && cat1==="매입/원가";
+  const showSupplyToggle = entity==="cafe" && (cat1==="매입/원가" || (cat1==="운영비" && cat2==="비품"));
 
   // 항목이 바뀔 때 소모품 매칭되면 토글 자동 ON
   useEffect(()=>{
