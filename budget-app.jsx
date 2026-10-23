@@ -2228,11 +2228,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                 </button>
               )}
               <button onClick={()=>setEditAmount(tx.amount.toLocaleString("ko-KR"))} disabled={isReg}
+                title="금액 수정 후 등록"
+                style={{background:isReg?"#f4c5b2":"#fff",border:"1px solid #f4c5b2",borderRadius:"8px",
+                  padding:"5px 7px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",
+                  display:"flex",alignItems:"center",opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
+                <Pencil size={11}/>
+              </button>
+              <button onClick={()=>handleRegister(tx,regDate)} disabled={isReg}
                 style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
                   padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
                   flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
                   opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
-                {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
+                {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":`${fmtS(tx.amount)}원 등록`}
               </button>
             </div>
           )
