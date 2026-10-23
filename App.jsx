@@ -5,6 +5,7 @@ import Calculator from './pages/calculator'
 import Budget from './pages/budget'
 import Assets from './pages/assets'
 import InfiniteBuying from './pages/infinite-buying'
+import Notes from './pages/notes'
 import Login, { supabase } from './pages/login'
 
 // 페이지(주소)별 브라우저 탭 제목
@@ -19,6 +20,8 @@ const PAGE_TITLES = {
   '/budget/realty': '가계부 · 부동산매매',
   '/assets': '내 자산',
   '/infinite-buying': '무한매수 · 매일 주문표',
+  '/notes': '메모',
+  '/notes/calendar': '일정',
 }
 
 function TitleManager() {
@@ -59,6 +62,8 @@ export default function App() {
             <Route path="/budget/:entity" element={<Budget />} />
             <Route path="/assets" element={<Assets />} />
             <Route path="/infinite-buying" element={<InfiniteBuying />} />
+            <Route path="/notes" element={<Notes />} />
+            <Route path="/notes/calendar" element={<Notes />} />
           </>
         ) : (
           <>
@@ -67,6 +72,7 @@ export default function App() {
             <Route path="/budget/:entity" element={<Login onLogin={setSession} />} />
             <Route path="/assets" element={<Login onLogin={setSession} />} />
             <Route path="/infinite-buying" element={<Login onLogin={setSession} />} />
+            <Route path="/notes/*" element={<Login onLogin={setSession} />} />
           </>
         )}
       </Routes>
