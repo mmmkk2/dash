@@ -1969,6 +1969,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   const [linkBusy, setLinkBusy] = useState(new Set());
   const [historyOpenFor, setHistoryOpenFor] = useState(null); // 이력 목록을 펼친 템플릿 memo
   const [fixedMenuOpenFor, setFixedMenuOpenFor] = useState(null); // 날짜수정/반복삭제 메뉴를 펼친 템플릿 memo
+  const [regToast, setRegToast] = useState(null); // 등록 완료 토스트 {memo, amount}
 
   // 현재 엔티티의 고정지출 템플릿 (가장 최근 등록된 것 기준으로 memo별 dedupe)
   const fixedTemplates = useMemo(()=>{
@@ -2058,7 +2059,11 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   async function handleRegister(tx, regDate){
     if(registering.has(tx.memo)) return;
     setRegistering(p=>new Set(p).add(tx.memo));
-    try{ await onRegister({...tx, id:Date.now(), date:regDate, isFixed:true}); }
+    try{
+      await onRegister({...tx, id:Date.now(), date:regDate, isFixed:true});
+      setRegToast({memo:tx.memo, amount:tx.amount, type:tx.type});
+      setTimeout(()=>setRegToast(cur=>cur&&cur.memo===tx.memo?null:cur), 2200);
+    }
     finally{ setRegistering(p=>{ const n=new Set(p); n.delete(tx.memo); return n; }); }
   }
 
@@ -2349,7 +2354,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   );
 
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:"20px"}}>
+    <div style={{display:"flex",flexDirection:"column",gap:"20px",position:"relative"}}>
+
+      {regToast&&(
+        <div style={{position:"fixed",left:"50%",bottom:"90px",transform:"translateX(-50%)",
+          background:"#2d2420",color:"#fff",padding:"10px 18px",borderRadius:"12px",
+          fontFamily:"'Inter',sans-serif",fontSize:"13px",fontWeight:600,
+          display:"flex",alignItems:"center",gap:"8px",boxShadow:"0 6px 20px rgba(0,0,0,0.25)",
+          zIndex:1000,whiteSpace:"nowrap"}}>
+          <Check size={14} color="#8fd19e"/>
+          {regToast.memo} {regToast.type==="income"?"+":"-"}{fmtS(regToast.amount)} 등록 완료
+        </div>
+      )}
 
       {/* 예정 섹션 */}
       {scheduled.length>0&&(
