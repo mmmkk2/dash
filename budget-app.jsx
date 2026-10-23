@@ -2239,7 +2239,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                   padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
                   flexShrink:0,fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",gap:"4px",
                   opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
-                {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":`${fmtS(tx.amount)}원 등록`}
+                {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
               </button>
             </div>
           )
