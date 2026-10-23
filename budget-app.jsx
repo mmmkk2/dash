@@ -2127,8 +2127,25 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               border:`1px solid ${isIncome?"#b7e4c7":"#f4c5b2"}`,
               fontFamily:"'Inter',sans-serif"}}>{isIncome?"수입":"지출"}</span>
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
-              fontFamily:"'Inter',sans-serif",overflow:"hidden",
+              fontFamily:"'Inter',sans-serif",overflow:"hidden",flex:1,minWidth:0,
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
+            {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
+              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+              fontFamily:"'Inter',sans-serif"}}>오늘</span>}
+            {isPast&&!isToday&&<span style={{fontSize:"9px",background:"#fff0ee",color:"#e07a5f",
+              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
+              border:"1px solid #f4c5b2",fontFamily:"'Inter',sans-serif"}}>미발생</span>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
+            {isScheduled&&tx.fixedDay&&(
+              <span style={{fontSize:"10px",color:isToday?"#b5451b":isPast?"#e07a5f":C.inkLight,
+                fontWeight:isToday||isPast?700:400,fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+                매월 {tx.fixedDay===31?"말일":`${tx.fixedDay}일`}
+              </span>
+            )}
+            {!isScheduled&&(
+              <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif",flexShrink:0}}>{tx.date}</span>
+            )}
             <button onClick={e=>{e.stopPropagation();cycleInterval(tx.memo);}}
               title="클릭마다 매월→격월→분기→반기→연간 순으로 바뀌어요" style={{
               fontSize:"9px",background:biMonthly?"#f0f4ff":"transparent",
@@ -2152,23 +2169,6 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               fontFamily:"'Inter',sans-serif"}}>
               <Clock size={9}/> {historyList.length}
             </span>}
-            {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
-              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              fontFamily:"'Inter',sans-serif"}}>오늘</span>}
-            {isPast&&!isToday&&<span style={{fontSize:"9px",background:"#fff0ee",color:"#e07a5f",
-              borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              border:"1px solid #f4c5b2",fontFamily:"'Inter',sans-serif"}}>미발생</span>}
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-            {isScheduled&&tx.fixedDay&&(
-              <span style={{fontSize:"10px",color:isToday?"#b5451b":isPast?"#e07a5f":C.inkLight,
-                fontWeight:isToday||isPast?700:400,fontFamily:"'Inter',sans-serif"}}>
-                매월 {tx.fixedDay===31?"말일":`${tx.fixedDay}일`}
-              </span>
-            )}
-            {!isScheduled&&(
-              <span style={{fontSize:"10px",color:C.inkLight,fontFamily:"'Inter',sans-serif"}}>{tx.date}</span>
-            )}
           </div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
