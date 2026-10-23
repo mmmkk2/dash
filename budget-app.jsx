@@ -2060,11 +2060,17 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
     if(registering.has(tx.memo)) return;
     setRegistering(p=>new Set(p).add(tx.memo));
     try{
-      await onRegister({...tx, id:Date.now(), date:regDate, isFixed:true});
-      setRegToast({memo:tx.memo, amount:tx.amount, type:tx.type});
-      setTimeout(()=>setRegToast(cur=>cur&&cur.memo===tx.memo?null:cur), 2200);
+      const newId=Date.now();
+      await onRegister({...tx, id:newId, date:regDate, isFixed:true});
+      setRegToast({id:newId, memo:tx.memo, amount:tx.amount, type:tx.type});
+      setTimeout(()=>setRegToast(cur=>cur&&cur.id===newId?null:cur), 4000);
     }
     finally{ setRegistering(p=>{ const n=new Set(p); n.delete(tx.memo); return n; }); }
+  }
+
+  async function undoRegister(id){
+    await onDelete(id);
+    setRegToast(cur=>cur&&cur.id===id?null:cur);
   }
 
   // 반복 템플릿에 연결할 후보: 이번 달, 같은 entity/type, 아직 다른 반복 항목에 연결 안 된(isFixed 아닌) 거래
@@ -2358,12 +2364,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
 
       {regToast&&(
         <div style={{position:"fixed",left:"50%",bottom:"90px",transform:"translateX(-50%)",
-          background:"#2d2420",color:"#fff",padding:"10px 18px",borderRadius:"12px",
+          background:"#2d2420",color:"#fff",padding:"10px 10px 10px 18px",borderRadius:"12px",
           fontFamily:"'Inter',sans-serif",fontSize:"13px",fontWeight:600,
-          display:"flex",alignItems:"center",gap:"8px",boxShadow:"0 6px 20px rgba(0,0,0,0.25)",
+          display:"flex",alignItems:"center",gap:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.25)",
           zIndex:1000,whiteSpace:"nowrap"}}>
           <Check size={14} color="#8fd19e"/>
           {regToast.memo} {regToast.type==="income"?"+":"-"}{fmtS(regToast.amount)} 등록 완료
+          <button onClick={()=>undoRegister(regToast.id)} style={{background:"rgba(255,255,255,0.12)",
+            border:"1px solid rgba(255,255,255,0.3)",borderRadius:"8px",padding:"5px 10px",
+            cursor:"pointer",color:"#fff",fontSize:"12px",fontWeight:700,
+            fontFamily:"'Inter',sans-serif",flexShrink:0}}>
+            실행취소
+          </button>
         </div>
       )}
 
