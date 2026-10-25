@@ -16,6 +16,14 @@ const todayStr = () => ymd(new Date())
 // 예전 제목 필드가 있던 데이터는 본문 앞에 붙여서 한 덩어리로 다룬다
 const joinText = (a, b) => [a, b].filter(Boolean).join('\n')
 
+function DueBadge({ due }) {
+  const days = Math.round((new Date(due) - new Date(todayStr())) / 86400000)
+  const [label, color, bg] = days < 0 ? [`${-days}일 지남`, '#d1495b', '#fdecee']
+    : days === 0 ? ['오늘까지', '#c0661a', '#fdf1e4']
+    : [`D-${days}`, days <= 3 ? '#c0661a' : '#52636e', days <= 3 ? '#fdf1e4' : '#eef2f4']
+  return <span title={`마감 ${due}`} style={{ fontSize: 11, fontWeight: 700, color, background: bg, borderRadius: 6, padding: '2px 6px' }}>{label}</span>
+}
+
 function fmtDate(s) {
   const d = new Date(s)
   return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]})`
@@ -68,7 +76,7 @@ function MemoTab({ memos, reload, setErr }) {
   }, [memos, q])
 
   async function save() {
-    const row = { title: '', content: edit.content, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
+    const row = { title: '', content: edit.content, due_date: edit.due_date || null, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
     if (!row.content.trim()) { setEdit(null); return }
     const { error } = edit.id
       ? await supabase.from('memos').update(row).eq('id', edit.id)
@@ -102,7 +110,10 @@ function MemoTab({ memos, reload, setErr }) {
               <div style={{ flex: 1, fontSize: 14, color: C.text, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{joinText(m.title, m.content)}</div>
               <button onClick={e => { e.stopPropagation(); togglePin(m) }} title="고정" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, opacity: m.pinned ? 1 : 0.25, padding: 0 }}>📌</button>
             </div>
-            <div style={{ fontSize: 11, color: C.faint, marginTop: 8 }}>{new Date(m.updated_at).toLocaleDateString('ko-KR')}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              {m.due_date && <DueBadge due={m.due_date} />}
+              <span style={{ fontSize: 11, color: C.faint, marginLeft: 'auto' }}>{new Date(m.updated_at).toLocaleDateString('ko-KR')}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -111,6 +122,11 @@ function MemoTab({ memos, reload, setErr }) {
         <Modal title={edit.id ? '메모 수정' : '새 메모'} onClose={save}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <textarea autoFocus value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="메모" rows={10} style={{ ...input, resize: 'vertical', lineHeight: 1.6 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: C.sub, whiteSpace: 'nowrap' }}>마감일</span>
+              <input type="date" value={edit.due_date || ''} onChange={e => setEdit({ ...edit, due_date: e.target.value })} style={{ ...input, width: 'auto', flex: 1, padding: '8px 10px' }} />
+              {edit.due_date && <button type="button" onClick={() => setEdit({ ...edit, due_date: '' })} style={{ ...btn(false), padding: '8px 10px' }}>없음</button>}
+            </div>
             <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
               {edit.id && <button style={{ ...btn(false), color: C.danger }} onClick={remove}>삭제</button>}
@@ -306,7 +322,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
       <main style={{ maxWidth: 860, margin: '0 auto', padding: '16px 16px 60px' }}>
         {err && (
           <div onClick={() => setErr('')} style={{ background: '#fdecee', color: C.danger, borderRadius: 10, padding: '10px 12px', fontSize: 12, marginBottom: 12, cursor: 'pointer' }}>
-            오류: {err} {/relation|does not exist|schema cache/i.test(err) && '— supabase_setup.sql 의 memos/events 테이블을 먼저 생성하세요.'}
+            오류: {err} {/relation|does not exist|schema cache/i.test(err) && '— supabase_setup.sql 의 memos/events 섹션(마감일 컬럼 포함)을 실행하세요.'}
           </div>
         )}
         {tab === 'memo'
