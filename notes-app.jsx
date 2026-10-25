@@ -13,6 +13,10 @@ const C = {
 const COLORS = ['#1c1c1e', '#8e8e93', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6']
 // 이전 기본색(그린)으로 저장된 항목도 기본색으로 취급
 const isDefaultColor = c => !c || c === COLORS[0] || c === '#177864'
+// 일정은 빨강이 기본, 무채색 없이 색으로만 구분 (예전 기본색·검정·회색 일정은 빨강으로 보임)
+const EVENT_COLORS = ['#e5484d', '#e8890c', '#3b82c4', '#8b5cf6']
+const NEUTRAL_OLD = ['#1c1c1e', '#8e8e93', '#7a8791', '#177864']
+const eventColor = c => !c || NEUTRAL_OLD.includes(c) ? EVENT_COLORS[0] : c
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
 const pad = n => String(n).padStart(2, '0')
@@ -89,10 +93,10 @@ function Toggle({ on, onChange }) {
   )
 }
 
-function ColorPicker({ value, onChange }) {
+function ColorPicker({ value, onChange, colors = COLORS }) {
   return (
     <div style={{ display: 'flex', gap: 12 }}>
-      {COLORS.map(c => (
+      {colors.map(c => (
         <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} style={{
           ...plain, width: 26, height: 26, borderRadius: '50%', background: c,
           boxShadow: value === c ? `0 0 0 2px #fff, 0 0 0 4px ${c}` : 'none',
@@ -405,7 +409,7 @@ function CalendarTab({ events, reload, setErr }) {
 
   const t = todayStr()
   const dayEvents = byDate[sel] || []
-  const open = e => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })
+  const open = e => setEdit({ ...e, color: eventColor(e.color), time: e.time || '', text: joinText(e.title, e.memo) })
   const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
@@ -461,7 +465,7 @@ function CalendarTab({ events, reload, setErr }) {
                   color: isSel ? '#fff' : isToday ? C.tint : weekend ? C.sub : C.text,
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', gap: 3, height: 6 }}>
-                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : isDefaultColor(e.color) ? C.sub : e.color }} />)}
+                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e.color) }} />)}
                 </span>
               </button>
             )
@@ -481,7 +485,7 @@ function CalendarTab({ events, reload, setErr }) {
         </Group>
       )}
 
-      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', text: '', color: COLORS[0], done: false })} />
+      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', text: '', color: EVENT_COLORS[0], done: false })} />
 
       {edit && (
         <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
@@ -508,7 +512,7 @@ function CalendarTab({ events, reload, setErr }) {
             )}
             <Row last>
               <span style={{ flex: 1, fontSize: 16 }}>색상</span>
-              <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
+              <ColorPicker colors={EVENT_COLORS} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             </Row>
           </Group>
           {edit.id && (
@@ -529,7 +533,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   return (
     <Row onClick={onClick} last={last}>
       <CheckCircle done={e.done} onClick={ev => { ev.stopPropagation(); onToggle() }} />
-      {!isDefaultColor(e.color) && <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />}
+      <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e.color), opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
         {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
