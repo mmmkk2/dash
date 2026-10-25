@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { Pin, Search, ChevronLeft, ChevronRight, Plus, Check, ListChecks } from 'lucide-react'
 import { supabase } from './pages/login'
 
-// 시스템 폰트 + 차분한 라이트 톤, 포인트 컬러는 대시보드 그린
+// 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
 const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
 const C = {
-  bg: '#f5f5f2', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
+  bg: '#f7f7f7', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
   sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)',
-  tint: '#177864', tintSoft: '#e5f1ee', red: '#e5484d', orange: '#e8890c',
+  tint: '#1c1c1e', tintSoft: 'rgba(0,0,0,0.06)', red: '#e5484d',
 }
-const COLORS = ['#177864', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6', '#8e8e93']
+const COLORS = ['#1c1c1e', '#8e8e93', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6']
+// 이전 기본색(그린)으로 저장된 항목도 기본색으로 취급
+const isDefaultColor = c => !c || c === COLORS[0] || c === '#177864'
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
 const pad = n => String(n).padStart(2, '0')
@@ -46,8 +48,8 @@ function shortStamp(iso) {
 function dueLabel(due) {
   const n = daysUntil(due)
   if (n < 0) return [`${-n}일 지남`, C.red]
-  if (n === 0) return ['오늘 마감', C.orange]
-  return [`D-${n}`, n <= 3 ? C.orange : C.sub]
+  if (n === 0) return ['오늘 마감', C.text]
+  return [`D-${n}`, n <= 3 ? C.text : C.sub]
 }
 
 const plain = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
@@ -58,7 +60,7 @@ function Group({ header, children }) {
   return (
     <section style={{ marginBottom: 24 }}>
       {header && <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 8px' }}>{header}</div>}
-      <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>{children}</div>
+      <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', border: `0.5px solid ${C.sep}` }}>{children}</div>
     </section>
   )
 }
@@ -126,7 +128,7 @@ function Fab({ label, onClick }) {
     <button aria-label={label} onClick={onClick} style={{
       ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + env(safe-area-inset-bottom))',
       width: 56, height: 56, borderRadius: '50%', background: C.tint, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 6px 20px rgba(23,120,100,0.35)',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
     }}><Plus size={26} strokeWidth={2.2} /></button>
   )
 }
@@ -214,7 +216,7 @@ function NoteEditor({ value, onChange, autoFocus }) {
       </div>
       <div style={{ borderTop: `0.5px solid ${C.sep}`, padding: '8px 12px', display: 'flex' }}>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={toggleChecklist} style={{
-          ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.tint, fontSize: 14, fontWeight: 600, padding: '6px 8px', borderRadius: 8,
+          ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.sub, fontSize: 14, fontWeight: 500, padding: '6px 8px', borderRadius: 8,
         }}><ListChecks size={18} />체크리스트</button>
       </div>
     </>
@@ -260,12 +262,12 @@ function MemoTab({ memos, reload, setErr }) {
       <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {m.color && m.color !== COLORS[0] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
+            {!isDefaultColor(m.color) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
             <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || '빈 메모'}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
-            {checks.length > 0 && <span style={{ color: doneN === checks.length ? C.sub : C.tint, fontWeight: 600, marginRight: 8 }}>✓ {doneN}/{checks.length}</span>}
+            {checks.length > 0 && <span style={{ color: C.sub, fontWeight: 600, marginRight: 8 }}>✓ {doneN}/{checks.length}</span>}
             {preview || shortStamp(m.updated_at)}
           </div>
         </div>
@@ -278,7 +280,7 @@ function MemoTab({ memos, reload, setErr }) {
 
   return (
     <>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, border: `0.5px solid ${C.sep}` }}>
         <Search size={16} color={C.sub} strokeWidth={2.2} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={`메모 ${memos.length}개에서 검색`} style={field} />
       </label>
@@ -303,7 +305,7 @@ function MemoTab({ memos, reload, setErr }) {
               <Row>
                 <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
                 <input type="date" value={edit.due_date} onChange={e => setEdit({ ...edit, due_date: e.target.value })}
-                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px', color: C.tint }} />
+                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
               </Row>
             )}
             <Row>
@@ -390,7 +392,7 @@ function CalendarTab({ events, reload, setErr }) {
         <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={22} /></button>
       </div>
 
-      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}` }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 6 }}>
           {WEEK.map((w, i) => (
             <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 || i === 6 ? C.faint : C.sub }}>{w}</div>
@@ -411,7 +413,7 @@ function CalendarTab({ events, reload, setErr }) {
                   color: isSel ? '#fff' : isToday ? C.tint : weekend ? C.sub : C.text,
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', gap: 3, height: 6 }}>
-                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : e.color }} />)}
+                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : isDefaultColor(e.color) ? C.sub : e.color }} />)}
                 </span>
               </button>
             )
@@ -477,8 +479,8 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
     <Row onClick={onClick} last={last}>
-      <CheckCircle done={e.done} color={e.color} onClick={ev => { ev.stopPropagation(); onToggle() }} />
-      <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />
+      <CheckCircle done={e.done} onClick={ev => { ev.stopPropagation(); onToggle() }} />
+      {!isDefaultColor(e.color) && <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />}
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
         {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
