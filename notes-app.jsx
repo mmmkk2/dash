@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, Plus, Check, ListChecks } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks } from 'lucide-react'
 import { supabase } from './pages/login'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
@@ -354,7 +354,32 @@ function CalendarTab({ events, reload, setErr }) {
     return events.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
   }, [events])
 
-  const moveMonth = n => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
+  const moveMonth = n => setMonth(m => new Date(m.getFullYear(), m.getMonth() + n, 1))
+
+  // 연도를 누르면 12년 단위 연도 선택 (null이면 닫힘, 숫자는 표시 중인 첫 해)
+  const [yearPage, setYearPage] = useState(null)
+  const pickYear = y => { setMonth(m => new Date(y, m.getMonth(), 1)); setYearPage(null) }
+
+  // 달력을 좌우로 밀면 이전/다음 달 (세로 스크롤은 그대로)
+  const swipe = useRef(null)
+  const [dragX, setDragX] = useState(0)
+  const onTouchStart = e => { const p = e.touches[0]; swipe.current = { x: p.clientX, y: p.clientY, dx: 0, lock: null } }
+  const onTouchMove = e => {
+    const sw = swipe.current
+    if (!sw) return
+    const p = e.touches[0], dx = p.clientX - sw.x, dy = p.clientY - sw.y
+    if (!sw.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) sw.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    if (sw.lock === 'x') { sw.dx = dx; setDragX(dx) }
+  }
+  const onTouchEnd = () => {
+    const sw = swipe.current
+    swipe.current = null
+    if (sw?.lock === 'x' && Math.abs(sw.dx) > 50) {
+      const n = sw.dx < 0 ? 1 : -1
+      yearPage === null ? moveMonth(n) : setYearPage(y => y + n * 12)
+    }
+    setDragX(0)
+  }
   const goToday = () => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); setSel(todayStr()) }
 
   async function save() {
@@ -386,19 +411,42 @@ function CalendarTab({ events, reload, setErr }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 2px 12px' }}>
-        <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{month.getFullYear()}년 {month.getMonth() + 1}월</div>
-        <button aria-label="이전 달" style={chevron} onClick={() => moveMonth(-1)}><ChevronLeft size={22} /></button>
-        <button onClick={goToday} style={{ ...plain, fontSize: 13, fontWeight: 600, color: C.tint, background: C.tintSoft, borderRadius: 999, padding: '6px 12px' }}>오늘</button>
-        <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={22} /></button>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, fontSize: 20, fontWeight: 700 }}>
+          <button onClick={() => setYearPage(yearPage === null ? month.getFullYear() - 5 : null)} aria-expanded={yearPage !== null} style={{
+            ...plain, display: 'flex', alignItems: 'center', gap: 2, fontSize: 20, fontWeight: 700, color: yearPage === null ? C.text : C.sub,
+          }}>{month.getFullYear()}년<ChevronDown size={16} style={{ transform: yearPage === null ? 'none' : 'rotate(180deg)', transition: 'transform .15s' }} /></button>
+          {yearPage === null && <span>{month.getMonth() + 1}월</span>}
+        </div>
+        <button aria-label={yearPage === null ? '이전 달' : '이전 연도들'} style={chevron} onClick={() => yearPage === null ? moveMonth(-1) : setYearPage(yearPage - 12)}><ChevronLeft size={22} /></button>
+        <button onClick={() => { goToday(); setYearPage(null) }} style={{ ...plain, fontSize: 13, fontWeight: 600, color: C.tint, background: C.tintSoft, borderRadius: 999, padding: '6px 12px' }}>오늘</button>
+        <button aria-label={yearPage === null ? '다음 달' : '다음 연도들'} style={chevron} onClick={() => yearPage === null ? moveMonth(1) : setYearPage(yearPage + 12)}><ChevronRight size={22} /></button>
       </div>
 
-      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}` }}>
+      <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+        style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}`, overflow: 'hidden', touchAction: 'pan-y' }}>
+        {yearPage !== null ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '4px 6px 6px', transform: `translateX(${dragX * 0.5}px)`, transition: dragX ? 'none' : 'transform .2s ease' }}>
+            {Array.from({ length: 12 }, (_, i) => yearPage + i).map(y => {
+              const isSel = y === month.getFullYear(), isNow = y === new Date().getFullYear()
+              return (
+                <button key={y} onClick={() => pickYear(y)} style={{
+                  ...plain, height: 48, borderRadius: 12, fontSize: 16, fontWeight: isSel || isNow ? 700 : 400,
+                  background: isSel ? C.tint : isNow ? C.tintSoft : 'transparent', color: isSel ? '#fff' : C.text,
+                }}>{y}</button>
+              )
+            })}
+          </div>
+        ) : <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 6 }}>
           {WEEK.map((w, i) => (
             <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 || i === 6 ? C.faint : C.sub }}>{w}</div>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+          transform: `translateX(${dragX * 0.5}px)`, opacity: 1 - Math.min(Math.abs(dragX) / 400, 0.4),
+          transition: dragX ? 'none' : 'transform .2s ease, opacity .2s ease',
+        }}>
           {cells.map((d, i) => {
             const k = ymd(d), inMonth = d.getMonth() === month.getMonth(), evs = byDate[k] || []
             const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
@@ -419,6 +467,7 @@ function CalendarTab({ events, reload, setErr }) {
             )
           })}
         </div>
+        </>}
       </div>
 
       <Group header={fmtDate(sel)}>
