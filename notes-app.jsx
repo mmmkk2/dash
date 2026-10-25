@@ -13,6 +13,8 @@ const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 const pad = n => String(n).padStart(2, '0')
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const todayStr = () => ymd(new Date())
+// 예전 제목 필드가 있던 데이터는 본문 앞에 붙여서 한 덩어리로 다룬다
+const joinText = (a, b) => [a, b].filter(Boolean).join('\n')
 
 function fmtDate(s) {
   const d = new Date(s)
@@ -66,8 +68,8 @@ function MemoTab({ memos, reload, setErr }) {
   }, [memos, q])
 
   async function save() {
-    const row = { title: edit.title.trim(), content: edit.content, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
-    if (!row.title && !row.content.trim()) { setEdit(null); return }
+    const row = { title: '', content: edit.content, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
+    if (!row.content.trim()) { setEdit(null); return }
     const { error } = edit.id
       ? await supabase.from('memos').update(row).eq('id', edit.id)
       : await supabase.from('memos').insert(row)
@@ -90,17 +92,16 @@ function MemoTab({ memos, reload, setErr }) {
     <>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="메모 검색" style={input} />
-        <button style={{ ...btn(true), whiteSpace: 'nowrap' }} onClick={() => setEdit({ title: '', content: '', color: COLORS[0], pinned: false })}>+ 새 메모</button>
+        <button style={{ ...btn(true), whiteSpace: 'nowrap' }} onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false })}>+ 새 메모</button>
       </div>
       {list.length === 0 && <div style={{ textAlign: 'center', color: C.faint, padding: 40, fontSize: 13 }}>{q ? '검색 결과가 없어요' : '첫 메모를 남겨보세요'}</div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
         {list.map(m => (
-          <div key={m.id} onClick={() => setEdit({ ...m })} style={{ background: C.card, border: `1px solid ${C.line}`, borderLeft: `4px solid ${m.color}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', minHeight: 90 }}>
+          <div key={m.id} onClick={() => setEdit({ ...m, content: joinText(m.title, m.content) })} style={{ background: C.card, border: `1px solid ${C.line}`, borderLeft: `4px solid ${m.color}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', minHeight: 90 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-              <div style={{ flex: 1, fontWeight: 700, fontSize: 14, color: C.text, wordBreak: 'break-all' }}>{m.title || '제목 없음'}</div>
+              <div style={{ flex: 1, fontSize: 14, color: C.text, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{joinText(m.title, m.content)}</div>
               <button onClick={e => { e.stopPropagation(); togglePin(m) }} title="고정" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, opacity: m.pinned ? 1 : 0.25, padding: 0 }}>📌</button>
             </div>
-            <div style={{ fontSize: 13, color: C.sub, marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.content}</div>
             <div style={{ fontSize: 11, color: C.faint, marginTop: 8 }}>{new Date(m.updated_at).toLocaleDateString('ko-KR')}</div>
           </div>
         ))}
@@ -109,8 +110,7 @@ function MemoTab({ memos, reload, setErr }) {
       {edit && (
         <Modal title={edit.id ? '메모 수정' : '새 메모'} onClose={save}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input autoFocus value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} placeholder="제목" style={{ ...input, fontWeight: 700 }} />
-            <textarea value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="내용" rows={10} style={{ ...input, resize: 'vertical', lineHeight: 1.6 }} />
+            <textarea autoFocus value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="메모" rows={10} style={{ ...input, resize: 'vertical', lineHeight: 1.6 }} />
             <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
               {edit.id && <button style={{ ...btn(false), color: C.danger }} onClick={remove}>삭제</button>}
@@ -151,8 +151,8 @@ function CalendarTab({ events, reload, setErr }) {
   const goToday = () => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); setSel(todayStr()) }
 
   async function save() {
-    if (!edit.title.trim()) return
-    const row = { date: edit.date, time: edit.time || null, title: edit.title.trim(), memo: edit.memo, color: edit.color, done: edit.done }
+    if (!edit.text.trim()) return
+    const row = { date: edit.date, time: edit.time || null, title: edit.text.trim(), memo: '', color: edit.color, done: edit.done }
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
       : await supabase.from('events').insert(row)
@@ -201,7 +201,7 @@ function CalendarTab({ events, reload, setErr }) {
                   background: isToday ? C.accent : 'transparent', color: isToday ? '#fff' : d.getDay() === 0 ? C.danger : d.getDay() === 6 ? '#3a7bd5' : C.text,
                 }}>{d.getDate()}</span>
                 {evs.slice(0, 2).map(e => (
-                  <span key={e.id} style={{ fontSize: 10, color: '#fff', background: e.color, borderRadius: 4, padding: '1px 3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: e.done ? 0.45 : 1, textDecoration: e.done ? 'line-through' : 'none' }}>{e.title}</span>
+                  <span key={e.id} style={{ fontSize: 10, color: '#fff', background: e.color, borderRadius: 4, padding: '1px 3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: e.done ? 0.45 : 1, textDecoration: e.done ? 'line-through' : 'none' }}>{e.title.split('\n')[0]}</span>
                 ))}
                 {evs.length > 2 && <span style={{ fontSize: 10, color: C.sub, textAlign: 'center' }}>+{evs.length - 2}</span>}
               </button>
@@ -212,18 +212,18 @@ function CalendarTab({ events, reload, setErr }) {
 
       <div style={{ display: 'flex', alignItems: 'center', margin: '18px 0 8px' }}>
         <div style={{ fontWeight: 800, fontSize: 15, color: C.text }}>{fmtDate(sel)}</div>
-        <button style={{ ...btn(true), marginLeft: 'auto' }} onClick={() => setEdit({ date: sel, time: '', title: '', memo: '', color: COLORS[0], done: false })}>+ 일정 추가</button>
+        <button style={{ ...btn(true), marginLeft: 'auto' }} onClick={() => setEdit({ date: sel, time: '', text: '', color: COLORS[0], done: false })}>+ 일정 추가</button>
       </div>
       {dayEvents.length === 0 && <div style={{ color: C.faint, fontSize: 13, padding: '10px 2px' }}>일정이 없어요</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {dayEvents.map(e => <EventRow key={e.id} e={e} onToggle={() => toggleDone(e)} onClick={() => setEdit({ ...e, time: e.time || '' })} />)}
+        {dayEvents.map(e => <EventRow key={e.id} e={e} onToggle={() => toggleDone(e)} onClick={() => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })} />)}
       </div>
 
       {upcoming.length > 0 && (
         <>
           <div style={{ fontWeight: 800, fontSize: 15, color: C.text, margin: '22px 0 8px' }}>다가오는 일정</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {upcoming.map(e => <EventRow key={e.id} e={e} showDate onToggle={() => toggleDone(e)} onClick={() => setEdit({ ...e, time: e.time || '' })} />)}
+            {upcoming.map(e => <EventRow key={e.id} e={e} showDate onToggle={() => toggleDone(e)} onClick={() => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })} />)}
           </div>
         </>
       )}
@@ -231,17 +231,16 @@ function CalendarTab({ events, reload, setErr }) {
       {edit && (
         <Modal title={edit.id ? '일정 수정' : '새 일정'} onClose={() => setEdit(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <input autoFocus value={edit.title} onChange={e => setEdit({ ...edit, title: e.target.value })} placeholder="일정 제목" style={{ ...input, fontWeight: 700 }} />
+            <textarea autoFocus value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="일정" rows={3} style={{ ...input, resize: 'vertical' }} />
             <div style={{ display: 'flex', gap: 8 }}>
               <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })} style={input} />
               <input type="time" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value })} style={input} />
             </div>
-            <textarea value={edit.memo} onChange={e => setEdit({ ...edit, memo: e.target.value })} placeholder="메모 (선택)" rows={3} style={{ ...input, resize: 'vertical' }} />
             <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
               {edit.id && <button style={{ ...btn(false), color: C.danger }} onClick={remove}>삭제</button>}
               <button style={{ ...btn(false), marginLeft: 'auto' }} onClick={() => setEdit(null)}>취소</button>
-              <button style={{ ...btn(true), opacity: edit.title.trim() ? 1 : 0.5 }} onClick={save}>저장</button>
+              <button style={{ ...btn(true), opacity: edit.text.trim() ? 1 : 0.5 }} onClick={save}>저장</button>
             </div>
           </div>
         </Modal>
@@ -251,13 +250,14 @@ function CalendarTab({ events, reload, setErr }) {
 }
 
 function EventRow({ e, showDate, onToggle, onClick }) {
+  const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
     <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: '10px 12px', cursor: 'pointer' }}>
       <input type="checkbox" checked={e.done} onClick={ev => ev.stopPropagation()} onChange={onToggle} style={{ width: 18, height: 18, accentColor: e.color, cursor: 'pointer' }} />
       <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: e.color }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, textDecoration: e.done ? 'line-through' : 'none', opacity: e.done ? 0.5 : 1 }}>{e.title}</div>
-        {e.memo && <div style={{ fontSize: 12, color: C.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.memo}</div>}
+        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, textDecoration: e.done ? 'line-through' : 'none', opacity: e.done ? 0.5 : 1 }}>{first}</div>
+        {rest.length > 0 && <div style={{ fontSize: 12, color: C.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
       </div>
       <div style={{ fontSize: 12, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
         {showDate && <div>{fmtDate(e.date)}</div>}
