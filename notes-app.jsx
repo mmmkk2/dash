@@ -354,7 +354,25 @@ function CalendarTab({ events, reload, setErr }) {
     return events.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
   }, [events])
 
-  const moveMonth = n => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
+  const moveMonth = n => setMonth(m => new Date(m.getFullYear(), m.getMonth() + n, 1))
+
+  // 달력을 좌우로 밀면 이전/다음 달 (세로 스크롤은 그대로)
+  const swipe = useRef(null)
+  const [dragX, setDragX] = useState(0)
+  const onTouchStart = e => { const p = e.touches[0]; swipe.current = { x: p.clientX, y: p.clientY, dx: 0, lock: null } }
+  const onTouchMove = e => {
+    const sw = swipe.current
+    if (!sw) return
+    const p = e.touches[0], dx = p.clientX - sw.x, dy = p.clientY - sw.y
+    if (!sw.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) sw.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    if (sw.lock === 'x') { sw.dx = dx; setDragX(dx) }
+  }
+  const onTouchEnd = () => {
+    const sw = swipe.current
+    swipe.current = null
+    if (sw?.lock === 'x' && Math.abs(sw.dx) > 50) moveMonth(sw.dx < 0 ? 1 : -1)
+    setDragX(0)
+  }
   const goToday = () => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); setSel(todayStr()) }
 
   async function save() {
@@ -392,13 +410,18 @@ function CalendarTab({ events, reload, setErr }) {
         <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={22} /></button>
       </div>
 
-      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}` }}>
+      <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+        style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}`, overflow: 'hidden', touchAction: 'pan-y' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 6 }}>
           {WEEK.map((w, i) => (
             <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 || i === 6 ? C.faint : C.sub }}>{w}</div>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+          transform: `translateX(${dragX * 0.5}px)`, opacity: 1 - Math.min(Math.abs(dragX) / 400, 0.4),
+          transition: dragX ? 'none' : 'transform .2s ease, opacity .2s ease',
+        }}>
           {cells.map((d, i) => {
             const k = ymd(d), inMonth = d.getMonth() === month.getMonth(), evs = byDate[k] || []
             const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
