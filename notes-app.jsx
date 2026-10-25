@@ -1,16 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, Plus, Check, ListChecks } from 'lucide-react'
 import { supabase } from './pages/login'
 
-// 시스템 폰트 + 차분한 라이트 톤, 포인트 컬러는 대시보드 그린
+// 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
 const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
 const C = {
-  bg: '#f5f5f2', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
+  bg: '#f7f7f7', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
   sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)',
-  tint: '#177864', tintSoft: '#e5f1ee', red: '#e5484d', orange: '#e8890c',
+  tint: '#1c1c1e', tintSoft: 'rgba(0,0,0,0.06)', red: '#e5484d',
 }
-const COLORS = ['#177864', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6', '#8e8e93']
+const COLORS = ['#1c1c1e', '#8e8e93', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6']
+// 이전 기본색(그린)으로 저장된 항목도 기본색으로 취급
+const isDefaultColor = c => !c || c === COLORS[0] || c === '#177864'
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
 const pad = n => String(n).padStart(2, '0')
@@ -18,6 +20,15 @@ const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())
 const todayStr = () => ymd(new Date())
 // 예전 제목 필드가 있던 데이터는 본문 앞에 붙여서 한 덩어리로 다룬다
 const joinText = (a, b) => [a, b].filter(Boolean).join('\n')
+
+// 체크리스트 줄은 "- [ ] 할 일" / "- [x] 한 일" 형태로 본문에 저장
+const CHECK_RE = /^- \[( |x)\] ?/
+const parseLines = s => (s || '').split('\n').map(l => {
+  const m = l.match(CHECK_RE)
+  return m ? { check: true, done: m[1] === 'x', text: l.slice(m[0].length) } : { check: false, done: false, text: l }
+})
+const serializeLines = ls => ls.map(l => l.check ? `- [${l.done ? 'x' : ' '}] ${l.text}` : l.text).join('\n')
+const plainText = s => parseLines(s).map(l => l.text).join('\n')
 const daysUntil = s => Math.round((new Date(s) - new Date(todayStr())) / 86400000)
 
 function fmtDate(s) {
@@ -37,8 +48,8 @@ function shortStamp(iso) {
 function dueLabel(due) {
   const n = daysUntil(due)
   if (n < 0) return [`${-n}일 지남`, C.red]
-  if (n === 0) return ['오늘 마감', C.orange]
-  return [`D-${n}`, n <= 3 ? C.orange : C.sub]
+  if (n === 0) return ['오늘 마감', C.text]
+  return [`D-${n}`, n <= 3 ? C.text : C.sub]
 }
 
 const plain = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
@@ -49,7 +60,7 @@ function Group({ header, children }) {
   return (
     <section style={{ marginBottom: 24 }}>
       {header && <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 8px' }}>{header}</div>}
-      <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>{children}</div>
+      <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', border: `0.5px solid ${C.sep}` }}>{children}</div>
     </section>
   )
 }
@@ -117,12 +128,101 @@ function Fab({ label, onClick }) {
     <button aria-label={label} onClick={onClick} style={{
       ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + env(safe-area-inset-bottom))',
       width: 56, height: 56, borderRadius: '50%', background: C.tint, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 6px 20px rgba(23,120,100,0.35)',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
     }}><Plus size={26} strokeWidth={2.2} /></button>
   )
 }
 
 // ───────────────────────── 메모 ─────────────────────────
+function CheckCircle({ done, color = C.tint, onClick }) {
+  return (
+    <button type="button" aria-label={done ? '체크 해제' : '체크'} onClick={onClick} style={{
+      ...plain, width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: done ? 'none' : `1.5px solid ${C.faint}`, background: done ? color : 'transparent',
+    }}>{done && <Check size={14} color="#fff" strokeWidth={3} />}</button>
+  )
+}
+
+// 줄 단위 편집기: 일반 줄과 체크리스트 줄을 섞어 쓴다 (엔터 = 같은 종류의 새 줄)
+function NoteEditor({ value, onChange, autoFocus }) {
+  const lines = parseLines(value)
+  const refs = useRef([])
+  const cur = useRef(lines.length - 1)
+  const [focus, setFocus] = useState(autoFocus ? { i: lines.length - 1, pos: Infinity } : null)
+
+  useLayoutEffect(() => {
+    refs.current.slice(0, lines.length).forEach(el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } })
+  })
+  useEffect(() => {
+    const el = focus && refs.current[focus.i]
+    if (!el) return
+    el.focus()
+    const p = Math.min(focus.pos, el.value.length)
+    el.setSelectionRange(p, p)
+  }, [focus])
+
+  const update = (next, f) => { onChange(serializeLines(next)); if (f) setFocus(f) }
+
+  function changeLine(i, v) {
+    const l = lines[i], next = [...lines]
+    if (!v.includes('\n')) { next[i] = { ...l, text: v }; return update(next) }
+    // 빈 체크 줄에서 엔터 → 체크리스트 끝내고 일반 줄로
+    if (l.check && !l.text && v === '\n') { next[i] = { check: false, done: false, text: '' }; return update(next, { i, pos: 0 }) }
+    const parts = v.split('\n')
+    const added = parts.map((t, k) => k === 0 ? { ...l, text: t } : { check: l.check, done: false, text: t })
+    next.splice(i, 1, ...added)
+    update(next, { i: i + parts.length - 1, pos: 0 })
+  }
+
+  function keyDown(i, e) {
+    const el = e.target
+    if (e.key !== 'Backspace' || e.nativeEvent.isComposing || el.selectionStart !== 0 || el.selectionEnd !== 0) return
+    const next = [...lines]
+    if (lines[i].check) {
+      e.preventDefault(); next[i] = { ...lines[i], check: false, done: false }; update(next, { i, pos: 0 })
+    } else if (i > 0) {
+      e.preventDefault()
+      const prev = lines[i - 1]
+      next.splice(i - 1, 2, { ...prev, text: prev.text + lines[i].text })
+      update(next, { i: i - 1, pos: prev.text.length })
+    }
+  }
+
+  function toggleChecklist() {
+    const i = Math.min(cur.current, lines.length - 1), next = [...lines]
+    next[i] = { ...lines[i], check: !lines[i].check, done: false }
+    update(next, { i, pos: Infinity })
+  }
+  function toggleDone(i) {
+    const next = [...lines]
+    next[i] = { ...lines[i], done: !lines[i].done }
+    update(next)
+  }
+
+  return (
+    <>
+      <div onClick={e => { if (e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
+        style={{ padding: '12px 16px', minHeight: 220, cursor: 'text' }}>
+        {lines.map((l, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '3px 0' : 0 }}>
+            {l.check && <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
+            <textarea ref={el => { refs.current[i] = el }} rows={1} value={l.text}
+              placeholder={lines.length === 1 && !l.check ? '메모' : ''}
+              onFocus={() => { cur.current = i }} onChange={e => changeLine(i, e.target.value)} onKeyDown={e => keyDown(i, e)}
+              style={{ ...field, display: 'block', flex: 1, padding: 0, resize: 'none', overflow: 'hidden', lineHeight: 1.6,
+                color: l.done ? C.sub : C.text, textDecoration: l.done ? 'line-through' : 'none' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop: `0.5px solid ${C.sep}`, padding: '8px 12px', display: 'flex' }}>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={toggleChecklist} style={{
+          ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.sub, fontSize: 14, fontWeight: 500, padding: '6px 8px', borderRadius: 8,
+        }}><ListChecks size={18} />체크리스트</button>
+      </div>
+    </>
+  )
+}
+
 function MemoTab({ memos, reload, setErr }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
@@ -130,7 +230,7 @@ function MemoTab({ memos, reload, setErr }) {
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
     return memos
-      .filter(m => !k || (m.title + ' ' + m.content).toLowerCase().includes(k))
+      .filter(m => !k || (m.title + ' ' + plainText(m.content)).toLowerCase().includes(k))
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
   }, [memos, q])
   const pinned = list.filter(m => m.pinned), others = list.filter(m => !m.pinned)
@@ -153,18 +253,21 @@ function MemoTab({ memos, reload, setErr }) {
 
   const open = m => setEdit({ ...m, content: joinText(m.title, m.content) })
   const renderRows = arr => arr.map((m, i) => {
-    const [first, ...rest] = joinText(m.title, m.content).trim().split('\n')
+    const all = parseLines(joinText(m.title, m.content))
+    const [first, ...rest] = all.map(l => l.text).filter(t => t.trim())
     const preview = rest.join(' ').trim()
+    const checks = all.filter(l => l.check && l.text.trim()), doneN = checks.filter(l => l.done).length
     const due = m.due_date && dueLabel(m.due_date)
     return (
       <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {m.color && m.color !== COLORS[0] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
-            <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
+            {!isDefaultColor(m.color) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
+            <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || '빈 메모'}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
+            {checks.length > 0 && <span style={{ color: C.sub, fontWeight: 600, marginRight: 8 }}>✓ {doneN}/{checks.length}</span>}
             {preview || shortStamp(m.updated_at)}
           </div>
         </div>
@@ -177,7 +280,7 @@ function MemoTab({ memos, reload, setErr }) {
 
   return (
     <>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, border: `0.5px solid ${C.sep}` }}>
         <Search size={16} color={C.sub} strokeWidth={2.2} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={`메모 ${memos.length}개에서 검색`} style={field} />
       </label>
@@ -191,8 +294,7 @@ function MemoTab({ memos, reload, setErr }) {
       {edit && (
         <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={() => setEdit(null)} onDone={save} onBackdrop={save}>
           <Group>
-            <textarea autoFocus value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="메모" rows={10}
-              style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.55, minHeight: 200 }} />
+            <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id} />
           </Group>
           <Group>
             <Row>
@@ -203,7 +305,7 @@ function MemoTab({ memos, reload, setErr }) {
               <Row>
                 <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
                 <input type="date" value={edit.due_date} onChange={e => setEdit({ ...edit, due_date: e.target.value })}
-                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px', color: C.tint }} />
+                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
               </Row>
             )}
             <Row>
@@ -290,7 +392,7 @@ function CalendarTab({ events, reload, setErr }) {
         <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={22} /></button>
       </div>
 
-      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}` }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 6 }}>
           {WEEK.map((w, i) => (
             <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 || i === 6 ? C.faint : C.sub }}>{w}</div>
@@ -311,7 +413,7 @@ function CalendarTab({ events, reload, setErr }) {
                   color: isSel ? '#fff' : isToday ? C.tint : weekend ? C.sub : C.text,
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', gap: 3, height: 6 }}>
-                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : e.color }} />)}
+                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : isDefaultColor(e.color) ? C.sub : e.color }} />)}
                 </span>
               </button>
             )
@@ -377,11 +479,8 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
     <Row onClick={onClick} last={last}>
-      <button aria-label={e.done ? '완료 취소' : '완료'} onClick={ev => { ev.stopPropagation(); onToggle() }} style={{
-        ...plain, width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        border: e.done ? 'none' : `1.5px solid ${C.faint}`, background: e.done ? e.color : 'transparent',
-      }}>{e.done && <Check size={14} color="#fff" strokeWidth={3} />}</button>
-      <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />
+      <CheckCircle done={e.done} onClick={ev => { ev.stopPropagation(); onToggle() }} />
+      {!isDefaultColor(e.color) && <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />}
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
         {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
