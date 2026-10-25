@@ -132,10 +132,13 @@ create table if not exists memos (
   content     text default '',
   color       text default '#177864',
   pinned      boolean default false,
+  due_date    text default null,      -- 마감일 YYYY-MM-DD (선택)
   created_at  timestamptz default now(),
   updated_at  timestamptz default now()
 );
 alter table memos enable row level security;
+-- 마감일 기능 (기존 DB에 아래 실행)
+-- alter table memos add column if not exists due_date text default null;
 create policy "본인 메모만" on memos for all using (auth.uid() = user_id);
 
 -- 일정 (본인 데이터만)
