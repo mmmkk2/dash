@@ -4710,6 +4710,8 @@ export default function App(){
                     padding:"6px",minWidth:"160px",display:"flex",flexDirection:"column",gap:"2px"}}>
                     {[
                       {label:"무한매수",emoji:"📈",action:()=>navigate("/infinite-buying")},
+                      {label:"메모",emoji:"📝",action:()=>navigate("/notes")},
+                      {label:"일정",emoji:"📅",action:()=>navigate("/notes/calendar")},
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
                       {label:"세무자료 체크리스트",emoji:"🧾",action:()=>setModal("taxdoc")},

@@ -123,3 +123,32 @@ insert into cards (id, name, color, sort_order) values
   ('c7', '쿠팡 Wow',                    '#7b2d00', 7),
   ('c8', '현금',                        '#4a3f35', 8)
 on conflict (id) do nothing;
+
+-- 메모 (본인 데이터만)
+create table if not exists memos (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users not null default auth.uid(),
+  title       text default '',
+  content     text default '',
+  color       text default '#177864',
+  pinned      boolean default false,
+  created_at  timestamptz default now(),
+  updated_at  timestamptz default now()
+);
+alter table memos enable row level security;
+create policy "본인 메모만" on memos for all using (auth.uid() = user_id);
+
+-- 일정 (본인 데이터만)
+create table if not exists events (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users not null default auth.uid(),
+  date        text not null,          -- YYYY-MM-DD
+  time        text default null,      -- HH:MM
+  title       text not null,
+  memo        text default '',
+  color       text default '#177864',
+  done        boolean default false,
+  created_at  timestamptz default now()
+);
+alter table events enable row level security;
+create policy "본인 일정만" on events for all using (auth.uid() = user_id);
