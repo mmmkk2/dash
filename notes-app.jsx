@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Pin, Search, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
 import { supabase } from './pages/login'
 
-const F = "'Apple SD Gothic Neo','Noto Sans KR','Inter',sans-serif"
+// 시스템 폰트 + 차분한 라이트 톤, 포인트 컬러는 대시보드 그린
+const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
 const C = {
-  bg: '#f5f7f9', card: '#fff', line: '#e5eaee', text: '#1f2a33', sub: '#6b7a86', faint: '#a3afb8',
-  accent: '#177864', accentSoft: '#e6f3ef', danger: '#d1495b',
+  bg: '#f5f5f2', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
+  sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)',
+  tint: '#177864', tintSoft: '#e5f1ee', red: '#e5484d', orange: '#e8890c',
 }
-const COLORS = ['#177864', '#3a7bd5', '#e0882f', '#d1495b', '#8a5cd1', '#7a8791']
+const COLORS = ['#177864', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6', '#8e8e93']
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
 const pad = n => String(n).padStart(2, '0')
@@ -15,51 +18,107 @@ const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())
 const todayStr = () => ymd(new Date())
 // 예전 제목 필드가 있던 데이터는 본문 앞에 붙여서 한 덩어리로 다룬다
 const joinText = (a, b) => [a, b].filter(Boolean).join('\n')
-
-function DueBadge({ due }) {
-  const days = Math.round((new Date(due) - new Date(todayStr())) / 86400000)
-  const [label, color, bg] = days < 0 ? [`${-days}일 지남`, '#d1495b', '#fdecee']
-    : days === 0 ? ['오늘까지', '#c0661a', '#fdf1e4']
-    : [`D-${days}`, days <= 3 ? '#c0661a' : '#52636e', days <= 3 ? '#fdf1e4' : '#eef2f4']
-  return <span title={`마감 ${due}`} style={{ fontSize: 11, fontWeight: 700, color, background: bg, borderRadius: 6, padding: '2px 6px' }}>{label}</span>
-}
+const daysUntil = s => Math.round((new Date(s) - new Date(todayStr())) / 86400000)
 
 function fmtDate(s) {
   const d = new Date(s)
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEK[d.getDay()]})`
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WEEK[d.getDay()]}요일`
 }
 
-const btn = (primary) => ({
-  border: primary ? 'none' : `1px solid ${C.line}`, background: primary ? C.accent : '#fff',
-  color: primary ? '#fff' : C.text, borderRadius: 10, padding: '9px 14px', fontSize: 13,
-  fontWeight: 600, cursor: 'pointer', fontFamily: F,
-})
-const input = {
-  width: '100%', padding: '11px 12px', borderRadius: 10, border: `1px solid ${C.line}`,
-  fontSize: 14, outline: 'none', fontFamily: F, background: '#fafbfc', color: C.text,
+// 메모 앱처럼: 오늘이면 시각, 일주일 안이면 요일, 그 외엔 날짜
+function shortStamp(iso) {
+  const d = new Date(iso), diff = daysUntil(ymd(d))
+  if (diff === 0) return d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
+  if (diff === -1) return '어제'
+  if (diff > -7) return `${WEEK[d.getDay()]}요일`
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`
+}
+
+function dueLabel(due) {
+  const n = daysUntil(due)
+  if (n < 0) return [`${-n}일 지남`, C.red]
+  if (n === 0) return ['오늘 마감', C.orange]
+  return [`D-${n}`, n <= 3 ? C.orange : C.sub]
+}
+
+const plain = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
+const field = { ...plain, cursor: 'text', outline: 'none', fontSize: 16, color: C.text, width: '100%' }
+
+// ───────────────────────── 공통 컴포넌트 ─────────────────────────
+function Group({ header, children }) {
+  return (
+    <section style={{ marginBottom: 24 }}>
+      {header && <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 8px' }}>{header}</div>}
+      <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>{children}</div>
+    </section>
+  )
+}
+
+function Row({ children, onClick, last, style }) {
+  return (
+    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, paddingLeft: 16, cursor: onClick ? 'pointer' : 'default', ...style }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px 11px 0', borderBottom: last ? 'none' : `0.5px solid ${C.sep}`, alignSelf: 'stretch' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function Toggle({ on, onChange }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} style={{
+      ...plain, width: 51, height: 31, borderRadius: 16, flexShrink: 0, position: 'relative',
+      background: on ? C.tint : 'rgba(120,120,128,0.16)', transition: 'background .2s',
+    }}>
+      <span style={{
+        position: 'absolute', top: 2, left: on ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff',
+        boxShadow: '0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.06)', transition: 'left .2s',
+      }} />
+    </button>
+  )
 }
 
 function ColorPicker({ value, onChange }) {
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ display: 'flex', gap: 12 }}>
       {COLORS.map(c => (
         <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} style={{
-          width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
-          border: value === c ? `3px solid ${C.text}` : '3px solid transparent', padding: 0,
+          ...plain, width: 26, height: 26, borderRadius: '50%', background: c,
+          boxShadow: value === c ? `0 0 0 2px #fff, 0 0 0 4px ${c}` : 'none',
         }} />
       ))}
     </div>
   )
 }
 
-function Modal({ title, onClose, children }) {
+function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, children }) {
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,40,0.35)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', width: '100%', maxWidth: 520, borderRadius: '20px 20px 0 0', padding: '20px 18px calc(20px + env(safe-area-inset-bottom))', maxHeight: '90dvh', overflowY: 'auto' }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 14 }}>{title}</div>
-        {children}
+    <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.bg, width: '100%', maxWidth: 560, borderRadius: '22px 22px 0 0', maxHeight: '92dvh', overflowY: 'auto',
+        paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
+      }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
+          <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{title}</div>
+          <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>
+          <button onClick={onDone} disabled={doneDisabled} style={{
+            ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '8px 18px',
+            opacity: doneDisabled ? 0.35 : 1, cursor: doneDisabled ? 'default' : 'pointer',
+          }}>저장</button>
+        </div>
+        <div style={{ padding: '8px 16px 0' }}>{children}</div>
       </div>
     </div>
+  )
+}
+
+function Fab({ label, onClick }) {
+  return (
+    <button aria-label={label} onClick={onClick} style={{
+      ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + env(safe-area-inset-bottom))',
+      width: 56, height: 56, borderRadius: '50%', background: C.tint, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 6px 20px rgba(23,120,100,0.35)',
+    }}><Plus size={26} strokeWidth={2.2} /></button>
   )
 }
 
@@ -72,8 +131,9 @@ function MemoTab({ memos, reload, setErr }) {
     const k = q.trim().toLowerCase()
     return memos
       .filter(m => !k || (m.title + ' ' + m.content).toLowerCase().includes(k))
-      .sort((a, b) => (b.pinned - a.pinned) || b.updated_at.localeCompare(a.updated_at))
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
   }, [memos, q])
+  const pinned = list.filter(m => m.pinned), others = list.filter(m => !m.pinned)
 
   async function save() {
     const row = { title: '', content: edit.content, due_date: edit.due_date || null, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
@@ -90,51 +150,79 @@ function MemoTab({ memos, reload, setErr }) {
     if (error) return setErr(error.message)
     setEdit(null); reload()
   }
-  async function togglePin(m) {
-    const { error } = await supabase.from('memos').update({ pinned: !m.pinned }).eq('id', m.id)
-    if (error) return setErr(error.message)
-    reload()
-  }
+
+  const open = m => setEdit({ ...m, content: joinText(m.title, m.content) })
+  const renderRows = arr => arr.map((m, i) => {
+    const [first, ...rest] = joinText(m.title, m.content).trim().split('\n')
+    const preview = rest.join(' ').trim()
+    const due = m.due_date && dueLabel(m.due_date)
+    return (
+      <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {m.color && m.color !== COLORS[0] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
+            <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
+          </div>
+          <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
+            {preview || shortStamp(m.updated_at)}
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: C.faint, whiteSpace: 'nowrap', alignSelf: 'flex-start', paddingTop: 3 }}>
+          {preview && shortStamp(m.updated_at)}
+        </div>
+      </Row>
+    )
+  })
 
   return (
     <>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="메모 검색" style={input} />
-        <button style={{ ...btn(true), whiteSpace: 'nowrap' }} onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false })}>+ 새 메모</button>
-      </div>
-      {list.length === 0 && <div style={{ textAlign: 'center', color: C.faint, padding: 40, fontSize: 13 }}>{q ? '검색 결과가 없어요' : '첫 메모를 남겨보세요'}</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-        {list.map(m => (
-          <div key={m.id} onClick={() => setEdit({ ...m, content: joinText(m.title, m.content) })} style={{ background: C.card, border: `1px solid ${C.line}`, borderLeft: `4px solid ${m.color}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', minHeight: 90 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-              <div style={{ flex: 1, fontSize: 14, color: C.text, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{joinText(m.title, m.content)}</div>
-              <button onClick={e => { e.stopPropagation(); togglePin(m) }} title="고정" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, opacity: m.pinned ? 1 : 0.25, padding: 0 }}>📌</button>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              {m.due_date && <DueBadge due={m.due_date} />}
-              <span style={{ fontSize: 11, color: C.faint, marginLeft: 'auto' }}>{new Date(m.updated_at).toLocaleDateString('ko-KR')}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+        <Search size={16} color={C.sub} strokeWidth={2.2} />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder={`메모 ${memos.length}개에서 검색`} style={field} />
+      </label>
+
+      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{q ? '찾는 메모가 없어요' : '+ 버튼으로 첫 메모를 남겨보세요'}</div>}
+      {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
+      {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
+
+      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false })} />
 
       {edit && (
-        <Modal title={edit.id ? '메모 수정' : '새 메모'} onClose={save}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <textarea autoFocus value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="메모" rows={10} style={{ ...input, resize: 'vertical', lineHeight: 1.6 }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: C.sub, whiteSpace: 'nowrap' }}>마감일</span>
-              <input type="date" value={edit.due_date || ''} onChange={e => setEdit({ ...edit, due_date: e.target.value })} style={{ ...input, width: 'auto', flex: 1, padding: '8px 10px' }} />
-              {edit.due_date && <button type="button" onClick={() => setEdit({ ...edit, due_date: '' })} style={{ ...btn(false), padding: '8px 10px' }}>없음</button>}
-            </div>
-            <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              {edit.id && <button style={{ ...btn(false), color: C.danger }} onClick={remove}>삭제</button>}
-              <button style={{ ...btn(false), marginLeft: 'auto' }} onClick={() => setEdit(null)}>취소</button>
-              <button style={btn(true)} onClick={save}>저장</button>
-            </div>
-          </div>
-        </Modal>
+        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={() => setEdit(null)} onDone={save} onBackdrop={save}>
+          <Group>
+            <textarea autoFocus value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="메모" rows={10}
+              style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.55, minHeight: 200 }} />
+          </Group>
+          <Group>
+            <Row>
+              <span style={{ flex: 1, fontSize: 16 }}>마감일</span>
+              <Toggle on={!!edit.due_date} onChange={on => setEdit({ ...edit, due_date: on ? todayStr() : '' })} />
+            </Row>
+            {edit.due_date && (
+              <Row>
+                <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
+                <input type="date" value={edit.due_date} onChange={e => setEdit({ ...edit, due_date: e.target.value })}
+                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px', color: C.tint }} />
+              </Row>
+            )}
+            <Row>
+              <span style={{ flex: 1, fontSize: 16 }}>고정</span>
+              <Toggle on={!!edit.pinned} onChange={pinned => setEdit({ ...edit, pinned })} />
+            </Row>
+            <Row last>
+              <span style={{ flex: 1, fontSize: 16 }}>색상</span>
+              <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
+            </Row>
+          </Group>
+          {edit.id && (
+            <Group>
+              <Row last onClick={remove} style={{ justifyContent: 'center' }}>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 16, color: C.red }}>삭제</span>
+              </Row>
+            </Group>
+          )}
+        </Sheet>
       )}
     </>
   )
@@ -155,12 +243,13 @@ function CalendarTab({ events, reload, setErr }) {
 
   const cells = useMemo(() => {
     const start = new Date(month); start.setDate(1 - month.getDay())
-    return Array.from({ length: 42 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d })
+    const weeks = Math.ceil((month.getDay() + new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()) / 7)
+    return Array.from({ length: weeks * 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d })
   }, [month])
 
   const upcoming = useMemo(() => {
     const t = todayStr()
-    return events.filter(e => e.date >= t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
+    return events.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
   }, [events])
 
   const moveMonth = n => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
@@ -189,97 +278,119 @@ function CalendarTab({ events, reload, setErr }) {
 
   const t = todayStr()
   const dayEvents = byDate[sel] || []
+  const open = e => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })
+  const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
     <>
-      <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-          <button style={{ ...btn(false), padding: '6px 10px' }} onClick={() => moveMonth(-1)}>‹</button>
-          <div style={{ fontWeight: 800, fontSize: 16, color: C.text, minWidth: 110, textAlign: 'center' }}>{month.getFullYear()}년 {month.getMonth() + 1}월</div>
-          <button style={{ ...btn(false), padding: '6px 10px' }} onClick={() => moveMonth(1)}>›</button>
-          <button style={{ ...btn(false), padding: '6px 10px', marginLeft: 'auto', fontSize: 12 }} onClick={goToday}>오늘</button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 2px 12px' }}>
+        <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{month.getFullYear()}년 {month.getMonth() + 1}월</div>
+        <button aria-label="이전 달" style={chevron} onClick={() => moveMonth(-1)}><ChevronLeft size={22} /></button>
+        <button onClick={goToday} style={{ ...plain, fontSize: 13, fontWeight: 600, color: C.tint, background: C.tintSoft, borderRadius: 999, padding: '6px 12px' }}>오늘</button>
+        <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={22} /></button>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 6 }}>
           {WEEK.map((w, i) => (
-            <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, padding: '4px 0', color: i === 0 ? C.danger : i === 6 ? '#3a7bd5' : C.sub }}>{w}</div>
+            <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 || i === 6 ? C.faint : C.sub }}>{w}</div>
           ))}
-          {cells.map(d => {
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+          {cells.map((d, i) => {
             const k = ymd(d), inMonth = d.getMonth() === month.getMonth(), evs = byDate[k] || []
-            const isSel = k === sel, isToday = k === t
+            const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
             return (
               <button key={k} onClick={() => setSel(k)} style={{
-                minHeight: 62, border: 'none', borderRadius: 8, padding: '4px 3px', cursor: 'pointer', textAlign: 'left',
-                background: isSel ? C.accentSoft : 'transparent', opacity: inMonth ? 1 : 0.35, fontFamily: F,
-                display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden',
+                ...plain, height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 3, visibility: inMonth ? 'visible' : 'hidden',
               }}>
                 <span style={{
-                  alignSelf: 'center', fontSize: 12, fontWeight: isToday ? 800 : 500, width: 22, height: 22, lineHeight: '22px', textAlign: 'center', borderRadius: '50%',
-                  background: isToday ? C.accent : 'transparent', color: isToday ? '#fff' : d.getDay() === 0 ? C.danger : d.getDay() === 6 ? '#3a7bd5' : C.text,
+                  width: 34, height: 34, lineHeight: '34px', textAlign: 'center', borderRadius: 12, fontSize: 16,
+                  fontWeight: isToday || isSel ? 700 : 400,
+                  background: isSel ? C.tint : isToday ? C.tintSoft : 'transparent',
+                  color: isSel ? '#fff' : isToday ? C.tint : weekend ? C.sub : C.text,
                 }}>{d.getDate()}</span>
-                {evs.slice(0, 2).map(e => (
-                  <span key={e.id} style={{ fontSize: 10, color: '#fff', background: e.color, borderRadius: 4, padding: '1px 3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: e.done ? 0.45 : 1, textDecoration: e.done ? 'line-through' : 'none' }}>{e.title.split('\n')[0]}</span>
-                ))}
-                {evs.length > 2 && <span style={{ fontSize: 10, color: C.sub, textAlign: 'center' }}>+{evs.length - 2}</span>}
+                <span style={{ display: 'flex', gap: 3, height: 6 }}>
+                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : e.color }} />)}
+                </span>
               </button>
             )
           })}
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', margin: '18px 0 8px' }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: C.text }}>{fmtDate(sel)}</div>
-        <button style={{ ...btn(true), marginLeft: 'auto' }} onClick={() => setEdit({ date: sel, time: '', text: '', color: COLORS[0], done: false })}>+ 일정 추가</button>
-      </div>
-      {dayEvents.length === 0 && <div style={{ color: C.faint, fontSize: 13, padding: '10px 2px' }}>일정이 없어요</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {dayEvents.map(e => <EventRow key={e.id} e={e} onToggle={() => toggleDone(e)} onClick={() => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })} />)}
-      </div>
+      <Group header={fmtDate(sel)}>
+        {dayEvents.length === 0 && <Row last><span style={{ color: C.sub, fontSize: 15 }}>비어 있는 날이에요</span></Row>}
+        {dayEvents.map((e, i) => <EventRow key={e.id} e={e} last={i === dayEvents.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
+      </Group>
 
       {upcoming.length > 0 && (
-        <>
-          <div style={{ fontWeight: 800, fontSize: 15, color: C.text, margin: '22px 0 8px' }}>다가오는 일정</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {upcoming.map(e => <EventRow key={e.id} e={e} showDate onToggle={() => toggleDone(e)} onClick={() => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })} />)}
-          </div>
-        </>
+        <Group header="다가오는 일정">
+          {upcoming.map((e, i) => <EventRow key={e.id} e={e} showDate last={i === upcoming.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
+        </Group>
       )}
 
+      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', text: '', color: COLORS[0], done: false })} />
+
       {edit && (
-        <Modal title={edit.id ? '일정 수정' : '새 일정'} onClose={() => setEdit(null)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <textarea autoFocus value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="일정" rows={3} style={{ ...input, resize: 'vertical' }} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })} style={input} />
-              <input type="time" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value })} style={input} />
-            </div>
-            <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              {edit.id && <button style={{ ...btn(false), color: C.danger }} onClick={remove}>삭제</button>}
-              <button style={{ ...btn(false), marginLeft: 'auto' }} onClick={() => setEdit(null)}>취소</button>
-              <button style={{ ...btn(true), opacity: edit.text.trim() ? 1 : 0.5 }} onClick={save}>저장</button>
-            </div>
-          </div>
-        </Modal>
+        <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
+          <Group>
+            <textarea autoFocus value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?" rows={3}
+              style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
+          </Group>
+          <Group>
+            <Row>
+              <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
+              <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })}
+                style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
+            </Row>
+            <Row>
+              <span style={{ flex: 1, fontSize: 16 }}>하루 종일</span>
+              <Toggle on={!edit.time} onChange={on => setEdit({ ...edit, time: on ? '' : '09:00' })} />
+            </Row>
+            {edit.time && (
+              <Row>
+                <span style={{ flex: 1, fontSize: 16 }}>시간</span>
+                <input type="time" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value })}
+                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
+              </Row>
+            )}
+            <Row last>
+              <span style={{ flex: 1, fontSize: 16 }}>색상</span>
+              <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
+            </Row>
+          </Group>
+          {edit.id && (
+            <Group>
+              <Row last onClick={remove}>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 16, color: C.red }}>삭제</span>
+              </Row>
+            </Group>
+          )}
+        </Sheet>
       )}
     </>
   )
 }
 
-function EventRow({ e, showDate, onToggle, onClick }) {
+function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: '10px 12px', cursor: 'pointer' }}>
-      <input type="checkbox" checked={e.done} onClick={ev => ev.stopPropagation()} onChange={onToggle} style={{ width: 18, height: 18, accentColor: e.color, cursor: 'pointer' }} />
-      <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: e.color }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, textDecoration: e.done ? 'line-through' : 'none', opacity: e.done ? 0.5 : 1 }}>{first}</div>
-        {rest.length > 0 && <div style={{ fontSize: 12, color: C.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
+    <Row onClick={onClick} last={last}>
+      <button aria-label={e.done ? '완료 취소' : '완료'} onClick={ev => { ev.stopPropagation(); onToggle() }} style={{
+        ...plain, width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: e.done ? 'none' : `1.5px solid ${C.faint}`, background: e.done ? e.color : 'transparent',
+      }}>{e.done && <Check size={14} color="#fff" strokeWidth={3} />}</button>
+      <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />
+      <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
+        <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
+        {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
       </div>
-      <div style={{ fontSize: 12, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
-        {showDate && <div>{fmtDate(e.date)}</div>}
-        {e.time && <div>{e.time.slice(0, 5)}</div>}
+      <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
+        {showDate && <div>{new Date(e.date).getMonth() + 1}월 {new Date(e.date).getDate()}일</div>}
+        <div>{e.time ? e.time.slice(0, 5) : (!showDate && '종일')}</div>
       </div>
-    </div>
+    </Row>
   )
 }
 
@@ -306,23 +417,23 @@ export default function NotesApp({ initialTab = 'memo' }) {
   const switchTab = t => { setTab(t); navigate(t === 'memo' ? '/notes' : '/notes/calendar', { replace: true }) }
 
   return (
-    <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text }}>
-      <nav style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderBottom: `1px solid ${C.line}`, background: '#fff', fontSize: 12 }}>
-        <button onClick={() => navigate('/budget')} style={{ background: 'none', border: 'none', color: C.sub, cursor: 'pointer', fontSize: 12, padding: 0, fontFamily: F }}>← 가계부</button>
-        <div style={{ display: 'flex', background: '#eef2f4', borderRadius: 10, padding: 3, marginLeft: 'auto' }}>
-          {[['memo', '📝 메모'], ['calendar', '📅 일정']].map(([k, label]) => (
+    <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
+      <header style={{ maxWidth: 680, margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 8px' }}>
+        <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
+          <ChevronLeft size={16} />가계부
+        </button>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 10 }}>
+          {[['memo', '메모'], ['calendar', '일정']].map(([k, label]) => (
             <button key={k} onClick={() => switchTab(k)} style={{
-              border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: F,
-              background: tab === k ? '#fff' : 'transparent', color: tab === k ? C.accent : C.sub,
-              boxShadow: tab === k ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              ...plain, fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', color: tab === k ? C.text : C.faint, transition: 'color .15s',
             }}>{label}</button>
           ))}
         </div>
-      </nav>
-      <main style={{ maxWidth: 860, margin: '0 auto', padding: '16px 16px 60px' }}>
+      </header>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + env(safe-area-inset-bottom))' }}>
         {err && (
-          <div onClick={() => setErr('')} style={{ background: '#fdecee', color: C.danger, borderRadius: 10, padding: '10px 12px', fontSize: 12, marginBottom: 12, cursor: 'pointer' }}>
-            오류: {err} {/relation|does not exist|schema cache/i.test(err) && '— supabase_setup.sql 의 memos/events 섹션(마감일 컬럼 포함)을 실행하세요.'}
+          <div onClick={() => setErr('')} style={{ background: C.card, color: C.red, borderRadius: 12, padding: '12px 16px', fontSize: 15, marginBottom: 16, cursor: 'pointer' }}>
+            {err} {/relation|does not exist|schema cache/i.test(err) && '— supabase_setup.sql 의 memos/events 섹션(마감일 컬럼 포함)을 실행하세요.'}
           </div>
         )}
         {tab === 'memo'
