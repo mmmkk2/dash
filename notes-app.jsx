@@ -1,18 +1,17 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, SquarePen, Plus, Check } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
 import { supabase } from './pages/login'
 
-// iOS 시스템 폰트·색상 (라이트)
+// 시스템 폰트 + 차분한 라이트 톤, 포인트 컬러는 대시보드 그린
 const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
 const C = {
-  bg: '#f2f2f7', card: '#fff', text: '#000', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
-  sep: 'rgba(60,60,67,0.18)', fill: 'rgba(118,118,128,0.12)',
-  tint: '#007aff', red: '#ff3b30', orange: '#ff9500', green: '#34c759',
+  bg: '#f5f5f2', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
+  sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)',
+  tint: '#177864', tintSoft: '#e5f1ee', red: '#e5484d', orange: '#e8890c',
 }
-const COLORS = ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#8e8e93']
+const COLORS = ['#177864', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6', '#8e8e93']
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
-const BAR = 'rgba(249,249,249,0.86)'
 
 const pad = n => String(n).padStart(2, '0')
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -43,14 +42,14 @@ function dueLabel(due) {
 }
 
 const plain = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
-const field = { ...plain, cursor: 'text', outline: 'none', fontSize: 17, color: C.text, width: '100%' }
+const field = { ...plain, cursor: 'text', outline: 'none', fontSize: 16, color: C.text, width: '100%' }
 
-// ───────────────────────── 공통 iOS 컴포넌트 ─────────────────────────
+// ───────────────────────── 공통 컴포넌트 ─────────────────────────
 function Group({ header, children }) {
   return (
-    <section style={{ marginBottom: 28 }}>
-      {header && <div style={{ fontSize: 13, color: C.sub, padding: '0 16px 7px' }}>{header}</div>}
-      <div style={{ background: C.card, borderRadius: 12, overflow: 'hidden' }}>{children}</div>
+    <section style={{ marginBottom: 24 }}>
+      {header && <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 8px' }}>{header}</div>}
+      <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>{children}</div>
     </section>
   )
 }
@@ -69,7 +68,7 @@ function Toggle({ on, onChange }) {
   return (
     <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} style={{
       ...plain, width: 51, height: 31, borderRadius: 16, flexShrink: 0, position: 'relative',
-      background: on ? C.green : 'rgba(120,120,128,0.16)', transition: 'background .2s',
+      background: on ? C.tint : 'rgba(120,120,128,0.16)', transition: 'background .2s',
     }}>
       <span style={{
         position: 'absolute', top: 2, left: on ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff',
@@ -96,13 +95,16 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, c
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: C.bg, width: '100%', maxWidth: 560, borderRadius: '12px 12px 0 0', maxHeight: '92dvh', overflowY: 'auto',
+        background: C.bg, width: '100%', maxWidth: 560, borderRadius: '22px 22px 0 0', maxHeight: '92dvh', overflowY: 'auto',
         paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '14px 16px 10px' }}>
-          <button onClick={onCancel} style={{ ...plain, fontSize: 17, color: C.tint, justifySelf: 'start' }}>취소</button>
-          <div style={{ fontSize: 17, fontWeight: 600 }}>{title}</div>
-          <button onClick={onDone} disabled={doneDisabled} style={{ ...plain, fontSize: 17, fontWeight: 600, color: doneDisabled ? C.faint : C.tint, justifySelf: 'end', cursor: doneDisabled ? 'default' : 'pointer' }}>완료</button>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
+          <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{title}</div>
+          <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>
+          <button onClick={onDone} disabled={doneDisabled} style={{
+            ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '8px 18px',
+            opacity: doneDisabled ? 0.35 : 1, cursor: doneDisabled ? 'default' : 'pointer',
+          }}>저장</button>
         </div>
         <div style={{ padding: '8px 16px 0' }}>{children}</div>
       </div>
@@ -110,30 +112,13 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, c
   )
 }
 
-function LargeTitle({ children, sub, right }) {
+function Fab({ label, onClick }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '6px 4px 10px' }}>
-      <div style={{ flex: 1 }}>
-        {sub && <div style={{ fontSize: 15, color: C.sub, marginBottom: 2 }}>{sub}</div>}
-        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: '0.01em', lineHeight: 1.15 }}>{children}</h1>
-      </div>
-      {right}
-    </div>
-  )
-}
-
-function Toolbar({ left, center, right }) {
-  return (
-    <div style={{
-      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20, background: BAR, backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-      borderTop: `0.5px solid ${C.sep}`, paddingBottom: 'env(safe-area-inset-bottom)',
-    }}>
-      <div style={{ maxWidth: 680, margin: '0 auto', height: 49, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '0 16px' }}>
-        <div style={{ justifySelf: 'start' }}>{left}</div>
-        <div style={{ fontSize: 11, color: C.sub }}>{center}</div>
-        <div style={{ justifySelf: 'end' }}>{right}</div>
-      </div>
-    </div>
+    <button aria-label={label} onClick={onClick} style={{
+      ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + env(safe-area-inset-bottom))',
+      width: 56, height: 56, borderRadius: '50%', background: C.tint, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 6px 20px rgba(23,120,100,0.35)',
+    }}><Plus size={26} strokeWidth={2.2} /></button>
   )
 }
 
@@ -176,13 +161,15 @@ function MemoTab({ memos, reload, setErr }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {m.color && m.color !== COLORS[0] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
-            <div style={{ fontSize: 17, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
           </div>
-          <div style={{ fontSize: 15, color: C.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            <span style={{ color: C.text, opacity: 0.85 }}>{shortStamp(m.updated_at)}</span>
-            {due && <span style={{ color: due[1], fontWeight: 500 }}>{'  '}{due[0]}</span>}
-            {'  '}{preview || '추가 텍스트 없음'}
+          <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
+            {preview || shortStamp(m.updated_at)}
           </div>
+        </div>
+        <div style={{ fontSize: 12, color: C.faint, whiteSpace: 'nowrap', alignSelf: 'flex-start', paddingTop: 3 }}>
+          {preview && shortStamp(m.updated_at)}
         </div>
       </Row>
     )
@@ -190,52 +177,48 @@ function MemoTab({ memos, reload, setErr }) {
 
   return (
     <>
-      <LargeTitle>메모</LargeTitle>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.fill, borderRadius: 10, padding: '7px 8px', marginBottom: 20 }}>
-        <Search size={17} color={C.sub} strokeWidth={2.2} />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="검색" style={{ ...field, fontSize: 17 }} />
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+        <Search size={16} color={C.sub} strokeWidth={2.2} />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder={`메모 ${memos.length}개에서 검색`} style={field} />
       </label>
 
-      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 17 }}>{q ? '결과 없음' : '메모 없음'}</div>}
+      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{q ? '찾는 메모가 없어요' : '+ 버튼으로 첫 메모를 남겨보세요'}</div>}
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
 
-      <Toolbar
-        center={list.length > 0 && `메모 ${memos.length}개`}
-        right={<button aria-label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false })} style={{ ...plain, color: C.tint, display: 'flex' }}><SquarePen size={24} strokeWidth={1.8} /></button>}
-      />
+      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false })} />
 
       {edit && (
-        <Sheet title={edit.id ? '메모' : '새로운 메모'} onCancel={() => setEdit(null)} onDone={save} onBackdrop={save}>
+        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={() => setEdit(null)} onDone={save} onBackdrop={save}>
           <Group>
             <textarea autoFocus value={edit.content} onChange={e => setEdit({ ...edit, content: e.target.value })} placeholder="메모" rows={10}
-              style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.45, minHeight: 200 }} />
+              style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.55, minHeight: 200 }} />
           </Group>
           <Group>
             <Row>
-              <span style={{ flex: 1, fontSize: 17 }}>마감일</span>
+              <span style={{ flex: 1, fontSize: 16 }}>마감일</span>
               <Toggle on={!!edit.due_date} onChange={on => setEdit({ ...edit, due_date: on ? todayStr() : '' })} />
             </Row>
             {edit.due_date && (
               <Row>
-                <span style={{ flex: 1, fontSize: 17 }}>날짜</span>
+                <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
                 <input type="date" value={edit.due_date} onChange={e => setEdit({ ...edit, due_date: e.target.value })}
                   style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px', color: C.tint }} />
               </Row>
             )}
             <Row>
-              <span style={{ flex: 1, fontSize: 17 }}>고정</span>
+              <span style={{ flex: 1, fontSize: 16 }}>고정</span>
               <Toggle on={!!edit.pinned} onChange={pinned => setEdit({ ...edit, pinned })} />
             </Row>
             <Row last>
-              <span style={{ flex: 1, fontSize: 17 }}>색상</span>
+              <span style={{ flex: 1, fontSize: 16 }}>색상</span>
               <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             </Row>
           </Group>
           {edit.id && (
             <Group>
               <Row last onClick={remove} style={{ justifyContent: 'center' }}>
-                <span style={{ flex: 1, textAlign: 'center', fontSize: 17, color: C.red }}>메모 삭제</span>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 16, color: C.red }}>삭제</span>
               </Row>
             </Group>
           )}
@@ -296,18 +279,18 @@ function CalendarTab({ events, reload, setErr }) {
   const t = todayStr()
   const dayEvents = byDate[sel] || []
   const open = e => setEdit({ ...e, time: e.time || '', text: joinText(e.title, e.memo) })
-  const chevron = { ...plain, color: C.red, display: 'flex', padding: 6 }
+  const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
     <>
-      <LargeTitle sub={`${month.getFullYear()}년`} right={
-        <div style={{ display: 'flex', gap: 4, paddingBottom: 4 }}>
-          <button aria-label="이전 달" style={chevron} onClick={() => moveMonth(-1)}><ChevronLeft size={24} /></button>
-          <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={24} /></button>
-        </div>
-      }>{month.getMonth() + 1}월</LargeTitle>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 2px 12px' }}>
+        <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{month.getFullYear()}년 {month.getMonth() + 1}월</div>
+        <button aria-label="이전 달" style={chevron} onClick={() => moveMonth(-1)}><ChevronLeft size={22} /></button>
+        <button onClick={goToday} style={{ ...plain, fontSize: 13, fontWeight: 600, color: C.tint, background: C.tintSoft, borderRadius: 999, padding: '6px 12px' }}>오늘</button>
+        <button aria-label="다음 달" style={chevron} onClick={() => moveMonth(1)}><ChevronRight size={22} /></button>
+      </div>
 
-      <div style={{ background: C.card, borderRadius: 12, padding: '10px 6px 6px', marginBottom: 28 }}>
+      <div style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 6 }}>
           {WEEK.map((w, i) => (
             <div key={w} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: i === 0 || i === 6 ? C.faint : C.sub }}>{w}</div>
@@ -319,14 +302,13 @@ function CalendarTab({ events, reload, setErr }) {
             const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
             return (
               <button key={k} onClick={() => setSel(k)} style={{
-                ...plain, height: 52, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 5,
-                borderTop: i >= 7 ? `0.5px solid ${C.sep}` : 'none', visibility: inMonth ? 'visible' : 'hidden',
+                ...plain, height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 3, visibility: inMonth ? 'visible' : 'hidden',
               }}>
                 <span style={{
-                  width: 32, height: 32, lineHeight: '32px', textAlign: 'center', borderRadius: '50%', fontSize: 19,
-                  fontWeight: isToday || isSel ? 600 : 400,
-                  background: isSel ? (isToday ? C.red : C.text) : 'transparent',
-                  color: isSel ? '#fff' : isToday ? C.red : weekend ? C.sub : C.text,
+                  width: 34, height: 34, lineHeight: '34px', textAlign: 'center', borderRadius: 12, fontSize: 16,
+                  fontWeight: isToday || isSel ? 700 : 400,
+                  background: isSel ? C.tint : isToday ? C.tintSoft : 'transparent',
+                  color: isSel ? '#fff' : isToday ? C.tint : weekend ? C.sub : C.text,
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', gap: 3, height: 6 }}>
                   {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : e.color }} />)}
@@ -338,7 +320,7 @@ function CalendarTab({ events, reload, setErr }) {
       </div>
 
       <Group header={fmtDate(sel)}>
-        {dayEvents.length === 0 && <Row last><span style={{ color: C.sub, fontSize: 17 }}>일정 없음</span></Row>}
+        {dayEvents.length === 0 && <Row last><span style={{ color: C.sub, fontSize: 15 }}>비어 있는 날이에요</span></Row>}
         {dayEvents.map((e, i) => <EventRow key={e.id} e={e} last={i === dayEvents.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
       </Group>
 
@@ -348,43 +330,40 @@ function CalendarTab({ events, reload, setErr }) {
         </Group>
       )}
 
-      <Toolbar
-        left={<button onClick={goToday} style={{ ...plain, fontSize: 17, color: C.red }}>오늘</button>}
-        right={<button aria-label="일정 추가" onClick={() => setEdit({ date: sel, time: '', text: '', color: COLORS[0], done: false })} style={{ ...plain, color: C.red, display: 'flex' }}><Plus size={26} strokeWidth={1.8} /></button>}
-      />
+      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', text: '', color: COLORS[0], done: false })} />
 
       {edit && (
-        <Sheet title={edit.id ? '일정 편집' : '새로운 이벤트'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
+        <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
           <Group>
-            <textarea autoFocus value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="제목 및 메모" rows={3}
+            <textarea autoFocus value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?" rows={3}
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
           </Group>
           <Group>
             <Row>
-              <span style={{ flex: 1, fontSize: 17 }}>날짜</span>
+              <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
               <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })}
                 style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
             </Row>
             <Row>
-              <span style={{ flex: 1, fontSize: 17 }}>하루 종일</span>
+              <span style={{ flex: 1, fontSize: 16 }}>하루 종일</span>
               <Toggle on={!edit.time} onChange={on => setEdit({ ...edit, time: on ? '' : '09:00' })} />
             </Row>
             {edit.time && (
               <Row>
-                <span style={{ flex: 1, fontSize: 17 }}>시간</span>
+                <span style={{ flex: 1, fontSize: 16 }}>시간</span>
                 <input type="time" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value })}
                   style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
               </Row>
             )}
             <Row last>
-              <span style={{ flex: 1, fontSize: 17 }}>색상</span>
+              <span style={{ flex: 1, fontSize: 16 }}>색상</span>
               <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             </Row>
           </Group>
           {edit.id && (
             <Group>
               <Row last onClick={remove}>
-                <span style={{ flex: 1, textAlign: 'center', fontSize: 17, color: C.red }}>이벤트 삭제</span>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 16, color: C.red }}>삭제</span>
               </Row>
             </Group>
           )}
@@ -404,12 +383,12 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
       }}>{e.done && <Check size={14} color="#fff" strokeWidth={3} />}</button>
       <span style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: e.color, opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
-        <div style={{ fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
-        {rest.length > 0 && <div style={{ fontSize: 15, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
+        <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
+        {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
       </div>
-      <div style={{ fontSize: 15, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
         {showDate && <div>{new Date(e.date).getMonth() + 1}월 {new Date(e.date).getDate()}일</div>}
-        <div>{e.time ? e.time.slice(0, 5) : (!showDate && '하루 종일')}</div>
+        <div>{e.time ? e.time.slice(0, 5) : (!showDate && '종일')}</div>
       </div>
     </Row>
   )
@@ -439,25 +418,19 @@ export default function NotesApp({ initialTab = 'memo' }) {
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 10, background: BAR, backdropFilter: 'saturate(180%) blur(20px)', WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        borderBottom: `0.5px solid ${C.sep}`, paddingTop: 'env(safe-area-inset-top)',
-      }}>
-        <div style={{ maxWidth: 680, margin: '0 auto', height: 44, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '0 8px' }}>
-          <button onClick={() => navigate('/budget')} style={{ ...plain, justifySelf: 'start', display: 'flex', alignItems: 'center', color: C.tint, fontSize: 17 }}>
-            <ChevronLeft size={26} strokeWidth={2.2} style={{ marginRight: -2 }} />가계부
-          </button>
-          <div style={{ display: 'flex', background: C.fill, borderRadius: 9, padding: 2 }}>
-            {[['memo', '메모'], ['calendar', '일정']].map(([k, label]) => (
-              <button key={k} onClick={() => switchTab(k)} style={{
-                ...plain, borderRadius: 7, padding: '5px 22px', fontSize: 13, fontWeight: tab === k ? 600 : 500, color: C.text,
-                background: tab === k ? '#fff' : 'transparent', boxShadow: tab === k ? '0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04)' : 'none',
-              }}>{label}</button>
-            ))}
-          </div>
+      <header style={{ maxWidth: 680, margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 8px' }}>
+        <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
+          <ChevronLeft size={16} />가계부
+        </button>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 10 }}>
+          {[['memo', '메모'], ['calendar', '일정']].map(([k, label]) => (
+            <button key={k} onClick={() => switchTab(k)} style={{
+              ...plain, fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', color: tab === k ? C.text : C.faint, transition: 'color .15s',
+            }}>{label}</button>
+          ))}
         </div>
-      </nav>
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '8px 16px calc(80px + env(safe-area-inset-bottom))' }}>
+      </header>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + env(safe-area-inset-bottom))' }}>
         {err && (
           <div onClick={() => setErr('')} style={{ background: C.card, color: C.red, borderRadius: 12, padding: '12px 16px', fontSize: 15, marginBottom: 16, cursor: 'pointer' }}>
             {err} {/relation|does not exist|schema cache/i.test(err) && '— supabase_setup.sql 의 memos/events 섹션(마감일 컬럼 포함)을 실행하세요.'}
