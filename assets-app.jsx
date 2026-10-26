@@ -1945,7 +1945,7 @@ export default function AssetsApp() {
   const tt = { background: C.paper, border: `1px solid ${C.border}`, borderRadius: 10, fontFamily: F, fontSize: 12 };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, paddingBottom: 80, fontFamily: F }}>
+    <div style={{ minHeight: "100vh", background: C.bg, paddingBottom: "calc(80px + var(--tabbar, 0px))", fontFamily: F }}>
 
       {/* Header */}
       <div style={{ background: C.header, color: "#fff", paddingBottom: 28 }}>

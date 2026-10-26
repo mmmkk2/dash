@@ -7,6 +7,7 @@ import Assets from './pages/assets'
 import InfiniteBuying from './pages/infinite-buying'
 import Notes from './pages/notes'
 import Login, { supabase } from './pages/login'
+import TabBar from './src/TabBar'
 
 // 페이지(주소)별 브라우저 탭 제목
 const PAGE_TITLES = {
@@ -77,6 +78,7 @@ export default function App() {
           </>
         )}
       </Routes>
+      {session && <TabBar />}
       <Analytics />
     </BrowserRouter>
   )

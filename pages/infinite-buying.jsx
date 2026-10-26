@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function InfiniteBuying() {
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#f5f7f9' }}>
+    <div style={{ height: 'calc(100dvh - var(--tabbar, 0px))', display: 'flex', flexDirection: 'column', background: '#f5f7f9' }}>
       <nav aria-label="Dash 메뉴" style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 20px', borderBottom: '1px solid #e5eaee', background: '#fff', fontSize: 12, flexShrink: 0 }}>
         <Link to="/budget" style={{ color: '#52636e', textDecoration: 'none' }}>← 가계부</Link>
         <Link to="/assets" style={{ color: '#52636e', textDecoration: 'none' }}>내 자산</Link>
