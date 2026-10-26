@@ -128,6 +128,14 @@ const THEMES = {
     header:"linear-gradient(160deg,#7a1830 0%,#962040 50%,#a82848 100%)",
     headerSolid:"#7a1830",
   },
+  plum: {
+    label:"플럼", emoji:"🫐",
+    cream:"#f3f1f4", paper:"#f8f7f9", white:"#ffffff",
+    ink:"#241c28", inkMid:"#4a3e50", inkLight:"#958a9a",
+    border:"#e2dde5", borderDark:"#cfc7d4",
+    header:"linear-gradient(160deg,#3b3040 0%,#4a3d52 50%,#574862 100%)",
+    headerSolid:"#3b3040",
+  },
 };
 
 const THEME_KEY = "gagibu_theme";
@@ -140,7 +148,7 @@ const ENTITIES = {
   personal:{ label:"개인",       short:"개인",   sub:"Personal",        color:"#6b5c4e", accent:"#9c8272" },
   cafe:    { label:"앤딩스터디카페", short:"앤딩", sub:"Ending Study Café", color:"#2d6a4f", accent:"#52b788" },
   realty:  { label:"부동산매매",   short:"부동산", sub:"Real Estate",      color:"#1d4e89", accent:"#4a90d9" },
-  goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#a82848", accent:"#e0607e" },
+  goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#6e5a7e", accent:"#a38fb3" },
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
@@ -3358,7 +3366,7 @@ const IMPORT_ENTS = {
   personal:{ label:"개인",          color:"#6b5c4e" },
   cafe:    { label:"앤딩스터디카페", color:"#2d6a4f" },
   realty:  { label:"부동산매매",     color:"#1d4e89" },
-  goion:   { label:"고이온",         color:"#a82848" },
+  goion:   { label:"고이온",         color:"#6e5a7e" },
   skip:    { label:"건너뜀",         color:"#c8bfb4" },
 };
 const IMPORT_KEYS = ["personal","cafe","realty","goion","skip"];
@@ -4386,7 +4394,7 @@ export default function App(){
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
-  const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy", goion:"rose"};
+  const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy", goion:"plum"};
   const [themeKey, setThemeKey] = useState(()=>ENTITY_THEME["personal"]);
   const [session,setSession]=useState(undefined); // undefined=로딩중, null=미로그인
 
