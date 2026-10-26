@@ -80,8 +80,8 @@ export default function Anding() {
       <iframe ref={frame} onLoad={bindRefresh} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
         style={{ border: 0, width: '100%', height: '100%', display: 'block' }} />
       <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
-      {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 64 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: pull >= 64 || refreshing ? '#333' : '#8e8e93', boxShadow: '0 2px 10px #00000014' }}>
-        <RotateCw size={21} strokeWidth={2} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
+      {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 64 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>
+        <RotateCw size={28} strokeWidth={2.5} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
       </div>}
       {/* 안에서 문제가 있을 때 따로 열기 */}
       <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" aria-label="새 창으로 열기" style={{
