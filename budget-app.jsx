@@ -4790,11 +4790,11 @@ export default function App(){
           </div>
           {entity==="cafe"&&(
             <div style={{display:"flex",justifyContent:"flex-end",margin:"-8px 0 14px"}}>
-              <a href="https://andingapp.vercel.app/andingapp/admin" target="_blank" rel="noopener noreferrer" style={{
+              <a href="/anding" onClick={e=>{e.preventDefault();navigate("/anding");}} style={{
                 display:"inline-flex",alignItems:"center",gap:"5px",padding:"6px 12px",borderRadius:"99px",
                 background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.18)",color:"rgba(255,255,255,0.85)",
                 fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:600,textDecoration:"none"}}>
-                앤딩 관리자 <Link2 size={12}/>
+                앤딩 관리자 <ChevronRight size={13}/>
               </a>
             </div>
           )}

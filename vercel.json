@@ -1,7 +1,19 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/andingapp",
+      "destination": "https://andingapp.vercel.app/andingapp/"
+    },
+    {
+      "source": "/andingapp/:path*",
+      "destination": "https://andingapp.vercel.app/andingapp/:path*"
+    },
+    {
+      "source": "/:page(admin|viewer|login|logout)",
+      "destination": "https://andingapp.vercel.app/andingapp/:page"
+    },
+    {
+      "source": "/((?!api/|andingapp|admin|viewer|login|logout).*)",
       "destination": "/index.html"
     }
   ],
