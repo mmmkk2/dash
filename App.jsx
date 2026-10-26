@@ -10,6 +10,12 @@ import Login, { supabase } from './pages/login'
 import TabBar from './src/TabBar'
 
 // 페이지(주소)별 브라우저 탭 제목
+// 앱 바로가기(같은 주소 안에서만 가능)용: 외부 앤딩 관리자 화면으로 넘겨준다
+function GoAnding() {
+  useEffect(() => { window.location.replace('https://andingapp.vercel.app/andingapp/admin') }, [])
+  return null
+}
+
 const PAGE_TITLES = {
   '/': '내비서',
   '/calculator': '경매 수익 계산기',
@@ -57,6 +63,7 @@ export default function App() {
       <TitleManager />
       <Routes>
         <Route path="/calculator" element={<Calculator />} />
+        <Route path="/go/anding" element={<GoAnding />} />
         {session ? (
           <>
             <Route path="/" element={<Navigate to="/budget" replace />} />
