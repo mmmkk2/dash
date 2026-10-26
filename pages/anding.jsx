@@ -8,7 +8,7 @@ const EMBED_URL = '/andingapp/admin'
 export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
-const THEME_HREF = '/anding-theme.css?v=8'
+const THEME_HREF = '/anding-theme.css?v=9'
 // 제목 앞 이모지(🪑📦💳📊 등)는 CSS로 못 지워서 글자에서 뺀다
 // (요약 줄의 🟥·💻·👥 같은 상태 표시는 그대로 두고, 제목 바로 앞 이모지만)
 const LEADING_EMOJI = /^\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u
@@ -68,6 +68,28 @@ function shrinkEmojis(doc) {
   })
 }
 
+// 스터디룸 표: 날짜는 위 날짜 이동에 있으니 '2026.10.27 11:30 ~ 2026.10.27 15:30' → '11:30 ~ 15:30',
+// 2·4인실을 좌우로 놓고 카드 높이를 내용에 맞춘다
+const DATE_PREFIX = /\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}\s*/g
+function compactRoom(doc, frame) {
+  if (!doc.querySelector('.tables .table-box')) return
+  doc.documentElement.setAttribute('data-room', '')
+  doc.querySelectorAll('.table-box td:first-child').forEach(td => {
+    if (td.children.length === 0) td.textContent = td.textContent.replace(DATE_PREFIX, '').trim()
+  })
+  // 처음엔 접힌 칸 안에 숨어 있으니, 펼쳐져 크기가 바뀔 때마다 다시 맞춘다
+  const win = doc.defaultView
+  if (frame && win?.ResizeObserver) {
+    // body는 iframe 높이만큼 늘어나므로, 보이는 내용의 맨 아래까지를 잰다
+    const fit = () => {
+      const h = Math.max(0, ...[...doc.body.children].map(el => el.getBoundingClientRect().bottom))
+      if (h > 0) frame.style.height = `${Math.ceil(h + (win.scrollY || 0)) + 4}px`
+    }
+    new win.ResizeObserver(fit).observe(doc.body)
+    fit()
+  }
+}
+
 function tidyTitles(doc) {
   doc.querySelectorAll('.summary-header > b').forEach(b => {
     const n = b.previousSibling
@@ -78,18 +100,19 @@ function tidyTitles(doc) {
     if (n?.nodeType === 3) n.nodeValue = n.nodeValue.replace(LEADING_EMOJI, '')
   })
 }
-function applyTheme(doc, nested) {
+function applyTheme(doc, nested, frame) {
   if (!doc?.head || doc.getElementById('naebiseo-theme')) return
   const link = doc.createElement('link')
   link.id = 'naebiseo-theme'; link.rel = 'stylesheet'; link.href = THEME_HREF
   doc.head.appendChild(link)
   if (nested) doc.documentElement.setAttribute('data-nested', '')
   tidyTitles(doc)
+  if (nested) compactRoom(doc, frame)
   if (!nested) { memoStyleSections(doc); shrinkEmojis(doc) }
   const hook = f => {
     if (f.dataset.naebiseo) return
     f.dataset.naebiseo = '1'
-    const go = () => { try { applyTheme(f.contentDocument, true) } catch {} }
+    const go = () => { try { applyTheme(f.contentDocument, true, f) } catch {} }
     f.addEventListener('load', go)
     if (f.contentDocument?.readyState === 'complete') go()
   }
