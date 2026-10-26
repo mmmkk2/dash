@@ -847,7 +847,7 @@ function InstallButton() {
                 <p style={{ ...step, marginTop: 0 }}>주소창의 <b>↓ 앱 설치</b> 아이콘, 없으면 <b>≡ → 현재 페이지 추가 → 홈 화면</b></p>
               </div>
             </Group>
-            <div style={{ fontSize: 13, color: C.sub }}>설치하면 홈 화면의 <b>메모일정</b> 아이콘으로 바로 열려요.</div>
+            <div style={{ fontSize: 13, color: C.sub }}>설치하면 홈 화면의 <b>내비서</b> 아이콘으로 바로 열려요.</div>
           </div>
         </div>
       )}

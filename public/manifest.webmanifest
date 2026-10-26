@@ -1,8 +1,8 @@
 {
   "id": "/notes",
-  "name": "메모일정",
-  "short_name": "메모일정",
-  "description": "나만의 메모·일정 (가계부·자산 포함)",
+  "name": "내비서",
+  "short_name": "내비서",
+  "description": "나만의 비서 — 메모·일정·가계부·자산",
   "lang": "ko",
   "start_url": "/notes",
   "scope": "/",
