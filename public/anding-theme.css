@@ -1,0 +1,98 @@
+/* 내비서 안에서 띄우는 앤딩 관리자에 덧입히는 테마 — 메모·일정 화면과 같은 무채색 미니멀 톤.
+   앤딩 서버의 원래 CSS 뒤에 붙어서 덮어쓴다 ('새 창'으로 열면 원래 모습 그대로). */
+:root {
+  --brand: #1c1c1e;
+  --brand-hover: #000;
+  --brand-light: #f2f2f4;
+  --text-dark: #1c1c1e;
+  --text-muted: rgba(60, 60, 67, 0.6);
+  --border: rgba(60, 60, 67, 0.12);
+  --bg-page: #f7f7f7;
+  --radius-sm: 12px;
+  --radius: 16px;
+  --shadow: none;
+  --shadow-card: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important;
+  background: #f7f7f7 !important;
+  color: #1c1c1e;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 큰 흰 판 대신 카드들이 바로 회색 배경 위에 놓이게 */
+.box {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 4px 0 !important;
+}
+
+.toggle-section,
+.box > .toggle-section:nth-child(n) {
+  background: #fff;
+  border: 0.5px solid rgba(60, 60, 67, 0.12) !important;
+  border-radius: 16px;
+  box-shadow: none !important;
+  padding: 14px 16px 12px;
+}
+
+.summary-header { font-size: 0.88rem; color: #3a3a3c; }
+.summary-header b { font-size: 1rem; font-weight: 700; color: #1c1c1e; }
+.updated { color: rgba(60, 60, 67, 0.55); }
+
+.toggle-button {
+  background: #f2f2f4 !important;
+  color: #1c1c1e !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 600;
+  padding: 0.55rem 0.85rem !important;
+}
+.toggle-button:hover { background: #e9e9ec !important; }
+
+.pill, .login-pill {
+  background: #fff;
+  color: #1c1c1e;
+  border: 0.5px solid rgba(60, 60, 67, 0.18);
+  font-weight: 600;
+}
+
+/* 떠 있는 + 버튼과 메뉴 */
+.floating-menu-button {
+  width: 52px !important;
+  height: 52px !important;
+  font-size: 22px !important;
+  background: #1c1c1e !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18) !important;
+}
+.floating-menu-button:hover { background: #000 !important; }
+.floating-menu {
+  border-radius: 14px;
+  border: 0.5px solid rgba(60, 60, 67, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.floating-menu .menu-option { font-family: inherit; }
+.floating-menu .menu-option:hover { background: #f2f2f4; color: #1c1c1e; }
+
+/* 안쪽 상세 화면(좌석·상품·결제·월별·스터디룸): 카드 안에 들어가므로 흰 배경, 표는 옅은 회색 머리 */
+html[data-nested] body { background: #fff !important; }
+table { border-collapse: collapse; }
+th, td { border-color: rgba(60, 60, 67, 0.12) !important; }
+th {
+  background: #f2f2f4 !important;
+  color: #3a3a3c !important;
+  font-weight: 600 !important;
+}
+tr:nth-child(even) { background: #fafafa; }
+tr:nth-child(even) td { background: transparent !important; }
+
+.tab-btn { border-radius: 999px !important; }
+.tab-btn.active { background: #1c1c1e !important; color: #fff !important; border-color: #1c1c1e !important; }
+
+pre.log-output { border-radius: 12px; }
+.log-container { box-shadow: none !important; border: 0.5px solid rgba(60, 60, 67, 0.12); }
+
+/* 오른쪽 위 '새 창' 버튼과 첫 카드가 겹치지 않게 */
+html:not([data-nested]) .box { margin-top: 44px !important; }

@@ -7,12 +7,39 @@ import { ExternalLink, RotateCw } from 'lucide-react'
 const EMBED_URL = '/andingapp/admin'
 export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
+// 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
+const THEME_HREF = '/anding-theme.css?v=1'
+function applyTheme(doc, nested) {
+  if (!doc?.head || doc.getElementById('naebiseo-theme')) return
+  const link = doc.createElement('link')
+  link.id = 'naebiseo-theme'; link.rel = 'stylesheet'; link.href = THEME_HREF
+  doc.head.appendChild(link)
+  if (nested) doc.documentElement.setAttribute('data-nested', '')
+  const hook = f => {
+    if (f.dataset.naebiseo) return
+    f.dataset.naebiseo = '1'
+    const go = () => { try { applyTheme(f.contentDocument, true) } catch {} }
+    f.addEventListener('load', go)
+    if (f.contentDocument?.readyState === 'complete') go()
+  }
+  doc.querySelectorAll('iframe').forEach(hook)
+  // 나중에 생기는 상세 화면도
+  new MutationObserver(() => doc.querySelectorAll('iframe').forEach(hook)).observe(doc.body || doc.documentElement, { childList: true, subtree: true })
+}
+
 export default function Anding() {
   const frame = useRef(null)
   const detach = useRef(() => {})
   const [pull, setPull] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  const [themed, setThemed] = useState(false) // 테마가 입혀지기 전 원래 모습이 번쩍이지 않게
   useEffect(() => () => detach.current(), [])
+
+  const onFrameLoad = () => {
+    try { applyTheme(frame.current?.contentDocument, false) } catch {}
+    setThemed(true)
+    bindRefresh()
+  }
 
   const bindRefresh = () => {
     detach.current()
@@ -76,9 +103,9 @@ export default function Anding() {
 
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f5f7f9', overflow: 'hidden' }}>
-      <iframe ref={frame} onLoad={bindRefresh} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
-        style={{ border: 0, width: '100%', height: '100%', display: 'block' }} />
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden' }}>
+      <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
+        style={{ border: 0, width: '100%', height: '100%', display: 'block', opacity: themed ? 1 : 0, transition: 'opacity .15s' }} />
       <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
       {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 88 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: `calc(${refreshing ? 36 : Math.max(0, pull - 28)}px + env(safe-area-inset-top))`, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>
         <RotateCw size={28} strokeWidth={2.5} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
