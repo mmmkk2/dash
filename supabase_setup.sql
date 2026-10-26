@@ -155,3 +155,25 @@ create table if not exists events (
 );
 alter table events enable row level security;
 create policy "본인 일정만" on events for all using (auth.uid() = user_id);
+
+-- 생리 기록 (본인 데이터만)
+create table if not exists periods (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users not null default auth.uid(),
+  start_date  text not null,          -- YYYY-MM-DD
+  end_date    text default null,      -- 비어 있으면 진행 중
+  created_at  timestamptz default now()
+);
+alter table periods enable row level security;
+create policy "본인 생리 기록만" on periods for all using (auth.uid() = user_id);
+
+-- 관계일 기록 (본인 데이터만)
+create table if not exists intimacy_logs (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users not null default auth.uid(),
+  date        text not null,          -- YYYY-MM-DD
+  created_at  timestamptz default now(),
+  unique (user_id, date)
+);
+alter table intimacy_logs enable row level security;
+create policy "본인 관계 기록만" on intimacy_logs for all using (auth.uid() = user_id);
