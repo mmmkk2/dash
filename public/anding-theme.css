@@ -163,3 +163,6 @@ html[data-room] .table-box h2 { margin: 4px 2px 6px !important; font-size: 13px 
 html[data-room] table { margin-top: 0 !important; font-size: 13px !important; }
 html[data-room] th, html[data-room] td { padding: 5px 4px !important; white-space: nowrap; }
 html[data-room] .summary-box, html[data-room] body > .updated { display: none !important; }
+
+/* 좌석 그래프: 화면 높이(vh) 강제를 풀어 차트 원래 비율(가로 2 : 세로 1)로 */
+html[data-nested] #seatChart { min-height: 0 !important; max-height: 220px !important; }
