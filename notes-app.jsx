@@ -452,6 +452,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
 
   // 생리·관계 기록
   const info = useMemo(() => body.ready ? cycleInfo(body.periods, t) : null, [body, t])
+  // 관계일은 달력에 표시하지 않고, 날짜를 골랐을 때 버튼 상태로만 보여준다
   const loveDays = useMemo(() => new Set(body.loves.map(l => l.date)), [body])
   const selPeriod = info?.ps.find(p => p.start_date <= sel && sel <= info.endOf(p))
   const justEnded = !selPeriod && info?.ps.find(p => p.end_date && p.end_date < sel && sel <= addDays(p.end_date, 3))
@@ -556,7 +557,6 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                   border: isPredicted && !isSel ? `1.5px dashed ${BODY.period}80` : 'none',
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3, height: 7 }}>
-                  {loveDays.has(k) && <Heart size={8} color={BODY.love} fill={BODY.love} />}
                   {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e.color) }} />)}
                 </span>
               </button>
@@ -587,7 +587,6 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: BODY.periodSoft, border: `1px solid ${BODY.period}` }} />생리</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, border: `1.5px dashed ${BODY.period}80` }} />예정</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: BODY.fertileSoft, border: `1px solid ${BODY.fertile}66` }} />가임기</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={9} color={BODY.love} fill={BODY.love} />관계</span>
             </div>
           )}
         </div>
