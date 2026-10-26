@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays } from 'lucide-react'
 import { supabase } from './pages/login'
 import { useShowTabBar } from './src/TabBar'
 
@@ -134,12 +134,12 @@ function Toggle({ on, onChange }) {
   )
 }
 
-function ColorPicker({ value, onChange, colors = COLORS }) {
+function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
   return (
-    <div style={{ display: 'flex', gap: 12 }}>
+    <div style={{ display: 'flex', gap: size < 26 ? 9 : 12 }}>
       {colors.map(c => (
         <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} style={{
-          ...plain, width: 26, height: 26, borderRadius: '50%', background: c,
+          ...plain, width: size, height: size, borderRadius: '50%', background: c, flexShrink: 0,
           boxShadow: value === c ? `0 0 0 2px #fff, 0 0 0 4px ${c}` : 'none',
         }} />
       ))}
@@ -147,7 +147,7 @@ function ColorPicker({ value, onChange, colors = COLORS }) {
   )
 }
 
-function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, children }) {
+function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -156,6 +156,7 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, c
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
           <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{title}</div>
+          {actions}
           <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>
           <button onClick={onDone} disabled={doneDisabled} style={{
             ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '8px 18px',
@@ -165,6 +166,16 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, c
         <div style={{ padding: '8px 16px 0' }}>{children}</div>
       </div>
     </div>
+  )
+}
+
+// 편집 시트 아래의 작은 켜고 끄는 버튼 (마감일·고정 등)
+function Chip({ on, icon: Icon, children, onClick }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on} style={{
+      ...plain, display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '7px 12px', whiteSpace: 'nowrap',
+      background: on ? C.tint : C.card, color: on ? '#fff' : C.text, border: `0.5px solid ${on ? 'transparent' : C.sep}`,
+    }}><Icon size={15} />{children}</button>
   )
 }
 
@@ -290,7 +301,7 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
   return (
     <>
       <div onClick={e => { if (e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
-        style={{ padding: '12px 16px', minHeight: 220, cursor: 'text' }}>
+        style={{ padding: '12px 16px', minHeight: 120, cursor: 'text' }}>
         {lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '3px 0' : 0 }}>
             {l.check && <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
@@ -430,7 +441,8 @@ function MemoTab({ memos, reload, setErr }) {
       <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [] })} />
 
       {edit && (
-        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}>
+        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
+          actions={edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}>
           <Group>
             <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id}
               attachments={(edit.images?.length > 0 || uploading > 0) && (
@@ -451,37 +463,21 @@ function MemoTab({ memos, reload, setErr }) {
                 <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
               </>} />
           </Group>
-          <Group>
-            <Row>
-              <span style={{ flex: 1, fontSize: 16 }}>마감일</span>
-              <Toggle on={!!edit.due_date} onChange={on => setEdit({ ...edit, due_date: on ? todayStr() : '' })} />
-            </Row>
+          {/* 마감일·고정·색상을 한 줄로 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '-10px 0 8px' }}>
+            <Chip on={!!edit.due_date} icon={CalendarDays} onClick={() => setEdit({ ...edit, due_date: edit.due_date ? '' : todayStr() })}>마감일</Chip>
             {edit.due_date && (
-              <Row>
-                <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
-                <input type="date" value={edit.due_date} onChange={e => setEdit({ ...edit, due_date: e.target.value })}
-                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
-              </Row>
+              <input type="date" aria-label="마감 날짜" value={edit.due_date} onChange={e => setEdit({ ...edit, due_date: e.target.value })}
+                style={{ ...field, width: 'auto', fontSize: 14, background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 999, padding: '6px 12px' }} />
             )}
-            <Row>
-              <span style={{ flex: 1, fontSize: 16 }}>고정</span>
-              <Toggle on={!!edit.pinned} onChange={pinned => setEdit({ ...edit, pinned })} />
-            </Row>
-            <Row last>
-              <span style={{ flex: 1, fontSize: 16 }}>색상</span>
-              <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
-            </Row>
-          </Group>
+            <Chip on={!!edit.pinned} icon={Pin} onClick={() => setEdit({ ...edit, pinned: !edit.pinned })}>고정</Chip>
+            <div style={{ marginLeft: 'auto', padding: '4px 2px' }}>
+              <ColorPicker size={22} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
+            </div>
+          </div>
           {viewer && (
             <PhotoViewer src={urls[viewer]} onClose={() => setViewer(null)}
               onDelete={() => { setEdit(ed => ({ ...ed, images: ed.images.filter(x => x !== viewer) })); setViewer(null) }} />
-          )}
-          {edit.id && (
-            <Group>
-              <Row last onClick={remove} style={{ justifyContent: 'center' }}>
-                <span style={{ flex: 1, textAlign: 'center', fontSize: 16, color: C.red }}>삭제</span>
-              </Row>
-            </Group>
           )}
         </Sheet>
       )}
@@ -889,7 +885,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
-      <header style={{ maxWidth: 680, margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 8px' }}>
+      <header style={{ maxWidth: 680, margin: '0 auto', padding: `calc(${tabBar ? 8 : 16}px + env(safe-area-inset-top)) 16px ${tabBar ? 0 : 8}px` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {tabBar ? <span /> : (
             <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
@@ -898,13 +894,16 @@ export default function NotesApp({ initialTab = 'memo' }) {
           )}
           <InstallButton />
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 10 }}>
-          {[['memo', '메모'], ['calendar', '일정']].map(([k, label]) => (
-            <button key={k} onClick={() => switchTab(k)} style={{
-              ...plain, fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', color: tab === k ? C.text : C.faint, transition: 'color .15s',
-            }}>{label}</button>
-          ))}
-        </div>
+        {/* 하단 탭이 있으면 메모/일정 큰 제목은 생략 */}
+        {!tabBar && (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 10 }}>
+            {[['memo', '메모'], ['calendar', '일정']].map(([k, label]) => (
+              <button key={k} onClick={() => switchTab(k)} style={{
+                ...plain, fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', color: tab === k ? C.text : C.faint, transition: 'color .15s',
+              }}>{label}</button>
+            ))}
+          </div>
+        )}
       </header>
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + var(--tabbar, 0px) + env(safe-area-inset-bottom))' }}>
         {err && (
