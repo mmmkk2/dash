@@ -125,3 +125,10 @@ html[data-nested] h2, .table-box h2 {
 /* 좌우 여백: 메모 목록과 같은 16px */
 html:not([data-nested]) body { padding-left: 16px !important; padding-right: 16px !important; }
 html:not([data-nested]) .box { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* 본문 크기를 메모 목록과 같게: 섹션 머리 15px, 첫 줄 16px, 나머지 14px 회색 */
+.nb-label { font-size: 15px !important; }
+.summary-header { font-size: 14px !important; line-height: 1.5; color: rgba(60, 60, 67, 0.6) !important; }
+.summary-header::first-line, .nb-first::first-line { font-size: 16px; color: #1c1c1e; }
+.updated { font-size: 13px !important; }
+.toggle-button, .pill, .login-pill { font-size: 14px !important; }
