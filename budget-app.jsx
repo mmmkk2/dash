@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2, ExternalLink } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -151,8 +151,6 @@ const ENTITIES = {
   goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#6e5a7e", accent:"#a38fb3" },
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
-// 앤딩 스터디카페 관리자(별도 앱) 바로가기
-const ANDING_ADMIN_URL = "https://andingapp.vercel.app/andingapp/admin";
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
 
 // URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산, /budget/goion=고이온)
@@ -4792,11 +4790,11 @@ export default function App(){
           </div>
           {entity==="cafe"&&(
             <div style={{display:"flex",justifyContent:"flex-end",margin:"-8px 0 14px"}}>
-              <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" style={{
+              <a href="/anding" onClick={e=>{e.preventDefault();navigate("/anding");}} style={{
                 display:"inline-flex",alignItems:"center",gap:"5px",padding:"6px 12px",borderRadius:"99px",
                 background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.18)",color:"rgba(255,255,255,0.85)",
                 fontFamily:"'Inter',sans-serif",fontSize:"12px",fontWeight:600,textDecoration:"none"}}>
-                앤딩 관리자 <ExternalLink size={12}/>
+                앤딩 관리자 <ChevronRight size={13}/>
               </a>
             </div>
           )}

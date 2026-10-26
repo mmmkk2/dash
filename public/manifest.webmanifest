@@ -63,7 +63,7 @@
     },
     {
       "name": "앤딩 관리자",
-      "url": "/go/anding",
+      "url": "/anding",
       "icons": [
         {
           "src": "/icons/icon-192.png?v=2",
