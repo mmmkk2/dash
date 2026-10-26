@@ -104,7 +104,7 @@ const field = { ...plain, cursor: 'text', outline: 'none', fontSize: 16, color: 
 function Group({ header, children }) {
   return (
     <section style={{ marginBottom: 24 }}>
-      {header && <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 8px' }}>{header}</div>}
+      {header && <div style={{ fontSize: 15, fontWeight: 600, color: C.sub, padding: '0 4px 8px' }}>{header}</div>}
       <div style={{ background: C.card, borderRadius: 16, overflow: 'hidden', border: `0.5px solid ${C.sep}` }}>{children}</div>
     </section>
   )
