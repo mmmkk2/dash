@@ -353,10 +353,10 @@ const memoSnapshot = e => JSON.stringify([e.content, e.due_date || '', e.color, 
 
 // 메모 태그 — 목록에서 쉽게 구분되는 색과 연한 배경
 const TAGS = {
-  personal: { label: '개인', color: '#b45309', soft: '#fff3e0' },
-  cafe: { label: '앤딩', color: '#047857', soft: '#e8f7ef' },
-  realty: { label: '부동산', color: '#1d4ed8', soft: '#edf3ff' },
-  goion: { label: '고이온', color: '#7e22ce', soft: '#f5edff' },
+  personal: { label: '개인', color: '#947d67', soft: '#fbf9f6' },
+  cafe: { label: '앤딩', color: '#6e8d80', soft: '#f6faf8' },
+  realty: { label: '부동산', color: '#748ba4', soft: '#f7f9fc' },
+  goion: { label: '고이온', color: '#94839f', soft: '#faf8fc' },
 }
 
 function TagChip({ tag, on, onClick, small }) {
@@ -365,9 +365,9 @@ function TagChip({ tag, on, onClick, small }) {
     <button type="button" onClick={onClick} aria-pressed={on} style={{
       ...plain, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', borderRadius: 999,
       fontSize: small ? 12 : 13, fontWeight: 600, padding: small ? '5px 10px' : '7px 11px',
-      background: on ? (t?.color || C.tint) : (t?.soft || C.card), color: on ? '#fff' : (t?.color || C.text), border: `1px solid ${on ? 'transparent' : (t ? t.color + '55' : C.sep)}`,
+      background: on ? (t ? t.color + '18' : C.tint) : C.card, color: on && !t ? '#fff' : (t?.color || C.text), border: `0.5px solid ${on && t ? t.color + '66' : C.sep}`,
     }}>
-      {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? '#fff' : t.color }} />}
+      {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }} />}
       {t ? t.label : '전체'}
     </button>
   )
@@ -466,14 +466,14 @@ function MemoTab({ memos, reload, setErr }) {
     const due = m.due_date && dueLabel(m.due_date)
     const tag = TAGS[m.tag]
     return (
-      <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1} style={tag ? { borderLeft: `6px solid ${tag.color}`, background: tag.soft, paddingLeft: 10 } : undefined}>
+      <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1} style={tag ? { borderLeft: `3px solid ${tag.color}99`, background: tag.soft, paddingLeft: 13 } : undefined}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {(TAGS[m.tag] || !isDefaultColor(m.color)) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag]?.color || m.color, flexShrink: 0 }} />}
             <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {TAGS[m.tag] && <span style={{ color: '#fff', background: TAGS[m.tag].color, fontWeight: 700, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>{TAGS[m.tag].label}</span>}
+            {TAGS[m.tag] && <span style={{ color: TAGS[m.tag].color, background: TAGS[m.tag].color + '12', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>{TAGS[m.tag].label}</span>}
             {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
             {checks.length > 0 && <span style={{ color: C.sub, fontWeight: 600, marginRight: 8 }}>✓ {doneN}/{checks.length}</span>}
             {preview || shortStamp(m.updated_at)}
