@@ -177,3 +177,13 @@ create table if not exists intimacy_logs (
 );
 alter table intimacy_logs enable row level security;
 create policy "본인 관계 기록만" on intimacy_logs for all using (auth.uid() = user_id);
+
+-- 메모 사진 첨부 (비공개 버킷, '<user id>/파일' 경로로 본인 것만 접근)
+alter table memos add column if not exists images jsonb default '[]';
+insert into storage.buckets (id, name, public) values ('memo-images', 'memo-images', false) on conflict (id) do nothing;
+create policy "memo-images 본인 읽기" on storage.objects for select to authenticated
+  using (bucket_id = 'memo-images' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "memo-images 본인 올리기" on storage.objects for insert to authenticated
+  with check (bucket_id = 'memo-images' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "memo-images 본인 삭제" on storage.objects for delete to authenticated
+  using (bucket_id = 'memo-images' and (storage.foldername(name))[1] = auth.uid()::text);

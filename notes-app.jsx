@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2 } from 'lucide-react'
 import { supabase } from './pages/login'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
@@ -177,6 +177,47 @@ function Fab({ label, onClick }) {
   )
 }
 
+// ───────────────────────── 메모 사진 ─────────────────────────
+// 비공개 버킷에 '<user id>/<uuid>.jpg' 로 저장하고, 볼 때는 1시간짜리 서명 URL을 쓴다
+const IMG_BUCKET = 'memo-images'
+
+// 폰 사진은 커서 긴 변 1600px JPEG로 줄여서 올린다
+async function shrinkImage(file, max = 1600) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = url })
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.naturalWidth * scale); canvas.height = Math.round(img.naturalHeight * scale)
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+    return await new Promise(ok => canvas.toBlob(ok, 'image/jpeg', 0.82))
+  } finally { URL.revokeObjectURL(url) }
+}
+
+async function uploadMemoImage(file) {
+  const { data: { user } } = await supabase.auth.getUser()
+  const path = `${user.id}/${crypto.randomUUID()}.jpg`
+  const { error } = await supabase.storage.from(IMG_BUCKET).upload(path, await shrinkImage(file), { contentType: 'image/jpeg' })
+  if (error) throw error
+  return path
+}
+const removeImages = paths => { if (paths.length) supabase.storage.from(IMG_BUCKET).remove(paths) }
+
+function PhotoViewer({ src, onClose, onDelete }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img src={src} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+      <button aria-label="닫기" onClick={onClose} style={{ ...plain, position: 'absolute', top: 'calc(14px + env(safe-area-inset-top))', right: 14, color: '#fff', display: 'flex', padding: 8 }}><X size={26} /></button>
+      {onDelete && (
+        <button onClick={e => { e.stopPropagation(); onDelete() }} style={{
+          ...plain, position: 'absolute', bottom: 'calc(24px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontSize: 15, background: 'rgba(255,255,255,0.14)', borderRadius: 999, padding: '10px 18px',
+        }}><Trash2 size={17} />사진 삭제</button>
+      )}
+    </div>
+  )
+}
+
 // ───────────────────────── 메모 ─────────────────────────
 function CheckCircle({ done, color = C.tint, onClick }) {
   return (
@@ -187,8 +228,10 @@ function CheckCircle({ done, color = C.tint, onClick }) {
   )
 }
 
+const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.sub, fontSize: 14, fontWeight: 500, padding: '6px 8px', borderRadius: 8 }
+
 // 줄 단위 편집기: 일반 줄과 체크리스트 줄을 섞어 쓴다 (엔터 = 같은 종류의 새 줄)
-function NoteEditor({ value, onChange, autoFocus }) {
+function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
   const lines = parseLines(value)
   const refs = useRef([])
   const cur = useRef(lines.length - 1)
@@ -258,10 +301,10 @@ function NoteEditor({ value, onChange, autoFocus }) {
           </div>
         ))}
       </div>
-      <div style={{ borderTop: `0.5px solid ${C.sep}`, padding: '8px 12px', display: 'flex' }}>
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={toggleChecklist} style={{
-          ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.sub, fontSize: 14, fontWeight: 500, padding: '6px 8px', borderRadius: 8,
-        }}><ListChecks size={18} />체크리스트</button>
+      {attachments}
+      <div style={{ borderTop: `0.5px solid ${C.sep}`, padding: '8px 12px', display: 'flex', gap: 4 }}>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={toggleChecklist} style={toolBtn}><ListChecks size={18} />체크리스트</button>
+        {tools}
       </div>
     </>
   )
@@ -270,6 +313,37 @@ function NoteEditor({ value, onChange, autoFocus }) {
 function MemoTab({ memos, reload, setErr }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
+  const [viewer, setViewer] = useState(null)
+  const [uploading, setUploading] = useState(0)
+  const fileRef = useRef(null)
+
+  // 화면에 필요한 사진의 서명 URL을 모아서 한 번에 받아온다 (목록은 첫 장만)
+  const [urls, setUrls] = useState({})
+  const requested = useRef(new Set())
+  useEffect(() => {
+    const need = [...memos.flatMap(m => (m.images || []).slice(0, 1)), ...(edit?.images || [])].filter(p => !requested.current.has(p))
+    if (!need.length) return
+    need.forEach(p => requested.current.add(p))
+    supabase.storage.from(IMG_BUCKET).createSignedUrls(need, 3600).then(({ data }) => {
+      if (data) setUrls(u => ({ ...u, ...Object.fromEntries(data.filter(d => d.signedUrl).map(d => [d.path, d.signedUrl])) }))
+    })
+  }, [memos, edit?.images])
+
+  async function addPhotos(files) {
+    for (const file of files) {
+      setUploading(n => n + 1)
+      try {
+        const path = await uploadMemoImage(file)
+        setEdit(ed => ed && { ...ed, images: [...(ed.images || []), path], uploaded: [...ed.uploaded, path] })
+      } catch (e) {
+        setErr(e.message)
+      } finally {
+        setUploading(n => n - 1)
+      }
+    }
+  }
+  // 저장 안 하고 닫으면 이번에 올린 사진은 지운다
+  const discard = () => { removeImages(edit.uploaded); setEdit(null) }
 
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
@@ -280,22 +354,27 @@ function MemoTab({ memos, reload, setErr }) {
   const pinned = list.filter(m => m.pinned), others = list.filter(m => !m.pinned)
 
   async function save() {
+    if (uploading) return
     const row = { title: '', content: edit.content, due_date: edit.due_date || null, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
-    if (!row.content.trim()) { setEdit(null); return }
+    // images 컬럼이 아직 없는 DB에서도 사진을 안 쓰면 그대로 저장되도록 있을 때만 보낸다
+    if (edit.images !== undefined) row.images = edit.images
+    if (!row.content.trim() && !edit.images?.length) return discard()
     const { error } = edit.id
       ? await supabase.from('memos').update(row).eq('id', edit.id)
       : await supabase.from('memos').insert(row)
     if (error) return setErr(error.message)
+    removeImages((edit.origImages || []).filter(p => !edit.images.includes(p)))
     setEdit(null); reload()
   }
   async function remove() {
     if (!confirm('이 메모를 삭제할까요?')) return
     const { error } = await supabase.from('memos').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
+    removeImages([...new Set([...(edit.origImages || []), ...(edit.images || [])])])
     setEdit(null); reload()
   }
 
-  const open = m => setEdit({ ...m, content: joinText(m.title, m.content) })
+  const open = m => setEdit({ ...m, content: joinText(m.title, m.content), origImages: m.images, uploaded: [] })
   const renderRows = arr => arr.map((m, i) => {
     const all = parseLines(joinText(m.title, m.content))
     const [first, ...rest] = all.map(l => l.text).filter(t => t.trim())
@@ -307,7 +386,7 @@ function MemoTab({ memos, reload, setErr }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {!isDefaultColor(m.color) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
-            <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || '빈 메모'}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
@@ -318,6 +397,12 @@ function MemoTab({ memos, reload, setErr }) {
         <div style={{ fontSize: 12, color: C.faint, whiteSpace: 'nowrap', alignSelf: 'flex-start', paddingTop: 3 }}>
           {preview && shortStamp(m.updated_at)}
         </div>
+        {m.images?.length > 0 && (
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 8, background: C.fill, backgroundImage: urls[m.images[0]] ? `url("${urls[m.images[0]]}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+            {m.images.length > 1 && <span style={{ position: 'absolute', right: -4, bottom: -4, fontSize: 10, fontWeight: 700, color: '#fff', background: C.tint, borderRadius: 999, padding: '1px 5px' }}>{m.images.length}</span>}
+          </div>
+        )}
       </Row>
     )
   })
@@ -333,12 +418,29 @@ function MemoTab({ memos, reload, setErr }) {
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
 
-      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false })} />
+      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [] })} />
 
       {edit && (
-        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={() => setEdit(null)} onDone={save} onBackdrop={save}>
+        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}>
           <Group>
-            <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id} />
+            <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id}
+              attachments={(edit.images?.length > 0 || uploading > 0) && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '0 16px 12px' }}>
+                  {(edit.images || []).map(p => (
+                    <button key={p} type="button" aria-label="사진 보기" onClick={() => setViewer(p)} style={{
+                      ...plain, aspectRatio: '1', borderRadius: 10, background: C.fill,
+                      backgroundImage: urls[p] ? `url("${urls[p]}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center',
+                    }} />
+                  ))}
+                  {Array.from({ length: uploading }, (_, i) => (
+                    <div key={'up' + i} style={{ aspectRatio: '1', borderRadius: 10, background: C.fill, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: C.sub }}>올리는 중…</div>
+                  ))}
+                </div>
+              )}
+              tools={<>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => fileRef.current?.click()} style={toolBtn}><ImagePlus size={18} />사진</button>
+                <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
+              </>} />
           </Group>
           <Group>
             <Row>
@@ -361,6 +463,10 @@ function MemoTab({ memos, reload, setErr }) {
               <ColorPicker value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             </Row>
           </Group>
+          {viewer && (
+            <PhotoViewer src={urls[viewer]} onClose={() => setViewer(null)}
+              onDelete={() => { setEdit(ed => ({ ...ed, images: ed.images.filter(x => x !== viewer) })); setViewer(null) }} />
+          )}
           {edit.id && (
             <Group>
               <Row last onClick={remove} style={{ justifyContent: 'center' }}>
@@ -731,7 +837,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + env(safe-area-inset-bottom))' }}>
         {err && (
           <div onClick={() => setErr('')} style={{ background: C.card, color: C.red, borderRadius: 12, padding: '12px 16px', fontSize: 15, marginBottom: 16, cursor: 'pointer' }}>
-            {err} {/relation|does not exist|schema cache/i.test(err) && '— supabase_setup.sql 의 memos/events 섹션(마감일 컬럼 포함)을 실행하세요.'}
+            {err} {/relation|does not exist|schema cache|bucket/i.test(err) && '— supabase_setup.sql 의 최신 섹션을 실행하세요.'}
           </div>
         )}
         {tab === 'memo'
