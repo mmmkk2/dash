@@ -132,3 +132,20 @@ html:not([data-nested]) .box { padding-left: 0 !important; padding-right: 0 !imp
 .summary-header::first-line, .nb-first::first-line { font-size: 16px; color: #1c1c1e; }
 .updated { font-size: 13px !important; }
 .toggle-button, .pill, .login-pill { font-size: 14px !important; }
+
+/* 촘촘하게: 한 화면에 더 많이 보이도록 여백·첫 줄 크기 줄임 */
+.summary-header::first-line, .nb-first::first-line { font-size: 15px; }
+.summary-header { font-size: 13px !important; line-height: 1.45; }
+.updated { font-size: 12px !important; margin-top: 0 !important; }
+html:not([data-nested]) body { padding-top: 10px !important; }
+/* 첫 섹션 머리는 왼쪽에 짧게 있어 오른쪽 위 '새 창' 버튼과 안 겹친다 */
+html:not([data-nested]) .box { margin-top: 0 !important; padding-top: 0 !important; }
+.nb-label { margin-top: 12px; padding: 0 4px 6px; line-height: 30px; }
+.box > .nb-label:first-child { margin-top: 0; }
+.toggle-section, .box > .toggle-section:nth-child(n) { padding: 10px 14px 10px !important; margin-bottom: 4px !important; }
+.summary-header-row { margin-bottom: 0.2rem !important; }
+.toggle-button { padding: 0.4rem 0.75rem !important; margin-top: 0.3rem !important; font-size: 13px !important; }
+.content { margin-top: 0.5rem !important; }
+html:not([data-nested]) .box > :first-child:not(.nb-label) { margin-right: 72px; }
+.summary-header::first-line, .nb-first::first-line { font-size: 14.5px; }
+.nb-label { line-height: 24px; margin-top: 10px; }
