@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './pages/login'
 import { useShowTabBar } from './src/TabBar'
 
@@ -147,11 +147,12 @@ function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
   )
 }
 
-function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, children }) {
+function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: C.bg, width: '100%', maxWidth: 560, borderRadius: '22px 22px 0 0', maxHeight: '92dvh', overflowY: 'auto',
+        background: C.bg, width: '100%', maxWidth: full ? 760 : 560, borderRadius: full ? 0 : '22px 22px 0 0', overflowY: 'auto',
+        ...(full ? { height: '100dvh', paddingTop: 'env(safe-area-inset-top)' } : { maxHeight: '92dvh' }),
         paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
@@ -243,7 +244,7 @@ function CheckCircle({ done, color = C.tint, onClick }) {
 const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.sub, fontSize: 14, fontWeight: 500, padding: '6px 8px', borderRadius: 8 }
 
 // 줄 단위 편집기: 일반 줄과 체크리스트 줄을 섞어 쓴다 (엔터 = 같은 종류의 새 줄)
-function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
+function NoteEditor({ value, onChange, autoFocus, attachments, tools, full }) {
   const lines = parseLines(value)
   const refs = useRef([])
   const cur = useRef(lines.length - 1)
@@ -313,7 +314,9 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
   return (
     <>
       <div ref={boxRef} onClick={e => { if (e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
-        style={{ padding: '12px 16px', minHeight: 120, maxHeight: '30dvh', overflowY: 'auto', overscrollBehavior: 'contain', cursor: 'text' }}>
+        style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: 'text',
+          // 크게 보기면 화면 대부분을, 평소엔 화면의 30%까지만
+          ...(full ? { height: 'calc(100dvh - 255px - env(safe-area-inset-top) - env(safe-area-inset-bottom))', minHeight: 200 } : { minHeight: 120, maxHeight: '30dvh' }) }}>
         {lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '3px 0' : 0 }}>
             {l.check && <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
@@ -363,6 +366,7 @@ function MemoTab({ memos, reload, setErr }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
   const [viewer, setViewer] = useState(null)
+  const [full, setFull] = useState(false) // 편집 창 크게 보기
   const [uploading, setUploading] = useState(0)
   const fileRef = useRef(null)
 
@@ -496,9 +500,15 @@ function MemoTab({ memos, reload, setErr }) {
 
       {edit && (
         <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
-          actions={edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}>
+          full={full}
+          actions={<>
+            <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
+              {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
+            </button>
+            {edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
+          </>}>
           <Group>
-            <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id}
+            <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id} full={full}
               attachments={(edit.images?.length > 0 || uploading > 0) && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '0 16px 12px' }}>
                   {(edit.images || []).map(p => (
