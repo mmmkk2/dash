@@ -136,7 +136,7 @@ function Toggle({ on, onChange }) {
 
 function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
   return (
-    <div style={{ display: 'flex', gap: size < 26 ? 9 : 12 }}>
+    <div style={{ display: 'flex', gap: size < 26 ? 6 : 12 }}>
       {colors.map(c => (
         <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} style={{
           ...plain, width: size, height: size, borderRadius: '50%', background: c, flexShrink: 0,
@@ -173,7 +173,7 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, a
 function Chip({ on, icon: Icon, children, onClick }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on} style={{
-      ...plain, display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '7px 12px', whiteSpace: 'nowrap',
+      ...plain, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '7px 10px', whiteSpace: 'nowrap',
       background: on ? C.tint : C.card, color: on ? '#fff' : C.text, border: `0.5px solid ${on ? 'transparent' : C.sep}`,
     }}><Icon size={15} />{children}</button>
   )
@@ -249,8 +249,19 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
   const cur = useRef(lines.length - 1)
   const [focus, setFocus] = useState(autoFocus ? { i: lines.length - 1, pos: Infinity } : null)
 
+  const boxRef = useRef(null)
   useLayoutEffect(() => {
+    // 줄 높이를 다시 재는 동안 스크롤이 튀지 않게 위치를 지키고, 입력 중인 줄이 보이게 맞춘다
+    const box = boxRef.current, top = box?.scrollTop
     refs.current.slice(0, lines.length).forEach(el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } })
+    if (!box) return
+    box.scrollTop = top
+    const act = document.activeElement
+    if (act && box.contains(act)) {
+      const b = box.getBoundingClientRect(), r = act.getBoundingClientRect()
+      if (r.bottom > b.bottom) box.scrollTop += r.bottom - b.bottom + 8
+      else if (r.top < b.top) box.scrollTop -= b.top - r.top + 8
+    }
   })
   useEffect(() => {
     const el = focus && refs.current[focus.i]
@@ -258,6 +269,7 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
     el.focus()
     const p = Math.min(focus.pos, el.value.length)
     el.setSelectionRange(p, p)
+    el.scrollIntoView({ block: 'nearest' })
   }, [focus])
 
   const update = (next, f) => { onChange(serializeLines(next)); if (f) setFocus(f) }
@@ -300,8 +312,8 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
 
   return (
     <>
-      <div onClick={e => { if (e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
-        style={{ padding: '12px 16px', minHeight: 120, cursor: 'text' }}>
+      <div ref={boxRef} onClick={e => { if (e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
+        style={{ padding: '12px 16px', minHeight: 120, maxHeight: '30dvh', overflowY: 'auto', overscrollBehavior: 'contain', cursor: 'text' }}>
         {lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '3px 0' : 0 }}>
             {l.check && <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
@@ -472,7 +484,7 @@ function MemoTab({ memos, reload, setErr }) {
             )}
             <Chip on={!!edit.pinned} icon={Pin} onClick={() => setEdit({ ...edit, pinned: !edit.pinned })}>고정</Chip>
             <div style={{ marginLeft: 'auto', padding: '4px 2px' }}>
-              <ColorPicker size={22} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
+              <ColorPicker size={18} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             </div>
           </div>
           {viewer && (
