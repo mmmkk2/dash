@@ -2,7 +2,9 @@
 // - 화면(HTML)은 항상 네트워크 먼저 → 배포하면 바로 새 버전, 오프라인이면 마지막 화면
 // - 빌드 파일(/assets/, 이름에 해시 포함)은 한 번 받으면 캐시에서
 // - Supabase·/api 등 데이터 요청은 건드리지 않음
-const CACHE = 'dash-v1'
+const CACHE = 'dash-v2'
+// 내비서 주소로 중계하는 앤딩 관리자 화면은 건드리지 않는다
+const PASS = /^\/(andingapp(\/|$)|admin$|viewer$|login$|logout$)/
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', e => {
@@ -15,7 +17,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request
   const url = new URL(req.url)
-  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return
+  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/') || PASS.test(url.pathname)) return
 
   if (req.mode === 'navigate') {
     e.respondWith((async () => {
