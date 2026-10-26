@@ -8,7 +8,7 @@ const EMBED_URL = '/andingapp/admin'
 export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
-const THEME_HREF = '/anding-theme.css?v=10'
+const THEME_HREF = '/anding-theme.css?v=11'
 // 제목 앞 이모지(🪑📦💳📊 등)는 CSS로 못 지워서 글자에서 뺀다
 // (요약 줄의 🟥·💻·👥 같은 상태 표시는 그대로 두고, 제목 바로 앞 이모지만)
 const LEADING_EMOJI = /^\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u
@@ -91,7 +91,10 @@ function compactRoom(doc, frame) {
 }
 
 function tidyTitles(doc) {
-  doc.querySelectorAll('.summary-header > b').forEach(b => {
+  // 카드 제목(각 요약의 첫 굵은 글씨)만 — '⚠️ 만료완료' 같은 본문 굵은 글씨 앞 이모지는 남긴다
+  doc.querySelectorAll('.toggle-section > .summary-header-row > .summary-header').forEach(h => {
+    const b = h.querySelector(':scope > b')
+    if (!b) return
     const n = b.previousSibling
     if (n?.nodeType === 3) n.nodeValue = n.nodeValue.replace(TRAILING_EMOJI, '')
   })
