@@ -8,7 +8,7 @@ const EMBED_URL = '/andingapp/admin'
 export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
-const THEME_HREF = '/anding-theme.css?v=7'
+const THEME_HREF = '/anding-theme.css?v=8'
 // 제목 앞 이모지(🪑📦💳📊 등)는 CSS로 못 지워서 글자에서 뺀다
 // (요약 줄의 🟥·💻·👥 같은 상태 표시는 그대로 두고, 제목 바로 앞 이모지만)
 const LEADING_EMOJI = /^\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u
@@ -42,6 +42,32 @@ function memoStyleSections(doc) {
   })
 }
 
+// 요약 줄의 상태 이모지(🟩💻👥⚠️⏰ 등)는 글자보다 커 보여서 작은 span으로 감싼다
+const EMOJI_RUN = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}][\uFE0F\u200D\p{Extended_Pictographic}]*/gu
+function shrinkEmojis(doc) {
+  doc.querySelectorAll('.summary-header').forEach(h => {
+    const walker = doc.createTreeWalker(h, NodeFilter.SHOW_TEXT)
+    const nodes = []
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) if (!n.parentNode.closest('.nb-emoji')) nodes.push(n)
+    nodes.forEach(n => {
+      const text = n.nodeValue
+      EMOJI_RUN.lastIndex = 0
+      if (!EMOJI_RUN.test(text)) return
+      const frag = doc.createDocumentFragment()
+      let last = 0
+      text.replace(EMOJI_RUN, (m, at) => {
+        if (at > last) frag.append(text.slice(last, at))
+        const span = doc.createElement('span')
+        span.className = 'nb-emoji'; span.textContent = m
+        frag.append(span)
+        last = at + m.length
+      })
+      if (last < text.length) frag.append(text.slice(last))
+      n.replaceWith(frag)
+    })
+  })
+}
+
 function tidyTitles(doc) {
   doc.querySelectorAll('.summary-header > b').forEach(b => {
     const n = b.previousSibling
@@ -59,7 +85,7 @@ function applyTheme(doc, nested) {
   doc.head.appendChild(link)
   if (nested) doc.documentElement.setAttribute('data-nested', '')
   tidyTitles(doc)
-  if (!nested) memoStyleSections(doc)
+  if (!nested) { memoStyleSections(doc); shrinkEmojis(doc) }
   const hook = f => {
     if (f.dataset.naebiseo) return
     f.dataset.naebiseo = '1'

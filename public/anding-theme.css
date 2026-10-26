@@ -151,3 +151,4 @@ html:not([data-nested]) .box > :first-child:not(.nb-label) { margin-right: 72px;
 .nb-label { line-height: 24px; margin-top: 10px; }
 /* 카드 제목은 밖으로 빠졌으니, 카드 안 굵은 글씨(만료완료·만료예정 등)는 주변 글자 크기 그대로 */
 .summary-header b { font-size: inherit !important; font-weight: 600 !important; letter-spacing: normal; }
+.nb-emoji { font-size: 0.8em; vertical-align: 0.06em; }
