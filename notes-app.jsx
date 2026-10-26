@@ -424,7 +424,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     }
     setDragX(0)
   }
-  const goToday = () => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); setSel(todayStr()) }
+  const goToday = () => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); setSel(todayStr()); setShowLove(false) }
 
   async function save() {
     if (!edit.text.trim()) return
@@ -480,6 +480,21 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     }
   }
   const loved = loveDays.has(sel)
+  // 관계 버튼은 평소 숨김: 날짜를 길게 누르면 그 날짜에서만 나타나고, 다른 날짜를 탭하면 다시 숨김
+  const [showLove, setShowLove] = useState(false)
+  const press = useRef({ timer: null, fired: false, x: 0, y: 0 })
+  const pressStart = (k, e) => {
+    clearTimeout(press.current.timer)
+    press.current = { fired: false, x: e.clientX, y: e.clientY, timer: setTimeout(() => {
+      press.current.fired = true; setSel(k); setShowLove(true); navigator.vibrate?.(10)
+    }, 500) }
+  }
+  const pressMove = e => { if (Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 10) clearTimeout(press.current.timer) }
+  const pressEnd = () => clearTimeout(press.current.timer)
+  const tapDay = k => {
+    if (press.current.fired) { press.current.fired = false; return }
+    setSel(k); setShowLove(false)
+  }
   const toggleLove = () => runBody(() => loved
     ? supabase.from('intimacy_logs').delete().eq('date', sel)
     : supabase.from('intimacy_logs').insert({ date: sel }))
@@ -548,8 +563,9 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
             const bg = isSel ? C.tint : isPeriod ? BODY.periodSoft : isToday ? C.tintSoft : isFertile ? BODY.fertileSoft : 'transparent'
             const fg = isSel ? '#fff' : isPeriod || isPredicted ? BODY.period : isToday ? C.tint : isFertile ? BODY.fertile : weekend ? C.sub : C.text
             return (
-              <button key={k} onClick={() => setSel(k)} style={{
-                ...plain, height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 3, visibility: inMonth ? 'visible' : 'hidden',
+              <button key={k} onClick={() => tapDay(k)} onPointerDown={e => pressStart(k, e)} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerLeave={pressEnd} onPointerCancel={pressEnd}
+                onContextMenu={e => e.preventDefault()} style={{
+                ...plain, height: 50, WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 3, visibility: inMonth ? 'visible' : 'hidden',
               }}>
                 <span style={{
                   width: 34, height: 34, lineHeight: isPredicted && !isSel ? '31px' : '34px', textAlign: 'center', borderRadius: 12, fontSize: 16,
@@ -574,10 +590,10 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                 ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
                 background: periodAction.active ? BODY.periodSoft : C.card, color: periodAction.active ? BODY.period : C.text, border: `0.5px solid ${periodAction.active ? 'transparent' : C.sep}`,
               }}><Droplet size={15} color={BODY.period} fill={periodAction.active ? BODY.period : 'none'} />{periodAction.label}</button>
-              <button onClick={toggleLove} disabled={busy} aria-pressed={loved} style={{ opacity: busy ? 0.6 : 1,
+              {showLove && <button onClick={toggleLove} disabled={busy} aria-pressed={loved} style={{ opacity: busy ? 0.6 : 1,
                 ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
                 background: loved ? BODY.loveSoft : C.card, color: loved ? BODY.love : C.text, border: `0.5px solid ${loved ? 'transparent' : C.sep}`,
-              }}><Heart size={15} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>
+              }}><Heart size={15} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>}
             </div>
           ) : body.missing && (
             <div style={{ fontSize: 13, color: C.sub }}>생리·관계 기록을 쓰려면 supabase_setup.sql 의 periods / intimacy_logs 섹션을 실행하세요.</div>
