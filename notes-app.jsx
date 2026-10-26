@@ -466,7 +466,7 @@ function MemoTab({ memos, reload, setErr }) {
     const due = m.due_date && dueLabel(m.due_date)
     const tag = TAGS[m.tag]
     return (
-      <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1} style={tag ? { borderLeft: `3px solid ${tag.color}`, background: tag.soft, paddingLeft: 13 } : undefined}>
+      <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1} style={tag ? { borderLeft: `3px solid ${tag.color}`, background: C.card, paddingLeft: 13 } : undefined}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {(TAGS[m.tag] || !isDefaultColor(m.color)) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag]?.color || m.color, flexShrink: 0 }} />}
