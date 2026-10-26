@@ -335,7 +335,29 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
 }
 
 // 메모 편집 상태 비교용 (내용·마감일·색·고정·사진)
-const memoSnapshot = e => JSON.stringify([e.content, e.due_date || '', e.color, !!e.pinned, e.images || []])
+const memoSnapshot = e => JSON.stringify([e.content, e.due_date || '', e.color, !!e.pinned, e.images || [], e.tag || ''])
+
+// 사업자(장부)별 메모 태그 — 색은 가계부 장부 색과 같게
+const TAGS = {
+  personal: { label: '개인', color: '#6b5c4e' },
+  cafe: { label: '앤딩', color: '#2d6a4f' },
+  realty: { label: '부동산', color: '#1d4e89' },
+  goion: { label: '고이온', color: '#6e5a7e' },
+}
+
+function TagChip({ tag, on, onClick, small }) {
+  const t = TAGS[tag]
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on} style={{
+      ...plain, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', borderRadius: 999,
+      fontSize: small ? 12 : 13, fontWeight: 600, padding: small ? '5px 10px' : '7px 11px',
+      background: on ? (t?.color || C.tint) : C.card, color: on ? '#fff' : C.text, border: `0.5px solid ${on ? 'transparent' : C.sep}`,
+    }}>
+      {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? '#fff' : t.color }} />}
+      {t ? t.label : '전체'}
+    </button>
+  )
+}
 
 function MemoTab({ memos, reload, setErr }) {
   const [q, setQ] = useState('')
@@ -372,12 +394,15 @@ function MemoTab({ memos, reload, setErr }) {
   // 저장 안 하고 닫으면 이번에 올린 사진은 지운다
   const discard = () => { removeImages(edit.uploaded); setEdit(null) }
 
+  const [tagFilter, setTagFilter] = useState('')
+  const hasTags = memos.some(m => TAGS[m.tag])
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
     return memos
-      .filter(m => !k || (m.title + ' ' + plainText(m.content)).toLowerCase().includes(k))
+      .filter(m => !tagFilter || m.tag === tagFilter)
+      .filter(m => !k || (m.title + ' ' + plainText(m.content) + ' ' + (TAGS[m.tag]?.label || '')).toLowerCase().includes(k))
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-  }, [memos, q])
+  }, [memos, q, tagFilter])
   const pinned = list.filter(m => m.pinned), others = list.filter(m => !m.pinned)
 
   async function save() {
@@ -387,6 +412,7 @@ function MemoTab({ memos, reload, setErr }) {
     const row = { title: '', content: edit.content, due_date: edit.due_date || null, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
     // images 컬럼이 아직 없는 DB에서도 사진을 안 쓰면 그대로 저장되도록 있을 때만 보낸다
     if (edit.images !== undefined) row.images = edit.images
+    if (edit.tag !== undefined) row.tag = edit.tag || null
     if (!row.content.trim() && !edit.images?.length) return discard()
     const { error } = edit.id
       ? await supabase.from('memos').update(row).eq('id', edit.id)
@@ -417,10 +443,11 @@ function MemoTab({ memos, reload, setErr }) {
       <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {!isDefaultColor(m.color) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />}
+            {(TAGS[m.tag] || !isDefaultColor(m.color)) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag]?.color || m.color, flexShrink: 0 }} />}
             <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {TAGS[m.tag] && <span style={{ color: TAGS[m.tag].color, background: TAGS[m.tag].color + '1a', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>{TAGS[m.tag].label}</span>}
             {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
             {checks.length > 0 && <span style={{ color: C.sub, fontWeight: 600, marginRight: 8 }}>✓ {doneN}/{checks.length}</span>}
             {preview || shortStamp(m.updated_at)}
@@ -441,16 +468,23 @@ function MemoTab({ memos, reload, setErr }) {
 
   return (
     <>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 22, border: `0.5px solid ${C.sep}` }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: hasTags ? 10 : 22, border: `0.5px solid ${C.sep}` }}>
         <Search size={16} color={C.sub} strokeWidth={2.2} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={`메모 ${memos.length}개에서 검색`} style={field} />
       </label>
+      {/* 태그가 붙은 메모가 있을 때만 사업자별 필터 */}
+      {hasTags && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 18, paddingBottom: 2 }}>
+          <TagChip small on={!tagFilter} onClick={() => setTagFilter('')} />
+          {Object.keys(TAGS).map(k => <TagChip key={k} tag={k} small on={tagFilter === k} onClick={() => setTagFilter(tagFilter === k ? '' : k)} />)}
+        </div>
+      )}
 
-      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{q ? '찾는 메모가 없어요' : '+ 버튼으로 첫 메모를 남겨보세요'}</div>}
+      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{q || tagFilter ? '찾는 메모가 없어요' : '+ 버튼으로 첫 메모를 남겨보세요'}</div>}
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
 
-      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [] })} />
+      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
         <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
@@ -475,7 +509,7 @@ function MemoTab({ memos, reload, setErr }) {
                 <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
               </>} />
           </Group>
-          {/* 마감일·고정·색상을 한 줄로 */}
+          {/* 마감일·고정 / 사업자 태그 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '-10px 0 8px' }}>
             <Chip on={!!edit.due_date} icon={CalendarDays} onClick={() => setEdit({ ...edit, due_date: edit.due_date ? '' : todayStr() })}>마감일</Chip>
             {edit.due_date && (
@@ -483,9 +517,9 @@ function MemoTab({ memos, reload, setErr }) {
                 style={{ ...field, width: 'auto', fontSize: 14, background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 999, padding: '6px 12px' }} />
             )}
             <Chip on={!!edit.pinned} icon={Pin} onClick={() => setEdit({ ...edit, pinned: !edit.pinned })}>고정</Chip>
-            <div style={{ marginLeft: 'auto', padding: '4px 2px' }}>
-              <ColorPicker size={18} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
-            </div>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {Object.keys(TAGS).map(k => <TagChip key={k} tag={k} on={edit.tag === k} onClick={() => setEdit({ ...edit, tag: edit.tag === k ? '' : k })} />)}
           </div>
           {viewer && (
             <PhotoViewer src={urls[viewer]} onClose={() => setViewer(null)}

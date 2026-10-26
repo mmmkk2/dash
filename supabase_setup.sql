@@ -187,3 +187,6 @@ create policy "memo-images 본인 올리기" on storage.objects for insert to au
   with check (bucket_id = 'memo-images' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "memo-images 본인 삭제" on storage.objects for delete to authenticated
   using (bucket_id = 'memo-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 메모 사업자 태그 (personal / cafe / realty / goion, 없으면 null)
+alter table memos add column if not exists tag text default null;
