@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet } from 'lucide-react'
 import { supabase } from './pages/login'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
@@ -34,6 +34,40 @@ const parseLines = s => (s || '').split('\n').map(l => {
 const serializeLines = ls => ls.map(l => l.check ? `- [${l.done ? 'x' : ' '}] ${l.text}` : l.text).join('\n')
 const plainText = s => parseLines(s).map(l => l.text).join('\n')
 const daysUntil = s => Math.round((new Date(s) - new Date(todayStr())) / 86400000)
+
+// ───────── 생리 주기 ─────────
+const BODY = { period: '#e5484d', periodSoft: '#fdeaea', fertile: '#3b82c4', fertileSoft: '#edf3fa', love: '#d6336c', loveSoft: '#fdeaf2' }
+const atMidnight = s => new Date(s + 'T00:00')
+const addDays = (s, n) => { const d = atMidnight(s); d.setDate(d.getDate() + n); return ymd(d) }
+const diffDays = (a, b) => Math.round((atMidnight(b) - atMidnight(a)) / 86400000)
+const avg = (xs, fallback) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : fallback
+
+// 기록된 생리(시작/끝)로 평균 주기·기간을 내고, 다음 생리와 가임기를 예측
+function cycleInfo(periods, today) {
+  const ps = [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date))
+  if (!ps.length) return null
+  const gaps = ps.slice(1).map((p, i) => diffDays(ps[i].start_date, p.start_date)).filter(n => n >= 15 && n <= 60).slice(-6)
+  const lens = ps.filter(p => p.end_date).map(p => diffDays(p.start_date, p.end_date) + 1).filter(n => n >= 1 && n <= 12).slice(-6)
+  const cycle = avg(gaps, 28), len = avg(lens, 5)
+
+  // 끝을 안 찍은 생리는 오늘까지(최대 10일)를 진행 중으로 본다
+  const endOf = p => p.end_date || (today < p.start_date ? p.start_date : today <= addDays(p.start_date, 9) ? today : addDays(p.start_date, len - 1))
+  const periodDays = new Set()
+  for (const p of ps) for (let d = p.start_date, e = endOf(p); d <= e; d = addDays(d, 1)) periodDays.add(d)
+
+  const last = ps[ps.length - 1]
+  const predictedDays = new Set(), fertileDays = new Set(), ovulationDays = new Set()
+  for (let k = 0; k <= 12; k++) {
+    const start = addDays(last.start_date, k * cycle), next = addDays(start, cycle)
+    if (k > 0) for (let i = 0; i < len; i++) { const d = addDays(start, i); if (!periodDays.has(d)) predictedDays.add(d) }
+    const ov = addDays(next, -14)
+    ovulationDays.add(ov)
+    for (let i = -5; i <= 1; i++) fertileDays.add(addDays(ov, i))
+  }
+  const nextStart = addDays(last.start_date, cycle)
+  const ongoing = !last.end_date && today >= last.start_date && today <= addDays(last.start_date, 9)
+  return { ps, endOf, cycle, len, periodDays, predictedDays, fertileDays, ovulationDays, nextStart, ongoing, last }
+}
 
 function fmtDate(s) {
   const d = new Date(s)
@@ -335,7 +369,7 @@ function MemoTab({ memos, reload, setErr }) {
 }
 
 // ───────────────────────── 일정 ─────────────────────────
-function CalendarTab({ events, reload, setErr }) {
+function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [sel, setSel] = useState(todayStr())
   const [edit, setEdit] = useState(null)
@@ -409,6 +443,38 @@ function CalendarTab({ events, reload, setErr }) {
 
   const t = todayStr()
   const dayEvents = byDate[sel] || []
+
+  // 생리·관계 기록
+  const info = useMemo(() => body.ready ? cycleInfo(body.periods, t) : null, [body, t])
+  const loveDays = useMemo(() => new Set(body.loves.map(l => l.date)), [body])
+  const selPeriod = info?.ps.find(p => p.start_date <= sel && sel <= info.endOf(p))
+  const justEnded = !selPeriod && info?.ps.find(p => p.end_date && p.end_date < sel && sel <= addDays(p.end_date, 3))
+  const periodAction = !selPeriod
+    ? (justEnded ? { label: '생리 여기까지 연장', run: () => supabase.from('periods').update({ end_date: sel }).eq('id', justEnded.id) }
+      : { label: '생리 시작', run: () => supabase.from('periods').insert({ start_date: sel }) })
+    : selPeriod.start_date === sel
+      ? { label: '생리 시작일', active: true, run: () => confirm('이 생리 기록을 삭제할까요?') && supabase.from('periods').delete().eq('id', selPeriod.id) }
+      : selPeriod.end_date === sel
+        ? { label: `생리 ${diffDays(selPeriod.start_date, sel) + 1}일차 · 마지막 날`, active: true, run: () => supabase.from('periods').update({ end_date: null }).eq('id', selPeriod.id) }
+        : { label: `생리 ${diffDays(selPeriod.start_date, sel) + 1}일차 · 여기서 끝`, active: true, run: () => supabase.from('periods').update({ end_date: sel }).eq('id', selPeriod.id) }
+  async function runBody(action) {
+    const res = await action()
+    if (res?.error) return setErr(res.error.message)
+    reloadBody()
+  }
+  const loved = loveDays.has(sel)
+  const toggleLove = () => runBody(() => loved
+    ? supabase.from('intimacy_logs').delete().eq('date', sel)
+    : supabase.from('intimacy_logs').insert({ date: sel }))
+
+  let summary = null
+  if (info) {
+    const n = diffDays(t, info.nextStart)
+    const main = info.ongoing ? `생리 ${diffDays(info.last.start_date, t) + 1}일차`
+      : n > 0 ? `다음 생리 ${atMidnight(info.nextStart).getMonth() + 1}월 ${atMidnight(info.nextStart).getDate()}일 · D-${n}`
+      : n === 0 ? '오늘 생리 예정일' : `생리 예정일 ${-n}일 지남`
+    summary = [main, info.fertileDays.has(t) && !info.ongoing ? (info.ovulationDays.has(t) ? '배란 예정일' : '가임기') : null, `평균 주기 ${info.cycle}일`].filter(Boolean)
+  }
   const open = e => setEdit({ ...e, color: eventColor(e.color), time: e.time || '', text: joinText(e.title, e.memo) })
   const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
@@ -425,6 +491,13 @@ function CalendarTab({ events, reload, setErr }) {
         <button onClick={() => { goToday(); setYearPage(null) }} style={{ ...plain, fontSize: 13, fontWeight: 600, color: C.tint, background: C.tintSoft, borderRadius: 999, padding: '6px 12px' }}>오늘</button>
         <button aria-label={yearPage === null ? '다음 달' : '다음 연도들'} style={chevron} onClick={() => yearPage === null ? moveMonth(1) : setYearPage(yearPage + 12)}><ChevronRight size={22} /></button>
       </div>
+
+      {summary && yearPage === null && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 8px', fontSize: 13, color: C.sub, padding: '0 4px 10px' }}>
+          <Droplet size={13} color={BODY.period} fill={BODY.period} />
+          {summary.map((x, i) => <span key={i} style={i === 0 ? { color: C.text, fontWeight: 600 } : null}>{i > 0 && '· '}{x}</span>)}
+        </div>
+      )}
 
       <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
         style={{ background: C.card, borderRadius: 16, padding: '12px 6px 6px', marginBottom: 24, border: `0.5px solid ${C.sep}`, overflow: 'hidden', touchAction: 'pan-y' }}>
@@ -454,17 +527,20 @@ function CalendarTab({ events, reload, setErr }) {
           {cells.map((d, i) => {
             const k = ymd(d), inMonth = d.getMonth() === month.getMonth(), evs = byDate[k] || []
             const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
+            const isPeriod = info?.periodDays.has(k), isPredicted = info?.predictedDays.has(k), isFertile = info?.fertileDays.has(k) && !isPeriod && !isPredicted
+            const bg = isSel ? C.tint : isPeriod ? BODY.periodSoft : isToday ? C.tintSoft : isFertile ? BODY.fertileSoft : 'transparent'
+            const fg = isSel ? '#fff' : isPeriod || isPredicted ? BODY.period : isToday ? C.tint : isFertile ? BODY.fertile : weekend ? C.sub : C.text
             return (
               <button key={k} onClick={() => setSel(k)} style={{
                 ...plain, height: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 3, visibility: inMonth ? 'visible' : 'hidden',
               }}>
                 <span style={{
-                  width: 34, height: 34, lineHeight: '34px', textAlign: 'center', borderRadius: 12, fontSize: 16,
-                  fontWeight: isToday || isSel ? 700 : 400,
-                  background: isSel ? C.tint : isToday ? C.tintSoft : 'transparent',
-                  color: isSel ? '#fff' : isToday ? C.tint : weekend ? C.sub : C.text,
+                  width: 34, height: 34, lineHeight: isPredicted && !isSel ? '31px' : '34px', textAlign: 'center', borderRadius: 12, fontSize: 16,
+                  fontWeight: isToday || isSel || (isFertile && info.ovulationDays.has(k)) ? 700 : 400, background: bg, color: fg,
+                  border: isPredicted && !isSel ? `1.5px dashed ${BODY.period}80` : 'none',
                 }}>{d.getDate()}</span>
-                <span style={{ display: 'flex', gap: 3, height: 6 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, height: 7 }}>
+                  {loveDays.has(k) && <Heart size={8} color={BODY.love} fill={BODY.love} />}
                   {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e.color) }} />)}
                 </span>
               </button>
@@ -473,6 +549,33 @@ function CalendarTab({ events, reload, setErr }) {
         </div>
         </>}
       </div>
+
+      {yearPage === null && (
+        <div style={{ margin: '-12px 0 24px' }}>
+          {body.ready ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={() => runBody(periodAction.run)} style={{
+                ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
+                background: periodAction.active ? BODY.periodSoft : C.card, color: periodAction.active ? BODY.period : C.text, border: `0.5px solid ${periodAction.active ? 'transparent' : C.sep}`,
+              }}><Droplet size={15} color={BODY.period} fill={periodAction.active ? BODY.period : 'none'} />{periodAction.label}</button>
+              <button onClick={toggleLove} aria-pressed={loved} style={{
+                ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
+                background: loved ? BODY.loveSoft : C.card, color: loved ? BODY.love : C.text, border: `0.5px solid ${loved ? 'transparent' : C.sep}`,
+              }}><Heart size={15} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>
+            </div>
+          ) : body.missing && (
+            <div style={{ fontSize: 13, color: C.sub }}>생리·관계 기록을 쓰려면 supabase_setup.sql 의 periods / intimacy_logs 섹션을 실행하세요.</div>
+          )}
+          {info && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 11, color: C.sub, marginTop: 10, paddingLeft: 4 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: BODY.periodSoft, border: `1px solid ${BODY.period}` }} />생리</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, border: `1.5px dashed ${BODY.period}80` }} />예정</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: BODY.fertileSoft, border: `1px solid ${BODY.fertile}66` }} />가임기</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Heart size={9} color={BODY.love} fill={BODY.love} />관계</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <Group header={fmtDate(sel)}>
         {dayEvents.length === 0 && <Row last><span style={{ color: C.sub, fontSize: 15 }}>비어 있는 날이에요</span></Row>}
@@ -553,6 +656,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
   const [memos, setMemos] = useState([])
   const [events, setEvents] = useState([])
   const [err, setErr] = useState('')
+  const [body, setBody] = useState({ ready: false, missing: false, periods: [], loves: [] })
 
   async function loadMemos() {
     const { data, error } = await supabase.from('memos').select('*')
@@ -564,7 +668,13 @@ export default function NotesApp({ initialTab = 'memo' }) {
     if (error) return setErr(error.message)
     setEvents(data)
   }
-  useEffect(() => { loadMemos(); loadEvents() }, [])
+  // 생리·관계 기록은 테이블이 아직 없어도 나머지 화면은 정상 동작하도록 따로 처리
+  async function loadBody() {
+    const [p, l] = await Promise.all([supabase.from('periods').select('*'), supabase.from('intimacy_logs').select('*')])
+    if (p.error || l.error) return setBody(b => ({ ...b, ready: false, missing: true }))
+    setBody({ ready: true, missing: false, periods: p.data, loves: l.data })
+  }
+  useEffect(() => { loadMemos(); loadEvents(); loadBody() }, [])
 
   const switchTab = t => { setTab(t); navigate(t === 'memo' ? '/notes' : '/notes/calendar', { replace: true }) }
 
@@ -590,7 +700,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
         )}
         {tab === 'memo'
           ? <MemoTab memos={memos} reload={loadMemos} setErr={setErr} />
-          : <CalendarTab events={events} reload={loadEvents} setErr={setErr} />}
+          : <CalendarTab events={events} reload={loadEvents} setErr={setErr} body={body} reloadBody={loadBody} />}
       </main>
     </div>
   )
