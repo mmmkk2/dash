@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2 } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download } from 'lucide-react'
 import { supabase } from './pages/login'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
@@ -799,6 +799,61 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   )
 }
 
+// ───────────────────────── 앱 설치 ─────────────────────────
+// 이미 앱으로 열려 있으면 숨김. 브라우저가 설치를 허용하면 바로 설치 창, 아니면 메뉴로 설치하는 방법 안내
+function InstallButton() {
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone
+  const [canPrompt, setCanPrompt] = useState(() => !!window.__installPrompt)
+  const [help, setHelp] = useState(false)
+  useEffect(() => {
+    const sync = () => setCanPrompt(!!window.__installPrompt)
+    window.addEventListener('installable', sync)
+    return () => window.removeEventListener('installable', sync)
+  }, [])
+  if (standalone) return null
+
+  async function install() {
+    const prompt = window.__installPrompt
+    if (!prompt) return setHelp(true)
+    prompt.prompt()
+    await prompt.userChoice.catch(() => {})
+    window.__installPrompt = null
+    setCanPrompt(false)
+  }
+  const step = { margin: '6px 0 0', fontSize: 15, lineHeight: 1.6, color: C.text }
+
+  return (
+    <>
+      <button onClick={install} style={{
+        ...plain, display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '6px 12px',
+        color: canPrompt ? '#fff' : C.text, background: canPrompt ? C.tint : C.card, border: `0.5px solid ${canPrompt ? 'transparent' : C.sep}`,
+      }}><Download size={14} />앱 설치</button>
+      {help && (
+        <div onClick={() => setHelp(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.bg, width: '100%', maxWidth: 560, borderRadius: '22px 22px 0 0', padding: '20px 20px calc(28px + env(safe-area-inset-bottom))' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>앱으로 설치하기</div>
+              <button aria-label="닫기" onClick={() => setHelp(false)} style={{ ...plain, color: C.sub, display: 'flex', padding: 4 }}><X size={22} /></button>
+            </div>
+            <Group header="크롬">
+              <div style={{ padding: '12px 16px' }}>
+                <p style={{ ...step, marginTop: 0 }}>1. 오른쪽 위 <b>⋮</b> 메뉴를 열고 아래로 내려 <b>홈 화면에 추가</b> (또는 <b>앱 설치</b>)</p>
+                <p style={step}>2. 창이 뜨면 <b>설치</b> 선택</p>
+              </div>
+            </Group>
+            <Group header="삼성 인터넷">
+              <div style={{ padding: '12px 16px' }}>
+                <p style={{ ...step, marginTop: 0 }}>주소창의 <b>↓ 앱 설치</b> 아이콘, 없으면 <b>≡ → 현재 페이지 추가 → 홈 화면</b></p>
+              </div>
+            </Group>
+            <div style={{ fontSize: 13, color: C.sub }}>설치하면 홈 화면의 <b>메모일정</b> 아이콘으로 바로 열려요.</div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 // ───────────────────────── 앱 ─────────────────────────
 export default function NotesApp({ initialTab = 'memo' }) {
   const navigate = useNavigate()
@@ -831,9 +886,12 @@ export default function NotesApp({ initialTab = 'memo' }) {
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
       <header style={{ maxWidth: 680, margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 8px' }}>
-        <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
-          <ChevronLeft size={16} />가계부
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
+            <ChevronLeft size={16} />가계부
+          </button>
+          <InstallButton />
+        </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 10 }}>
           {[['memo', '메모'], ['calendar', '일정']].map(([k, label]) => (
             <button key={k} onClick={() => switchTab(k)} style={{
