@@ -121,3 +121,7 @@ html[data-nested] h2, .table-box h2 {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   margin: 0 8px 2px 1px; vertical-align: middle;
 }
+
+/* 좌우 여백: 메모 목록과 같은 16px */
+html:not([data-nested]) body { padding-left: 16px !important; padding-right: 16px !important; }
+html:not([data-nested]) .box { padding-left: 0 !important; padding-right: 0 !important; }
