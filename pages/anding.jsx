@@ -41,12 +41,12 @@ export default function Anding() {
       if (dy > 10) {
         if (!e.cancelable) return reset()
         e.preventDefault()
-        gesture.distance = Math.min(90, dy * 0.5)
+        gesture.distance = Math.min(140, dy * 0.65)
         setPull(gesture.distance)
       }
     }
     const end = () => {
-      const ready = gesture?.distance >= 64
+      const ready = gesture?.distance >= 88
       reset()
       if (ready) {
         setRefreshing(true)
@@ -76,11 +76,11 @@ export default function Anding() {
 
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f5f7f9' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f5f7f9', overflow: 'hidden' }}>
       <iframe ref={frame} onLoad={bindRefresh} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
-        style={{ border: 0, width: '100%', height: '100%', display: 'block' }} />
+        style={{ border: 0, width: '100%', height: '100%', display: 'block', transform: `translateY(${refreshing ? 56 : pull * 0.55}px)`, transition: pull > 0 ? 'none' : 'transform 180ms ease-out' }} />
       <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
-      {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 64 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>
+      {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 88 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: `calc(${refreshing ? 36 : Math.max(0, pull - 28)}px + env(safe-area-inset-top))`, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>
         <RotateCw size={28} strokeWidth={2.5} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
       </div>}
       {/* 안에서 문제가 있을 때 따로 열기 */}
