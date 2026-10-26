@@ -2390,7 +2390,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
     <div style={{display:"flex",flexDirection:"column",gap:"20px",position:"relative"}}>
 
       {regToast&&(
-        <div style={{position:"fixed",left:"50%",bottom:"90px",transform:"translateX(-50%)",
+        <div style={{position:"fixed",left:"50%",bottom:"calc(90px + var(--tabbar, 0px))",transform:"translateX(-50%)",
           background:"#2d2420",color:"#fff",padding:"10px 10px 10px 18px",borderRadius:"12px",
           fontFamily:"'Inter',sans-serif",fontSize:"13px",fontWeight:600,
           display:"flex",alignItems:"center",gap:"10px",boxShadow:"0 6px 20px rgba(0,0,0,0.25)",
@@ -4696,7 +4696,7 @@ export default function App(){
   if(!session)return <LoginScreen onLogin={s=>{_authToken=s.access_token;setSession(s);}}/>;
 
   return(
-    <div style={{minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + env(safe-area-inset-bottom))"}}>
+    <div style={{minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"}}>
 
       {/* Header */}
       <div style={{background:C.header,padding:"26px 20px 0",color:"#fff",position:"relative",overflow:"hidden"}}>
@@ -4923,7 +4923,7 @@ export default function App(){
 
       {/* FAB */}
       <button onClick={()=>setModal("add")} style={{
-        position:"fixed",bottom:"calc(24px + env(safe-area-inset-bottom))",right:"24px",zIndex:200,
+        position:"fixed",bottom:"calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))",right:"24px",zIndex:200,
         width:"56px",height:"56px",borderRadius:"50%",border:"none",
         background:ent.color,color:"#fff",cursor:"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",

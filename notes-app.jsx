@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download } from 'lucide-react'
 import { supabase } from './pages/login'
+import { useShowTabBar } from './src/TabBar'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
 const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
@@ -170,7 +171,7 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, c
 function Fab({ label, onClick }) {
   return (
     <button aria-label={label} onClick={onClick} style={{
-      ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + env(safe-area-inset-bottom))',
+      ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))',
       width: 56, height: 56, borderRadius: '50%', background: C.tint, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
       boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
     }}><Plus size={26} strokeWidth={2.2} /></button>
@@ -858,6 +859,9 @@ function InstallButton() {
 export default function NotesApp({ initialTab = 'memo' }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState(initialTab)
+  // 하단 탭으로 /notes ↔ /notes/calendar 이동 시 화면 전환
+  useEffect(() => { setTab(initialTab) }, [initialTab])
+  const tabBar = useShowTabBar()
   const [memos, setMemos] = useState([])
   const [events, setEvents] = useState([])
   const [err, setErr] = useState('')
@@ -887,9 +891,11 @@ export default function NotesApp({ initialTab = 'memo' }) {
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
       <header style={{ maxWidth: 680, margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
-            <ChevronLeft size={16} />가계부
-          </button>
+          {tabBar ? <span /> : (
+            <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
+              <ChevronLeft size={16} />가계부
+            </button>
+          )}
           <InstallButton />
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 18, marginTop: 10 }}>
@@ -900,7 +906,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
           ))}
         </div>
       </header>
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + env(safe-area-inset-bottom))' }}>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + var(--tabbar, 0px) + env(safe-area-inset-bottom))' }}>
         {err && (
           <div onClick={() => setErr('')} style={{ background: C.card, color: C.red, borderRadius: 12, padding: '12px 16px', fontSize: 15, marginBottom: 16, cursor: 'pointer' }}>
             {err} {/relation|does not exist|schema cache|bucket/i.test(err) && '— supabase_setup.sql 의 최신 섹션을 실행하세요.'}
