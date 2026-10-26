@@ -8,13 +8,28 @@ const EMBED_URL = '/andingapp/admin'
 export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
-const THEME_HREF = '/anding-theme.css?v=1'
+const THEME_HREF = '/anding-theme.css?v=2'
+// 제목 앞 이모지(🪑📦💳📊 등)는 CSS로 못 지워서 글자에서 뺀다
+// (요약 줄의 🟥·💻·👥 같은 상태 표시는 그대로 두고, 제목 바로 앞 이모지만)
+const LEADING_EMOJI = /^\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u
+const TRAILING_EMOJI = /\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*$/u
+function tidyTitles(doc) {
+  doc.querySelectorAll('.summary-header > b').forEach(b => {
+    const n = b.previousSibling
+    if (n?.nodeType === 3) n.nodeValue = n.nodeValue.replace(TRAILING_EMOJI, '')
+  })
+  doc.querySelectorAll('h1, h2').forEach(h => {
+    const n = h.firstChild
+    if (n?.nodeType === 3) n.nodeValue = n.nodeValue.replace(LEADING_EMOJI, '')
+  })
+}
 function applyTheme(doc, nested) {
   if (!doc?.head || doc.getElementById('naebiseo-theme')) return
   const link = doc.createElement('link')
   link.id = 'naebiseo-theme'; link.rel = 'stylesheet'; link.href = THEME_HREF
   doc.head.appendChild(link)
   if (nested) doc.documentElement.setAttribute('data-nested', '')
+  tidyTitles(doc)
   const hook = f => {
     if (f.dataset.naebiseo) return
     f.dataset.naebiseo = '1'

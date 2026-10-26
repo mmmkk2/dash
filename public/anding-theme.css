@@ -96,3 +96,14 @@ pre.log-output { border-radius: 12px; }
 
 /* 오른쪽 위 '새 창' 버튼과 첫 카드가 겹치지 않게 */
 html:not([data-nested]) .box { margin-top: 44px !important; }
+
+/* 제목: 메모 목록처럼 이모지 없이 굵은 검정 / 안쪽 표 제목은 일정의 '다가오는 일정'처럼 작은 회색 머리 */
+.summary-header b { font-size: 1.06rem !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+html[data-nested] h1 {
+  font-size: 1rem !important; font-weight: 700 !important; color: #1c1c1e !important;
+  text-align: left !important; margin: 4px 2px 10px !important;
+}
+html[data-nested] h2, .table-box h2 {
+  font-size: 0.8rem !important; font-weight: 600 !important; color: rgba(60, 60, 67, 0.6) !important;
+  text-align: left !important; margin: 14px 2px 8px !important; letter-spacing: 0;
+}
