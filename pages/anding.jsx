@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, RotateCw } from 'lucide-react'
 
 // 앤딩 스터디카페 관리자(별도 앱)를 내비서 안 한 화면으로 띄운다.
 // 다른 주소를 그대로 끼워 넣으면 브라우저가 로그인 쿠키를 막기 때문에,
@@ -79,8 +79,9 @@ export default function Anding() {
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f5f7f9' }}>
       <iframe ref={frame} onLoad={bindRefresh} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
         style={{ border: 0, width: '100%', height: '100%', display: 'block' }} />
-      {(pull > 10 || refreshing) && <div role="status" style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: 999, padding: '9px 16px', background: 'rgba(255,255,255,0.96)', color: '#555', boxShadow: '0 2px 12px #00000012', fontSize: 13, whiteSpace: 'nowrap' }}>
-        {refreshing ? '새로고침 중…' : pull >= 64 ? '놓으면 새로고침' : '아래로 당겨 새로고침'}
+      <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
+      {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 64 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: pull >= 64 || refreshing ? '#333' : '#8e8e93', boxShadow: '0 2px 10px #00000014' }}>
+        <RotateCw size={21} strokeWidth={2} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
       </div>}
       {/* 안에서 문제가 있을 때 따로 열기 */}
       <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" aria-label="새 창으로 열기" style={{
