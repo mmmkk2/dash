@@ -8,11 +8,40 @@ const EMBED_URL = '/andingapp/admin'
 export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
-const THEME_HREF = '/anding-theme.css?v=2'
+const THEME_HREF = '/anding-theme.css?v=3'
 // 제목 앞 이모지(🪑📦💳📊 등)는 CSS로 못 지워서 글자에서 뺀다
 // (요약 줄의 🟥·💻·👥 같은 상태 표시는 그대로 두고, 제목 바로 앞 이모지만)
 const LEADING_EMOJI = /^\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u
 const TRAILING_EMOJI = /\s*[\p{Extended_Pictographic}\uFE0F\u200D]+\s*$/u
+// 메모 목록 형식으로: 카드 제목은 카드 위 작은 회색 머리로 빼고, 카드 안 첫 줄 앞에 색 점
+const SECTION_DOTS = ['#5b8fc9', '#4fa784', '#8f6bbf', '#3f9fae', '#d08a3a']
+function memoStyleSections(doc) {
+  doc.querySelectorAll('.box > .toggle-section').forEach((sec, i) => {
+    if (sec.dataset.naebiseo) return
+    sec.dataset.naebiseo = '1'
+    const b = sec.querySelector('.summary-header > b')
+    if (!b) return
+    const label = doc.createElement('div')
+    label.className = 'nb-label'
+    label.textContent = b.textContent.trim()
+    sec.before(label)
+    const prev = b.previousSibling, next = b.nextSibling
+    if (prev?.nodeType === 3 && !prev.nodeValue.trim()) prev.remove()
+    if (next?.nodeName === 'BR') next.remove()
+    b.remove()
+    // 카드 안 첫 글자 앞에 색 점 (상태 이모지 줄이든 안쪽 요약 줄이든 첫 텍스트에)
+    const walker = doc.createTreeWalker(sec.querySelector('.summary-header'), NodeFilter.SHOW_TEXT, { acceptNode: n => n.nodeValue.trim() ? 1 : 3 })
+    const first = walker.nextNode()
+    if (first) {
+      const dot = doc.createElement('span')
+      dot.className = 'nb-dot'
+      dot.style.background = SECTION_DOTS[i % SECTION_DOTS.length]
+      first.parentNode.insertBefore(dot, first)
+      first.parentNode.classList?.add('nb-first')
+    }
+  })
+}
+
 function tidyTitles(doc) {
   doc.querySelectorAll('.summary-header > b').forEach(b => {
     const n = b.previousSibling
@@ -30,6 +59,7 @@ function applyTheme(doc, nested) {
   doc.head.appendChild(link)
   if (nested) doc.documentElement.setAttribute('data-nested', '')
   tidyTitles(doc)
+  if (!nested) memoStyleSections(doc)
   const hook = f => {
     if (f.dataset.naebiseo) return
     f.dataset.naebiseo = '1'

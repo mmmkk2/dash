@@ -107,3 +107,17 @@ html[data-nested] h2, .table-box h2 {
   font-size: 0.8rem !important; font-weight: 600 !important; color: rgba(60, 60, 67, 0.6) !important;
   text-align: left !important; margin: 14px 2px 8px !important; letter-spacing: 0;
 }
+
+/* 메모 목록 형식: 카드 위 작은 회색 머리 + 카드 안 첫 줄(16px 보통 굵기) 앞 색 점 */
+.nb-label {
+  font-size: 13px; font-weight: 600; color: rgba(60, 60, 67, 0.6);
+  padding: 0 4px 8px; margin-top: 18px;
+}
+.box > .nb-label:first-child { margin-top: 0; }
+.toggle-section, .box > .toggle-section:nth-child(n) { margin-bottom: 6px; }
+.summary-header { font-size: 0.85rem; }
+.summary-header::first-line, .nb-first::first-line { font-size: 16px; color: #1c1c1e; }
+.nb-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin: 0 8px 2px 1px; vertical-align: middle;
+}
