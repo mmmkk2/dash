@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2, ChevronDown } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -137,10 +137,10 @@ let _theme = THEMES[localStorage.getItem(THEME_KEY)||"cream"] || THEMES.cream;
 let C = _theme;
 
 const ENTITIES = {
-  personal:{ label:"개인",       sub:"Personal",        color:"#6b5c4e", accent:"#9c8272" },
-  cafe:    { label:"앤딩스터디카페", sub:"Ending Study Café", color:"#2d6a4f", accent:"#52b788" },
-  realty:  { label:"부동산매매",   sub:"Real Estate",      color:"#1d4e89", accent:"#4a90d9" },
-  goion:   { label:"고이온",       sub:"위탁판매",          color:"#a82848", accent:"#e0607e" },
+  personal:{ label:"개인",       short:"개인",   sub:"Personal",        color:"#6b5c4e", accent:"#9c8272" },
+  cafe:    { label:"앤딩스터디카페", short:"앤딩", sub:"Ending Study Café", color:"#2d6a4f", accent:"#52b788" },
+  realty:  { label:"부동산매매",   short:"부동산", sub:"Real Estate",      color:"#1d4e89", accent:"#4a90d9" },
+  goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#a82848", accent:"#e0607e" },
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
@@ -4359,7 +4359,7 @@ export default function App(){
   const [modal, setModal] =useState(null);
   const [showMore,setShowMore]=useState(false);
   const [hideCafe,setHideCafe]=useState(()=>localStorage.getItem(HIDE_CAFE_KEY)==="true");
-  // 좁은 화면에서는 장부 탭 대신 현재 장부명이 보이는 드롭다운
+  // 좁은 화면에서는 장부 버튼에 짧은 이름을 쓴다
   const [narrow,setNarrow]=useState(()=>window.innerWidth<560);
   useEffect(()=>{
     const onResize=()=>setNarrow(window.innerWidth<560);
@@ -4764,20 +4764,7 @@ export default function App(){
             </div>
           </div>
 
-          {/* Entity tabs (넓은 화면) / 장부 선택 드롭다운 (좁은 화면) */}
-          {narrow?(
-            <label style={{position:"relative",display:"flex",alignItems:"center",gap:"8px",marginBottom:"18px",
-              padding:"10px 14px",borderRadius:"12px",background:ent.color,color:"#fff",cursor:"pointer",
-              boxShadow:`0 3px 12px ${ent.color}66`,fontFamily:"'Inter',sans-serif"}}>
-              <span style={{fontSize:"10px",fontWeight:600,opacity:0.65,letterSpacing:"0.08em"}}>장부</span>
-              <span style={{flex:1,fontSize:"14px",fontWeight:700}}>{ent.label}</span>
-              <ChevronDown size={16} style={{opacity:0.8}}/>
-              <select aria-label="장부 선택" value={entity} onChange={ev=>switchEntity(ev.target.value)}
-                style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0,cursor:"pointer",fontSize:"16px"}}>
-                {visibleEntities.map(ek=><option key={ek} value={ek}>{ENTITIES[ek].label}</option>)}
-              </select>
-            </label>
-          ):(
+          {/* Entity tabs */}
           <div style={{display:"flex",gap:"5px",marginBottom:"18px"}}>
             {visibleEntities.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
@@ -4786,14 +4773,13 @@ export default function App(){
                   flex:1,padding:"9px 4px",borderRadius:"10px",cursor:"pointer",border:"none",
                   background:sel?e.color:"rgba(255,255,255,0.07)",
                   color:sel?"#fff":"rgba(255,255,255,0.45)",
-                  fontFamily:"'Inter',sans-serif",fontSize:"11px",fontWeight:sel?700:400,
+                  fontFamily:"'Inter',sans-serif",fontSize:narrow?"12px":"11px",fontWeight:sel?700:400,
                   transition:"all 0.2s",boxShadow:sel?`0 3px 12px ${e.color}66`:"none"}}>
-                  <div style={{lineHeight:1.3,padding:"1px 0"}}>{e.label}</div>
+                  <div style={{lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}>{narrow?e.short:e.label}</div>
                 </button>
               );
             })}
           </div>
-          )}
 
           {/* Month/Year nav */}
           <div style={{marginBottom:"20px"}}>
