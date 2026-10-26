@@ -310,6 +310,9 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools }) {
   )
 }
 
+// 메모 편집 상태 비교용 (내용·마감일·색·고정·사진)
+const memoSnapshot = e => JSON.stringify([e.content, e.due_date || '', e.color, !!e.pinned, e.images || []])
+
 function MemoTab({ memos, reload, setErr }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
@@ -355,6 +358,8 @@ function MemoTab({ memos, reload, setErr }) {
 
   async function save() {
     if (uploading) return
+    // 열어보기만 하고 바뀐 게 없으면 저장하지 않는다 (수정 시각·목록 순서 유지)
+    if (edit.id && memoSnapshot(edit) === edit.snapshot) return setEdit(null)
     const row = { title: '', content: edit.content, due_date: edit.due_date || null, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
     // images 컬럼이 아직 없는 DB에서도 사진을 안 쓰면 그대로 저장되도록 있을 때만 보낸다
     if (edit.images !== undefined) row.images = edit.images
@@ -374,7 +379,10 @@ function MemoTab({ memos, reload, setErr }) {
     setEdit(null); reload()
   }
 
-  const open = m => setEdit({ ...m, content: joinText(m.title, m.content), origImages: m.images, uploaded: [] })
+  const open = m => {
+    const ed = { ...m, content: joinText(m.title, m.content), origImages: m.images, uploaded: [] }
+    setEdit({ ...ed, snapshot: memoSnapshot(ed) })
+  }
   const renderRows = arr => arr.map((m, i) => {
     const all = parseLines(joinText(m.title, m.content))
     const [first, ...rest] = all.map(l => l.text).filter(t => t.trim())
