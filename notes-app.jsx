@@ -401,12 +401,20 @@ function MemoTab({ memos, reload, setErr }) {
     return memos
       .filter(m => !tagFilter || m.tag === tagFilter)
       .filter(m => !k || (m.title + ' ' + plainText(m.content) + ' ' + (TAGS[m.tag]?.label || '')).toLowerCase().includes(k))
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      // 급한 순서: 마감일 있는 메모(지난 것 → 가까운 날짜) 먼저, 나머지는 최근 수정 순
+      .sort((a, b) => a.due_date && b.due_date ? a.due_date.localeCompare(b.due_date) || b.updated_at.localeCompare(a.updated_at)
+        : a.due_date ? -1 : b.due_date ? 1 : b.updated_at.localeCompare(a.updated_at))
   }, [memos, q, tagFilter])
   const pinned = list.filter(m => m.pinned), others = list.filter(m => !m.pinned)
 
+  // 저장 버튼과 바깥 탭이 겹쳐도 한 번만 저장 (새 메모가 두 개 생기던 문제)
+  const saving = useRef(false)
   async function save() {
-    if (uploading) return
+    if (uploading || saving.current) return
+    saving.current = true
+    try { await doSave() } finally { saving.current = false }
+  }
+  async function doSave() {
     // 열어보기만 하고 바뀐 게 없으면 저장하지 않는다 (수정 시각·목록 순서 유지)
     if (edit.id && memoSnapshot(edit) === edit.snapshot) return setEdit(null)
     const row = { title: '', content: edit.content, due_date: edit.due_date || null, color: edit.color, pinned: edit.pinned, updated_at: new Date().toISOString() }
