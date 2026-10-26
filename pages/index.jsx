@@ -42,7 +42,7 @@ export default function Home() {
     <div style={{ fontFamily: "'Apple SD Gothic Neo','Noto Sans KR',sans-serif", background: '#f0f2f5', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
       <div style={{ marginBottom: 36, textAlign: 'center' }}>
         <div style={{ fontSize: 11, letterSpacing: '0.18em', color: '#aaa', textTransform: 'uppercase', marginBottom: 8 }}>Dashboard</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.03em' }}>내 도구</div>
+        <div style={{ fontSize: 26, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.03em' }}>내비서</div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 400 }}>

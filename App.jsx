@@ -11,7 +11,7 @@ import TabBar from './src/TabBar'
 
 // 페이지(주소)별 브라우저 탭 제목
 const PAGE_TITLES = {
-  '/': '내 도구',
+  '/': '내비서',
   '/calculator': '경매 수익 계산기',
   '/dashboard': '앤딩 비품관리',
   '/budget': '가계부 · 개인',
@@ -30,7 +30,7 @@ function TitleManager() {
   const { pathname } = useLocation()
   useEffect(() => {
     const path = pathname.replace(/\/$/, '') || '/'
-    document.title = PAGE_TITLES[path] || (path.startsWith('/budget') ? '가계부' : '내 도구')
+    document.title = PAGE_TITLES[path] || (path.startsWith('/budget') ? '가계부' : '내비서')
 
     const iconHref = path.startsWith('/assets') ? '/favicon-assets.svg' : path.startsWith('/notes') ? '/icons/icon.svg' : '/favicon.svg'
     const favicon = document.getElementById('favicon')

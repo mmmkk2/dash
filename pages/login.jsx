@@ -29,7 +29,7 @@ export default function Login({ onLogin }) {
       <div style={{ background: '#fff', borderRadius: 24, padding: '40px 32px', width: '100%', maxWidth: 360, boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>🔐</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.03em' }}>내 도구</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.03em' }}>내비서</div>
           <div style={{ fontSize: 12, color: '#9c9c9c', marginTop: 4 }}>로그인 후 이용하세요</div>
         </div>
 
