@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { StickyNote, CalendarDays, Wallet, PiggyBank } from 'lucide-react'
+import { StickyNote, CalendarDays, Wallet, PiggyBank, Store } from 'lucide-react'
 
 // 앱 하단 탭: 휴대폰 폭이거나 설치한 앱으로 열었을 때만 보인다
 const SECTIONS = ['/notes', '/budget', '/assets', '/infinite-buying']
 const LAST_BUDGET = 'dash.lastBudget'
 const HEIGHT = 56
+// 앤딩 스터디카페 관리자(별도 앱) — 탭 한 번으로 바로 연다
+const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone
 
@@ -41,6 +43,7 @@ export default function TabBar() {
     { label: '일정', icon: CalendarDays, to: '/notes/calendar', on: pathname.startsWith('/notes/calendar') },
     { label: '가계부', icon: Wallet, to: lastBudget, on: pathname.startsWith('/budget') },
     { label: '자산', icon: PiggyBank, to: '/assets', on: pathname.startsWith('/assets') || pathname.startsWith('/infinite-buying') },
+    { label: '앤딩', icon: Store, href: ANDING_ADMIN_URL },
   ]
 
   return (
@@ -50,9 +53,9 @@ export default function TabBar() {
       borderTop: '0.5px solid rgba(60,60,67,0.18)', paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
       <div style={{ maxWidth: 680, margin: '0 auto', height: HEIGHT, display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
-        {tabs.map(({ label, icon: Icon, to, on }) => (
+        {tabs.map(({ label, icon: Icon, to, on, href }) => (
           <button key={label} aria-current={on ? 'page' : undefined}
-            onClick={() => navigate(typeof to === 'function' ? to() : to)}
+            onClick={() => href ? window.open(href, '_blank', 'noopener') : navigate(typeof to === 'function' ? to() : to)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
               color: on ? '#1c1c1e' : '#8e8e93', fontFamily: "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
