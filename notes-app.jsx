@@ -457,10 +457,20 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       : selPeriod.end_date === sel
         ? { label: `생리 ${diffDays(selPeriod.start_date, sel) + 1}일차 · 마지막 날`, active: true, run: () => supabase.from('periods').update({ end_date: null }).eq('id', selPeriod.id) }
         : { label: `생리 ${diffDays(selPeriod.start_date, sel) + 1}일차 · 여기서 끝`, active: true, run: () => supabase.from('periods').update({ end_date: sel }).eq('id', selPeriod.id) }
+  // 저장·새로고침이 끝날 때까지 다음 탭은 무시 (빠른 두 번 탭으로 중복 기록되지 않게)
+  const bodyBusy = useRef(false)
+  const [busy, setBusy] = useState(false)
   async function runBody(action) {
-    const res = await action()
-    if (res?.error) return setErr(res.error.message)
-    reloadBody()
+    if (bodyBusy.current) return
+    bodyBusy.current = true; setBusy(true)
+    try {
+      const res = await action()
+      // 23505 = 이미 같은 날 기록이 있음 → 원하는 상태와 같으니 오류로 보지 않음
+      if (res?.error && res.error.code !== '23505') setErr(res.error.message)
+      await reloadBody()
+    } finally {
+      bodyBusy.current = false; setBusy(false)
+    }
   }
   const loved = loveDays.has(sel)
   const toggleLove = () => runBody(() => loved
@@ -554,11 +564,11 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         <div style={{ margin: '-12px 0 24px' }}>
           {body.ready ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => runBody(periodAction.run)} style={{
+              <button onClick={() => runBody(periodAction.run)} disabled={busy} style={{ opacity: busy ? 0.6 : 1,
                 ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
                 background: periodAction.active ? BODY.periodSoft : C.card, color: periodAction.active ? BODY.period : C.text, border: `0.5px solid ${periodAction.active ? 'transparent' : C.sep}`,
               }}><Droplet size={15} color={BODY.period} fill={periodAction.active ? BODY.period : 'none'} />{periodAction.label}</button>
-              <button onClick={toggleLove} aria-pressed={loved} style={{
+              <button onClick={toggleLove} disabled={busy} aria-pressed={loved} style={{ opacity: busy ? 0.6 : 1,
                 ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
                 background: loved ? BODY.loveSoft : C.card, color: loved ? BODY.love : C.text, border: `0.5px solid ${loved ? 'transparent' : C.sep}`,
               }}><Heart size={15} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>
