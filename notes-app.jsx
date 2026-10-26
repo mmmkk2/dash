@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays, Maximize2, Minimize2 } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays, Maximize2, Minimize2, Pencil } from 'lucide-react'
 import { supabase } from './pages/login'
 import { useShowTabBar } from './src/TabBar'
 
@@ -147,7 +147,7 @@ function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
   )
 }
 
-function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, children }) {
+function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -158,11 +158,11 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, a
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
           <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{title}</div>
           {actions}
-          <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>
+          {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
           <button onClick={onDone} disabled={doneDisabled} style={{
             ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '8px 18px',
             opacity: doneDisabled ? 0.35 : 1, cursor: doneDisabled ? 'default' : 'pointer',
-          }}>저장</button>
+          }}>{doneLabel}</button>
         </div>
         <div style={{ padding: '8px 16px 0' }}>{children}</div>
       </div>
@@ -244,7 +244,7 @@ function CheckCircle({ done, color = C.tint, onClick }) {
 const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 6, color: C.sub, fontSize: 14, fontWeight: 500, padding: '6px 8px', borderRadius: 8 }
 
 // 줄 단위 편집기: 일반 줄과 체크리스트 줄을 섞어 쓴다 (엔터 = 같은 종류의 새 줄)
-function NoteEditor({ value, onChange, autoFocus, attachments, tools, full }) {
+function NoteEditor({ value, onChange, autoFocus, attachments, tools, full, readOnly }) {
   const lines = parseLines(value)
   const refs = useRef([])
   const cur = useRef(lines.length - 1)
@@ -313,11 +313,20 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full }) {
 
   return (
     <>
-      <div ref={boxRef} onClick={e => { if (e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
-        style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: 'text',
-          // 크게 보기면 화면 대부분을, 평소엔 화면의 30%까지만
-          ...(full ? { height: 'calc(100dvh - 255px - env(safe-area-inset-top) - env(safe-area-inset-bottom))', minHeight: 200 } : { minHeight: 120, maxHeight: '30dvh' }) }}>
-        {lines.map((l, i) => (
+      <div ref={boxRef} onClick={e => { if (!readOnly && e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
+        style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: readOnly ? 'default' : 'text',
+          // 크게 보기면 화면 대부분을, 평소엔 화면 일부만 (읽기는 키보드가 없으니 조금 더 넓게)
+          ...(full ? { height: `calc(100dvh - ${readOnly ? 200 : 255}px - env(safe-area-inset-top) - env(safe-area-inset-bottom))`, minHeight: 200 }
+            : { minHeight: 120, maxHeight: readOnly ? '42dvh' : '30dvh' }) }}>
+        {/* 읽기 보기: 키보드 없이 큰 글씨로, 체크 항목은 바로 체크 가능 */}
+        {readOnly && lines.map((l, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '4px 0' : 0, minHeight: l.text ? 0 : '0.9em' }}>
+            {l.check && <span style={{ paddingTop: 4 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
+            <div style={{ flex: 1, fontSize: 17, lineHeight: 1.75, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              color: l.done ? C.sub : C.text, textDecoration: l.done ? 'line-through' : 'none' }}>{l.text}</div>
+          </div>
+        ))}
+        {!readOnly && lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '3px 0' : 0 }}>
             {l.check && <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
             <textarea ref={el => { refs.current[i] = el }} rows={1} value={l.text}
@@ -329,10 +338,12 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full }) {
         ))}
       </div>
       {attachments}
-      <div style={{ borderTop: `0.5px solid ${C.sep}`, padding: '8px 12px', display: 'flex', gap: 4 }}>
-        <button type="button" onMouseDown={e => e.preventDefault()} onClick={toggleChecklist} style={toolBtn}><ListChecks size={18} />체크리스트</button>
-        {tools}
-      </div>
+      {!readOnly && (
+        <div style={{ borderTop: `0.5px solid ${C.sep}`, padding: '8px 12px', display: 'flex', gap: 4 }}>
+          <button type="button" onMouseDown={e => e.preventDefault()} onClick={toggleChecklist} style={toolBtn}><ListChecks size={18} />체크리스트</button>
+          {tools}
+        </div>
+      )}
     </>
   )
 }
@@ -367,6 +378,7 @@ function MemoTab({ memos, reload, setErr }) {
   const [edit, setEdit] = useState(null)
   const [viewer, setViewer] = useState(null)
   const [full, setFull] = useState(false) // 편집 창 크게 보기
+  const [editing, setEditing] = useState(false) // 기존 메모는 읽기 보기로 열고, 편집 버튼을 눌러야 키보드
   const [uploading, setUploading] = useState(0)
   const fileRef = useRef(null)
 
@@ -444,6 +456,7 @@ function MemoTab({ memos, reload, setErr }) {
   const open = m => {
     const ed = { ...m, content: joinText(m.title, m.content), origImages: m.images, uploaded: [] }
     setEdit({ ...ed, snapshot: memoSnapshot(ed) })
+    setEditing(false)
   }
   const renderRows = arr => arr.map((m, i) => {
     const all = parseLines(joinText(m.title, m.content))
@@ -496,19 +509,25 @@ function MemoTab({ memos, reload, setErr }) {
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
 
-      <Fab label="새 메모" onClick={() => setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
+      <Fab label="새 메모" onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
-        <Sheet title={edit.id ? '메모 편집' : '새 메모'} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
+        <Sheet title={!edit.id ? '새 메모' : editing ? '메모 편집' : '메모'} doneLabel={editing ? '저장' : '닫기'} hideCancel={!editing} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
           full={full}
           actions={<>
+            {!editing && (
+              <button onClick={() => setEditing(true)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}>
+                <Pencil size={14} />편집
+              </button>
+            )}
             <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
               {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
             </button>
             {edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
           <Group>
-            <NoteEditor value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))} autoFocus={!edit.id} full={full}
+            <NoteEditor key={editing ? 'edit' : 'read'} value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))}
+              autoFocus={editing} readOnly={!editing} full={full}
               attachments={(edit.images?.length > 0 || uploading > 0) && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '0 16px 12px' }}>
                   {(edit.images || []).map(p => (
