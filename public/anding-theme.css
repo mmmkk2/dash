@@ -152,3 +152,14 @@ html:not([data-nested]) .box > :first-child:not(.nb-label) { margin-right: 72px;
 /* 카드 제목은 밖으로 빠졌으니, 카드 안 굵은 글씨(만료완료·만료예정 등)는 주변 글자 크기 그대로 */
 .summary-header b { font-size: inherit !important; font-weight: 600 !important; letter-spacing: normal; }
 .nb-emoji { font-size: 0.8em; vertical-align: 0.06em; }
+
+/* 스터디룸: 2·4인실 좌우로, 시간만, 여백 최소 */
+#toggle-iframe-studyroom { min-height: 0 !important; max-height: none !important; }
+html[data-room] body { padding: 0 !important; min-height: 0 !important; }
+html[data-room] .box { width: 100% !important; max-width: none !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; overflow: visible !important; }
+html[data-room] .tables { flex-wrap: nowrap !important; gap: 8px !important; }
+html[data-room] .table-box { min-width: 0 !important; }
+html[data-room] .table-box h2 { margin: 4px 2px 6px !important; font-size: 13px !important; }
+html[data-room] table { margin-top: 0 !important; font-size: 13px !important; }
+html[data-room] th, html[data-room] td { padding: 5px 4px !important; white-space: nowrap; }
+html[data-room] .summary-box, html[data-room] body > .updated { display: none !important; }
