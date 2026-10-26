@@ -57,12 +57,18 @@ function cycleInfo(periods, today) {
 
   const last = ps[ps.length - 1]
   const predictedDays = new Set(), fertileDays = new Set(), ovulationDays = new Set()
+  const markFertile = nextStart => {
+    const ov = addDays(nextStart, -14)
+    ovulationDays.add(ov)
+    for (let i = -5; i <= 1; i++) fertileDays.add(addDays(ov, i))
+  }
+  // 지난 주기: 실제 다음 생리 시작일 기준 (비정상 간격은 건너뜀)
+  ps.slice(1).forEach((p, i) => { const gap = diffDays(ps[i].start_date, p.start_date); if (gap >= 15 && gap <= 60) markFertile(p.start_date) })
+  // 이번·앞으로의 주기: 평균 주기로 예측
   for (let k = 0; k <= 12; k++) {
     const start = addDays(last.start_date, k * cycle), next = addDays(start, cycle)
     if (k > 0) for (let i = 0; i < len; i++) { const d = addDays(start, i); if (!periodDays.has(d)) predictedDays.add(d) }
-    const ov = addDays(next, -14)
-    ovulationDays.add(ov)
-    for (let i = -5; i <= 1; i++) fertileDays.add(addDays(ov, i))
+    markFertile(next)
   }
   const nextStart = addDays(last.start_date, cycle)
   const ongoing = !last.end_date && today >= last.start_date && today <= addDays(last.start_date, 9)
