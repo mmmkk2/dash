@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2, ChevronDown } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -140,13 +140,14 @@ const ENTITIES = {
   personal:{ label:"개인",       sub:"Personal",        color:"#6b5c4e", accent:"#9c8272" },
   cafe:    { label:"앤딩스터디카페", sub:"Ending Study Café", color:"#2d6a4f", accent:"#52b788" },
   realty:  { label:"부동산매매",   sub:"Real Estate",      color:"#1d4e89", accent:"#4a90d9" },
+  goion:   { label:"고이온",       sub:"위탁판매",          color:"#a82848", accent:"#e0607e" },
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
 
-// URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산)
-const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty" };
-const SLUG_ENTITY = { "":"personal", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty" };
+// URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산, /budget/goion=고이온)
+const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty", goion:"goion" };
+const SLUG_ENTITY = { "":"personal", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty", goion:"goion" };
 const entityPath = ek => `/budget${ENTITY_SLUG[ek]?`/${ENTITY_SLUG[ek]}`:""}`;
 
 const TREE_PERSONAL = {
@@ -195,7 +196,25 @@ const TREE_REALTY = {
   처분비용:{ color:"#4a1942",accent:"#9b5de5",icon:"📝",children:{양도세:[],중개수수료:[],명도비:[],종합소득세:[],지방세:[],기타:[]}},
   세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],종합소득세:[],기타:[]}},
 };
-const TREES_DEFAULT = { personal:TREE_PERSONAL, cafe:TREE_CAFE, realty:TREE_REALTY };
+// 고이온(위탁판매) 기본 카테고리 — 카테고리 관리에서 자유롭게 수정 가능
+const TREE_GOION = {
+  매출:{ color:"#2d6a4f",accent:"#52b788",icon:"💰",children:{판매대금:[],위탁수수료:[],배송비수입:[],기타수입:[]}},
+  "정산/매입":{ color:"#b5451b",accent:"#e07a5f",icon:"📦",children:{위탁자정산금:[],상품매입:[],"반품/환불":[],기타:[]}},
+  판매비:{ color:"#0077b6",accent:"#48cae4",icon:"🚚",children:{플랫폼수수료:[],결제수수료:[],"택배/배송":[],포장재:[],광고:[],기타:[]}},
+  운영비:{ color:"#4a1942",accent:"#9b5de5",icon:"🏪",children:{임차료:[],통신비:[],기장료:[],비품:[],기타:[]}},
+  세금:{ color:"#7b2d00",accent:"#c1440e",icon:"🔴",children:{부가가치세:[],종합소득세:[],기타:[]}},
+};
+const TREES_DEFAULT = { personal:TREE_PERSONAL, cafe:TREE_CAFE, realty:TREE_REALTY, goion:TREE_GOION };
+// 새 거래 기본 대분류 (없으면 첫 대분류)
+const DEFAULT_CAT1 = { personal:"지출-용돈", cafe:"매입/원가", realty:"취득비용", goion:"판매비" };
+const defaultCat1 = (e, t) => (t?.[DEFAULT_CAT1[e]] ? DEFAULT_CAT1[e] : Object.keys(t||{})[0]);
+// 저장된 카테고리는 그대로 두고, 아직 없는 장부(예: 새로 생긴 고이온)만 기본값으로 채운다
+function withMissingTrees(saved){
+  const out={...saved};
+  let added=false;
+  for(const ek of Object.keys(TREES_DEFAULT)) if(!out[ek]){ out[ek]=JSON.parse(JSON.stringify(TREES_DEFAULT[ek])); added=true; }
+  return [out, added];
+}
 const CAT_KEY = "gagibu_cats";
 const VENDOR_KEY = "gagibu_vendors";
 function loadVendors(){ try{return JSON.parse(localStorage.getItem(VENDOR_KEY)||"[]");}catch{return[];} }
@@ -208,7 +227,7 @@ function loadTrees(){
       const rc = saved.realty?.처분비용?.children;
       if(rc && !("종합소득세" in rc)) rc["종합소득세"] = [];
       if(rc && !("지방세" in rc)) rc["지방세"] = [];
-      return saved;
+      return withMissingTrees(saved)[0];
     }
   }catch{}
   return JSON.parse(JSON.stringify(TREES_DEFAULT));
@@ -353,7 +372,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
     if(c1.startsWith("저축"))return "저축";
     return "수입";
   }
-  const initCat1=init.cat1||(entity==="personal"?"지출-용돈":entity==="cafe"?"매입/원가":entity==="realty"?"취득비용":Object.keys(TREES[entity])[0]);
+  const initCat1=init.cat1||defaultCat1(entity,TREES[entity]);
   const [cat1,setCat1]=useState(initCat1);
   const [group,setGroup]=useState(deriveGroup(initCat1));
   const [cat2,setCat2]=useState(init.cat2||Object.keys(tree[initCat1]?.children||{})[0]||"");
@@ -415,7 +434,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
   function pickEntity(e){
     setEntity(e);
     const t=TREES[e];
-    const k1=e==="personal"?"지출-용돈":e==="cafe"?"매입/원가":e==="realty"?"취득비용":Object.keys(t)[0];
+    const k1=defaultCat1(e,t);
     setCat1(k1);setGroup(deriveGroup(k1));setCat2(Object.keys(t[k1]?.children||{})[0]||"");setCat3("");
   }
   function pickGroup(g){
@@ -502,7 +521,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       {/* Entity */}
       <div style={{marginBottom:"10px"}}>
         <SLabel>주체</SLabel>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px"}}>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${ENTITY_KEYS.length>3?2:3},1fr)`,gap:"6px"}}>
           {ENTITY_KEYS.map(ek=>{
             const e=ENTITIES[ek];const sel=entity===ek;
             return(
@@ -1093,7 +1112,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
 /* ── Card Settings ── */
 /* ── CategorySettings ── */
 function CategorySettings({trees, onChange}){
-  const ENTITY_LABELS={personal:"개인",cafe:"카페",realty:"부동산"};
+  const ENTITY_LABELS={personal:"개인",cafe:"카페",realty:"부동산",goion:"고이온"};
   const [ent,setEnt]=useState("personal");
   const [openCat1,setOpenCat1]=useState(null);
   const [adding,setAdding]=useState(null);
@@ -2642,7 +2661,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
     txs.filter(filterFn).forEach(t=>{
       const isRefund=t.cat1===REFUND_CAT1||t.cat2==="환불";
       const sign=isRefund?-1:1;
-      const cat1=isRefund?(entity==="cafe"?"매출":"수입"):t.cat1;
+      const cat1=isRefund?(Object.keys(TREES[entity]||{}).find(k=>k.includes("매출")||k.includes("수입"))||"수입"):t.cat1;
       const cat2=isRefund?"환불":t.cat2;
       if(!m[cat1])m[cat1]={value:0,sub:{}};
       m[cat1].value+=sign*t.amount;
@@ -3339,9 +3358,10 @@ const IMPORT_ENTS = {
   personal:{ label:"개인",          color:"#6b5c4e" },
   cafe:    { label:"앤딩스터디카페", color:"#2d6a4f" },
   realty:  { label:"부동산매매",     color:"#1d4e89" },
+  goion:   { label:"고이온",         color:"#a82848" },
   skip:    { label:"건너뜀",         color:"#c8bfb4" },
 };
-const IMPORT_KEYS = ["personal","cafe","realty","skip"];
+const IMPORT_KEYS = ["personal","cafe","realty","goion","skip"];
 
 function CoupangImport({ onRegister }) {
   const today    = new Date().toISOString().slice(0,10);
@@ -3419,8 +3439,8 @@ function CoupangImport({ onRegister }) {
     toReg.forEach(r=>{
       onRegister({
         id:Date.now()+Math.random(), entity:r.entity,
-        cat1: r.entity==="cafe"?"매입/원가":"지출-용돈",
-        cat2: r.entity==="cafe"?"소모품":"쇼핑",
+        cat1: r.entity==="cafe"?"매입/원가":r.entity==="goion"?"운영비":"지출-용돈",
+        cat2: r.entity==="cafe"?"소모품":r.entity==="goion"?"비품":"쇼핑",
         cat3:"", amount:parseInt(r.amountEdit),
         memo:`[쿠팡] ${r.name}`, date:r.date,
         cardId:"c7", isFixed:false, fixedDay:null, type:"expense",
@@ -4339,6 +4359,13 @@ export default function App(){
   const [modal, setModal] =useState(null);
   const [showMore,setShowMore]=useState(false);
   const [hideCafe,setHideCafe]=useState(()=>localStorage.getItem(HIDE_CAFE_KEY)==="true");
+  // 좁은 화면에서는 장부 탭 대신 현재 장부명이 보이는 드롭다운
+  const [narrow,setNarrow]=useState(()=>window.innerWidth<560);
+  useEffect(()=>{
+    const onResize=()=>setNarrow(window.innerWidth<560);
+    window.addEventListener("resize",onResize);
+    return ()=>window.removeEventListener("resize",onResize);
+  },[]);
   const [editTx,setEditTx]=useState(null);
   const [txs,   setTxs]   =useState([]);
   const [cards, setCards] =useState(DEFAULT_CARDS);
@@ -4359,7 +4386,7 @@ export default function App(){
   const [loading,setLoading]=useState(false);
   const [saving, setSaving] =useState(false);
   const [online, setOnline] =useState(isConfigured());
-  const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy"};
+  const ENTITY_THEME = {personal:"cream", cafe:"forest", realty:"navy", goion:"rose"};
   const [themeKey, setThemeKey] = useState(()=>ENTITY_THEME["personal"]);
   const [session,setSession]=useState(undefined); // undefined=로딩중, null=미로그인
 
@@ -4487,7 +4514,10 @@ export default function App(){
       setTaxDocIds(taxDocRows?.[0]?.value||[]);
       const dbTrees = settingsRows?.[0]?.value;
       if(dbTrees){
-        TREES=dbTrees; setTrees(dbTrees);
+        const [merged,added]=withMissingTrees(dbTrees);
+        TREES=merged; setTrees(merged);
+        // 새 장부 기본 카테고리만 추가된 경우 서버에도 반영 (기존 카테고리는 그대로)
+        if(added) sb("settings",{method:"POST",body:JSON.stringify({key:"trees",value:merged}),prefer:"resolution=merge-duplicates,return=minimal"}).catch(()=>{});
       } else {
         // Supabase에 카테고리가 없으면 현재 기기의 localStorage 카테고리를 업로드
         const localTrees = loadTrees();
@@ -4639,6 +4669,8 @@ export default function App(){
   const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1).reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const bal=income-expense;
   const ent=ENTITIES[entity];
+  const visibleEntities=ENTITY_KEYS.filter(ek=>ek!=="cafe"||!hideCafe);
+  function switchEntity(ek){setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");navigate(entityPath(ek));}
 
   function prevMonth(){if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);}
   function nextMonth(){if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}
@@ -4732,12 +4764,25 @@ export default function App(){
             </div>
           </div>
 
-          {/* Entity tabs */}
+          {/* Entity tabs (넓은 화면) / 장부 선택 드롭다운 (좁은 화면) */}
+          {narrow?(
+            <label style={{position:"relative",display:"flex",alignItems:"center",gap:"8px",marginBottom:"18px",
+              padding:"10px 14px",borderRadius:"12px",background:ent.color,color:"#fff",cursor:"pointer",
+              boxShadow:`0 3px 12px ${ent.color}66`,fontFamily:"'Inter',sans-serif"}}>
+              <span style={{fontSize:"10px",fontWeight:600,opacity:0.65,letterSpacing:"0.08em"}}>장부</span>
+              <span style={{flex:1,fontSize:"14px",fontWeight:700}}>{ent.label}</span>
+              <ChevronDown size={16} style={{opacity:0.8}}/>
+              <select aria-label="장부 선택" value={entity} onChange={ev=>switchEntity(ev.target.value)}
+                style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0,cursor:"pointer",fontSize:"16px"}}>
+                {visibleEntities.map(ek=><option key={ek} value={ek}>{ENTITIES[ek].label}</option>)}
+              </select>
+            </label>
+          ):(
           <div style={{display:"flex",gap:"5px",marginBottom:"18px"}}>
-            {ENTITY_KEYS.filter(ek=>ek!=="cafe"||!hideCafe).map(ek=>{
+            {visibleEntities.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
-                <button key={ek} onClick={()=>{setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");navigate(entityPath(ek));}} style={{
+                <button key={ek} onClick={()=>switchEntity(ek)} style={{
                   flex:1,padding:"9px 4px",borderRadius:"10px",cursor:"pointer",border:"none",
                   background:sel?e.color:"rgba(255,255,255,0.07)",
                   color:sel?"#fff":"rgba(255,255,255,0.45)",
@@ -4748,6 +4793,7 @@ export default function App(){
               );
             })}
           </div>
+          )}
 
           {/* Month/Year nav */}
           <div style={{marginBottom:"20px"}}>

@@ -18,6 +18,7 @@ const PAGE_TITLES = {
   '/budget/anding': '가계부 · 앤딩스터디카페',
   '/budget/cafe': '가계부 · 앤딩스터디카페',
   '/budget/realty': '가계부 · 부동산매매',
+  '/budget/goion': '가계부 · 고이온',
   '/assets': '내 자산',
   '/infinite-buying': '무한매수 · 매일 주문표',
   '/notes': '메모',
