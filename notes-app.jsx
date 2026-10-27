@@ -120,6 +120,18 @@ function Row({ children, onClick, last, style }) {
   )
 }
 
+// 내용만큼 늘어나는 입력칸 (너무 길면 maxHeight에서 멈추고 안에서 스크롤)
+function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, ...props }) {
+  const ref = useRef(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = el.scrollHeight + 'px'
+  }, [value])
+  return <textarea ref={ref} value={value} rows={minRows} {...props} style={{ ...style, maxHeight, overflowY: 'auto' }} />
+}
+
 function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
   return (
     <div style={{ display: 'flex', gap: size < 26 ? 6 : 12 }}>
@@ -809,7 +821,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       {edit && (
         <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
           <Group>
-            <textarea autoFocus value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?" rows={3}
+            <GrowTextarea autoFocus={!edit.id} value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?"
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
           </Group>
           <Group>
