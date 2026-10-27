@@ -120,20 +120,6 @@ function Row({ children, onClick, last, style }) {
   )
 }
 
-function Toggle({ on, onChange }) {
-  return (
-    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} style={{
-      ...plain, width: 51, height: 31, borderRadius: 16, flexShrink: 0, position: 'relative',
-      background: on ? C.tint : 'rgba(120,120,128,0.16)', transition: 'background .2s',
-    }}>
-      <span style={{
-        position: 'absolute', top: 2, left: on ? 22 : 2, width: 27, height: 27, borderRadius: '50%', background: '#fff',
-        boxShadow: '0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.06)', transition: 'left .2s',
-      }} />
-    </button>
-  )
-}
-
 function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
   return (
     <div style={{ display: 'flex', gap: size < 26 ? 6 : 12 }}>
@@ -622,7 +608,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
 
   async function save() {
     if (!edit.text.trim()) return
-    const row = { date: edit.date, time: edit.time || null, title: edit.text.trim(), memo: '', color: edit.color, done: edit.done }
+    const row = { date: edit.date, time: edit.time ? (edit.end ? `${edit.time}~${edit.end}` : edit.time) : null, title: edit.text.trim(), memo: '', color: edit.color, done: edit.done }
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
       : await supabase.from('events').insert(row)
@@ -704,7 +690,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       : n === 0 ? '오늘 생리 예정일' : `생리 예정일 ${-n}일 지남`
     summary = [main, info.fertileDays.has(t) && !info.ongoing ? (info.ovulationDays.has(t) ? '배란 예정일' : '가임기') : null, `평균 주기 ${info.cycle}일`].filter(Boolean)
   }
-  const open = e => setEdit({ ...e, color: eventColor(e.color), time: e.time || '', text: joinText(e.title, e.memo) })
+  const open = e => { const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, color: eventColor(e.color), time, end, text: joinText(e.title, e.memo) }) }
   const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
@@ -818,7 +804,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </Group>
       )}
 
-      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', text: '', color: EVENT_COLORS[0], done: false })} />
+      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', end: '', text: '', color: EVENT_COLORS[0], done: false })} />
 
       {edit && (
         <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
@@ -832,17 +818,20 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
               <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })}
                 style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
             </Row>
+            {/* 시간: 비워 두면 하루 종일, 끝나는 시간은 선택 (time 칸에 'HH:MM~HH:MM'로 저장) */}
             <Row>
-              <span style={{ flex: 1, fontSize: 16 }}>하루 종일</span>
-              <Toggle on={!edit.time} onChange={on => setEdit({ ...edit, time: on ? '' : '09:00' })} />
+              <span style={{ flex: 1, fontSize: 16, whiteSpace: 'nowrap' }}>시간</span>
+              <input type="time" aria-label="시작 시간" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value, end: e.target.value ? edit.end : '' })}
+                style={{ ...field, width: 'auto', minWidth: 0, fontSize: 15, background: C.fill, borderRadius: 6, padding: '6px 6px' }} />
+              {edit.time && <>
+                <span style={{ color: C.sub, margin: '0 -4px' }}>~</span>
+                <input type="time" aria-label="끝나는 시간" value={edit.end} onChange={e => setEdit({ ...edit, end: e.target.value })}
+                  style={{ ...field, width: 'auto', minWidth: 0, fontSize: 15, background: C.fill, borderRadius: 6, padding: '6px 6px', color: edit.end ? C.text : C.sub }} />
+                <button type="button" aria-label="시간 지우기 (하루 종일)" onClick={() => setEdit({ ...edit, time: '', end: '' })}
+                  style={{ ...plain, color: C.sub, fontSize: 18, padding: '0 2px', lineHeight: 1 }}>×</button>
+              </>}
+              {!edit.time && <span style={{ fontSize: 14, color: C.sub }}>하루 종일</span>}
             </Row>
-            {edit.time && (
-              <Row>
-                <span style={{ flex: 1, fontSize: 16 }}>시간</span>
-                <input type="time" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value })}
-                  style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
-              </Row>
-            )}
             <Row last>
               <span style={{ flex: 1, fontSize: 16 }}>색상</span>
               <ColorPicker colors={EVENT_COLORS} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
@@ -873,7 +862,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
       </div>
       <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
         {showDate && <div>{new Date(e.date).getMonth() + 1}월 {new Date(e.date).getDate()}일</div>}
-        <div>{e.time ? e.time.slice(0, 5) : (!showDate && '종일')}</div>
+        <div>{e.time ? e.time.split('~').map(t => t.slice(0, 5)).join(' ~ ') : (!showDate && '종일')}</div>
       </div>
     </Row>
   )
