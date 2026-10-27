@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays, Maximize2, Minimize2, Pencil } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, Download, CalendarDays, Maximize2, Minimize2, Pencil, Phone } from 'lucide-react'
 import { supabase } from './pages/login'
 import { useShowTabBar } from './src/TabBar'
 
@@ -116,6 +116,40 @@ function Row({ children, onClick, last, style }) {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px 11px 0', borderBottom: last ? 'none' : `0.5px solid ${C.sep}`, alignSelf: 'stretch' }}>
         {children}
       </div>
+    </div>
+  )
+}
+
+// 전화번호 찾기: 010-1234-5678, 02-123-4567, 01012345678, +82 10-…, 1588-1234 등
+const PHONE_RE = /(?<![\d+])(?:\+82[-\s]?|0)\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}(?!\d)|\b1[5-9]\d{2}-\d{4}\b/g
+const findPhones = text => [...new Set(text.match(PHONE_RE) || [])]
+const telHref = num => 'tel:' + num.replace(/[^\d+]/g, '')
+
+// 글 속 전화번호를 눌러서 바로 걸 수 있는 링크로
+function Linkified({ text }) {
+  const out = []
+  let last = 0
+  for (const m of text.matchAll(PHONE_RE)) {
+    if (m.index > last) out.push(text.slice(last, m.index))
+    out.push(<a key={m.index} href={telHref(m[0])} onClick={e => e.stopPropagation()} style={{ color: C.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{m[0]}</a>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
+}
+
+// 일정 편집: 내용에 전화번호가 있으면 아래에 전화 버튼
+function CallChips({ text }) {
+  const phones = findPhones(text)
+  if (!phones.length) return null
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '-6px 0 16px' }}>
+      {phones.map(n => (
+        <a key={n} href={telHref(n)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, background: C.card,
+          border: `0.5px solid ${C.sep}`, color: C.text, fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>
+          <Phone size={15} /> {n}
+        </a>
+      ))}
     </div>
   )
 }
@@ -321,7 +355,7 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full, read
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '4px 0' : 0, minHeight: l.text ? 0 : '0.9em' }}>
             {l.check && <span style={{ paddingTop: 4 }}><CheckCircle done={l.done} onClick={() => toggleDone(i)} /></span>}
             <div style={{ flex: 1, fontSize: 17, lineHeight: 1.75, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-              color: l.done ? C.sub : C.text, textDecoration: l.done ? 'line-through' : 'none' }}>{l.text}</div>
+              color: l.done ? C.sub : C.text, textDecoration: l.done ? 'line-through' : 'none' }}><Linkified text={l.text} /></div>
           </div>
         ))}
         {!readOnly && lines.map((l, i) => (
@@ -824,6 +858,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
             <GrowTextarea autoFocus={!edit.id} value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?"
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
           </Group>
+          <CallChips text={edit.text} />
           <Group>
             <Row>
               <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
