@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- 내비서: 남색 바탕에 네 기능(메모·일정·가계부·자산)을 뜻하는 4색 블록 -->
-  <rect width="512" height="512" fill="#232b4d"/>
-  <rect x="110" y="110" width="132" height="132" rx="38" fill="#ffd166"/>
-  <rect x="270" y="110" width="132" height="132" rx="38" fill="#ff7a6b"/>
-  <rect x="110" y="270" width="132" height="132" rx="38" fill="#4fa784"/>
-  <rect x="270" y="270" width="132" height="132" rx="38" fill="#7c9cff"/>
+  <!-- 내비서: 밝은 바탕에 네 기능(메모·일정·가계부·자산)을 뜻하는 크기 다른 4색 블록 -->
+  <rect width="512" height="512" fill="#f4f1ea"/>
+  <rect x="118" y="118" width="150" height="150" rx="44" fill="#ffd166"/>
+  <rect x="282" y="118" width="112" height="112" rx="36" fill="#ff7a6b"/>
+  <rect x="118" y="282" width="112" height="112" rx="36" fill="#4fa784"/>
+  <rect x="244" y="244" width="150" height="150" rx="44" fill="#7c9cff"/>
 </svg>
