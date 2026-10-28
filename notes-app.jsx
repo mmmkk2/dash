@@ -163,6 +163,32 @@ function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, ...props 
   return <textarea ref={ref} value={value} rows={minRows} {...props} style={{ ...style, maxHeight, overflowY: 'auto' }} />
 }
 
+// 폰 '뒤로 가기'로 열린 창부터 닫기: 창이 열리면 history에 한 칸 쌓고, 뒤로 가기가 오면 맨 위 창 하나만 닫는다
+// (안 그러면 뒤로 가기가 이전 화면 — 예: 앤딩 — 으로 넘어가 버림)
+const backStack = []
+let skipPop = 0
+window.addEventListener('popstate', () => {
+  if (skipPop > 0) { skipPop--; return }
+  const top = backStack.pop()
+  if (top) { top.byBack = true; top.close() }
+})
+function useBackClose(open, onClose) {
+  const ref = useRef(onClose)
+  ref.current = onClose
+  useEffect(() => {
+    if (!open) return
+    const entry = { close: () => ref.current(), byBack: false }
+    backStack.push(entry)
+    window.history.pushState(window.history.state, '')
+    return () => {
+      const i = backStack.indexOf(entry)
+      if (i >= 0) backStack.splice(i, 1)
+      // 버튼 등으로 닫았으면 쌓았던 한 칸을 되돌린다 (이 되돌림은 다른 창을 닫지 않게 건너뜀)
+      if (!entry.byBack) { skipPop++; window.history.back() }
+    }
+  }, [open])
+}
+
 function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, tint = C.tint, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -399,6 +425,10 @@ function MemoTab({ memos, reload, setErr }) {
   const [edit, setEdit] = useState(null)
   const [viewer, setViewer] = useState(null)
   const [full, setFull] = useState(false) // 편집 창 크게 보기
+  // 폰 뒤로 가기: 사진 → 크게 보기 → 메모 창 순서로 하나씩 닫기 (메모 창은 바깥 누름과 같이 저장하며 닫음)
+  useBackClose(!!edit, () => save())
+  useBackClose(!!edit && full, () => setFull(false))
+  useBackClose(!!edit && !!viewer, () => setViewer(null))
   const [editing, setEditing] = useState(false) // 기존 메모는 읽기 보기로 열고, 편집 버튼을 눌러야 키보드
   const [uploading, setUploading] = useState(0)
   const fileRef = useRef(null)
@@ -602,6 +632,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [sel, setSel] = useState(todayStr())
   const [edit, setEdit] = useState(null)
+  useBackClose(!!edit, () => setEdit(null)) // 폰 뒤로 가기로 일정 창 닫기
   const [pickTime, setPickTime] = useState(null) // 일정 창에서 칩을 펼친 시간: 'start' | 'end' | null
   useEffect(() => { if (!edit) setPickTime(null) }, [edit])
   // 사업자 태그 필터 (메모와 같은 태그) — 태그 붙은 일정이 있을 때만 보임
