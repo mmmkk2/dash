@@ -1954,9 +1954,15 @@ export default function AssetsApp() {
         {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리, 하단 탭이 없을 땐 가계부도) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
           <div style={{ fontSize: hasTabBar ? 22 : 28, fontWeight: 700, letterSpacing: hasTabBar ? "-0.5px" : "-0.7px", lineHeight: 1.25, color: C.ink }}>자산</div>
+          <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+          <button onClick={refreshPrices} disabled={fetching} style={{ display: "flex", alignItems: "center", gap: 5, height: 38, boxSizing: "border-box", background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "0 12px", color: C.ink, fontSize: 13, fontWeight: 600, cursor: fetching ? "not-allowed" : "pointer", fontFamily: F }}>
+            <RefreshCw size={14} className={fetching ? "spin" : ""} />
+            {fetching ? "조회 중…" : "시세 갱신"}
+          </button>
           <button aria-label="메뉴" onClick={() => setMoreOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: C.white, border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: C.ink, cursor: "pointer" }}>
             <MoreHorizontal size={18} />
           </button>
+          </div>
           {moreOpen && (
             <>
               <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
@@ -1989,21 +1995,15 @@ export default function AssetsApp() {
             {loanTotal > 0 && <span style={{ color: C.down }}>부채 -{fmtS(loanTotal)}</span>}
             {unvestedValue > 0 && <span>미확정 RSU {fmtS(unvestedValue)}</span>}
           </div>
-        </div>
-
-        {/* 환율·시세 갱신 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 4px", marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: C.inkLight }}>
+          {/* 환율·시세 기준 시각 */}
+          <div style={{ fontSize: 11, color: C.inkLight, marginTop: 8 }}>
             USD/KRW {rate.toLocaleString("ko-KR")}원
             {lastSync && <span style={{ marginLeft: 6 }}>· {lastSync} 기준</span>}
             {fetchErr > 0 && <span style={{ marginLeft: 6, color: C.down }}>· {fetchErr}종목 조회 실패</span>}
             {lastSaved && <span style={{ marginLeft: 6 }}>· 저장 {lastSaved}</span>}
           </div>
-          <button onClick={refreshPrices} disabled={fetching} style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 999, padding: "6px 12px", color: C.ink, fontSize: 13, fontWeight: 600, cursor: fetching ? "not-allowed" : "pointer", fontFamily: F }}>
-            <RefreshCw size={13} className={fetching ? "spin" : ""} />
-            {fetching ? "조회 중…" : "시세 갱신"}
-          </button>
         </div>
+
       </div>
 
       <div style={{ maxWidth: 660, margin: "0 auto", padding: "0 16px" }}>
