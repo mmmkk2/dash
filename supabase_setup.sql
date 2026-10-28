@@ -193,3 +193,4 @@ alter table memos add column if not exists tag text default null;
 
 -- 일정 사업자 태그 (메모와 같은 personal / cafe / realty / goion, 없으면 null)
 alter table events add column if not exists tag text default null;
+alter table memos add column if not exists archived boolean default false;
