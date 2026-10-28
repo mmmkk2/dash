@@ -144,7 +144,7 @@ let _theme = THEMES[localStorage.getItem(THEME_KEY)||"cream"] || THEMES.cream;
 let C = _theme;
 
 const ENTITIES = {
-  personal:{ label:"개인",       short:"개인",   sub:"Personal",        color:"#b5814e", accent:"#9c8272" },
+  personal:{ label:"개인",       short:"개인",   sub:"Personal",        color:"#c4658a", accent:"#b07a90" },
   cafe:    { label:"앤딩스터디카페", short:"앤딩", sub:"Ending Study Café", color:"#3e9478", accent:"#52b788" },
   realty:  { label:"부동산매매",   short:"부동산", sub:"Real Estate",      color:"#4d83ba", accent:"#4a90d9" },
   goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#9867b7", accent:"#a38fb3" },
