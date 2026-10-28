@@ -788,10 +788,10 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
             return (
               <button key={k} onClick={() => tapDay(k)} onPointerDown={e => pressStart(k, e)} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerLeave={pressEnd} onPointerCancel={pressEnd}
                 onContextMenu={e => e.preventDefault()} style={{
-                ...plain, height: 50, WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, paddingTop: 3, visibility: inMonth ? 'visible' : 'hidden',
+                ...plain, height: 44, WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, paddingTop: 2, visibility: inMonth ? 'visible' : 'hidden',
               }}>
                 <span style={{
-                  width: 34, height: 34, lineHeight: isPredicted && !isSel ? '31px' : '34px', textAlign: 'center', borderRadius: 12, fontSize: 16,
+                  width: 32, height: 32, lineHeight: isPredicted && !isSel ? '29px' : '32px', textAlign: 'center', borderRadius: 12, fontSize: 16,
                   fontWeight: isToday || isSel || (isFertile && info.ovulationDays.has(k)) ? 700 : 400, background: bg, color: fg,
                   border: isPredicted && !isSel ? `1.5px dashed ${BODY.period}80` : 'none',
                 }}>{d.getDate()}</span>
@@ -902,11 +902,12 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
       <CheckCircle done={e.done} color={TAGS[e.tag]?.color || CAL_TINT} onClick={ev => { ev.stopPropagation(); onToggle() }} />
       <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e), opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
-        <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {/* 제목은 두 줄, 내용은 세 줄까지 */}
+        <div style={{ fontSize: 16, lineHeight: 1.35, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>
           {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
           {first}
         </div>
-        {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
+        {rest.length > 0 && <div style={{ fontSize: 14, lineHeight: 1.4, color: C.sub, marginTop: 2, whiteSpace: 'pre-line', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{rest.join('\n')}</div>}
       </div>
       <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
         {showDate && <div>{new Date(e.date).getMonth() + 1}월 {new Date(e.date).getDate()}일</div>}
