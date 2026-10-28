@@ -4904,7 +4904,7 @@ export default function App(){
 
       {/* FAB */}
       <button onClick={()=>setModal("add")} style={{
-        position:"fixed",bottom:"calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))",right:"24px",zIndex:200,
+        position:"fixed",bottom:"calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))",right:"max(24px, calc(50% - 324px))",zIndex:200,
         width:"56px",height:"56px",borderRadius:"50%",border:"none",
         background:(ent||ENTITY_ALL).color,color:"#fff",cursor:"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",
