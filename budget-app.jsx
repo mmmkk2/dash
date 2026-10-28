@@ -4782,7 +4782,7 @@ export default function App(){
                   color:e.color,
                   fontFamily:FONT,fontSize:"14px",fontWeight:600,
                   transition:"all 0.2s",boxShadow:"none"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}><span aria-hidden="true" style={{width:"8px",height:"8px",borderRadius:"50%",background:e.color,flexShrink:0}}/>{narrow?e.short:e.label}</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}>{narrow?e.short:e.label}</div>
                 </button>
               );
             })}
