@@ -1953,7 +1953,7 @@ export default function AssetsApp() {
       <div style={{ maxWidth: 660, margin: "0 auto", padding: `calc(${hasTabBar ? 8 : 16}px + env(safe-area-inset-top)) 16px 0` }}>
         {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리, 하단 탭이 없을 땐 가계부도) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
-          <div style={{ fontSize: hasTabBar ? 22 : 28, fontWeight: 700, letterSpacing: hasTabBar ? "-0.5px" : "-0.7px", lineHeight: 1.25, color: C.ink }}>자산</div>
+          <div style={{ fontSize: hasTabBar ? 22 : 28, fontWeight: 700, letterSpacing: hasTabBar ? "-0.5px" : "-0.7px", lineHeight: hasTabBar ? "38px" : 1.25, color: C.ink }}>자산</div>
           <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
           <button onClick={refreshPrices} disabled={fetching} style={{ display: "flex", alignItems: "center", gap: 5, height: 38, boxSizing: "border-box", background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "0 12px", color: C.ink, fontSize: 13, fontWeight: 600, cursor: fetching ? "not-allowed" : "pointer", fontFamily: F }}>
             <RefreshCw size={14} className={fetching ? "spin" : ""} />
