@@ -198,22 +198,26 @@ export default function Anding() {
     return () => { [html.style.overflow, html.style.overscrollBehavior, document.body.style.overflow] = prev }
   }, [])
 
+  const font = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif"
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden' }}>
-      <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
-        style={{ border: 0, width: '100%', height: '100%', display: 'block', opacity: themed ? 1 : 0, transition: 'opacity .15s' }} />
-      <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
-      {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 88 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: `calc(${refreshing ? 36 : Math.max(0, pull - 28)}px + env(safe-area-inset-top))`, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>
-        <RotateCw size={28} strokeWidth={2.5} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
-      </div>}
-      {/* 안에서 문제가 있을 때 따로 열기 */}
-      <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" aria-label="새 창으로 열기" style={{
-        position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', right: 10, display: 'flex', alignItems: 'center', gap: 4,
-        padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, textDecoration: 'none',
-        color: '#2f7a62', background: 'rgba(255,255,255,0.85)', border: '0.5px solid rgba(60,60,67,0.18)',
-        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', fontFamily: "-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
-      }}>새 창 <ExternalLink size={12} /></a>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: font }}>
+      {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 '새 창' (안에서 문제가 있을 때 따로 열기) */}
+      <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>
+        <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" aria-label="새 창으로 열기" style={{
+          display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+          color: '#2f7a62', background: '#fff', border: '0.5px solid rgba(60,60,67,0.18)',
+        }}>새 창 <ExternalLink size={13} /></a>
+      </div>
+      <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+        <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
+          style={{ border: 0, width: '100%', height: '100%', display: 'block', opacity: themed ? 1 : 0, transition: 'opacity .15s' }} />
+        <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
+        {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 88 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: `${refreshing ? 24 : Math.max(0, pull - 40)}px`, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>
+          <RotateCw size={28} strokeWidth={2.5} style={refreshing ? { animation: 'anding-refresh-spin 0.8s linear infinite' } : { transform: `rotate(${pull * 3}deg)` }} />
+        </div>}
+      </div>
     </div>
   )
 }
