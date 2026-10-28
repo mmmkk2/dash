@@ -3032,7 +3032,7 @@ export default function AssetsApp() {
       {/* FAB */}
       {!dbLoading && tab === "asset" && (
         <button onClick={() => setModal("addAsset")} style={{
-          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: 24, zIndex: 200,
+          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(24px, calc(50% - 314px))", zIndex: 200,
           width: 56, height: 56, borderRadius: "50%", border: "none",
           background: TAB_COLOR.asset, color: "#fff", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -3045,7 +3045,7 @@ export default function AssetsApp() {
       )}
       {!dbLoading && tab === "loan" && (
         <button onClick={() => setModal("addLoan")} style={{
-          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: 24, zIndex: 200,
+          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(24px, calc(50% - 314px))", zIndex: 200,
           width: 56, height: 56, borderRadius: "50%", border: "none",
           background: TAB_COLOR.loan, color: "#fff", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -3058,7 +3058,7 @@ export default function AssetsApp() {
       )}
       {!dbLoading && tab === "pension" && (
         <button onClick={() => setModal("addPension")} style={{
-          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: 24, zIndex: 200,
+          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(24px, calc(50% - 314px))", zIndex: 200,
           width: 56, height: 56, borderRadius: "50%", border: "none",
           background: TAB_COLOR.pension, color: "#fff", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -3070,7 +3070,7 @@ export default function AssetsApp() {
         </button>
       )}
       {!dbLoading && tab === "stock" && (
-        <div style={{ position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: 16, zIndex: 200, display: "flex", gap: 8 }}>
+        <div style={{ position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(16px, calc(50% - 314px))", zIndex: 200, display: "flex", gap: 8 }}>
           <button onClick={() => setModal("addDeposit")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.stock, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
             <Plus size={15} /> 예수금
           </button>
@@ -3080,7 +3080,7 @@ export default function AssetsApp() {
         </div>
       )}
       {!dbLoading && tab === "vest" && (
-        <div style={{ position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: 16, zIndex: 200, display: "flex", gap: 8 }}>
+        <div style={{ position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(16px, calc(50% - 314px))", zIndex: 200, display: "flex", gap: 8 }}>
           <button onClick={() => setModal("addOffering")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.vest, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
             <Plus size={15} /> ESPP
           </button>

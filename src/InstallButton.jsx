@@ -81,7 +81,7 @@ export function InstallFloat() {
   return (
     <>
       <div style={{
-        position: 'fixed', left: 16, bottom: 'calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))', zIndex: 150,
+        position: 'fixed', left: 'max(16px, calc(50% - 314px))', bottom: 'calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))', zIndex: 150,
         display: 'flex', alignItems: 'center', borderRadius: 999, fontFamily: F,
         background: canPrompt ? C.tint : 'rgba(255,255,255,0.95)', border: `0.5px solid ${canPrompt ? 'transparent' : C.sep}`,
         boxShadow: '0 4px 14px rgba(0,0,0,0.12)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
