@@ -374,13 +374,17 @@ const TAGS = {
   goion: { label: '고이온', color: '#9867b7', soft: '#faf5fd' },
 }
 
-function TagChip({ tag, on, onClick, small }) {
+// 태그가 없거나 '전체'일 때의 탭 색 (아이콘의 노랑·코랄 블록과 같은 계열, 흰 글씨가 보이게 조금 진하게)
+const MEMO_TINT = '#e39b2d'
+const CAL_TINT = '#ef6a5f'
+
+function TagChip({ tag, on, onClick, small, allColor = C.tint }) {
   const t = TAGS[tag]
   return (
     <button type="button" onClick={onClick} aria-pressed={on} style={{
       ...plain, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', borderRadius: 999,
       fontSize: small ? 12 : 13, fontWeight: 600, padding: small ? '5px 10px' : '7px 11px',
-      background: on ? (t ? t.color + '18' : C.tint) : C.card, color: on && !t ? '#fff' : (t?.color || C.text), border: `0.5px solid ${on && t ? t.color + '66' : C.sep}`,
+      background: on ? (t ? t.color + '18' : allColor) : C.card, color: on && !t ? '#fff' : (t?.color || C.text), border: `0.5px solid ${on && t ? t.color + '66' : C.sep}`,
     }}>
       {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }} />}
       {t ? t.label : '전체'}
@@ -515,7 +519,7 @@ function MemoTab({ memos, reload, setErr }) {
       {/* 태그가 붙은 메모가 있을 때만 사업자별 필터 */}
       {hasTags && (
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 18, paddingBottom: 2 }}>
-          <TagChip small on={!tagFilter} onClick={() => setTagFilter('')} />
+          <TagChip small allColor={MEMO_TINT} on={!tagFilter} onClick={() => setTagFilter('')} />
           {Object.keys(TAGS).map(k => <TagChip key={k} tag={k} small on={tagFilter === k} onClick={() => setTagFilter(tagFilter === k ? '' : k)} />)}
         </div>
       )}
@@ -524,10 +528,10 @@ function MemoTab({ memos, reload, setErr }) {
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
 
-      <Fab label="새 메모" color={TAGS[tagFilter]?.color} onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
+      <Fab label="새 메모" color={TAGS[tagFilter]?.color || MEMO_TINT} onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
-        <Sheet title={!edit.id ? '새 메모' : editing ? '메모 편집' : '메모'} tint={TAGS[edit.tag]?.color} doneLabel={editing ? '저장' : '닫기'} hideCancel={!editing} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
+        <Sheet title={!edit.id ? '새 메모' : editing ? '메모 편집' : '메모'} tint={TAGS[edit.tag]?.color || MEMO_TINT} doneLabel={editing ? '저장' : '닫기'} hideCancel={!editing} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
           full={full}
           actions={<>
             {!editing && (
@@ -779,7 +783,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
             const k = ymd(d), inMonth = d.getMonth() === month.getMonth(), evs = byDate[k] || []
             const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
             const isPeriod = info?.periodDays.has(k), isPredicted = info?.predictedDays.has(k), isFertile = info?.fertileDays.has(k) && !isPeriod && !isPredicted
-            const bg = isSel ? (TAGS[tagFilter]?.color || C.tint) : isPeriod ? BODY.periodSoft : isToday ? C.tintSoft : isFertile ? BODY.fertileSoft : 'transparent'
+            const bg = isSel ? (TAGS[tagFilter]?.color || CAL_TINT) : isPeriod ? BODY.periodSoft : isToday ? C.tintSoft : isFertile ? BODY.fertileSoft : 'transparent'
             const fg = isSel ? '#fff' : isPeriod || isPredicted ? BODY.period : isToday ? C.tint : isFertile ? BODY.fertile : weekend ? C.sub : C.text
             return (
               <button key={k} onClick={() => tapDay(k)} onPointerDown={e => pressStart(k, e)} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerLeave={pressEnd} onPointerCancel={pressEnd}
@@ -829,7 +833,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
 
       {hasTags && (
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '-8px 0 16px', paddingBottom: 2 }}>
-          <TagChip small on={!tagFilter} onClick={() => setTagFilter('')} />
+          <TagChip small allColor={CAL_TINT} on={!tagFilter} onClick={() => setTagFilter('')} />
           {Object.keys(TAGS).map(k => <TagChip key={k} tag={k} small on={tagFilter === k} onClick={() => setTagFilter(tagFilter === k ? '' : k)} />)}
         </div>
       )}
@@ -845,10 +849,10 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </Group>
       )}
 
-      <Fab label="일정 추가" color={TAGS[tagFilter]?.color} onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
+      <Fab label="일정 추가" color={TAGS[tagFilter]?.color || CAL_TINT} onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
-        <Sheet title={edit.id ? '일정 편집' : '새 일정'} tint={TAGS[edit.tag]?.color} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
+        <Sheet title={edit.id ? '일정 편집' : '새 일정'} tint={TAGS[edit.tag]?.color || CAL_TINT} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
           <Group>
             <GrowTextarea autoFocus={!edit.id} value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?"
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
@@ -895,7 +899,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
     <Row onClick={onClick} last={last}>
-      <CheckCircle done={e.done} color={TAGS[e.tag]?.color} onClick={ev => { ev.stopPropagation(); onToggle() }} />
+      <CheckCircle done={e.done} color={TAGS[e.tag]?.color || CAL_TINT} onClick={ev => { ev.stopPropagation(); onToggle() }} />
       <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e), opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
