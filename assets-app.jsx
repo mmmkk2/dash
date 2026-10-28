@@ -1955,7 +1955,7 @@ export default function AssetsApp() {
         </div>
 
         {/* 순자산 */}
-        <div style={{ background: C.white, borderRadius: 16, padding: "16px 18px", border: `0.5px solid ${C.border}`, marginBottom: 12 }}>
+        <div style={{ background: "linear-gradient(135deg, #e9f1fb 0%, #f1ecfa 100%)", borderRadius: 16, padding: "16px 18px", border: "0.5px solid #d9e3f2", marginBottom: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: C.inkLight, marginBottom: 2 }}>순자산 (부채 차감)</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", color: C.ink }}>
             {fmtS(total - loanTotal)}<span style={{ fontSize: 15, fontWeight: 500, color: C.inkLight, marginLeft: 3 }}>원</span>
@@ -1966,7 +1966,7 @@ export default function AssetsApp() {
               <span style={{ fontSize: 16, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: C.inkMid }}>{fmtS(total - pensionTotal - loanTotal)}</span>
             </div>
           )}
-          <div style={{ display: "flex", gap: "4px 12px", marginTop: 10, paddingTop: 10, borderTop: `0.5px solid ${C.border}`, flexWrap: "wrap", fontSize: 13, color: C.inkLight }}>
+          <div style={{ display: "flex", gap: "4px 12px", marginTop: 10, paddingTop: 10, borderTop: "0.5px solid rgba(60,60,67,0.1)", flexWrap: "wrap", fontSize: 13, color: C.inkLight }}>
             <span>주식 {fmtS(stockValue)}</span>
             {depositTotal > 0 && <span>예수금 {fmtS(depositTotal)}</span>}
             <span>기타자산 {fmtS(assetTotal)}</span>
