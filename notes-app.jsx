@@ -12,10 +12,8 @@ const C = {
   tint: '#1c1c1e', tintSoft: 'rgba(0,0,0,0.06)', red: '#e5484d',
 }
 const COLORS = ['#1c1c1e', '#8e8e93', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6']
-// 일정은 빨강이 기본, 무채색 없이 색으로만 구분 (예전 기본색·검정·회색 일정은 빨강으로 보임)
-const EVENT_COLORS = ['#e5484d', '#e8890c', '#3b82c4', '#8b5cf6']
-const NEUTRAL_OLD = ['#1c1c1e', '#8e8e93', '#7a8791', '#177864']
-const eventColor = c => !c || NEUTRAL_OLD.includes(c) ? EVENT_COLORS[0] : c
+// 일정 색은 태그 색 (태그 없으면 회색)
+const eventColor = e => TAGS[e.tag]?.color || '#a1a1a6'
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
 const pad = n => String(n).padStart(2, '0')
@@ -162,19 +160,6 @@ function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, ...props 
     el.style.height = el.scrollHeight + 'px'
   }, [value])
   return <textarea ref={ref} value={value} rows={minRows} {...props} style={{ ...style, maxHeight, overflowY: 'auto' }} />
-}
-
-function ColorPicker({ value, onChange, colors = COLORS, size = 26 }) {
-  return (
-    <div style={{ display: 'flex', gap: size < 26 ? 6 : 12 }}>
-      {colors.map(c => (
-        <button key={c} type="button" onClick={() => onChange(c)} aria-label={c} style={{
-          ...plain, width: size, height: size, borderRadius: '50%', background: c, flexShrink: 0,
-          boxShadow: value === c ? `0 0 0 2px #fff, 0 0 0 4px ${c}` : 'none',
-        }} />
-      ))}
-    </div>
-  )
 }
 
 function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, children }) {
@@ -656,7 +641,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
 
   async function save() {
     if (!edit.text.trim()) return
-    const row = { date: edit.date, time: edit.time ? (edit.end ? `${edit.time}~${edit.end}` : edit.time) : null, title: edit.text.trim(), memo: '', color: edit.color, done: edit.done }
+    const row = { date: edit.date, time: edit.time ? (edit.end ? `${edit.time}~${edit.end}` : edit.time) : null, title: edit.text.trim(), memo: '', done: edit.done }
     if (edit.tag !== undefined) row.tag = edit.tag || null
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
@@ -739,7 +724,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       : n === 0 ? '오늘 생리 예정일' : `생리 예정일 ${-n}일 지남`
     summary = [main, info.fertileDays.has(t) && !info.ongoing ? (info.ovulationDays.has(t) ? '배란 예정일' : '가임기') : null, `평균 주기 ${info.cycle}일`].filter(Boolean)
   }
-  const open = e => { const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, color: eventColor(e.color), time, end, text: joinText(e.title, e.memo) }) }
+  const open = e => { const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, time, end, text: joinText(e.title, e.memo) }) }
   const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
@@ -807,7 +792,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                   border: isPredicted && !isSel ? `1.5px dashed ${BODY.period}80` : 'none',
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3, height: 7 }}>
-                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e.color) }} />)}
+                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e) }} />)}
                 </span>
               </button>
             )
@@ -860,7 +845,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </Group>
       )}
 
-      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', end: '', text: '', color: EVENT_COLORS[0], done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
+      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
         <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
@@ -879,7 +864,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                 style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
             </Row>
             {/* 시간: 비워 두면 하루 종일, 끝나는 시간은 선택 (time 칸에 'HH:MM~HH:MM'로 저장) */}
-            <Row>
+            <Row last>
               <span style={{ flex: 1, fontSize: 16, whiteSpace: 'nowrap' }}>시간</span>
               <input type="time" aria-label="시작 시간" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value, end: e.target.value ? edit.end : '' })}
                 style={{ ...field, width: 'auto', minWidth: 0, fontSize: 15, background: C.fill, borderRadius: 6, padding: '6px 6px' }} />
@@ -891,10 +876,6 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                   style={{ ...plain, color: C.sub, fontSize: 18, padding: '0 2px', lineHeight: 1 }}>×</button>
               </>}
               {!edit.time && <span style={{ fontSize: 14, color: C.sub }}>하루 종일</span>}
-            </Row>
-            <Row last>
-              <span style={{ flex: 1, fontSize: 16 }}>색상</span>
-              <ColorPicker colors={EVENT_COLORS} value={edit.color} onChange={color => setEdit({ ...edit, color })} />
             </Row>
           </Group>
           {edit.id && (
@@ -915,7 +896,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   return (
     <Row onClick={onClick} last={last}>
       <CheckCircle done={e.done} onClick={ev => { ev.stopPropagation(); onToggle() }} />
-      <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e.color), opacity: e.done ? 0.4 : 1 }} />
+      <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e), opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
