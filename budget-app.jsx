@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { useShowTabBar } from "./src/TabBar";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2, Shuffle } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -4712,10 +4712,10 @@ export default function App(){
 
         <div style={{maxWidth:"648px",margin:"0 auto",position:"relative"}}>
 
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"20px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:hasTabBar?"14px":"20px"}}>
             <div>
-
-              <div style={{fontFamily:FONT,fontSize:"28px",fontWeight:700,letterSpacing:"-0.7px",lineHeight:1.25}}>가계부</div>
+              {/* 하단 탭이 있으면 큰 제목 생략 (탭에 이미 표시) */}
+              {!hasTabBar&&<div style={{fontFamily:FONT,fontSize:"28px",fontWeight:700,letterSpacing:"-0.7px",lineHeight:1.25}}>가계부</div>}
               <div style={{display:"flex",alignItems:"center",gap:"5px",marginTop:"4px"}}>
                 {online
                   ?null
@@ -4726,25 +4726,16 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
-              <div style={{display:"flex",gap:"5px",position:"relative"}}>
-                <button onClick={()=>setModal("flow")} title="전체 현금흐름 (개인/카페/부동산 통합)" style={{
-                  background:C.white,border:`1px solid ${C.border}`,
-                  borderRadius:"10px",padding:"7px 9px",color:C.inkMid,
-                  cursor:"pointer",display:"flex",alignItems:"center",
-                  fontSize:"13px",lineHeight:1,flexShrink:0}}>
-                  🔀
+              {/* 머리 버튼: 다른 화면과 같은 38×38 */}
+              <div style={{display:"flex",gap:"6px",position:"relative"}}>
+                <button onClick={()=>setModal("flow")} title="전체 현금흐름 (개인/카페/부동산 통합)" aria-label="전체 현금흐름" style={{width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
+                  <Shuffle size={17}/>
                 </button>
-                <button onClick={()=>setModal("cards")} title="카드 관리" style={{
-                  background:C.white,border:`1px solid ${C.border}`,
-                  borderRadius:"10px",padding:"9px",color:C.inkMid,cursor:"pointer",display:"flex",flexShrink:0}}>
-                  <CreditCard size={14}/>
+                <button onClick={()=>setModal("cards")} title="카드 관리" aria-label="카드 관리" style={{width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
+                  <CreditCard size={17}/>
                 </button>
-                <button onClick={()=>setShowMore(v=>!v)} title="더보기" style={{
-                  position:"relative",
-                  background:showMore?C.white:C.white,border:`1px solid ${C.border}`,
-                  borderRadius:"10px",padding:"7px 9px",color:C.inkMid,cursor:"pointer",display:"flex",
-                  alignItems:"center",fontSize:"13px",lineHeight:1,flexShrink:0}}>
-                  <MoreHorizontal size={14}/>
+                <button onClick={()=>setShowMore(v=>!v)} title="더보기" aria-label="메뉴" style={{position:"relative",width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
+                  <MoreHorizontal size={18}/>
                 </button>
                 {showMore&&<>
                   <div onClick={()=>setShowMore(false)} style={{position:"fixed",inset:0,zIndex:40}}/>

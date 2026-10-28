@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, RotateCw } from 'lucide-react'
+import { useShowTabBar } from '../src/TabBar'
 
 // 앤딩 스터디카페 관리자(별도 앱)를 내비서 안 한 화면으로 띄운다.
 // 다른 주소를 그대로 끼워 넣으면 브라우저가 로그인 쿠키를 막기 때문에,
@@ -198,15 +199,16 @@ export default function Anding() {
     return () => { [html.style.overflow, html.style.overscrollBehavior, document.body.style.overflow] = prev }
   }, [])
 
+  const tabBar = useShowTabBar()
   const font = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif"
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: font }}>
       {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 '새 창' (안에서 문제가 있을 때 따로 열기) */}
       <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>
+        {tabBar ? <span /> : <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>}
         <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" aria-label="새 창으로 열기" style={{
-          display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+          display: 'flex', alignItems: 'center', gap: 4, height: 38, boxSizing: 'border-box', padding: '0 14px', borderRadius: 12, fontSize: 13, fontWeight: 600, textDecoration: 'none',
           color: '#2f7a62', background: '#fff', border: '0.5px solid rgba(60,60,67,0.18)',
         }}>새 창 <ExternalLink size={13} /></a>
       </div>
