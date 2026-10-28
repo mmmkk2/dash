@@ -55,11 +55,15 @@ export default function TabBar() {
           <button key={label} aria-current={on ? 'page' : undefined}
             onClick={() => navigate(typeof to === 'function' ? to() : to)}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
-              color: on ? '#1c1c1e' : '#8e8e93', fontFamily: "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
+              background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+              color: on ? '#1c1c1e' : '#a1a1a6', fontFamily: "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
               fontSize: 11, fontWeight: on ? 700 : 500,
             }}>
-            <Icon size={22} strokeWidth={on ? 2.2 : 1.8} />
+            {/* 선택된 탭은 아이콘 뒤에 옅은 알약 배경 */}
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 28, borderRadius: 999,
+              background: on ? 'rgba(0,0,0,0.08)' : 'transparent', transition: 'background .2s' }}>
+              <Icon size={21} strokeWidth={on ? 2.3 : 1.8} />
+            </span>
             {label}
           </button>
         ))}
