@@ -143,10 +143,10 @@ let _theme = THEMES[localStorage.getItem(THEME_KEY)||"cream"] || THEMES.cream;
 let C = _theme;
 
 const ENTITIES = {
-  personal:{ label:"개인",       short:"개인",   sub:"Personal",        color:"#6b5c4e", accent:"#9c8272" },
-  cafe:    { label:"앤딩스터디카페", short:"앤딩", sub:"Ending Study Café", color:"#2d6a4f", accent:"#52b788" },
-  realty:  { label:"부동산매매",   short:"부동산", sub:"Real Estate",      color:"#1d4e89", accent:"#4a90d9" },
-  goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#6e5a7e", accent:"#a38fb3" },
+  personal:{ label:"개인",       short:"개인",   sub:"Personal",        color:"#b5814e", accent:"#9c8272" },
+  cafe:    { label:"앤딩스터디카페", short:"앤딩", sub:"Ending Study Café", color:"#3e9478", accent:"#52b788" },
+  realty:  { label:"부동산매매",   short:"부동산", sub:"Real Estate",      color:"#4d83ba", accent:"#4a90d9" },
+  goion:   { label:"고이온",       short:"고이온", sub:"위탁판매",          color:"#9867b7", accent:"#a38fb3" },
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
@@ -4776,12 +4776,12 @@ export default function App(){
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
                 <button key={ek} onClick={()=>switchEntity(ek)} style={{
-                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`1.5px solid ${sel?e.color:e.color+"30"}`,
-                  background:sel?`${e.color}20`:C.white,
+                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`0.5px solid ${sel?e.color+"66":C.border}`,
+                  background:sel?`${e.color}18`:C.white,
                   color:e.color,
-                  fontFamily:FONT,fontSize:"14px",fontWeight:sel?600:500,
+                  fontFamily:FONT,fontSize:"14px",fontWeight:600,
                   transition:"all 0.2s",boxShadow:"none"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}><span aria-hidden="true" style={{width:"7px",height:"7px",borderRadius:"50%",background:e.color,flexShrink:0}}/>{narrow?e.short:e.label}</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}><span aria-hidden="true" style={{width:"8px",height:"8px",borderRadius:"50%",background:e.color,flexShrink:0}}/>{narrow?e.short:e.label}</div>
                 </button>
               );
             })}
