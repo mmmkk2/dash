@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { StickyNote, CalendarDays, Wallet, PiggyBank, Store } from 'lucide-react'
 
 // 앱 하단 탭: 휴대폰 폭이거나 설치한 앱으로 열었을 때만 보인다
-const SECTIONS = ['/notes', '/budget', '/assets', '/infinite-buying', '/anding']
+const SECTIONS = ['/notes', '/budget', '/assets', '/anding']
 const LAST_BUDGET = 'dash.lastBudget'
 const HEIGHT = 56
 
@@ -40,7 +40,7 @@ export default function TabBar() {
     { label: '메모', icon: StickyNote, to: '/notes', on: pathname === '/notes' },
     { label: '일정', icon: CalendarDays, to: '/notes/calendar', on: pathname.startsWith('/notes/calendar') },
     { label: '가계부', icon: Wallet, to: lastBudget, on: pathname.startsWith('/budget') },
-    { label: '자산', icon: PiggyBank, to: '/assets', on: pathname.startsWith('/assets') || pathname.startsWith('/infinite-buying') },
+    { label: '자산', icon: PiggyBank, to: '/assets', on: pathname.startsWith('/assets') },
     { label: '앤딩', icon: Store, to: '/anding', on: pathname.startsWith('/anding') },
   ]
 
