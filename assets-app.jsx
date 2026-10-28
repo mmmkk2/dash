@@ -1950,10 +1950,10 @@ export default function AssetsApp() {
     <div style={{ minHeight: "100vh", background: C.bg, paddingBottom: "calc(80px + var(--tabbar, 0px))", fontFamily: F }}>
 
       {/* 머리: 메모·일정처럼 밝은 바탕, 순자산을 크게 */}
-      <div style={{ maxWidth: 660, margin: "0 auto", padding: "calc(16px + env(safe-area-inset-top)) 16px 0" }}>
+      <div style={{ maxWidth: 660, margin: "0 auto", padding: `calc(${hasTabBar ? 8 : 16}px + env(safe-area-inset-top)) 16px 0` }}>
         {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리, 하단 탭이 없을 땐 가계부도) */}
-        <div style={{ display: "flex", justifyContent: hasTabBar ? "flex-end" : "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
-          {!hasTabBar && <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.7px", lineHeight: 1.25, color: C.ink }}>자산</div>}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
+          <div style={{ fontSize: hasTabBar ? 22 : 28, fontWeight: 700, letterSpacing: hasTabBar ? "-0.5px" : "-0.7px", lineHeight: 1.25, color: C.ink }}>자산</div>
           <button aria-label="메뉴" onClick={() => setMoreOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: C.white, border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: C.ink, cursor: "pointer" }}>
             <MoreHorizontal size={18} />
           </button>

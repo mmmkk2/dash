@@ -4708,14 +4708,14 @@ export default function App(){
     <div className="budget-app" style={{fontFamily:FONT,color:C.ink,fontSize:15,minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"}}>
 
       {/* Header */}
-      <div style={{background:C.cream,padding:"16px 16px 0",color:C.ink,position:"relative",zIndex:5}}>
+      <div style={{background:C.cream,padding:hasTabBar?"calc(8px + env(safe-area-inset-top)) 16px 0":"16px 16px 0",color:C.ink,position:"relative",zIndex:5}}>
 
         <div style={{maxWidth:"648px",margin:"0 auto",position:"relative"}}>
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:hasTabBar?"14px":"20px"}}>
             <div>
-              {/* 하단 탭이 있으면 큰 제목 생략 (탭에 이미 표시) */}
-              {!hasTabBar&&<div style={{fontFamily:FONT,fontSize:"28px",fontWeight:700,letterSpacing:"-0.7px",lineHeight:1.25}}>가계부</div>}
+              {/* 하단 탭이 있으면 작은 제목(22px), 없으면 큰 제목 */}
+              <div style={{fontFamily:FONT,fontSize:hasTabBar?"22px":"28px",fontWeight:700,letterSpacing:hasTabBar?"-0.5px":"-0.7px",lineHeight:hasTabBar?"38px":1.25}}>가계부</div>
               <div style={{display:"flex",alignItems:"center",gap:"5px",marginTop:"4px"}}>
                 {online
                   ?null
