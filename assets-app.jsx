@@ -40,8 +40,8 @@ const C = {
   up: "#2d9e6b", down: "#d95f4b",
 };
 // 탭별 포인트 색 (무채색 바탕 위에 선택된 탭·요약 카드·추가 버튼에만)
-const TAB_COLOR = { stock: "#3d7ebf", asset: "#1a8fa0", pension: "#7b52ab", loan: "#d97706", vest: "#2d9e6b" };
-const tintCard = c => ({ background: `color-mix(in srgb, ${c} 7%, #fff)`, border: `0.5px solid color-mix(in srgb, ${c} 28%, #fff)` });
+const TAB_COLOR = { stock: "#5b8fc9", asset: "#3f9fae", pension: "#8f6bbf", loan: "#d08a3a", vest: "#4fa784" };
+const tintCard = c => ({ background: `color-mix(in srgb, ${c} 5%, #fff)`, border: `0.5px solid color-mix(in srgb, ${c} 22%, #fff)` });
 const F = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif";
 
 /* ── Stock price fetch (via server proxy to avoid CORS) ── */
@@ -2011,7 +2011,7 @@ export default function AssetsApp() {
         {/* Tab */}
         <div style={{ display: "flex", background: C.white, borderRadius: 12, padding: 3, border: `0.5px solid ${C.border}`, gap: 2, marginBottom: 14 }}>
           {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금·공제"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 2px", border: "none", borderRadius: 9, cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: tab === k ? TAB_COLOR[k] : "transparent", color: tab === k ? "#fff" : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
+            <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 2px", border: "none", borderRadius: 9, cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: tab === k ? `color-mix(in srgb, ${TAB_COLOR[k]} 14%, #fff)` : "transparent", color: tab === k ? TAB_COLOR[k] : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
           ))}
         </div>
 
