@@ -150,6 +150,14 @@ const ENTITIES = {
 };
 const ENTITY_KEYS = Object.keys(ENTITIES);
 const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888" };
+// 포인트 색: 위에서 고른 사업 칩 색 (C처럼 렌더 때 갱신) — 수입·선택·주요 버튼에만
+let P = ENTITY_ALL.color;
+// 통계처럼 항목을 나눠 보여 줄 때: 사업 색을 진한 것부터 옅게 (실제 hex라 뒤에 투명도 붙여도 됨)
+function shadeP(i){
+  const t=[0,0.25,0.42,0.56,0.68,0.78][Math.min(i,5)];
+  const h=P.replace("#",""), c=[0,2,4].map(k=>parseInt(h.slice(k,k+2),16));
+  return "#"+c.map(v=>Math.round(v+(255-v)*t).toString(16).padStart(2,"0")).join("");
+}
 
 // URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산, /budget/goion=고이온)
 const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty", goion:"goion" };
@@ -550,7 +558,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           <div style={{marginBottom:"8px"}}>
             <SLabel>대분류</SLabel>
             <div style={{display:"flex",gap:"6px"}}>
-              {[["수입","#2d6a4f"],["저축","#1d4e89"],["지출","#b5451b"]].map(([g,gc])=>{
+              {[["수입",P],["저축",P],["지출",P]].map(([g,gc])=>{
                 const sel=group===g;
                 return(
                   <button key={g} className="cat-btn" onClick={()=>pickGroup(g)} style={{
@@ -597,9 +605,9 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               <button key={k} className="cat-btn" onClick={()=>pickCat1(k)} style={{
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
                 fontFamily:FONT,
-                border:`1.5px solid ${cat1===k?v.color:C.border}`,
-                background:cat1===k?v.color:"#fff",color:cat1===k?"#fff":C.inkMid,
-                boxShadow:cat1===k?`0 2px 8px ${v.color}44`:"none"}}>
+                border:`1.5px solid ${cat1===k?P:C.border}`,
+                background:cat1===k?P:"#fff",color:cat1===k?"#fff":C.inkMid,
+                boxShadow:cat1===k?`0 2px 8px ${P}44`:"none"}}>
                 {k}
               </button>
             ))}
@@ -839,28 +847,28 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
       <div style={{marginBottom:"12px"}}>
         <button onClick={()=>setIsFixed(f=>!f)} style={{
           display:"flex",alignItems:"center",gap:"10px",width:"100%",
-          background:isFixed?"#fff8f0":"#fff",
-          border:`1.5px solid ${isFixed?"#b5451b":C.border}`,
+          background:isFixed?P+"10":"#fff",
+          border:`1.5px solid ${isFixed?P:C.border}`,
           borderRadius:isFixed?"12px 12px 0 0":"12px",padding:"11px 14px",cursor:"pointer",transition:"all 0.2s"}}>
           <div style={{width:"38px",height:"22px",borderRadius:"99px",flexShrink:0,
-            background:isFixed?"#b5451b":C.border,position:"relative",transition:"background 0.2s"}}>
+            background:isFixed?P:C.border,position:"relative",transition:"background 0.2s"}}>
             <div style={{width:"16px",height:"16px",borderRadius:"50%",background:"#fff",
               position:"absolute",top:"3px",transition:"left 0.2s",
               left:isFixed?"19px":"3px",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
           </div>
           <div style={{flex:1,textAlign:"left"}}>
-            <div style={{fontSize:"13px",fontWeight:600,color:isFixed?"#b5451b":C.inkMid,fontFamily:FONT}}>{isIncomeCat?"반복수입":"반복지출"}</div>
+            <div style={{fontSize:"13px",fontWeight:600,color:isFixed?P:C.inkMid,fontFamily:FONT}}>{isIncomeCat?"반복수입":"반복지출"}</div>
             <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
               {isIncomeCat?(isFixed?"매달 반복되는 수입":"일반 수입"):(isFixed?"매달 반복되는 지출":"일반 지출")}
             </div>
           </div>
         </button>
         {isFixed&&(
-          <div style={{background:"#fff8f0",border:"1.5px solid #b5451b",borderTop:"1px solid #f4c5b2",
+          <div style={{background:P+"10",border:`1.5px solid ${P}`,borderTop:`1px solid ${P}44`,
             borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
             {/* 매월 발생일 */}
             <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:FONT,flexShrink:0}}>
+              <div style={{fontSize:"11px",fontWeight:600,color:P,fontFamily:FONT,flexShrink:0}}>
                 매월 발생일
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
@@ -871,8 +879,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   return(
                     <button key={d} onClick={()=>setFixedDay(sel?"":String(val))} style={{
                       padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
-                      border:`1.5px solid ${sel?"#b5451b":"#f4c5b2"}`,
-                      background:sel?"#b5451b":"#fff",color:sel?"#fff":"#b5451b",
+                      border:`1.5px solid ${sel?P:P+"55"}`,
+                      background:sel?P:"#fff",color:sel?"#fff":P,
                       fontFamily:FONT}}>
                       {label}
                     </button>
@@ -882,13 +890,13 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               <input type="number" value={fixedDay==="31"?"":fixedDay}
                 onChange={e=>setFixedDay(e.target.value)} placeholder="직접입력"
                 min="1" max="31"
-                style={{width:"70px",border:"1.5px solid #f4c5b2",borderRadius:"8px",
-                  padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
+                style={{width:"70px",border:`1.5px solid ${P}55`,borderRadius:"8px",
+                  padding:"5px 8px",fontSize:"12px",color:P,outline:"none",
                   background:"#fff",fontFamily:FONT,textAlign:"center"}}/>
             </div>
             {/* 반복 주기 — 매월 외 N개월마다 설정 가능 */}
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:600,color:"#b5451b",fontFamily:FONT,flexShrink:0}}>
+              <div style={{fontSize:"11px",fontWeight:600,color:P,fontFamily:FONT,flexShrink:0}}>
                 반복 주기
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1,alignItems:"center"}}>
@@ -898,8 +906,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   return(
                     <button key={n} onClick={()=>setFixedInterval(n)} style={{
                       padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
-                      border:`1.5px solid ${sel?"#b5451b":"#f4c5b2"}`,
-                      background:sel?"#b5451b":"#fff",color:sel?"#fff":"#b5451b",
+                      border:`1.5px solid ${sel?P:P+"55"}`,
+                      background:sel?P:"#fff",color:sel?"#fff":P,
                       fontFamily:FONT}}>
                       {label}
                     </button>
@@ -908,8 +916,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                 <input type="number" value={[1,2,3,6,12].includes(fixedInterval)?"":fixedInterval}
                   onChange={e=>{const v=parseInt(e.target.value);setFixedInterval(v>=1?v:1);}}
                   placeholder="직접입력" min="1" max="24"
-                  style={{width:"70px",border:"1.5px solid #f4c5b2",borderRadius:"8px",
-                    padding:"5px 8px",fontSize:"12px",color:"#b5451b",outline:"none",
+                  style={{width:"70px",border:`1.5px solid ${P}55`,borderRadius:"8px",
+                    padding:"5px 8px",fontSize:"12px",color:P,outline:"none",
                     background:"#fff",fontFamily:FONT,textAlign:"center"}}/>
               </div>
             </div>
@@ -1009,8 +1017,8 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         const name=(cat3||cat2||memo.trim()||"").toLowerCase();
         const match=supplies.find(s=>(s.name||"").toLowerCase()===name);
         return match?<div style={{marginBottom:"8px",padding:"7px 12px",borderRadius:"8px",
-          background:"#f0fdf4",border:"1px solid #b7e4c7",
-          fontSize:"11px",color:"#2d6a4f",fontFamily:FONT}}>
+          background:P+"10",border:`1px solid ${P}44`,
+          fontSize:"11px",color:P,fontFamily:FONT}}>
           소모품 <b>{match.name}</b> 과 연결됩니다 — 토글을 켜면 구매일이 업데이트돼요
         </div>:null;
       })()}
@@ -1020,27 +1028,27 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         <div style={{marginBottom:"12px"}}>
           <button onClick={()=>{const next=!isSupply;setIsSupply(next);if(next&&!supplyName)setSupplyName(cat3||cat2||memo.trim()||"");if(next)setSupplyCat(cat2||"소모품");}} style={{
             display:"flex",alignItems:"center",gap:"10px",width:"100%",
-            background:isSupply?"#f0fdf4":"#fff",
-            border:`1.5px solid ${isSupply?"#2d6a4f":C.border}`,
+            background:isSupply?P+"10":"#fff",
+            border:`1.5px solid ${isSupply?P:C.border}`,
             borderRadius:isSupply?"12px 12px 0 0":"12px",padding:"11px 14px",cursor:"pointer",transition:"all 0.2s"}}>
             <div style={{width:"38px",height:"22px",borderRadius:"99px",flexShrink:0,
-              background:isSupply?"#2d6a4f":C.border,position:"relative",transition:"background 0.2s"}}>
+              background:isSupply?P:C.border,position:"relative",transition:"background 0.2s"}}>
               <div style={{width:"16px",height:"16px",borderRadius:"50%",background:"#fff",
                 position:"absolute",top:"3px",left:isSupply?"19px":"3px",transition:"left 0.2s",
                 boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
             </div>
             <div style={{flex:1,textAlign:"left"}}>
-              <div style={{fontSize:"13px",fontWeight:600,color:isSupply?"#2d6a4f":C.inkMid,fontFamily:FONT}}>소모품 등록</div>
+              <div style={{fontSize:"13px",fontWeight:600,color:isSupply?P:C.inkMid,fontFamily:FONT}}>소모품 등록</div>
               <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
                 {isSupply?"소모품 탭에 자동 반영됩니다":"소모품 관리에 추가하려면 켜세요"}
               </div>
             </div>
           </button>
           {isSupply&&(
-            <div style={{background:"#f0fdf4",border:"1.5px solid #2d6a4f",borderTop:"1px solid #b7e4c7",
+            <div style={{background:P+"10",border:`1.5px solid ${P}`,borderTop:`1px solid ${P}44`,
               borderRadius:"0 0 12px 12px",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"10px"}}>
               <div>
-                <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>소모품명</div>
+                <div style={{fontSize:"10px",fontWeight:700,color:P,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>소모품명</div>
                 <input value={supplyName} onChange={e=>setSupplyName(e.target.value)}
                   placeholder={memo||cat2||"예: 원두, 화장지"}
                   style={{width:"100%",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"8px 10px",
@@ -1048,7 +1056,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               </div>
               {/* 기존 소모품 매칭 표시 */}
               {(()=>{const match=supplies.find(s=>s.name===(supplyName.trim()||memo.trim()||cat2));
-                return match?<div style={{fontSize:"11px",color:"#2d6a4f",fontFamily:FONT}}>
+                return match?<div style={{fontSize:"11px",color:P,fontFamily:FONT}}>
                   ✓ 기존 소모품 &quot;{match.name}&quot;의 구매일이 업데이트됩니다
                 </div>:<div style={{fontSize:"11px",color:"#6a9070",fontFamily:FONT}}>
                   + 새 소모품으로 등록됩니다
@@ -1294,8 +1302,8 @@ function CategorySettings({trees, onChange}){
                 {isEditing?(
                   <>
                     <button onClick={e=>{e.stopPropagation();renameCat1(cat1,editCat1.val);}}
-                      style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"6px",
-                        padding:"3px 8px",cursor:"pointer",color:"#2d6a4f",fontSize:"11px",fontWeight:600}}>저장</button>
+                      style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"6px",
+                        padding:"3px 8px",cursor:"pointer",color:P,fontSize:"11px",fontWeight:600}}>저장</button>
                     <button onClick={e=>{e.stopPropagation();setEditCat1(null);}}
                       style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
                         padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"11px"}}>취소</button>
@@ -1340,8 +1348,8 @@ function CategorySettings({trees, onChange}){
                             style={{flex:1,border:`1px solid ${C.border}`,borderRadius:"6px",padding:"4px 8px",
                               fontSize:"12px",fontWeight:600,outline:"none",fontFamily:FONT}}/>
                           <button onClick={()=>renameCat2(cat1,cat2,editCat2.val)}
-                            style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"6px",
-                              padding:"3px 8px",cursor:"pointer",color:"#2d6a4f",fontSize:"11px",fontWeight:600}}>저장</button>
+                            style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"6px",
+                              padding:"3px 8px",cursor:"pointer",color:P,fontSize:"11px",fontWeight:600}}>저장</button>
                           <button onClick={()=>setEditCat2(null)}
                             style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
                               padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"11px"}}>취소</button>
@@ -1384,8 +1392,8 @@ function CategorySettings({trees, onChange}){
                                   style={{border:`1px solid ${C.border}`,borderRadius:"20px",padding:"3px 8px",
                                     fontSize:"11px",outline:"none",fontFamily:FONT,width:"90px"}}/>
                                 <button onClick={()=>renameCat3(cat1,cat2,cat3,editCat3.val)}
-                                  style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"6px",
-                                    padding:"2px 6px",cursor:"pointer",color:"#2d6a4f",fontSize:"10px",fontWeight:600}}>저장</button>
+                                  style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"6px",
+                                    padding:"2px 6px",cursor:"pointer",color:P,fontSize:"10px",fontWeight:600}}>저장</button>
                                 <button onClick={()=>setEditCat3(null)}
                                   style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
                                     padding:"2px 6px",cursor:"pointer",color:C.inkLight,fontSize:"10px"}}>취소</button>
@@ -1545,8 +1553,8 @@ function CardSettings({cards,onChange,saving}){
             <div style={{display:"flex",gap:"4px"}}>
               {editId===c.id
                 ?<>
-                  <button onClick={()=>saveEdit(c.id)} style={{background:"#f0fdf4",border:"1px solid #b7e4c7",
-                    borderRadius:"7px",padding:"5px 10px",cursor:"pointer",color:"#2d6a4f",fontSize:"12px",fontWeight:600}}>저장</button>
+                  <button onClick={()=>saveEdit(c.id)} style={{background:P+"10",border:`1px solid ${P}44`,
+                    borderRadius:"7px",padding:"5px 10px",cursor:"pointer",color:P,fontSize:"12px",fontWeight:600}}>저장</button>
                   <button onClick={()=>setEditId(null)} style={{background:C.cream,border:`1px solid ${C.border}`,
                     borderRadius:"7px",padding:"5px 10px",cursor:"pointer",color:C.inkLight,fontSize:"12px"}}>취소</button>
                 </>
@@ -1873,9 +1881,9 @@ function CalendarView({txs, year, month, onEdit, cards}){
               {day&&(
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1px"}}>
                   {day.expense>0&&<div style={{fontSize:"8.5px",fontWeight:700,fontFamily:FONT,
-                    color:isSelected?"#f4b8a0":"#b5451b"}}>-{fmtCompact(day.expense)}</div>}
+                    color:isSelected?"rgba(255,255,255,0.75)":C.inkMid}}>-{fmtCompact(day.expense)}</div>}
                   {day.income>0&&<div style={{fontSize:"8.5px",fontWeight:700,fontFamily:FONT,
-                    color:isSelected?"#a8d8bc":"#2d6a4f"}}>+{fmtCompact(day.income)}</div>}
+                    color:isSelected?"rgba(255,255,255,0.9)":P}}>+{fmtCompact(day.income)}</div>}
                 </div>
               )}
             </button>
@@ -1898,28 +1906,27 @@ function CalendarView({txs, year, month, onEdit, cards}){
               padding:"9px 16px 8px",background:C.paper,borderBottom:`1px solid ${C.border}`}}>
               <div style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:C.ink}}>{selected}</div>
               <div style={{display:"flex",gap:"10px"}}>
-                {byDate[selected].income>0&&<span style={{fontSize:"11px",color:"#2d6a4f",fontWeight:600,fontFamily:FONT}}>+{fmtS(byDate[selected].income)}</span>}
-                {byDate[selected].expense>0&&<span style={{fontSize:"11px",color:"#b5451b",fontWeight:600,fontFamily:FONT}}>-{fmtS(byDate[selected].expense)}</span>}
+                {byDate[selected].income>0&&<span style={{fontSize:"11px",color:P,fontWeight:600,fontFamily:FONT}}>+{fmtS(byDate[selected].income)}</span>}
+                {byDate[selected].expense>0&&<span style={{fontSize:"11px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(byDate[selected].expense)}</span>}
               </div>
             </div>
             {selectedItems.map((tx,idx)=>{
               const card=tx.cardId?cardMap[tx.cardId]:null;
-              const tree=TREES[tx.entity]||TREE_PERSONAL;
-              const m1=tree[tx.cat1]||{color:C.inkMid,accent:C.inkLight};
+              const ec=(ENTITIES[tx.entity]||{}).color||P;
               return(
                 <div key={tx.id} className="tx-row" onClick={()=>onEdit(tx)}
                   style={{display:"flex",alignItems:"center",gap:"10px",padding:"11px 16px",
                     borderTop:idx>0?`1px solid ${C.border}`:"none",
                     cursor:"pointer",transition:"background 0.15s"}}>
                   <div style={{width:"3px",height:"36px",borderRadius:"99px",flexShrink:0,
-                    background:`linear-gradient(180deg,${m1.color},${m1.accent})`}}/>
+                    background:ec}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
-                      <span style={{fontSize:"10px",background:m1.color+"18",color:m1.color,
+                      <span style={{fontSize:"10px",background:ec+"18",color:ec,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         fontFamily:FONT}}>{catDisplayName(tx.cat1)}</span>
                       <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{tx.cat2}</span>
-                      {tx.cat3&&<span style={{fontSize:"10px",background:m1.accent+"18",color:m1.color,
+                      {tx.cat3&&<span style={{fontSize:"10px",background:ec+"10",color:ec,
                         borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
                         fontFamily:FONT}}>{tx.cat3}</span>}
                     </div>
@@ -1929,7 +1936,7 @@ function CalendarView({txs, year, month, onEdit, cards}){
                       borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:FONT}}>{card.name}</span></div>}
                   </div>
                   <div style={{fontSize:"14px",fontWeight:700,flexShrink:0,
-                    color:tx.type==="income"?"#2d6a4f":"#b5451b",
+                    color:tx.type==="income"?P:C.ink,
                     fontFamily:FONT,letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
@@ -2158,10 +2165,10 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         <div style={{position:"absolute",top:0,left:0,bottom:0,width:"3px",background:barColor}}/>
         <div style={{flex:1,minWidth:0,paddingLeft:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
-            <span style={{fontSize:"9px",background:isIncome?"#f0fdf4":"#fff0ee",
-              color:isIncome?"#2d6a4f":"#b5451b",
+            <span style={{fontSize:"9px",background:isIncome?P+"10":"#fff0ee",
+              color:isIncome?P:C.ink,
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-              border:`1px solid ${isIncome?"#b7e4c7":"#f4c5b2"}`,
+              border:`1px solid ${isIncome?P+"44":C.border}`,
               fontFamily:FONT}}>{isIncome?"수입":"지출"}</span>
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
               fontFamily:FONT,overflow:"hidden",flex:1,minWidth:0,
@@ -2210,7 +2217,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div style={{fontFamily:FONT,fontSize:"15px",
-            color:tx.type==="income"?"#2d6a4f":"#b5451b",fontWeight:700,
+            color:tx.type==="income"?P:C.ink,fontWeight:700,
             opacity:isScheduled?0.6:1}}>
             {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
           </div>
@@ -2224,7 +2231,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         {isScheduled?(
           editAmount!==null?(
             <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",border:"1.5px solid #f4c5b2",
+              <div style={{display:"flex",alignItems:"center",border:`1.5px solid ${P}55`,
                 borderRadius:"8px",padding:"3px 8px",background:"#fff"}}>
                 <input type="text" inputMode="numeric" autoFocus value={editAmount}
                   onChange={e=>{const raw=e.target.value.replace(/[^0-9]/g,"");setEditAmount(raw?Number(raw).toLocaleString("ko-KR"):raw);}}
@@ -2233,16 +2240,16 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                     if(e.key==="Escape")setEditAmount(null);
                   }}
                   style={{width:"80px",border:"none",background:"transparent",fontSize:"13px",
-                    fontWeight:700,color:"#b5451b",outline:"none",textAlign:"right",
+                    fontWeight:700,color:C.ink,outline:"none",textAlign:"right",
                     fontFamily:FONT}}/>
-                <span style={{fontSize:"11px",color:"#b5451b",marginLeft:"2px"}}>원</span>
+                <span style={{fontSize:"11px",color:C.ink,marginLeft:"2px"}}>원</span>
               </div>
               <button onClick={()=>{
                 const num=parseInt(String(editAmount).replace(/,/g,""));
                 if(!num||num<=0) return;
                 handleRegister({...tx,amount:num},regDate);
                 setEditAmount(null);
-              }} disabled={isReg} style={{background:"#b5451b",border:"none",borderRadius:"8px",
+              }} disabled={isReg} style={{background:P,border:"none",borderRadius:"8px",
                 padding:"5px 8px",cursor:"pointer",color:"#fff",display:"flex",alignItems:"center"}}>
                 <Check size={12}/>
               </button>
@@ -2258,22 +2265,22 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                 <button onClick={()=>setLinkOpenFor(isLinkOpen?null:tx.memo)} disabled={isReg}
                   title="이미 내역에 있는 거래에 연결"
                   style={{background:isLinkOpen?"#eef2ff":"#fff",
-                    border:`1px solid ${isLinkOpen?"#b0c4de":"#f4c5b2"}`,borderRadius:"8px",
-                    padding:"5px 7px",cursor:"pointer",color:isLinkOpen?"#1d4e89":"#b5451b",
+                    border:`1px solid ${isLinkOpen?"#b0c4de":P+"55"}`,borderRadius:"8px",
+                    padding:"5px 7px",cursor:"pointer",color:isLinkOpen?"#1d4e89":P,
                     display:"flex",alignItems:"center"}}>
                   <Link2 size={12}/>
                 </button>
               )}
               <button onClick={()=>setEditAmount(tx.amount.toLocaleString("ko-KR"))} disabled={isReg}
                 title="금액 수정 후 등록"
-                style={{background:isReg?"#f4c5b2":"#fff",border:"1px solid #f4c5b2",borderRadius:"8px",
-                  padding:"5px 7px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",
+                style={{background:isReg?P+"55":"#fff",border:`1px solid ${P}55`,borderRadius:"8px",
+                  padding:"5px 7px",cursor:isReg?"not-allowed":"pointer",color:P,
                   display:"flex",alignItems:"center",opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
                 <Pencil size={11}/>
               </button>
               <button onClick={()=>handleRegister(tx,regDate)} disabled={isReg}
-                style={{background:isReg?"#f4c5b2":"#fff8f0",border:"1px solid #f4c5b2",borderRadius:"8px",
-                  padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:"#b5451b",fontSize:"11px",fontWeight:600,
+                style={{background:isReg?P+"55":P+"12",border:`1px solid ${P}55`,borderRadius:"8px",
+                  padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:P,fontSize:"11px",fontWeight:600,
                   flexShrink:0,fontFamily:FONT,display:"flex",alignItems:"center",gap:"4px",
                   opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
                 {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
@@ -2335,7 +2342,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                     {c.date} · {c.memo}
                   </span>
                   <span style={{fontSize:"12px",fontWeight:700,flexShrink:0,
-                    color:c.type==="income"?"#2d6a4f":"#b5451b"}}>
+                    color:c.type==="income"?P:C.ink}}>
                     {c.type==="income"?"+":"-"}{fmtS(c.amount)}
                   </span>
                 </button>
@@ -2359,7 +2366,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                   padding:"6px 10px",fontFamily:FONT}}>
                   <span style={{fontSize:"11px",color:C.inkMid}}>{h.date}</span>
                   <span style={{fontSize:"12px",fontWeight:700,flexShrink:0,
-                    color:h.type==="income"?"#2d6a4f":"#b5451b"}}>
+                    color:h.type==="income"?P:C.ink}}>
                     {h.type==="income"?"+":"-"}{fmtS(h.amount)}
                   </span>
                   <button onClick={()=>onEdit(h)} title="이 거래 수정/삭제" style={{background:"none",
@@ -2409,13 +2416,13 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       {scheduled.length>0&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:"#b5451b",letterSpacing:"0.12em",
+            <div style={{fontSize:"10px",fontWeight:700,color:C.inkMid,letterSpacing:"0.12em",
               textTransform:"uppercase",fontFamily:FONT}}>
               이번 달 예정 ({scheduled.length}건)
             </div>
             <div style={{fontFamily:FONT,fontSize:"14px",display:"flex",gap:"6px"}}>
-              {totalScheduledIncome>0&&<span style={{color:"#2d6a4f"}}>+{fmtS(totalScheduledIncome)}</span>}
-              {totalScheduledExpense>0&&<span style={{color:"#b5451b",opacity:0.7}}>-{fmtS(totalScheduledExpense)}</span>}
+              {totalScheduledIncome>0&&<span style={{color:P}}>+{fmtS(totalScheduledIncome)}</span>}
+              {totalScheduledExpense>0&&<span style={{color:C.inkMid,opacity:0.7}}>-{fmtS(totalScheduledExpense)}</span>}
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -2433,8 +2440,8 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               이번 달 발생 ({occurred.length}건)
             </div>
             <div style={{fontFamily:FONT,fontSize:"14px",display:"flex",gap:"6px"}}>
-              {totalOccurredIncome>0&&<span style={{color:"#2d6a4f"}}>+{fmtS(totalOccurredIncome)}</span>}
-              {totalOccurredExpense>0&&<span style={{color:"#b5451b"}}>-{fmtS(totalOccurredExpense)}</span>}
+              {totalOccurredIncome>0&&<span style={{color:P}}>+{fmtS(totalOccurredIncome)}</span>}
+              {totalOccurredExpense>0&&<span style={{color:C.inkMid}}>-{fmtS(totalOccurredExpense)}</span>}
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -2448,10 +2455,10 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         const totalExpense=totalOccurredExpense+totalScheduledExpense;
         const totalIncome=totalOccurredIncome+totalScheduledIncome;
         const net=totalIncome-totalExpense;
-        const netColor=net>=0?"#2d6a4f":"#b5451b";
+        const netColor=net>=0?P:C.ink;
         return(
-      <div style={{background:"#fff8f0",borderRadius:"16px",padding:"16px 18px",
-        border:"1px solid #f4c5b2",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{background:C.white,borderRadius:"16px",padding:"16px 18px",
+        border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:"9px",fontWeight:700,color:netColor,letterSpacing:"0.12em",
             textTransform:"uppercase",marginBottom:"4px",fontFamily:FONT}}>
@@ -2462,8 +2469,8 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          {totalIncome>0&&<div style={{fontSize:"10px",color:"#2d6a4f",fontFamily:FONT}}>반복수입 +{fmtS(totalIncome)}</div>}
-          <div style={{fontSize:"10px",color:"#b5451b",fontFamily:FONT}}>반복지출 -{fmtS(totalExpense)}</div>
+          {totalIncome>0&&<div style={{fontSize:"10px",color:P,fontFamily:FONT}}>반복수입 +{fmtS(totalIncome)}</div>}
+          <div style={{fontSize:"10px",color:C.inkMid,fontFamily:FONT}}>반복지출 -{fmtS(totalExpense)}</div>
           <div style={{fontSize:"9px",color:C.inkLight,marginTop:"2px",fontFamily:FONT}}>발생 {fmtS(totalOccurredIncome+totalOccurredExpense)} · 예정 {fmtS(totalScheduledIncome+totalScheduledExpense)}</div>
         </div>
       </div>
@@ -2502,7 +2509,7 @@ function TxMiniList({txs, onEdit}){
             </div>
           </div>
           <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,fontFamily:FONT,
-            color:t.type==="income"?"#2d6a4f":"#b5451b"}}>
+            color:t.type==="income"?P:C.ink}}>
             {t.type==="income"?"+":"-"}{fmtS(t.amount)}
           </div>
           {onEdit&&<Pencil size={11} style={{color:C.border,flexShrink:0}}/>}
@@ -2677,7 +2684,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
     return Object.entries(m).map(([name,d])=>({
       name:catDisplayName(name),rawName:name,value:d.value,color:tree[name]?.color||C.inkMid,
       sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v,isRefund:n==="환불"})).sort((a,b)=>b.value-a.value),
-    })).sort((a,b)=>b.value-a.value);
+    })).sort((a,b)=>b.value-a.value).map((x,i)=>({...x,color:shadeP(i)}));
   }
 
   const byIncome=useMemo(()=>buildBreakdown(t=>t.type==="income"||(t.type==="expense"&&t.cat1===REFUND_CAT1)),[txs,tree,entity]);
@@ -2745,8 +2752,8 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
       {/* Summary */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px"}}>
         {[
-          {label:"수입",val:"+"+fmtS(incomeAmt),color:"#2d6a4f",bg:"#f0fdf4",tab:"income"},
-          {label:"지출",val:fmtS(expense),color:"#b5451b",bg:"#fff5f0",tab:"expense"},
+          {label:"수입",val:"+"+fmtS(incomeAmt),color:P,bg:P+"10",tab:"income"},
+          {label:"지출",val:fmtS(expense),color:C.ink,bg:C.cream,tab:"expense"},
           {label:"저축률",val:saved>0?`${savingsRate}%`:"—",color:saved>0?"#1d4e89":C.inkLight,bg:"#f0f4ff",tab:null},
         ].map(({label,val,color,bg,tab})=>(
           <div key={label} onClick={tab?()=>{setStatsTab(tab);setExpanded(null);}:undefined}
@@ -2803,8 +2810,8 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                     <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
                     <div style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink,fontFamily:FONT}}>{item.name}</div>
                     <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-                      {item.income>0&&<span style={{fontSize:"11px",color:"#2d6a4f",fontWeight:600,fontFamily:FONT}}>+{fmtS(item.income)}</span>}
-                      {item.expense>0&&<span style={{fontSize:"11px",color:"#b5451b",fontWeight:600,fontFamily:FONT}}>-{fmtS(item.expense)}</span>}
+                      {item.income>0&&<span style={{fontSize:"11px",color:P,fontWeight:600,fontFamily:FONT}}>+{fmtS(item.income)}</span>}
+                      {item.expense>0&&<span style={{fontSize:"11px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(item.expense)}</span>}
                       <span style={{fontSize:"13px",fontWeight:700,fontFamily:FONT,
                         color:item.net>=0?"#1d4e89":"#831843",
                         borderLeft:`1px solid ${C.border}`,paddingLeft:"8px"}}>
@@ -2816,15 +2823,15 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
                     {item.income>0&&(
                       <div>
-                        <div style={{background:"#f0fdf4",borderRadius:"99px",height:"5px",overflow:"hidden"}}>
-                          <div style={{width:`${Math.round((item.income/maxAbs)*100)}%`,height:"100%",background:"#2d6a4f",borderRadius:"99px"}}/>
+                        <div style={{background:P+"10",borderRadius:"99px",height:"5px",overflow:"hidden"}}>
+                          <div style={{width:`${Math.round((item.income/maxAbs)*100)}%`,height:"100%",background:P,borderRadius:"99px"}}/>
                         </div>
                       </div>
                     )}
                     {item.expense>0&&(
                       <div>
                         <div style={{background:"#fff5f0",borderRadius:"99px",height:"5px",overflow:"hidden"}}>
-                          <div style={{width:`${Math.round((item.expense/maxAbs)*100)}%`,height:"100%",background:"#b5451b",borderRadius:"99px"}}/>
+                          <div style={{width:`${Math.round((item.expense/maxAbs)*100)}%`,height:"100%",background:C.inkLight,borderRadius:"99px"}}/>
                         </div>
                       </div>
                     )}
@@ -2848,7 +2855,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                               <span style={{fontSize:"11px",color:C.inkMid,fontFamily:FONT,fontWeight:500}}>{s.name}</span>
                               <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
                                 <span style={{fontSize:"11px",fontFamily:FONT,fontWeight:600,
-                                  color:s.type==="income"?"#2d6a4f":"#b5451b"}}>
+                                  color:s.type==="income"?P:C.ink}}>
                                   {s.type==="income"?"+":"-"}{fmtS(s.value)}
                                 </span>
                                 <span style={{fontSize:"9px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
@@ -3101,7 +3108,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
           <div key={r.ek} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:"14px",padding:"14px 16px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
               <div style={{fontWeight:700,fontSize:"14px",color:ENTITIES[r.ek].color}}>{ENTITIES[r.ek].label}</div>
-              <div style={{fontWeight:800,fontSize:"15px",color:r.net>=0?"#2d6a4f":"#b5451b"}}>
+              <div style={{fontWeight:800,fontSize:"15px",color:r.net>=0?P:C.ink}}>
                 {r.net>=0?"+":""}{fmt(r.net)}
               </div>
             </div>
@@ -3191,9 +3198,9 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
             {goal&&(
               <div>
                 <div style={{height:"5px",borderRadius:"3px",background:C.cream,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${pct}%`,borderRadius:"3px",background:met?"#2d6a4f":c.color,transition:"width 0.2s"}}/>
+                  <div style={{height:"100%",width:`${pct}%`,borderRadius:"3px",background:met?P:c.color,transition:"width 0.2s"}}/>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:"3px",fontSize:"10px",color:met?"#2d6a4f":C.inkLight,fontWeight:met?700:400}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:"3px",fontSize:"10px",color:met?P:C.inkLight,fontWeight:met?700:400}}>
                   <span>{met?"실적 달성":"실적 목표"} {fmt(goal)}</span>
                   <span>{pct}%</span>
                 </div>
@@ -3286,7 +3293,7 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
                     {card&&<div style={{fontSize:"9px",color:card.color,marginTop:"2px",fontFamily:FONT}}>{card.name}</div>}
                   </div>
                   <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,
-                    color:tx.type==="income"?"#2d6a4f":"#b5451b",fontFamily:FONT}}>
+                    color:tx.type==="income"?P:C.ink,fontFamily:FONT}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
                   <button onClick={e=>{e.stopPropagation();onToggle(tx.id);}}
@@ -3597,7 +3604,7 @@ function CoupangImport({ onRegister }) {
           {toReg.length>0&&(
             <button onClick={registerAll} style={{
               width:"100%",padding:"12px",marginBottom:"14px",
-              background:submitted?"#2d6a4f":C.ink,color:"#fff",border:"none",
+              background:submitted?P:C.ink,color:"#fff",border:"none",
               borderRadius:"12px",fontSize:"14px",fontWeight:700,cursor:"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
               fontFamily:FONT,transition:"all 0.3s",
@@ -3709,7 +3716,7 @@ function CoupangImport({ onRegister }) {
                       padding:"9px 12px",border:`1px solid ${C.border}`,
                       opacity:0.6,display:"flex",alignItems:"center",gap:"9px"}}>
                       <div style={{width:"17px",height:"17px",borderRadius:"50%",flexShrink:0,
-                        background:"#2d6a4f",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        background:P,display:"flex",alignItems:"center",justifyContent:"center"}}>
                         <Check size={10} color="#fff"/>
                       </div>
                       <div style={{flex:1,minWidth:0}}>
@@ -3736,12 +3743,12 @@ function CoupangImport({ onRegister }) {
           )}
 
           {pending.filter(r=>r.entity!=="skip").length===0&&done.length>0&&(
-            <div style={{textAlign:"center",padding:"24px",background:"#f0fdf4",
-              borderRadius:"16px",border:"1px solid #b7e4c7"}}>
-              <div style={{fontFamily:FONT,fontSize:"18px",color:"#2d6a4f",marginBottom:"4px"}}>
+            <div style={{textAlign:"center",padding:"24px",background:P+"10",
+              borderRadius:"16px",border:`1px solid ${P}44`}}>
+              <div style={{fontFamily:FONT,fontSize:"18px",color:P,marginBottom:"4px"}}>
                 모두 처리했어요
               </div>
-              <div style={{fontSize:"11px",color:"#2d6a4f",opacity:0.7}}>
+              <div style={{fontSize:"11px",color:P,opacity:0.7}}>
                 {done.length}건 · -{done.reduce((s,r)=>s+(parseInt(r.amountEdit)||0),0).toLocaleString("ko-KR")}원
               </div>
             </div>
@@ -3923,7 +3930,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     if(d===null) return { label:"이력 수집 중", color:C.inkLight, bg:C.cream, border:C.border, icon:<Package size={11}/> };
     if (d < 0)   return { label:"구매 필요", color:"#b5451b", bg:"#fff8f0", border:"#f4c5b2", icon:<AlertTriangle size={11}/> };
     if (d <= 3)  return { label:`${d}일 후`, color:"#b8860b", bg:"#fffbf0", border:"#f0d080", icon:<Clock size={11}/> };
-    return         { label:`${d}일 후`, color:"#2d6a4f", bg:"#f0fdf4", border:"#b7e4c7", icon:<Package size={11}/> };
+    return         { label:`${d}일 후`, color:P, bg:P+"10", border:P+"44", icon:<Package size={11}/> };
   };
 
 
@@ -4030,17 +4037,17 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
             {SUPPLY_CATS.map(c=>(
               <button key={c} onClick={()=>setForm(p=>({...p,category:c}))} style={{
                 padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
-                border:`1.5px solid ${form.category===c?"#2d6a4f":C.border}`,
-                background:form.category===c?"#2d6a4f14":"#fff",
-                color:form.category===c?"#2d6a4f":C.inkMid,fontFamily:FONT}}>{c}</button>
+                border:`1.5px solid ${form.category===c?P:C.border}`,
+                background:form.category===c?P+"14":"#fff",
+                color:form.category===c?P:C.inkMid,fontFamily:FONT}}>{c}</button>
             ))}
           </div>
           <Inp value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}
             placeholder="직접 입력" style={{fontSize:"13px"}}/>
         </div>
         {/* 기준 금액 */}
-        <div style={{background:"#f0fdf4",borderRadius:"12px",padding:"12px 14px",border:"1px solid #b7e4c7"}}>
-          <div style={{fontSize:"10px",fontWeight:700,color:"#2d6a4f",letterSpacing:"0.08em",marginBottom:"10px",fontFamily:FONT}}>
+        <div style={{background:P+"10",borderRadius:"12px",padding:"12px 14px",border:`1px solid ${P}44`}}>
+          <div style={{fontSize:"10px",fontWeight:700,color:P,letterSpacing:"0.08em",marginBottom:"10px",fontFamily:FONT}}>
             소진 주기는 구매 이력으로 자동 계산됩니다
           </div>
           <SLabel>기준 구매금액 (원) — 금액이 다를 때 주기 보정용</SLabel>
@@ -4063,10 +4070,10 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
       </div>
 
       <button onClick={isEdit?handleEdit:handleAdd} disabled={saving} style={{
-        width:"100%",padding:"14px",background:saving?"#8e8e93":"#2d6a4f",color:"#fff",border:"none",
+        width:"100%",padding:"14px",background:saving?"#8e8e93":P,color:"#fff",border:"none",
         borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:saving?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
-        fontFamily:FONT,boxShadow:"0 4px 18px #2d6a4f55"}}>
+        fontFamily:FONT,boxShadow:`0 4px 18px ${P}55`}}>
         {saving?<><RefreshCw size={15} className="spin"/> 저장 중...</>
           :isEdit?<><Check size={15}/> 저장하기</>:<><Plus size={15}/> 추가하기</>}
       </button>
@@ -4088,10 +4095,10 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
           setForm({name:"",category:"소모품",cycle_days:"",last_bought:todayStr,memo:""});
           setModal("add");
         }} style={{
-          background:"#2d6a4f",border:"none",borderRadius:"10px",padding:"9px 14px",
+          background:P,border:"none",borderRadius:"10px",padding:"9px 14px",
           color:"#fff",fontSize:"12px",fontWeight:600,cursor:"pointer",
           display:"flex",alignItems:"center",gap:"5px",fontFamily:FONT,
-          boxShadow:"0 3px 10px #2d6a4f44"}}>
+          boxShadow:`0 3px 10px ${P}44`}}>
           <Plus size={13}/> 추가
         </button>
       </div>
@@ -4193,8 +4200,8 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                            cat2:s.category||"소모품", cat3:"", memo:s.name,
                            amount:s.base_amount||s.last_amount||"", cardId:"", isFixed:false, type:"expense"};
                       setBuyingTx(pre);
-                    }} style={{background:"#f0fdf4",border:"1px solid #b7e4c7",borderRadius:"8px",
-                      padding:"4px 10px",cursor:"pointer",color:"#2d6a4f",fontSize:"11px",fontWeight:600,
+                    }} style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"8px",
+                      padding:"4px 10px",cursor:"pointer",color:P,fontSize:"11px",fontWeight:600,
                       display:"flex",alignItems:"center",gap:"4px",fontFamily:FONT}}>
                       <Plus size={11}/> 오늘 구매
                     </button>
@@ -4211,7 +4218,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                   <div style={{height:"6px",background:C.cream,borderRadius:"99px",overflow:"hidden"}}>
                     {progress!==null&&<div style={{height:"100%",borderRadius:"99px",transition:"width 0.5s",
                       width:`${progress}%`,
-                      background:progress>=100?"#b5451b":progress>=80?"#b8860b":"#2d6a4f"}}/>}
+                      background:progress>=100?"#b5451b":progress>=80?"#b8860b":P}}/>}
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
                     <span style={{fontSize:"9px",color:C.inkLight,fontFamily:FONT}}>
@@ -4244,7 +4251,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                           {t.memo&&t.memo!==s.name&&<span style={{fontSize:"11px",color:C.inkLight,fontFamily:FONT,marginLeft:"6px"}}>{t.memo}</span>}
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                          <span style={{fontSize:"12px",fontWeight:600,color:"#b5451b",fontFamily:FONT}}>
+                          <span style={{fontSize:"12px",fontWeight:600,color:C.ink,fontFamily:FONT}}>
                             {fmtS(t.amount)}
                           </span>
                           <Pencil size={11} style={{color:C.inkLight,flexShrink:0}}/>
@@ -4676,6 +4683,7 @@ export default function App(){
   const expense=useMemo(()=>viewTxs.filter(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1).reduce((s,t)=>s+t.amount,0),[viewTxs]);
   const bal=income-expense;
   const ent=ENTITIES[entity];
+  P=(ent||ENTITY_ALL).color;
   const visibleEntities=ENTITY_KEYS.filter(ek=>ek!=="cafe"||!hideCafe);
   function switchEntity(ek){setEntity(ek);setTab("list");changeTheme(ENTITY_THEME[ek]||"cream");navigate(entityPath(ek));}
 
@@ -4876,7 +4884,7 @@ export default function App(){
               marginBottom:"-1px",fontFamily:FONT,transition:"all 0.2s"}}>
               {l}
               {badge>0&&<span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",minWidth:"14px",height:"14px",padding:"0 3px",
-                borderRadius:"7px",background:"#b5451b",color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
+                borderRadius:"7px",background:P,color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
                 textAlign:"center",fontFamily:FONT}}>{badge}</span>}
             </button>
           ))}
