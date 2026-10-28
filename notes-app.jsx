@@ -432,6 +432,7 @@ function MemoTab({ memos, reload, setErr }) {
 
   const [tagFilter, setTagFilter] = useState('')
   const hasTags = memos.some(m => TAGS[m.tag])
+  const lastTap = useRef(0) // 읽기 보기 두 번 누름 감지
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
     return memos
@@ -545,6 +546,12 @@ function MemoTab({ memos, reload, setErr }) {
             </button>
             {edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
+          {/* 읽기 보기에서 내용을 두 번 누르면 바로 편집 (체크·링크·사진 누름은 제외) */}
+          <div onClick={e => {
+            if (editing || e.target.closest('button, a, input')) return
+            const now = Date.now()
+            if (now - lastTap.current < 350) { lastTap.current = 0; setEditing(true) } else lastTap.current = now
+          }}>
           <Group>
             <NoteEditor key={editing ? 'edit' : 'read'} value={edit.content} onChange={content => setEdit(ed => ({ ...ed, content }))}
               autoFocus={editing} readOnly={!editing} full={full}
@@ -566,6 +573,7 @@ function MemoTab({ memos, reload, setErr }) {
                 <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
               </>} />
           </Group>
+          </div>
           {/* 마감일·고정 / 사업자 태그 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '-10px 0 8px' }}>
             <Chip on={!!edit.due_date} icon={CalendarDays} onClick={() => setEdit({ ...edit, due_date: edit.due_date ? '' : todayStr() })}>마감일</Chip>
