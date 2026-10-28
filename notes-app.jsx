@@ -396,14 +396,14 @@ const memoSnapshot = e => JSON.stringify([e.content, e.due_date || '', e.color, 
 
 // 메모 태그 — 목록에서 쉽게 구분되는 색과 연한 배경
 const TAGS = {
-  personal: { label: '개인', color: '#c4658a', soft: '#fdf4f7' },
+  personal: { label: '개인', color: '#b5814e', soft: '#fcf8f2' },
   cafe: { label: '앤딩', color: '#3e9478', soft: '#f2faf6' },
   realty: { label: '부동산', color: '#4d83ba', soft: '#f3f8fd' },
   goion: { label: '고이온', color: '#9867b7', soft: '#faf5fd' },
 }
 
-// 태그가 없거나 '전체'일 때의 탭 색 (아이콘의 노랑·코랄 블록과 같은 계열, 흰 글씨가 보이게 조금 진하게)
-const MEMO_TINT = '#e39b2d'
+// 태그가 없거나 '전체'일 때의 탭 색 — 메모·일정 모두 코랄 (노랑은 개인 갈색과 구분이 안 돼서)
+const MEMO_TINT = '#ef6a5f'
 const CAL_TINT = '#ef6a5f'
 
 function TagChip({ tag, on, onClick, small, allColor = C.tint }) {
