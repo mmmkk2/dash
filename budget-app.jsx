@@ -4726,8 +4726,20 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
-              {/* 머리 버튼: 자산처럼 ⋯ 하나 (현금흐름·카드 관리 등은 메뉴 안) */}
+              {/* 머리 줄 오른쪽: 월/연 전환 · ‹ 기간 › · ⋯ (현금흐름·카드 관리 등은 메뉴 안) */}
               <div style={{display:"flex",gap:"6px",position:"relative"}}>
+                <div style={{background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",borderRadius:"12px",height:"38px",boxSizing:"border-box",display:"flex",alignItems:"center",padding:"3px",gap:"2px"}}>
+                  {[["월",false],["연",true]].map(([label,isYear])=>(
+                    <button key={label} onClick={()=>{setYearView(isYear);if(isYear&&(tab==="fixed"||tab==="calendar"))setTab("stats");}} style={{
+                      height:"30px",padding:"0 9px",border:"none",borderRadius:"9px",cursor:"pointer",fontFamily:FONT,fontSize:"13px",
+                      fontWeight:yearView===isYear?700:500,background:yearView===isYear?C.cream:"transparent",color:yearView===isYear?C.ink:C.inkLight}}>{label}</button>
+                  ))}
+                </div>
+                <div style={{background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",borderRadius:"12px",height:"38px",boxSizing:"border-box",display:"flex",alignItems:"center"}}>
+                  <button aria-label="이전" onClick={yearView?()=>setYear(y=>y-1):prevMonth} style={{height:"36px",width:"30px",border:"none",background:"none",color:C.inkMid,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}><ChevronLeft size={16}/></button>
+                  <div style={{fontFamily:FONT,fontSize:"14px",fontWeight:700,minWidth:"54px",textAlign:"center",fontVariantNumeric:"tabular-nums",color:C.ink}}>{yearView?`${year}년`:`${year}.${String(month+1).padStart(2,"0")}`}</div>
+                  <button aria-label="다음" onClick={yearView?()=>setYear(y=>y+1):nextMonth} style={{height:"36px",width:"30px",border:"none",background:"none",color:C.inkMid,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}><ChevronRight size={16}/></button>
+                </div>
                 <button onClick={()=>setShowMore(v=>!v)} title="더보기" aria-label="메뉴" style={{position:"relative",width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
                   <MoreHorizontal size={18}/>
                 </button>
@@ -4791,40 +4803,6 @@ export default function App(){
               </a>
             </div>
           )}
-
-          {/* Month/Year nav */}
-          <div style={{marginBottom:"20px"}}>
-            {/* 월/연간 토글 */}
-            <div style={{display:"flex",justifyContent:"center",marginBottom:"12px"}}>
-              <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",gap:"2px"}}>
-                {[["월별",false],["연간",true]].map(([label,isYear])=>(
-                  <button key={label} onClick={()=>{setYearView(isYear);if(isYear&&(tab==="fixed"||tab==="calendar"))setTab("stats");}} style={{
-                    padding:"5px 18px",border:"none",borderRadius:"8px",cursor:"pointer",
-                    fontFamily:FONT,fontSize:"12px",fontWeight:yearView===isYear?700:400,
-                    background:yearView===isYear?C.white:"transparent",
-                    color:yearView===isYear?C.ink:C.inkMid,transition:"all 0.15s"}}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* 네비게이터 */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"16px"}}>
-              <button onClick={yearView?()=>setYear(y=>y-1):prevMonth} style={{background:C.white,border:"none",borderRadius:"8px",padding:"7px",color:C.inkMid,cursor:"pointer",display:"flex"}}>
-                <ChevronLeft size={17}/>
-              </button>
-              <div style={{textAlign:"center",minWidth:"120px"}}>
-                {yearView
-                  ?<div style={{fontFamily:FONT,fontSize:"22px",letterSpacing:"-0.3px"}}>{year}년</div>
-                  :<><div style={{fontFamily:FONT,fontSize:"20px",letterSpacing:"-0.3px"}}>{MONTHS[month]} {year}</div>
-                    <div style={{fontSize:"10px",opacity:0.35,fontFamily:FONT,marginTop:"1px"}}>{year}년 {MONTHS_KO[month]}</div></>
-                }
-              </div>
-              <button onClick={yearView?()=>setYear(y=>y+1):nextMonth} style={{background:C.white,border:"none",borderRadius:"8px",padding:"7px",color:C.inkMid,cursor:"pointer",display:"flex"}}>
-                <ChevronRight size={17}/>
-              </button>
-            </div>
-          </div>
 
           {/* Balance */}
           <div style={{background:C.paper,borderRadius:"20px",padding:"18px 20px",
