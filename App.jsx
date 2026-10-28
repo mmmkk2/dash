@@ -40,7 +40,7 @@ function TitleManager() {
     const path = pathname.replace(/\/$/, '') || '/'
     document.title = PAGE_TITLES[path] || (path.startsWith('/budget') ? '가계부' : '내비서')
 
-    const iconHref = path.startsWith('/assets') ? '/favicon-assets.svg' : path.startsWith('/notes') ? '/icons/icon.svg?v=2' : '/favicon.svg'
+    const iconHref = path.startsWith('/assets') ? '/favicon-assets.svg' : path.startsWith('/notes') ? '/icons/icon.svg?v=3' : '/favicon.svg'
     const favicon = document.getElementById('favicon')
     const appleIcon = document.getElementById('apple-touch-icon')
     if (favicon) favicon.href = iconHref
