@@ -396,7 +396,7 @@ const memoSnapshot = e => JSON.stringify([e.content, e.due_date || '', e.color, 
 
 // 메모 태그 — 목록에서 쉽게 구분되는 색과 연한 배경
 const TAGS = {
-  personal: { label: '개인', color: '#b5814e', soft: '#fcf8f2' },
+  personal: { label: '개인', color: '#c4658a', soft: '#fdf4f7' },
   cafe: { label: '앤딩', color: '#3e9478', soft: '#f2faf6' },
   realty: { label: '부동산', color: '#4d83ba', soft: '#f3f8fd' },
   goion: { label: '고이온', color: '#9867b7', soft: '#faf5fd' },
