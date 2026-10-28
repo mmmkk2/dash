@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
+import { useShowTabBar } from "./src/TabBar";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
@@ -4372,6 +4373,7 @@ export default function App(){
   const [tab,   setTab]   =useState("list");
   const [modal, setModal] =useState(null);
   const [showMore,setShowMore]=useState(false);
+  const hasTabBar=useShowTabBar();
   const [hideCafe,setHideCafe]=useState(()=>localStorage.getItem(HIDE_CAFE_KEY)==="true");
   // 좁은 화면에서는 장부 버튼에 짧은 이름을 쓴다
   const [narrow,setNarrow]=useState(()=>window.innerWidth<560);
@@ -4737,12 +4739,6 @@ export default function App(){
                   borderRadius:"10px",padding:"9px",color:C.inkMid,cursor:"pointer",display:"flex",flexShrink:0}}>
                   <CreditCard size={14}/>
                 </button>
-                <button onClick={()=>window.location.href="/assets"} title="자산 관리" style={{
-                  background:C.white,border:`1px solid ${C.border}`,
-                  borderRadius:"10px",padding:"7px 12px",color:C.inkMid,cursor:"pointer",
-                  fontSize:"12px",fontWeight:600,fontFamily:FONT,whiteSpace:"nowrap"}}>
-                  자산
-                </button>
                 <button onClick={()=>setShowMore(v=>!v)} title="더보기" style={{
                   position:"relative",
                   background:showMore?C.white:C.white,border:`1px solid ${C.border}`,
@@ -4753,12 +4749,16 @@ export default function App(){
                 {showMore&&<>
                   <div onClick={()=>setShowMore(false)} style={{position:"fixed",inset:0,zIndex:40}}/>
                   <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:41,
-                    background:"#fff",borderRadius:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.25)",
-                    padding:"6px",minWidth:"160px",display:"flex",flexDirection:"column",gap:"2px"}}>
+                    background:"#fff",borderRadius:"12px",border:"0.5px solid rgba(60,60,67,0.12)",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",
+                    padding:"4px",minWidth:"180px",display:"flex",flexDirection:"column",gap:"2px"}}>
                     {[
                       {label:"무한매수",emoji:"📈",action:()=>navigate("/infinite-buying")},
-                      {label:"메모",emoji:"📝",action:()=>navigate("/notes")},
-                      {label:"일정",emoji:"📅",action:()=>navigate("/notes/calendar")},
+                      // 하단 탭이 있으면 메모·일정·자산은 탭으로 이동하니 메뉴에서 뺌
+                      ...(hasTabBar?[]:[
+                        {label:"자산",emoji:"💰",action:()=>navigate("/assets")},
+                        {label:"메모",emoji:"📝",action:()=>navigate("/notes")},
+                        {label:"일정",emoji:"📅",action:()=>navigate("/notes/calendar")},
+                      ]),
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
                       {label:"세무자료 체크리스트",emoji:"🧾",action:()=>setModal("taxdoc")},
@@ -4766,11 +4766,11 @@ export default function App(){
                     ].map(item=>(
                       <button key={item.label} onClick={()=>{setShowMore(false);item.action();}} style={{
                         display:"flex",alignItems:"center",gap:"8px",background:"none",border:"none",
-                        padding:"9px 10px",borderRadius:"8px",cursor:"pointer",textAlign:"left",
-                        fontSize:"13px",fontWeight:500,color:"#1c1c1e",fontFamily:FONT}}
+                        padding:"10px 12px",borderRadius:"10px",cursor:"pointer",textAlign:"left",
+                        fontSize:"15px",fontWeight:400,color:"#1c1c1e",fontFamily:FONT,whiteSpace:"nowrap"}}
                         onMouseEnter={e=>e.currentTarget.style.background="#f7f7f7"}
                         onMouseLeave={e=>e.currentTarget.style.background="none"}>
-                        <span style={{fontSize:"14px"}}>{item.emoji}</span>{item.label}
+                        {item.label}
                       </button>
                     ))}
                   </div>
