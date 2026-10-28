@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { ExternalLink, RotateCw } from 'lucide-react'
+import { RotateCw } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 
 // 앤딩 스터디카페 관리자(별도 앱)를 내비서 안 한 화면으로 띄운다.
 // 다른 주소를 그대로 끼워 넣으면 브라우저가 로그인 쿠키를 막기 때문에,
 // vercel.json에서 /andingapp/* 를 앤딩 앱으로 중계해 같은 주소에서 연다.
 const EMBED_URL = '/andingapp/admin'
-export const ANDING_ADMIN_URL = 'https://andingapp.vercel.app/andingapp/admin'
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
 const THEME_HREF = '/anding-theme.css?v=11'
@@ -204,14 +203,10 @@ export default function Anding() {
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: font }}>
-      {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 '새 창' (안에서 문제가 있을 때 따로 열기) */}
-      <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        {tabBar ? <span /> : <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>}
-        <a href={ANDING_ADMIN_URL} target="_blank" rel="noopener noreferrer" aria-label="새 창으로 열기" style={{
-          display: 'flex', alignItems: 'center', gap: 4, height: 38, boxSizing: 'border-box', padding: '0 14px', borderRadius: 12, fontSize: 13, fontWeight: 600, textDecoration: 'none',
-          color: '#2f7a62', background: '#fff', border: '0.5px solid rgba(60,60,67,0.18)',
-        }}>새 창 <ExternalLink size={13} /></a>
-      </div>
+      {/* 머리: 하단 탭이 있으면 상태 표시줄만큼만 띄우고, 없을 때(PC 등)는 다른 화면과 같은 큰 제목 */}
+      {tabBar
+        ? <div style={{ flexShrink: 0, height: 'calc(8px + env(safe-area-inset-top))' }} />
+        : <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 6px', fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>}
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
           style={{ border: 0, width: '100%', height: '100%', display: 'block', opacity: themed ? 1 : 0, transition: 'opacity .15s' }} />
