@@ -605,13 +605,17 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [sel, setSel] = useState(todayStr())
   const [edit, setEdit] = useState(null)
+  // 사업자 태그 필터 (메모와 같은 태그) — 태그 붙은 일정이 있을 때만 보임
+  const [tagFilter, setTagFilter] = useState('')
+  const hasTags = events.some(e => TAGS[e.tag])
+  const shown = useMemo(() => tagFilter ? events.filter(e => e.tag === tagFilter) : events, [events, tagFilter])
 
   const byDate = useMemo(() => {
     const m = {}
-    for (const e of events) (m[e.date] ||= []).push(e)
+    for (const e of shown) (m[e.date] ||= []).push(e)
     for (const k in m) m[k].sort((a, b) => (a.time || '99').localeCompare(b.time || '99'))
     return m
-  }, [events])
+  }, [shown])
 
   const cells = useMemo(() => {
     const start = new Date(month); start.setDate(1 - month.getDay())
@@ -621,8 +625,8 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
 
   const upcoming = useMemo(() => {
     const t = todayStr()
-    return events.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
-  }, [events])
+    return shown.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
+  }, [shown])
 
   const moveMonth = n => setMonth(m => new Date(m.getFullYear(), m.getMonth() + n, 1))
 
@@ -655,10 +659,11 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   async function save() {
     if (!edit.text.trim()) return
     const row = { date: edit.date, time: edit.time ? (edit.end ? `${edit.time}~${edit.end}` : edit.time) : null, title: edit.text.trim(), memo: '', color: edit.color, done: edit.done }
+    if (edit.tag !== undefined) row.tag = edit.tag || null
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
       : await supabase.from('events').insert(row)
-    if (error) return setErr(error.message)
+    if (error) return setErr(/tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : error.message)
     setEdit(null); reload()
   }
   async function remove() {
@@ -839,6 +844,13 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </div>
       )}
 
+      {hasTags && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', margin: '-8px 0 16px', paddingBottom: 2 }}>
+          <TagChip small on={!tagFilter} onClick={() => setTagFilter('')} />
+          {Object.keys(TAGS).map(k => <TagChip key={k} tag={k} small on={tagFilter === k} onClick={() => setTagFilter(tagFilter === k ? '' : k)} />)}
+        </div>
+      )}
+
       <Group header={fmtDate(sel)}>
         {dayEvents.length === 0 && <Row last><span style={{ color: C.sub, fontSize: 15 }}>비어 있는 날이에요</span></Row>}
         {dayEvents.map((e, i) => <EventRow key={e.id} e={e} last={i === dayEvents.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
@@ -850,7 +862,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </Group>
       )}
 
-      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', end: '', text: '', color: EVENT_COLORS[0], done: false })} />
+      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', end: '', text: '', color: EVENT_COLORS[0], done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
         <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
@@ -859,6 +871,9 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
           </Group>
           <CallChips text={edit.text} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '-8px 0 16px' }}>
+            {Object.keys(TAGS).map(k => <TagChip key={k} tag={k} on={edit.tag === k} onClick={() => setEdit({ ...edit, tag: edit.tag === k ? '' : k })} />)}
+          </div>
           <Group>
             <Row>
               <span style={{ flex: 1, fontSize: 16 }}>날짜</span>
@@ -904,7 +919,10 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
       <CheckCircle done={e.done} onClick={ev => { ev.stopPropagation(); onToggle() }} />
       <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e.color), opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
-        <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first}</div>
+        <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
+          {first}
+        </div>
         {rest.length > 0 && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rest.join(' ')}</div>}
       </div>
       <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
