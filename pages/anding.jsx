@@ -203,9 +203,9 @@ export default function Anding() {
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: font }}>
-      {/* 머리: 하단 탭이 있으면 상태 표시줄만큼만 띄우고, 없을 때(PC 등)는 다른 화면과 같은 큰 제목 */}
+      {/* 머리: 하단 탭이 있으면 작은 제목(22px), 없을 때(PC 등)는 큰 제목 */}
       {tabBar
-        ? <div style={{ flexShrink: 0, height: 'calc(8px + env(safe-area-inset-top))' }} />
+        ? <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(8px + env(safe-area-inset-top)) 16px 2px', fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', lineHeight: '38px', color: '#1c1c1e' }}>앤딩</div>
         : <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 6px', fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>}
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
