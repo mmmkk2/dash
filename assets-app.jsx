@@ -1951,7 +1951,7 @@ export default function AssetsApp() {
 
       {/* 머리: 메모·일정처럼 밝은 바탕, 순자산을 크게 */}
       <div style={{ maxWidth: 660, margin: "0 auto", padding: "calc(16px + env(safe-area-inset-top)) 16px 0" }}>
-        {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리·무한매수, 하단 탭이 없을 땐 가계부도) */}
+        {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리, 하단 탭이 없을 땐 가계부도) */}
         <div style={{ display: "flex", justifyContent: hasTabBar ? "flex-end" : "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
           {!hasTabBar && <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.7px", lineHeight: 1.25, color: C.ink }}>자산</div>}
           <button aria-label="메뉴" onClick={() => setMoreOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: C.white, border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: C.ink, cursor: "pointer" }}>
@@ -1961,7 +1961,7 @@ export default function AssetsApp() {
             <>
               <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
               <div style={{ position: "absolute", top: 44, right: 0, zIndex: 41, background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 4, minWidth: 150 }}>
-                {[["분류 관리", () => setModal("cats")], ["무한매수", () => { window.location.href = "/infinite-buying" }], ...(hasTabBar ? [] : [["가계부", () => { window.location.href = "/budget" }]])].map(([l, on]) => (
+                {[["분류 관리", () => setModal("cats")], ...(hasTabBar ? [] : [["가계부", () => { window.location.href = "/budget" }]])].map(([l, on]) => (
                   <button key={l} onClick={() => { setMoreOpen(false); on() }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderRadius: 10, padding: "10px 12px", fontSize: 15, color: C.ink, cursor: "pointer", fontFamily: F }}>{l}</button>
                 ))}
               </div>

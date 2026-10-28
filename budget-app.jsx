@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { useShowTabBar } from "./src/TabBar";
-import { PlusCircle, ChevronLeft, ChevronRight, Trash2, CreditCard, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2, Shuffle } from "lucide-react";
+import { PlusCircle, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
@@ -4708,7 +4708,7 @@ export default function App(){
     <div className="budget-app" style={{fontFamily:FONT,color:C.ink,fontSize:15,minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"}}>
 
       {/* Header */}
-      <div style={{background:C.cream,padding:"16px 16px 0",color:C.ink,position:"relative",overflow:"hidden"}}>
+      <div style={{background:C.cream,padding:"16px 16px 0",color:C.ink,position:"relative",zIndex:5}}>
 
         <div style={{maxWidth:"648px",margin:"0 auto",position:"relative"}}>
 
@@ -4726,14 +4726,8 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:"4px",flexShrink:0}}>
-              {/* 머리 버튼: 다른 화면과 같은 38×38 */}
+              {/* 머리 버튼: 자산처럼 ⋯ 하나 (현금흐름·카드 관리 등은 메뉴 안) */}
               <div style={{display:"flex",gap:"6px",position:"relative"}}>
-                <button onClick={()=>setModal("flow")} title="전체 현금흐름 (개인/카페/부동산 통합)" aria-label="전체 현금흐름" style={{width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
-                  <Shuffle size={17}/>
-                </button>
-                <button onClick={()=>setModal("cards")} title="카드 관리" aria-label="카드 관리" style={{width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
-                  <CreditCard size={17}/>
-                </button>
                 <button onClick={()=>setShowMore(v=>!v)} title="더보기" aria-label="메뉴" style={{position:"relative",width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
                   <MoreHorizontal size={18}/>
                 </button>
@@ -4743,7 +4737,8 @@ export default function App(){
                     background:"#fff",borderRadius:"12px",border:"0.5px solid rgba(60,60,67,0.12)",boxShadow:"0 8px 24px rgba(0,0,0,0.12)",
                     padding:"4px",minWidth:"180px",display:"flex",flexDirection:"column",gap:"2px"}}>
                     {[
-                      {label:"무한매수",emoji:"📈",action:()=>navigate("/infinite-buying")},
+                      {label:"전체 현금흐름",action:()=>setModal("flow")},
+                      {label:"카드 관리",action:()=>setModal("cards")},
                       // 하단 탭이 있으면 메모·일정·자산은 탭으로 이동하니 메뉴에서 뺌
                       ...(hasTabBar?[]:[
                         {label:"자산",emoji:"💰",action:()=>navigate("/assets")},
