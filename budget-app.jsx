@@ -1633,6 +1633,8 @@ function PropTagDropdown({tags, value, onChange}){
 function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], onToggleTaxDoc}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
   const isRealty=entity==="realty";
+  // 포인트 색: 위에서 고른 사업 칩 색 하나 (내역마다는 그 내역의 사업 색)
+  const pc=(ENTITIES[entity]||ENTITY_ALL).color;
   const [tagFilter,setTagFilter]=useState("전체");
   const [search,setSearch]=useState("");
   const [searchOpen,setSearchOpen]=useState(false);
@@ -1735,14 +1737,13 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
               padding:"9px 16px 8px",background:C.paper,borderBottom:`1px solid ${C.border}`}}>
               <div style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:C.ink}}>{date}</div>
               <div style={{display:"flex",gap:"10px"}}>
-                {dayIncome>0&&<span style={{fontSize:"11px",color:"#2d6a4f",fontWeight:600,fontFamily:FONT}}>+{fmtS(dayIncome)}</span>}
-                {dayExpense>0&&<span style={{fontSize:"11px",color:"#b5451b",fontWeight:600,fontFamily:FONT}}>-{fmtS(dayExpense)}</span>}
+                {dayIncome>0&&<span style={{fontSize:"11px",color:pc,fontWeight:600,fontFamily:FONT}}>+{fmtS(dayIncome)}</span>}
+                {dayExpense>0&&<span style={{fontSize:"11px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(dayExpense)}</span>}
               </div>
             </div>
             {items.map((tx,idx)=>{
               const card=tx.cardId?cardMap[tx.cardId]:null;
-              const tree=TREES[tx.entity]||TREE_PERSONAL;
-              const m1=tree[tx.cat1]||{color:C.inkMid,accent:C.inkLight};
+              const ec=(ENTITIES[tx.entity]||{}).color||pc;
               const memoLower=(tx.memo||"").toLowerCase();
               const linkedSupply=supplies.find(s=>(s.name||"").toLowerCase()===memoLower
                 ||(s.name||"").toLowerCase()===(tx.cat3||"").toLowerCase()
@@ -1753,37 +1754,37 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
                     borderTop:idx>0?`1px solid ${C.border}`:"none",
                     cursor:"pointer",transition:"background 0.15s"}}>
                   <div style={{width:"3px",height:"36px",borderRadius:"99px",flexShrink:0,
-                    background:`linear-gradient(180deg,${m1.color},${m1.accent})`}}/>
+                    background:ec}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
-                      <span style={{fontSize:"10px",background:m1.color+"18",color:m1.color,
+                      <span style={{fontSize:"10px",background:ec+"18",color:ec,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         fontFamily:FONT}}>{catDisplayName(tx.cat1)}</span>
                       <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{tx.cat2}</span>
-                      {tx.cat3&&<span style={{fontSize:"10px",background:m1.accent+"18",color:m1.color,
+                      {tx.cat3&&<span style={{fontSize:"10px",background:ec+"10",color:ec,
                         borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
                         fontFamily:FONT}}>{tx.cat3}</span>}
-                      {linkedSupply&&<span style={{fontSize:"9px",background:"#f0fdf4",color:"#2d6a4f",
+                      {linkedSupply&&<span style={{fontSize:"9px",background:C.white,color:ec,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
-                        border:"1px solid #b7e4c7",fontFamily:FONT}}>소모품</span>}
+                        border:`1px solid ${ec}55`,fontFamily:FONT}}>소모품</span>}
                       {tx.images&&tx.images.length>0&&<span style={{fontSize:"9px",color:"#1d4e89",
                         fontFamily:FONT}}>📷 {tx.images.length}</span>}
                     </div>
                     <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:FONT,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
                     <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px",flexWrap:"wrap"}}>
-                      {tx.isFixed&&<span style={{fontSize:"9px",background:"#fff8f0",color:"#b5451b",
+                      {tx.isFixed&&<span style={{fontSize:"9px",background:C.cream,color:C.inkMid,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:FONT,
-                        border:"1px solid #f4c5b2"}}>반복</span>}
-                      {taxDocIds.includes(tx.id)&&<span style={{fontSize:"9px",background:"#eef6ff",color:"#1d4e89",
+                        border:`1px solid ${C.border}`}}>반복</span>}
+                      {taxDocIds.includes(tx.id)&&<span style={{fontSize:"9px",background:C.cream,color:C.inkMid,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:FONT,
-                        border:"1px solid #bcd6f2"}}>세무자료</span>}
-                      {card&&<span style={{fontSize:"9px",background:card.color+"14",color:card.color,
+                        border:`1px solid ${C.border}`}}>세무자료</span>}
+                      {card&&<span style={{fontSize:"9px",background:C.cream,color:C.inkMid,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:FONT}}>{card.name}</span>}
                     </div>
                   </div>
                   <div style={{fontSize:"14px",fontWeight:700,flexShrink:0,
-                    color:tx.type==="income"?"#2d6a4f":"#b5451b",
+                    color:tx.type==="income"?ec:C.ink,
                     fontFamily:FONT,letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
                   </div>
@@ -4836,11 +4837,11 @@ export default function App(){
             border:`1px solid ${C.border}`,
             display:"grid",gridTemplateColumns:"1fr 1px 1fr 1px 1fr",alignItems:"center"}}>
             {[
-              {label:"수입",val:income,color:"#2d6a4f",sign:"+"},
+              {label:"수입",val:income,color:(ent||ENTITY_ALL).color,sign:"+"},
               null,
-              {label:"지출",val:expense,color:"#b5451b",sign:"-"},
+              {label:"지출",val:expense,color:C.ink,sign:"-"},
               null,
-              {label:"잔액",val:bal,color:bal>=0?"#1d4e89":"#831843",sign:bal>=0?"+":""},
+              {label:"잔액",val:bal,color:C.ink,sign:bal>=0?"+":""},
             ].map((item,i)=>item===null
               ?<div key={i} style={{background:C.border,height:"32px",width:"1px"}}/>
               :<div key={i} style={{textAlign:"center",minWidth:0}}>
@@ -4933,7 +4934,7 @@ export default function App(){
       <button onClick={()=>setModal("add")} style={{
         position:"fixed",bottom:"calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))",right:"24px",zIndex:200,
         width:"56px",height:"56px",borderRadius:"50%",border:"none",
-        background:C.ink,color:C.white,cursor:"pointer",
+        background:(ent||ENTITY_ALL).color,color:"#fff",cursor:"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",
         boxShadow:"0 4px 16px rgba(0,0,0,0.12)",transition:"transform 0.15s,box-shadow 0.15s"}}
         onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.08)";}}
