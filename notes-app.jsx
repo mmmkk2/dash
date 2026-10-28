@@ -952,10 +952,10 @@ export default function NotesApp({ initialTab = 'memo' }) {
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
-      <header style={{ maxWidth: 680, margin: '0 auto', padding: `calc(16px + env(safe-area-inset-top)) 16px ${tabBar ? 6 : 8}px` }}>
+      <header style={{ maxWidth: 680, margin: '0 auto', padding: `calc(${tabBar ? 8 : 16}px + env(safe-area-inset-top)) 16px ${tabBar ? 0 : 8}px` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* 하단 탭이 있으면 지금 화면 제목만 크게 (가계부·자산·앤딩과 같은 머리) */}
-          {tabBar ? <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25 }}>{tab === 'memo' ? '메모' : '일정'}</div> : (
+          {/* 하단 탭이 있으면 큰 제목 생략 (탭에 이미 표시) */}
+          {tabBar ? <span /> : (
             <button onClick={() => navigate('/budget')} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 2, color: C.sub, fontSize: 13 }}>
               <ChevronLeft size={16} />가계부
             </button>
