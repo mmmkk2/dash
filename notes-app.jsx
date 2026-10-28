@@ -12,8 +12,6 @@ const C = {
   tint: '#1c1c1e', tintSoft: 'rgba(0,0,0,0.06)', red: '#e5484d',
 }
 const COLORS = ['#1c1c1e', '#8e8e93', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6']
-// 이전 기본색(그린)으로 저장된 항목도 기본색으로 취급
-const isDefaultColor = c => !c || c === COLORS[0] || c === '#177864'
 // 일정은 빨강이 기본, 무채색 없이 색으로만 구분 (예전 기본색·검정·회색 일정은 빨강으로 보임)
 const EVENT_COLORS = ['#e5484d', '#e8890c', '#3b82c4', '#8b5cf6']
 const NEUTRAL_OLD = ['#1c1c1e', '#8e8e93', '#7a8791', '#177864']
@@ -500,7 +498,7 @@ function MemoTab({ memos, reload, setErr }) {
       <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {(TAGS[m.tag] || !isDefaultColor(m.color)) && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag]?.color || m.color, flexShrink: 0 }} />}
+            {TAGS[m.tag] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag].color, flexShrink: 0 }} />}
             <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
