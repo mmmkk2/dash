@@ -162,7 +162,7 @@ function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, ...props 
   return <textarea ref={ref} value={value} rows={minRows} {...props} style={{ ...style, maxHeight, overflowY: 'auto' }} />
 }
 
-function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, children }) {
+function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, tint = C.tint, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -175,7 +175,7 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, a
           {actions}
           {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
           <button onClick={onDone} disabled={doneDisabled} style={{
-            ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '8px 18px',
+            ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: tint, borderRadius: 999, padding: '8px 18px',
             opacity: doneDisabled ? 0.35 : 1, cursor: doneDisabled ? 'default' : 'pointer',
           }}>{doneLabel}</button>
         </div>
@@ -195,11 +195,11 @@ function Chip({ on, icon: Icon, children, onClick }) {
   )
 }
 
-function Fab({ label, onClick }) {
+function Fab({ label, onClick, color = C.tint }) {
   return (
     <button aria-label={label} onClick={onClick} style={{
       ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))',
-      width: 56, height: 56, borderRadius: '50%', background: C.tint, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      width: 56, height: 56, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
       boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
     }}><Plus size={26} strokeWidth={2.2} /></button>
   )
@@ -524,10 +524,10 @@ function MemoTab({ memos, reload, setErr }) {
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
 
-      <Fab label="새 메모" onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
+      <Fab label="새 메모" color={TAGS[tagFilter]?.color} onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
-        <Sheet title={!edit.id ? '새 메모' : editing ? '메모 편집' : '메모'} doneLabel={editing ? '저장' : '닫기'} hideCancel={!editing} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
+        <Sheet title={!edit.id ? '새 메모' : editing ? '메모 편집' : '메모'} tint={TAGS[edit.tag]?.color} doneLabel={editing ? '저장' : '닫기'} hideCancel={!editing} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
           full={full}
           actions={<>
             {!editing && (
@@ -779,7 +779,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
             const k = ymd(d), inMonth = d.getMonth() === month.getMonth(), evs = byDate[k] || []
             const isSel = k === sel, isToday = k === t, weekend = d.getDay() === 0 || d.getDay() === 6
             const isPeriod = info?.periodDays.has(k), isPredicted = info?.predictedDays.has(k), isFertile = info?.fertileDays.has(k) && !isPeriod && !isPredicted
-            const bg = isSel ? C.tint : isPeriod ? BODY.periodSoft : isToday ? C.tintSoft : isFertile ? BODY.fertileSoft : 'transparent'
+            const bg = isSel ? (TAGS[tagFilter]?.color || C.tint) : isPeriod ? BODY.periodSoft : isToday ? C.tintSoft : isFertile ? BODY.fertileSoft : 'transparent'
             const fg = isSel ? '#fff' : isPeriod || isPredicted ? BODY.period : isToday ? C.tint : isFertile ? BODY.fertile : weekend ? C.sub : C.text
             return (
               <button key={k} onClick={() => tapDay(k)} onPointerDown={e => pressStart(k, e)} onPointerMove={pressMove} onPointerUp={pressEnd} onPointerLeave={pressEnd} onPointerCancel={pressEnd}
@@ -845,10 +845,10 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </Group>
       )}
 
-      <Fab label="일정 추가" onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
+      <Fab label="일정 추가" color={TAGS[tagFilter]?.color} onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
-        <Sheet title={edit.id ? '일정 편집' : '새 일정'} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
+        <Sheet title={edit.id ? '일정 편집' : '새 일정'} tint={TAGS[edit.tag]?.color} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
           <Group>
             <GrowTextarea autoFocus={!edit.id} value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?"
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
@@ -895,7 +895,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
     <Row onClick={onClick} last={last}>
-      <CheckCircle done={e.done} onClick={ev => { ev.stopPropagation(); onToggle() }} />
+      <CheckCircle done={e.done} color={TAGS[e.tag]?.color} onClick={ev => { ev.stopPropagation(); onToggle() }} />
       <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: eventColor(e), opacity: e.done ? 0.4 : 1 }} />
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         <div style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
