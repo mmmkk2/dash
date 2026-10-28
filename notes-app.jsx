@@ -593,6 +593,8 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [sel, setSel] = useState(todayStr())
   const [edit, setEdit] = useState(null)
+  const [pickTime, setPickTime] = useState(null) // 일정 창에서 칩을 펼친 시간: 'start' | 'end' | null
+  useEffect(() => { if (!edit) setPickTime(null) }, [edit])
   // 사업자 태그 필터 (메모와 같은 태그) — 태그 붙은 일정이 있을 때만 보임
   const [tagFilter, setTagFilter] = useState('')
   const hasTags = events.some(e => TAGS[e.tag])
@@ -868,20 +870,37 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
               <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })}
                 style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px' }} />
             </Row>
-            {/* 시간: 비워 두면 하루 종일, 끝나는 시간은 선택 (time 칸에 'HH:MM~HH:MM'로 저장) */}
-            <Row last>
+            {/* 시간: 비워 두면 하루 종일, 끝나는 시간은 선택 (time 칸에 'HH:MM~HH:MM'로 저장) — 누르면 아래에 칩 */}
+            <Row last={!pickTime}>
               <span style={{ flex: 1, fontSize: 16, whiteSpace: 'nowrap' }}>시간</span>
-              <input type="time" aria-label="시작 시간" value={edit.time} onChange={e => setEdit({ ...edit, time: e.target.value, end: e.target.value ? edit.end : '' })}
-                style={{ ...field, width: 'auto', minWidth: 0, fontSize: 15, background: C.fill, borderRadius: 6, padding: '6px 6px' }} />
-              {edit.time && <>
-                <span style={{ color: C.sub, margin: '0 -4px' }}>~</span>
-                <input type="time" aria-label="끝나는 시간" value={edit.end} onChange={e => setEdit({ ...edit, end: e.target.value })}
-                  style={{ ...field, width: 'auto', minWidth: 0, fontSize: 15, background: C.fill, borderRadius: 6, padding: '6px 6px', color: edit.end ? C.text : C.sub }} />
-                <button type="button" aria-label="시간 지우기 (하루 종일)" onClick={() => setEdit({ ...edit, time: '', end: '' })}
-                  style={{ ...plain, color: C.sub, fontSize: 18, padding: '0 2px', lineHeight: 1 }}>×</button>
-              </>}
-              {!edit.time && <span style={{ fontSize: 14, color: C.sub }}>하루 종일</span>}
+              {(() => {
+                const tint = TAGS[edit.tag]?.color || CAL_TINT
+                const btn = (which, label, empty) => (
+                  <button type="button" onClick={() => {
+                    if (which === 'start' && !edit.time) setEdit({ ...edit, time: '09:00' })
+                    setPickTime(pickTime === which ? null : which)
+                  }} style={{
+                    ...plain, fontSize: 15, borderRadius: 8, padding: '6px 10px', whiteSpace: 'nowrap',
+                    background: pickTime === which ? tint + '1f' : C.fill, color: empty ? C.sub : pickTime === which ? tint : C.text, fontWeight: pickTime === which ? 600 : 400,
+                  }}>{label}</button>
+                )
+                return <>
+                  {btn('start', edit.time ? fmtTime(edit.time) : '하루 종일', !edit.time)}
+                  {edit.time && <>
+                    <span style={{ color: C.sub, margin: '0 -4px' }}>~</span>
+                    {btn('end', edit.end ? fmtTime(edit.end) : '끝 시간', !edit.end)}
+                    <button type="button" aria-label="시간 지우기 (하루 종일)" onClick={() => { setEdit({ ...edit, time: '', end: '' }); setPickTime(null) }}
+                      style={{ ...plain, color: C.sub, fontSize: 18, padding: '0 2px', lineHeight: 1 }}>×</button>
+                  </>}
+                </>
+              })()}
             </Row>
+            {pickTime === 'start' && edit.time && (
+              <TimeChips value={edit.time} fallback="09:00" tint={TAGS[edit.tag]?.color || CAL_TINT} onChange={v => setEdit({ ...edit, time: v })} />
+            )}
+            {pickTime === 'end' && edit.time && (
+              <TimeChips value={edit.end} fallback={addHour(edit.time)} canClear tint={TAGS[edit.tag]?.color || CAL_TINT} onChange={v => setEdit({ ...edit, end: v })} />
+            )}
           </Group>
           {edit.id && (
             <Group>
@@ -893,6 +912,45 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </Sheet>
       )}
     </>
+  )
+}
+
+// ───────────── 시간 칩 (휴대폰 기본 시계 다이얼 대신) ─────────────
+const MINUTES = ['00', '10', '15', '20', '30', '40', '45', '50']
+const fmtTime = v => {
+  if (!v) return ''
+  const [h, m] = v.split(':').map(Number)
+  return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(m).padStart(2, '0')}`
+}
+const addHour = v => { const [h, m] = v.split(':'); return `${String((Number(h) + 1) % 24).padStart(2, '0')}:${m}` }
+
+// value: 'HH:MM' 또는 '' — 오전/오후·시·분 칩, canClear면 '없음' 칩
+function TimeChips({ value, fallback, onChange, tint, canClear }) {
+  const v = value || fallback
+  const [h, m] = v.split(':').map(Number)
+  const pm = h >= 12, h12 = h % 12 || 12
+  const set = (nh, nm) => onChange(`${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`)
+  const chip = (on, label, onClick, key) => (
+    <button key={key ?? label} type="button" onClick={onClick} style={{
+      ...plain, flex: '1 0 auto', minWidth: 0, padding: '8px 0', borderRadius: 10, fontSize: 15, fontWeight: on ? 700 : 500,
+      background: on ? tint : C.fill, color: on ? '#fff' : C.text, textAlign: 'center',
+    }}>{label}</button>
+  )
+  const grid = n => ({ display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 6 })
+  return (
+    <div style={{ padding: '4px 16px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={grid(canClear ? 3 : 2)}>
+        {chip(value && !pm, '오전', () => set(h12 % 12, m))}
+        {chip(value && pm, '오후', () => set(h12 % 12 + 12, m))}
+        {canClear && chip(!value, '없음', () => onChange(''))}
+      </div>
+      <div style={grid(6)}>
+        {Array.from({ length: 12 }, (_, i) => i + 1).map(n => chip(value && h12 === n, n, () => set((n % 12) + (pm ? 12 : 0), m), 'h' + n))}
+      </div>
+      <div style={grid(4)}>
+        {MINUTES.map(mm => chip(value && m === Number(mm), ':' + mm, () => set(h, Number(mm)), 'm' + mm))}
+      </div>
+    </div>
   )
 }
 
