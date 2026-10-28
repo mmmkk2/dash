@@ -806,17 +806,17 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       </div>
 
       {yearPage === null && (showCycle || showLove) && (
-        <div style={{ margin: '-12px 0 24px' }}>
+        <div style={{ margin: '-12px 0 18px' }}>
           {body.ready ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {showCycle && <button onClick={() => runBody(periodAction.run)} disabled={busy} style={{ opacity: busy ? 0.6 : 1,
-                ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
+                ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '5px 12px',
                 background: periodAction.active ? BODY.periodSoft : C.card, color: periodAction.active ? BODY.period : C.text, border: `0.5px solid ${periodAction.active ? 'transparent' : C.sep}`,
-              }}><Droplet size={15} color={BODY.period} fill={periodAction.active ? BODY.period : 'none'} />{periodAction.label}</button>}
+              }}><Droplet size={14} color={BODY.period} fill={periodAction.active ? BODY.period : 'none'} />{periodAction.label}</button>}
               {showLove && <button onClick={toggleLove} disabled={busy} aria-pressed={loved} style={{ opacity: busy ? 0.6 : 1,
-                ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, borderRadius: 999, padding: '8px 14px',
+                ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '5px 12px',
                 background: loved ? BODY.loveSoft : C.card, color: loved ? BODY.love : C.text, border: `0.5px solid ${loved ? 'transparent' : C.sep}`,
-              }}><Heart size={15} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>}
+              }}><Heart size={14} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>}
             </div>
           ) : body.missing && (
             <div style={{ fontSize: 13, color: C.sub }}>생리·관계 기록을 쓰려면 supabase_setup.sql 의 periods / intimacy_logs 섹션을 실행하세요.</div>
