@@ -358,9 +358,9 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full, read
     <>
       <div ref={boxRef} onClick={e => { if (!readOnly && e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
         style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: readOnly ? 'default' : 'text',
-          // 크게 보기면 화면 대부분을, 평소엔 화면 일부만 (읽기는 키보드가 없으니 조금 더 넓게)
+          // 크게 보기면 화면 대부분을, 평소엔 읽기·편집 모두 화면의 45% (내용 길이와 상관없이 같은 크기)
           ...(full ? { height: `calc(88dvh - ${readOnly ? 200 : 255}px - env(safe-area-inset-bottom))`, minHeight: 200 }
-            : { height: readOnly ? '56dvh' : '38dvh', minHeight: 180 }) }}>
+            : { height: '45dvh', minHeight: 180 }) }}>
         {/* 읽기 보기: 키보드 없이 큰 글씨로, 체크 항목은 바로 체크 가능 */}
         {readOnly && lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '4px 0' : 0, minHeight: l.text ? 0 : '0.9em' }}>
