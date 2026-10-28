@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { RotateCw } from 'lucide-react'
+import { RotateCw, MoreHorizontal } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 
 // 앤딩 스터디카페 관리자(별도 앱)를 내비서 안 한 화면으로 띄운다.
@@ -131,11 +131,32 @@ export default function Anding() {
   const [refreshing, setRefreshing] = useState(false)
   const [themed, setThemed] = useState(false) // 테마가 입혀지기 전 원래 모습이 번쩍이지 않게
   useEffect(() => () => detach.current(), [])
+  // 오른쪽 위 ⋯ 메뉴: 앤딩 화면의 + 메뉴 항목(설정·문자 생성기·급여 관리표·로그아웃 등)을 그대로 가져와 같은 버튼을 눌러 준다
+  const [menu, setMenu] = useState([])
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [atHome, setAtHome] = useState(true)
 
   const onFrameLoad = () => {
     try { applyTheme(frame.current?.contentDocument, false) } catch {}
+    try {
+      const doc = frame.current.contentDocument
+      // 내비서 안에서는 앤딩 화면의 떠 있는 + 버튼 숨김 (메뉴는 위 ⋯ 로)
+      if (!doc.getElementById('nb-hide-fab')) {
+        const st = doc.createElement('style')
+        st.id = 'nb-hide-fab'
+        st.textContent = '.floating-menu-wrapper,.floating-menu-button{display:none!important}'
+        doc.head.appendChild(st)
+      }
+      setMenu([...doc.querySelectorAll('.floating-menu .menu-option')].map(el => ({ label: el.textContent.trim(), el })).filter(m => m.label))
+      setAtHome(/\/admin\/?$|\/viewer\/?$/.test(frame.current.contentWindow.location.pathname))
+    } catch { setMenu([]) }
     setThemed(true)
     bindRefresh()
+  }
+  const pick = m => {
+    setMenuOpen(false)
+    if (m === 'home') { frame.current.src = EMBED_URL; return }
+    m.el.click()
   }
 
   const bindRefresh = () => {
@@ -203,10 +224,28 @@ export default function Anding() {
   return (
     // 화면 위 끝부터 하단 탭 바로 위까지 고정 (탭 높이 + 기기 하단 안전영역)
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 'calc(var(--tabbar, 0px) + env(safe-area-inset-bottom))', background: '#f7f7f7', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: font }}>
-      {/* 머리: 하단 탭이 있으면 작은 제목(22px), 없을 때(PC 등)는 큰 제목 */}
-      {tabBar
-        ? <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(8px + env(safe-area-inset-top)) 16px 2px', fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', lineHeight: '38px', color: '#1c1c1e' }}>앤딩</div>
-        : <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: 'calc(16px + env(safe-area-inset-top)) 16px 6px', fontSize: 28, fontWeight: 700, letterSpacing: '-0.7px', lineHeight: 1.25, color: '#1c1c1e' }}>앤딩</div>}
+      {/* 머리: 하단 탭이 있으면 작은 제목(22px), 없을 때(PC 등)는 큰 제목 + 오른쪽 ⋯ 메뉴 */}
+      <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: tabBar ? 'calc(8px + env(safe-area-inset-top)) 16px 2px' : 'calc(16px + env(safe-area-inset-top)) 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 5 }}>
+        <div style={{ fontSize: tabBar ? 22 : 28, fontWeight: 700, letterSpacing: tabBar ? '-0.5px' : '-0.7px', lineHeight: tabBar ? '38px' : 1.25, color: '#1c1c1e' }}>앤딩</div>
+        {(menu.length > 0 || !atHome) && (
+          <button aria-label="메뉴" onClick={() => setMenuOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: '#fff', border: '0.5px solid rgba(60,60,67,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1c1c1e', cursor: 'pointer' }}>
+            <MoreHorizontal size={18} />
+          </button>
+        )}
+        {menuOpen && (
+          <>
+            <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 16, zIndex: 41, background: '#fff', borderRadius: 14, border: '0.5px solid rgba(60,60,67,0.12)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 4, minWidth: 160 }}>
+              {[...(atHome ? [] : [{ label: '관리자 화면으로', key: 'home' }]), ...menu].map(m => (
+                <button key={m.key || m.label} onClick={() => pick(m.key === 'home' ? 'home' : m)} style={{
+                  display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', borderRadius: 10, padding: '10px 12px',
+                  fontSize: 15, color: /로그아웃/.test(m.label) ? '#d95f4b' : '#1c1c1e', cursor: 'pointer', fontFamily: font, whiteSpace: 'nowrap',
+                }}>{m.label}</button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
           style={{ border: 0, width: '100%', height: '100%', display: 'block', opacity: themed ? 1 : 0, transition: 'opacity .15s' }} />

@@ -167,7 +167,7 @@ function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, a
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: C.bg, width: '100%', maxWidth: full ? 760 : 560, borderRadius: full ? 0 : '22px 22px 0 0', overflowY: 'auto',
+        background: C.bg, width: '100%', maxWidth: full ? 760 : 680, borderRadius: full ? 0 : '22px 22px 0 0', overflowY: 'auto',
         ...(full ? { height: '100dvh', paddingTop: 'env(safe-area-inset-top)' } : { maxHeight: '92dvh' }),
         paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
@@ -333,7 +333,7 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full, read
         style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: readOnly ? 'default' : 'text',
           // 크게 보기면 화면 대부분을, 평소엔 화면 일부만 (읽기는 키보드가 없으니 조금 더 넓게)
           ...(full ? { height: `calc(100dvh - ${readOnly ? 200 : 255}px - env(safe-area-inset-top) - env(safe-area-inset-bottom))`, minHeight: 200 }
-            : { minHeight: 120, maxHeight: readOnly ? '42dvh' : '30dvh' }) }}>
+            : { minHeight: 180, maxHeight: readOnly ? '56dvh' : '38dvh' }) }}>
         {/* 읽기 보기: 키보드 없이 큰 글씨로, 체크 항목은 바로 체크 가능 */}
         {readOnly && lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '4px 0' : 0, minHeight: l.text ? 0 : '0.9em' }}>
