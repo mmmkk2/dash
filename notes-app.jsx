@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore } from 'lucide-react'
 import { supabase } from './pages/login'
 import { useShowTabBar } from './src/TabBar'
 import InstallButton from './src/InstallButton'
@@ -464,16 +464,21 @@ function MemoTab({ memos, reload, setErr }) {
   const [tagFilter, setTagFilter] = useState('')
   const hasTags = memos.some(m => TAGS[m.tag])
   const lastTap = useRef(0) // 읽기 보기 두 번 누름 감지
+  const [showArchived, setShowArchived] = useState(false)
   const list = useMemo(() => {
     const k = q.trim().toLowerCase()
     return memos
       .filter(m => !tagFilter || m.tag === tagFilter)
+      // 보관한 메모는 목록에서 빼고 아래 보관함에만 — 검색할 때는 같이 찾는다
+      .filter(m => k || !m.archived)
       .filter(m => !k || (m.title + ' ' + plainText(m.content) + ' ' + (TAGS[m.tag]?.label || '')).toLowerCase().includes(k))
       // 급한 순서: 마감일 있는 메모(지난 것 → 가까운 날짜) 먼저, 나머지는 최근 수정 순
       .sort((a, b) => a.due_date && b.due_date ? a.due_date.localeCompare(b.due_date) || b.updated_at.localeCompare(a.updated_at)
         : a.due_date ? -1 : b.due_date ? 1 : b.updated_at.localeCompare(a.updated_at))
   }, [memos, q, tagFilter])
   const pinned = list.filter(m => m.pinned), others = list.filter(m => !m.pinned)
+  const archived = useMemo(() => memos.filter(m => m.archived && (!tagFilter || m.tag === tagFilter))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at)), [memos, tagFilter])
 
   // 저장 버튼과 바깥 탭이 겹쳐도 한 번만 저장 (새 메모가 두 개 생기던 문제)
   const saving = useRef(false)
@@ -505,6 +510,19 @@ function MemoTab({ memos, reload, setErr }) {
     setEdit(null); reload()
   }
 
+  // 보관/꺼내기: 내용·수정 시각은 그대로 두고 archived만 바꾼다
+  async function setArchived(id, on) {
+    const { error } = await supabase.from('memos').update({ archived: on }).eq('id', id)
+    if (error) return setErr(/archived/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table memos add column if not exists archived boolean default false;' : error.message)
+    reload()
+  }
+  async function archiveOpen() {
+    const on = !edit.archived
+    // 열어둔 채 고친 내용이 있으면 먼저 저장
+    if (memoSnapshot(edit) !== edit.snapshot) await save(); else setEdit(null)
+    setArchived(edit.id, on)
+  }
+
   const open = m => {
     const ed = { ...m, content: joinText(m.title, m.content), origImages: m.images, uploaded: [] }
     setEdit({ ...ed, snapshot: memoSnapshot(ed) })
@@ -516,6 +534,8 @@ function MemoTab({ memos, reload, setErr }) {
     const preview = rest.join(' ').trim()
     const checks = all.filter(l => l.check && l.text.trim()), doneN = checks.filter(l => l.done).length
     const due = m.due_date && dueLabel(m.due_date)
+    // 다 끝난 메모(체크 모두 완료 또는 마감 지남)는 보관을 권한다 — 자동으로 숨기진 않음
+    const done = !m.archived && ((checks.length > 0 && doneN === checks.length) || (m.due_date && m.due_date < todayStr()))
     return (
       <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -525,14 +545,22 @@ function MemoTab({ memos, reload, setErr }) {
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {TAGS[m.tag] && <span style={{ color: TAGS[m.tag].color, background: TAGS[m.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>{TAGS[m.tag].label}</span>}
-            {due && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
+            {m.archived && q.trim() && <span style={{ color: C.sub, background: C.fill, fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>보관됨</span>}
+            {due && !m.archived && <span style={{ color: due[1], fontWeight: 600, marginRight: 8 }}>{due[0]}</span>}
             {checks.length > 0 && <span style={{ color: C.sub, fontWeight: 600, marginRight: 8 }}>✓ {doneN}/{checks.length}</span>}
             {preview || shortStamp(m.updated_at)}
           </div>
         </div>
-        <div style={{ fontSize: 14, color: C.sub, whiteSpace: 'nowrap', textAlign: 'right' }}>
-          {preview && shortStamp(m.updated_at)}
-        </div>
+        {done ? (
+          <button aria-label="완료 · 보관" onClick={e => { e.stopPropagation(); setArchived(m.id, true) }} style={{
+            ...plain, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 12, fontWeight: 600, color: C.sub,
+            background: C.fill, borderRadius: 999, padding: '5px 9px',
+          }}><Archive size={13} />보관</button>
+        ) : (
+          <div style={{ fontSize: 14, color: C.sub, whiteSpace: 'nowrap', textAlign: 'right' }}>
+            {preview && shortStamp(m.updated_at)}
+          </div>
+        )}
         {m.images?.length > 0 && (
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{ width: 44, height: 44, borderRadius: 8, background: C.fill, backgroundImage: urls[m.images[0]] ? `url("${urls[m.images[0]]}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -557,9 +585,18 @@ function MemoTab({ memos, reload, setErr }) {
         </div>
       )}
 
-      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{q || tagFilter ? '찾는 메모가 없어요' : '+ 버튼으로 첫 메모를 남겨보세요'}</div>}
+      {list.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{q || tagFilter ? '찾는 메모가 없어요' : archived.length ? '모두 보관했어요' : '+ 버튼으로 첫 메모를 남겨보세요'}</div>}
       {pinned.length > 0 && <Group header={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Pin size={12} />고정됨</span>}>{renderRows(pinned)}</Group>}
       {others.length > 0 && <Group header={pinned.length > 0 ? '메모' : null}>{renderRows(others)}</Group>}
+      {!q.trim() && archived.length > 0 && (
+        <>
+          <button onClick={() => setShowArchived(v => !v)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: C.sub, padding: '4px 4px 8px' }}>
+            <Archive size={15} />보관함 {archived.length}
+            <ChevronDown size={16} style={{ transform: showArchived ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }} />
+          </button>
+          {showArchived && <Group>{renderRows(archived)}</Group>}
+        </>
+      )}
 
       <Fab label="새 메모" color={TAGS[tagFilter]?.color || MEMO_TINT} onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
@@ -575,6 +612,9 @@ function MemoTab({ memos, reload, setErr }) {
             <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
               {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
             </button>
+            {edit.id && <button aria-label={edit.archived ? '보관 해제' : '메모 보관'} onClick={archiveOpen} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
+              {edit.archived ? <ArchiveRestore size={19} /> : <Archive size={19} />}
+            </button>}
             {edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
           {/* 읽기 보기에서 내용을 두 번 누르면 바로 편집 (체크·링크·사진 누름은 제외) */}
