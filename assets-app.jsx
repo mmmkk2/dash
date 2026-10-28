@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, TrendingUp, TrendingDown, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, TrendingUp, TrendingDown, Copy, MoreHorizontal } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "./src/lib/supabase";
+import { useShowTabBar } from "./src/TabBar";
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -1598,6 +1599,8 @@ function TaxReportView({ sales, year = 2026 }) {
 }
 
 export default function AssetsApp() {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const hasTabBar = useShowTabBar();
   const [assets,   setAssets]   = useState([]);
   const [stocks,   setStocks]   = useState([]);
   const [cats,     setCats]     = useState(DEFAULT_CATS);
@@ -1948,10 +1951,22 @@ export default function AssetsApp() {
 
       {/* 머리: 메모·일정처럼 밝은 바탕, 순자산을 크게 */}
       <div style={{ maxWidth: 660, margin: "0 auto", padding: "calc(16px + env(safe-area-inset-top)) 16px 0" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginBottom: 14 }}>
-          {[["분류 관리", () => setModal("cats")], ["무한매수", () => { window.location.href = "/infinite-buying" }], ["가계부", () => { window.location.href = "/budget" }]].map(([l, on]) => (
-            <button key={l} onClick={on} style={{ background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 999, padding: "6px 12px", color: C.ink, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", fontFamily: F }}>{l}</button>
-          ))}
+        {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리·무한매수, 하단 탭이 없을 땐 가계부도) */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.7px", lineHeight: 1.25, color: C.ink }}>자산</div>
+          <button aria-label="메뉴" onClick={() => setMoreOpen(o => !o)} style={{ width: 40, height: 40, borderRadius: 12, background: C.white, border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: C.ink, cursor: "pointer" }}>
+            <MoreHorizontal size={18} />
+          </button>
+          {moreOpen && (
+            <>
+              <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div style={{ position: "absolute", top: 46, right: 0, zIndex: 41, background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 4, minWidth: 150 }}>
+                {[["분류 관리", () => setModal("cats")], ["무한매수", () => { window.location.href = "/infinite-buying" }], ...(hasTabBar ? [] : [["가계부", () => { window.location.href = "/budget" }]])].map(([l, on]) => (
+                  <button key={l} onClick={() => { setMoreOpen(false); on() }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderRadius: 10, padding: "10px 12px", fontSize: 15, color: C.ink, cursor: "pointer", fontFamily: F }}>{l}</button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* 순자산 */}
