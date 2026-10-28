@@ -4776,12 +4776,12 @@ export default function App(){
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
                 <button key={ek} onClick={()=>switchEntity(ek)} style={{
-                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`1px solid ${sel?e.color+"33":C.border}`,
-                  background:sel?`${e.color}12`:C.white,
-                  color:sel?e.color:C.inkMid,
+                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`1.5px solid ${sel?e.color:e.color+"30"}`,
+                  background:sel?`${e.color}20`:C.white,
+                  color:e.color,
                   fontFamily:FONT,fontSize:"14px",fontWeight:sel?600:500,
                   transition:"all 0.2s",boxShadow:"none"}}>
-                  <div style={{lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}>{narrow?e.short:e.label}</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}><span aria-hidden="true" style={{width:"7px",height:"7px",borderRadius:"50%",background:e.color,flexShrink:0}}/>{narrow?e.short:e.label}</div>
                 </button>
               );
             })}
@@ -4870,8 +4870,8 @@ export default function App(){
             <button key={k} onClick={()=>setTab(k)} style={{
               flex:1,padding:"12px 10px",border:"none",background:"transparent",cursor:"pointer",position:"relative",
               fontWeight:tab===k?600:400,fontSize:"14px",
-              color:tab===k?C.ink:C.inkLight,
-              borderBottom:`2px solid ${tab===k?ent.color:"transparent"}`,
+              color:tab===k?ent.color:C.inkLight,
+              borderBottom:`3px solid ${tab===k?ent.color:"transparent"}`,
               marginBottom:"-1px",fontFamily:FONT,transition:"all 0.2s"}}>
               {l}
               {badge>0&&<span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",minWidth:"14px",height:"14px",padding:"0 3px",
