@@ -142,7 +142,7 @@ function LockerResetRequestChip({ r }) {
     } catch (error) { alert(error.message || '카톡 발송을 확인하지 못했어요.') }
     finally { setBusy(false) }
   }
-  return <button onClick={send} disabled={busy || sent} aria-label={`백승재님께 ${number}번 사물함 리셋 요청`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy ? 0.6 : 1 }}>{sent ? '요청 완료' : busy ? '전송 중…' : '백승재 요청'}</button>
+  return <button onClick={send} disabled={busy || sent} aria-label={`백승재님께 ${number}번 사물함 리셋 요청`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy ? 0.6 : 1 }}>{sent ? '요청 완료' : busy ? '전송 중…' : '리셋 요청'}</button>
 }
 
 function LockerEndChip({ r }) {
