@@ -194,3 +194,43 @@ alter table memos add column if not exists tag text default null;
 -- 일정 사업자 태그 (메모와 같은 personal / cafe / realty / goion, 없으면 null)
 alter table events add column if not exists tag text default null;
 alter table memos add column if not exists archived boolean default false;
+
+-- ================================================================
+-- 앤딩(스터디카페) 현황 — 맥의 anding_dash_sync가 service key로 1분마다 올리고, 내비서가 읽는다
+-- 회원 이름·전화번호가 들어 있으니 anding_viewers에 등록된 계정만 읽기 (anon 읽기 금지)
+-- ================================================================
+create table if not exists anding_dashboard (
+  key        text primary key,
+  data       jsonb not null default '{}',
+  updated_at timestamptz default now()
+);
+create table if not exists anding_config (
+  key        text primary key,
+  value      text not null default '',
+  updated_at timestamptz default now()
+);
+create table if not exists anding_viewers (email text primary key);
+alter table anding_dashboard enable row level security;
+alter table anding_config enable row level security;
+alter table anding_viewers enable row level security; -- 정책 없음: SQL 편집기·service key만
+
+-- 올릴 때마다 updated_at 갱신
+create or replace function anding_touch() returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end $$;
+drop trigger if exists anding_dashboard_touch on anding_dashboard;
+create trigger anding_dashboard_touch before insert or update on anding_dashboard for each row execute function anding_touch();
+
+-- 지금 로그인한 계정이 앤딩 현황을 볼 수 있는지 (anding_viewers는 RLS로 막혀 있어 security definer로 확인)
+create or replace function anding_can_read() returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from anding_viewers where email = auth.jwt() ->> 'email')
+$$;
+drop policy if exists "앤딩 현황 읽기" on anding_dashboard;
+create policy "앤딩 현황 읽기" on anding_dashboard for select to authenticated using (anding_can_read());
+
+-- 배치도 그림 (비공개 버킷, 등록된 계정만 읽기)
+insert into storage.buckets (id, name, public) values ('anding', 'anding', false) on conflict (id) do nothing;
+drop policy if exists "앤딩 그림 읽기" on storage.objects;
+create policy "앤딩 그림 읽기" on storage.objects for select to authenticated using (bucket_id = 'anding' and anding_can_read());
+
+-- 볼 계정 등록 (본인 로그인 이메일로 바꿔서 실행)
+-- insert into anding_viewers (email) values ('로그인 이메일') on conflict do nothing;
