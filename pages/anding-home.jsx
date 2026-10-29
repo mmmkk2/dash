@@ -376,10 +376,24 @@ function SalePanel({ onApplied }) {
   )
 }
 
-function Detail({ k, d, onClose, onSms, onReload }) {
-  const info = DETAIL[k]
+// 앤딩 앱 JSON API 읽기 (관리자 세션 쿠키 그대로)
+function useApi(path) {
+  const [st, setSt] = useState({ loading: true })
+  useEffect(() => {
+    let alive = true
+    setSt(o => ({ ...o, loading: true }))
+    fetch(API + path, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(async r => ({ status: r.status, body: await r.json().catch(() => null) }))
+      .then(({ status, body }) => alive && setSt(status === 200 && body ? { data: body } : { status, error: body?.error || `불러오기 실패 (${status})` }))
+      .catch(e => alive && setSt({ error: e.message }))
+    return () => { alive = false }
+  }, [path])
+  return st
+}
+
+// 아직 내비서로 옮기지 않은 상세(또는 새 API가 맥에 반영되기 전): 앤딩 상세 화면을 그대로
+function IframeDetail({ k, path }) {
   const [loaded, setLoaded] = useState(false)
-  useBackClose(true, onClose)
   // 앤딩 상세 화면이 카드 안에 들어간 것처럼 보이게 (흰 바탕·작은 제목·카드 색) — 같은 주소라 직접 표시를 단다
   const onLoad = e => {
     try {
@@ -390,14 +404,138 @@ function Detail({ k, d, onClose, onSms, onReload }) {
     setLoaded(true)
   }
   return (
+    <div style={{ background: '#fff', borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
+      {!loaded && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
+      <iframe title={k} src={API + path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(88dvh - 110px - env(safe-area-inset-bottom))', display: 'block' }} />
+    </div>
+  )
+}
+
+const Card = ({ children, style }) => <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden', ...style }}>{children}</div>
+const Muted = ({ children }) => <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0', fontSize: 15 }}>{children}</div>
+const t2m = s => { const d = new Date(s); return d.getHours() * 60 + d.getMinutes() } // 'YYYY-MM-DDTHH:MM:SS' → 분
+const shortTime = s => (s || '').replace(/^\d{4}\./, '').replace(/\./g, '/').replace(/^(\d\d\/\d\d) /, '$1 ')
+
+// 오늘(05시~다음날 05시) 자유석 이용자 수 그래프
+function SeatChart({ d }) {
+  const W = 340, H = 130, L = 26, B = 18
+  const start = new Date(d.start).getTime(), span = new Date(d.end).getTime() - start
+  const max = Math.max(d.total_free || 0, ...d.history.map(h => h[1]), 1)
+  const x = t => L + (new Date(t).getTime() - start) / span * (W - L - 4)
+  const y = v => 6 + (1 - v / max) * (H - B - 6)
+  const pts = d.history.map(([t, v]) => `${x(t).toFixed(1)},${y(v).toFixed(1)}`)
+  const limit = d.total_free - d.danger
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }} role="img" aria-label="오늘 자유석 이용자 수">
+      {[0, Math.round(max / 2), max].map(v => (
+        <g key={v}><line x1={L} x2={W - 4} y1={y(v)} y2={y(v)} stroke={C.sep} /><text x={L - 4} y={y(v) + 3} fontSize="9" fill={C.sub} textAnchor="end">{v}</text></g>
+      ))}
+      {limit > 0 && <line x1={L} x2={W - 4} y1={y(limit)} y2={y(limit)} stroke="#e5484d" strokeDasharray="3 3" opacity=".6" />}
+      {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => {
+        const xx = L + h / 24 * (W - L - 4)
+        return <text key={h} x={xx} y={H - 4} fontSize="9" fill={C.sub} textAnchor="middle">{String((5 + h) % 24).padStart(2, '0')}</text>
+      })}
+      {pts.length > 1 && <path d={`M${pts[0].split(',')[0]},${y(0)} L${pts.join(' L')} L${pts[pts.length - 1].split(',')[0]},${y(0)} Z`} fill={COL.seat + '22'} />}
+      {pts.length > 1 && <polyline points={pts.join(' ')} fill="none" stroke={COL.seat} strokeWidth="1.8" strokeLinejoin="round" />}
+    </svg>
+  )
+}
+
+function SeatDetail() {
+  const { data: d, status, error, loading } = useApi('/api/seat_detail')
+  if (status === 404) return <IframeDetail k="seat" path="/seat" />
+  if (error) return <Muted>{error}</Muted>
+  if (loading && !d) return <Muted>불러오는 중…</Muted>
+  const now = Date.now()
+  const parse = s => new Date((s || '').replace(/\./g, '-').replace(' ', 'T')).getTime()
+  const soon = (d.seats['자유석'] || []).filter(r => { const e = parse(r.end); return e >= now && e - now <= 6 * 3600e3 }).sort((a, b) => parse(a.end) - parse(b.end))
+  const list = (title, rows, end) => rows.length > 0 && (
+    <>
+      <Label>{title} {rows.length}</Label>
+      <Card>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5 }}>
+            <b style={{ fontWeight: 600, minWidth: 30, color: COL.seat }}>{r.seat}</b>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {r.name || '미등록'}
+              <div style={{ fontSize: 12, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}</div>
+            </div>
+            <div style={{ fontSize: 12, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>{end ? <>~{shortTime(r.end)}</> : <>{shortTime(r.start)} 입실</>}</div>
+          </div>
+        ))}
+      </Card>
+    </>
+  )
+  return (
+    <div>
+      <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>자유석 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
+      <Card style={{ padding: '10px 8px 4px', marginTop: 10 }}><SeatChart d={d} /></Card>
+      <Card style={{ marginTop: 10 }}>
+        <img src={`${API}/static/images/seat_map.png?ts=${encodeURIComponent(d.updated)}`} alt="좌석 배치도" onError={e => { e.currentTarget.parentElement.style.display = 'none' }} style={{ display: 'block', width: '100%' }} />
+      </Card>
+      {list('6시간 안에 종료', soon, true)}
+      {list('자유석', d.seats['자유석'] || [])}
+      {list('노트북석', d.seats['노트북석'] || [])}
+      {list('고정석', d.seats['고정석'] || [], true)}
+      <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.updated}</div>
+    </div>
+  )
+}
+
+const ymdDot = dt => `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}`
+
+function PaymentDetail() {
+  const today = ymdDot(new Date())
+  const yesterday = ymdDot(new Date(Date.now() - 864e5))
+  const [date, setDate] = useState(today)
+  const { data: d, status, error, loading } = useApi(`/api/payments?date=${date}`)
+  if (status === 404 && !d) return <IframeDetail k="payment" path="/payment" />
+  const navBtn = (label, to, disabled) => (
+    <button onClick={() => setDate(to)} disabled={disabled} aria-label={label} style={{ ...plain, width: 34, height: 34, borderRadius: 10, background: C.card, border: `0.5px solid ${C.sep}`, color: disabled ? C.sep : C.text, fontSize: 17 }}>{label === '이전 날' ? '‹' : '›'}</button>
+  )
+  return (
+    <div>
+      {/* 이전 결제는 어제(D-1)까지만 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        {navBtn('이전 날', yesterday, date === yesterday)}
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 600 }}>{date}{date === today ? ' (오늘)' : ' (어제)'}</div>
+        {navBtn('다음 날', today, date === today)}
+      </div>
+      {error && <Muted>{error}</Muted>}
+      {!error && loading && !d && <Muted>불러오는 중…</Muted>}
+      {d && (
+        <>
+          <div style={{ fontSize: 15, color: C.sub, padding: '0 4px 8px' }}>승인 {d.count}건 · <b style={{ color: COL.payment }}>{won(d.amount)}원</b></div>
+          {d.rows.length === 0 ? <Muted>결제 내역이 없어요</Muted> : (
+            <Card>
+              {d.rows.map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, opacity: r.paid ? 1 : 0.45 }}>
+                  <span style={{ fontSize: 12.5, color: C.sub, minWidth: 38 }}>{r.time}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {r.user || '-'}
+                    <div style={{ fontSize: 12, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}{!r.paid && r.status ? ` · ${r.status}` : ''}</div>
+                  </div>
+                  <b style={{ fontWeight: 600, whiteSpace: 'nowrap', textDecoration: r.paid ? 'none' : 'line-through' }}>{won(r.amount)}원</b>
+                </div>
+              ))}
+            </Card>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function Detail({ k, d, onClose, onSms, onReload }) {
+  const info = DETAIL[k]
+  useBackClose(true, onClose)
+  return (
     <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full>
       {k === 'product' && <SalePanel onApplied={onReload} />}
-      {info.path ? (
-        <div style={{ background: '#fff', borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
-          {!loaded && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
-          <iframe title={info.title} src={API + info.path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(88dvh - 110px - env(safe-area-inset-bottom))', display: 'block' }} />
-        </div>
-      ) : <LockerList d={d} onSms={onSms} />}
+      {k === 'seat' ? <SeatDetail />
+        : k === 'payment' ? <PaymentDetail />
+        : k === 'locker' ? <LockerList d={d} onSms={onSms} />
+        : <IframeDetail k={k} path={info.path} />}
     </Sheet>
   )
 }
