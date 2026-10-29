@@ -121,6 +121,30 @@ const isLockerExpired = r => {
   const date = new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00')
   return Number.isFinite(date.getTime()) && date.getTime() <= Date.now()
 }
+function LockerResetRequestChip({ r }) {
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  if (!isLockerExpired(r)) return null
+  const number = String(r.no || '').replace(/번$/, '')
+  const send = async e => {
+    e.stopPropagation()
+    if (busy || sent) return
+    const message = `${number}번 사물함 리셋 봐주세요.`
+    if (!confirm(`받는 사람: 백승재\n\n${message}\n\n이 내용으로 카카오톡을 보낼까요?`)) return
+    setBusy(true)
+    try {
+      const response = await fetch(`${API}/api/locker/reset-request`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ no: r.no, end: r.end, use_id: r.use_id }) })
+      if (response.redirected || response.status === 401 || response.status === 403) throw new Error('앤딩 관리자 로그인 후 다시 눌러주세요.')
+      const result = await response.json()
+      if (!response.ok || !result.ok) throw new Error(result.error || '카톡 발송을 확인하지 못했어요.')
+      setSent(true)
+      alert(result.message)
+    } catch (error) { alert(error.message || '카톡 발송을 확인하지 못했어요.') }
+    finally { setBusy(false) }
+  }
+  return <button onClick={send} disabled={busy || sent} aria-label={`백승재님께 ${number}번 사물함 리셋 요청`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy ? 0.6 : 1 }}>{sent ? '요청 완료' : busy ? '전송 중…' : '백승재 요청'}</button>
+}
+
 function LockerEndChip({ r }) {
   const [busy, setBusy] = useState(false)
   const alive = useRef(true)
@@ -221,7 +245,7 @@ function Todo({ d, onSms }) {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
-            {r.sms && <><SmsChip r={r.sms} onSms={onSms} /><LockerEndChip r={r.sms} /></>}
+            {r.sms && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 5, maxWidth: 210 }}><SmsChip r={r.sms} onSms={onSms} /><LockerEndChip r={r.sms} /><LockerResetRequestChip r={r.sms} /></div>}
           </div>
         ))}
       </div>
@@ -299,6 +323,7 @@ function LockerList({ d, onSms }) {
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
             <SmsChip r={{ ...r, kind }} onSms={onSms} />
             <LockerEndChip r={r} />
+            <LockerResetRequestChip r={r} />
           </div>
         ))}
       </div>
