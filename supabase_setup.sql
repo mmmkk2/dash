@@ -234,3 +234,15 @@ create policy "앤딩 그림 읽기" on storage.objects for select to authentica
 
 -- 볼 계정 등록 (본인 로그인 이메일로 바꿔서 실행)
 -- insert into anding_viewers (email) values ('로그인 이메일') on conflict do nothing;
+
+-- 앤딩 매니저 급여 관리표 (연도별, 본인만) — 기본과 다른 근무시간·추가 수당·시급만 저장
+create table if not exists anding_salary (
+  user_id    uuid references auth.users not null default auth.uid(),
+  year       int not null,
+  data       jsonb not null default '{}',
+  updated_at timestamptz default now(),
+  primary key (user_id, year)
+);
+alter table anding_salary enable row level security;
+drop policy if exists "본인 급여표만" on anding_salary;
+create policy "본인 급여표만" on anding_salary for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
