@@ -4375,13 +4375,6 @@ export default function App(){
   const [showMore,setShowMore]=useState(false);
   const hasTabBar=useShowTabBar();
   const [hideCafe,setHideCafe]=useState(()=>localStorage.getItem(HIDE_CAFE_KEY)==="true");
-  // 좁은 화면에서는 장부 버튼에 짧은 이름을 쓴다
-  const [narrow,setNarrow]=useState(()=>window.innerWidth<560);
-  useEffect(()=>{
-    const onResize=()=>setNarrow(window.innerWidth<560);
-    window.addEventListener("resize",onResize);
-    return ()=>window.removeEventListener("resize",onResize);
-  },[]);
   const [editTx,setEditTx]=useState(null);
   const [txs,   setTxs]   =useState([]);
   const [cards, setCards] =useState(DEFAULT_CARDS);
@@ -4777,33 +4770,31 @@ export default function App(){
             </div>
           </div>
 
-          {/* Entity tabs */}
-          <div style={{display:"flex",gap:"5px",marginBottom:"18px"}}>
+          {/* Entity tabs — 메모·일정 태그 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 사업 색으로 채움 */}
+          <div style={{display:"flex",gap:"6px",marginBottom:"18px",overflowX:"auto"}}>
             {visibleEntities.map(ek=>{
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
-                <button key={ek} onClick={()=>switchEntity(ek)} style={{
-                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`0.5px solid ${sel?e.color:C.border}`,
-                  // 선택된 사업은 사업 색으로 채우고 흰 글씨 (메모·일정 태그 칩과 같은 방식)
-                  background:sel?e.color:C.white,
-                  color:sel?"#fff":e.color,
-                  fontFamily:FONT,fontSize:"14px",fontWeight:600,
-                  transition:"all 0.2s",boxShadow:"none"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}>{narrow?e.short:e.label}</div>
+                <button key={ek} onClick={()=>switchEntity(ek)} aria-pressed={sel} style={{
+                  display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap",
+                  padding:"5px 10px",borderRadius:"999px",cursor:"pointer",
+                  border:`0.5px solid ${sel?e.color:C.border}`,
+                  background:sel?e.color:C.white,color:sel?"#fff":e.color,
+                  fontFamily:FONT,fontSize:"12px",fontWeight:600,transition:"all 0.2s"}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":e.color}}/>
+                  {e.short}
                 </button>
               );
             })}
-          </div>
-          {entity==="cafe"&&(
-            <div style={{display:"flex",justifyContent:"flex-end",margin:"-8px 0 14px"}}>
+            {/* 칩이 작아져서 앤딩 관리자 바로가기는 같은 줄 오른쪽에 */}
+            {entity==="cafe"&&(
               <a href="/anding" onClick={e=>{e.preventDefault();navigate("/anding");}} style={{
-                display:"inline-flex",alignItems:"center",gap:"5px",padding:"6px 12px",borderRadius:"99px",
-                background:C.white,border:`1px solid ${C.border}`,color:C.inkMid,
-                fontFamily:FONT,fontSize:"12px",fontWeight:600,textDecoration:"none"}}>
+                marginLeft:"auto",display:"inline-flex",alignItems:"center",gap:"3px",padding:"5px 6px 5px 10px",borderRadius:"99px",
+                whiteSpace:"nowrap",color:C.inkMid,fontFamily:FONT,fontSize:"12px",fontWeight:600,textDecoration:"none"}}>
                 앤딩 관리자 <ChevronRight size={13}/>
               </a>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Balance */}
           <div style={{background:C.paper,borderRadius:"20px",padding:"18px 20px",
