@@ -412,9 +412,10 @@ function TagChip({ tag, on, onClick, small, allColor = C.tint }) {
     <button type="button" onClick={onClick} aria-pressed={on} style={{
       ...plain, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', borderRadius: 999,
       fontSize: small ? 12 : 13, fontWeight: 600, padding: small ? '5px 10px' : '7px 11px',
-      background: on ? (t ? t.color + '18' : allColor) : C.card, color: on && !t ? '#fff' : (t?.color || C.text), border: `0.5px solid ${on && t ? t.color + '66' : C.sep}`,
+      // 선택하면 태그 색으로 채우고 흰 글씨 (가계부 사업 칩과 같은 방식)
+      background: on ? (t ? t.color : allColor) : C.card, color: on ? '#fff' : (t?.color || C.text), border: `0.5px solid ${on && t ? t.color : C.sep}`,
     }}>
-      {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }} />}
+      {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? '#fff' : t.color }} />}
       {t ? t.label : '전체'}
     </button>
   )
