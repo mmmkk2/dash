@@ -42,6 +42,32 @@ const tidyLockers = data => {
   return data
 }
 
+// 맥 수집이 멈춰 있어도 날짜는 오늘 기준: 받은 요약을 지금 시각으로 다시 나눈다
+// (스터디룸은 오늘 것만·이용 중 다시 계산, 사물함은 만료/오늘 만료 다시 분류, 지난 날 결제·지난 달 매출은 0)
+function freshen(d) {
+  const now = new Date(), today = ymdDot(now), nowHM = now.toTimeString().slice(0, 5)
+  const dataDay = (d.now || '').slice(0, 10).replace(/-/g, '.')
+  // 10분 넘게 새 요약이 없으면 맥 수집이 멈춘 것으로 본다 (평소엔 1분마다 올라옴)
+  const stale = now - new Date((d.now || '').replace(' ', 'T') + '+09:00') > 10 * 60e3
+  const endAt = r => new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00').getTime()
+  const lockers = [...d.locker.expired, ...d.locker.expiring]
+  const payDay = (d.payment.updated || '').slice(0, 10).replace(/-/g, '.')
+  return {
+    ...d, stale, today: now,
+    studyroom: {
+      ...d.studyroom,
+      items: d.studyroom.items.filter(r => (r.date || dataDay) === today).map(r => ({ ...r, now: r.start <= nowHM && nowHM <= r.end, done: r.end < nowHM })),
+    },
+    locker: {
+      ...d.locker,
+      expired: lockers.filter(r => endAt(r) <= now.getTime()),
+      expiring: lockers.filter(r => endAt(r) > now.getTime() && (r.end || '').slice(0, 10) === today),
+    },
+    payment: payDay && payDay !== today ? { ...d.payment, count: 0, amount: 0 } : d.payment,
+    monthly: d.monthly.month !== now.getMonth() + 1 ? { month: now.getMonth() + 1, amount: 0, daily_avg: 0, predicted: 0 } : d.monthly,
+  }
+}
+
 async function getSummary() {
   const synced = await fromSync('/api/summary')
   if (synced) return { data: tidyLockers(synced) }
@@ -90,7 +116,7 @@ function Hero({ d }) {
       {label}<div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap' }}>{value}</div>
     </div>
   )
-  const date = new Date(d.now.replace(' ', 'T'))
+  const date = d.today
   return (
     <div style={{ borderRadius: 20, padding: '16px 18px', color: '#fff', background: `linear-gradient(135deg, ${GREEN}, #2f7d8f)` }}>
       <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>오늘 매출 · {date.getMonth() + 1}월 {date.getDate()}일</div>
@@ -709,7 +735,7 @@ export default function AndingHome() {
     { label: '로그아웃', danger: true, run: async () => { if (!confirm('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
   ]
 
-  const d = state.data
+  const d = state.data && freshen(state.data)
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, letterSpacing: '-0.01em' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 16px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
@@ -746,7 +772,9 @@ export default function AndingHome() {
             <Hero d={d} />
             <Todo d={d} onSms={setSms} />
             <Tiles d={d} open={setDetail} />
-            <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>Updated {hhmm(d.seat.updated) || hhmm(d.now)} · 1분마다 자동 갱신</div>
+            <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>{d.stale
+              ? <span style={{ color: '#d97706' }}>맥 수집이 {(d.now || '').slice(5, 16).replace('-', '/')}에서 멈춰 있어요 · 날짜는 오늘 기준</span>
+              : <>Updated {hhmm(d.seat.updated) || hhmm(d.now)} · 1분마다 자동 갱신</>}</div>
           </>
         )}
       </div>
