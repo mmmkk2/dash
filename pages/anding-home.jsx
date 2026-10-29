@@ -404,9 +404,9 @@ function IframeDetail({ k, path }) {
     setLoaded(true)
   }
   return (
-    <div style={{ background: '#fff', borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden', padding: '8px 6px' }}>
       {!loaded && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
-      <iframe title={k} src={API + path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(88dvh - 110px - env(safe-area-inset-bottom))', display: 'block' }} />
+      <iframe title={k} src={API + path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(78dvh - 130px - env(safe-area-inset-bottom))', display: 'block' }} />
     </div>
   )
 }
@@ -633,7 +633,7 @@ function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
   return (
-    <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full>
+    <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh">
       {k === 'product' && <SalePanel onApplied={onReload} />}
       {k === 'seat' ? <SeatDetail />
         : k === 'payment' ? <PaymentDetail />

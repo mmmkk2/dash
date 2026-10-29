@@ -195,7 +195,8 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
       <div onClick={e => e.stopPropagation()} style={{
         background: C.bg, width: '100%', maxWidth: full ? 760 : 680, borderRadius: '22px 22px 0 0', overflowY: 'auto',
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
-        ...(full ? { height: '88dvh' } : { maxHeight: '92dvh' }),
+        // full에 높이(예: '78dvh')를 주면 그 높이로
+        ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : { maxHeight: '92dvh' }),
         paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
