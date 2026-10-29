@@ -268,8 +268,25 @@ function useSalary(year) {
   return { data, update, where }
 }
 
+// 보이는 급여표(연간 또는 그 달)를 그림으로: 폰은 공유 창(사진 저장·카톡 등), 안 되면 파일로 내려받기
+async function saveImage(el, name) {
+  const { default: html2canvas } = await import('html2canvas')
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: C.bg, useCORS: true, logging: false })
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+  const file = new File([blob], name, { type: 'image/png' })
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return } catch (e) { if (e.name === 'AbortError') return }
+  }
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob); a.download = name
+  document.body.appendChild(a); a.click()
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href) }, 1000)
+}
+
 export function SalarySheet({ onClose }) {
   useBackClose(true, onClose)
+  const shotRef = useRef(null)
+  const [saving, setSaving] = useState(false)
   const year = new Date().getFullYear()
   const { data, update, where } = useSalary(year)
   const [tab, setTab] = useState(0) // 0 = 연간
@@ -286,13 +303,24 @@ export function SalarySheet({ onClose }) {
     <button key={label} onClick={onClick} aria-pressed={on} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', whiteSpace: 'nowrap', background: on ? GREEN : C.card, color: on ? '#fff' : GREEN, border: `0.5px solid ${on ? GREEN : C.sep}` }}>{label}</button>
   )
   return (
-    <Sheet title={`${year} 매니저 급여`} tint={GREEN} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh" inset>
+    <Sheet title={`${year} 매니저 급여`} tint={GREEN} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh" inset
+      actions={data && (
+        <button disabled={saving} onClick={async () => {
+          setSaving(true)
+          try { await saveImage(shotRef.current, `salary_${year}${tab ? '_' + pad2(tab) : '_year'}.png`) }
+          catch { alert('이미지를 만들지 못했어요') } finally { setSaving(false) }
+        }} style={{ ...plain, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}`, opacity: saving ? 0.5 : 1 }}>
+          {saving ? '만드는 중…' : '이미지 저장'}
+        </button>
+      )}>
       {!data ? <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div> : (
         <>
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
             {chip(tab === 0, '연간', () => setTab(0))}
             {Array.from({ length: 12 }, (_, i) => chip(tab === i + 1, `${i + 1}월`, () => setTab(i + 1)))}
           </div>
+          <div ref={shotRef} style={{ background: C.bg, padding: '2px 0 4px' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, padding: '10px 4px 0' }}>{year} 매니저 급여{tab ? ` · ${tab}월` : ' · 연간'}</div>
           {tab === 0 ? (() => {
             const all = Array.from({ length: 12 }, (_, i) => ({ mon: i + 1, ...calc(i + 1) }))
             const tot = all.reduce((a, m) => ({ hours: a.hours + m.hours, extra: a.extra + m.extra, pay: a.pay + m.pay }), { hours: 0, extra: 0, pay: 0 })
@@ -345,6 +373,7 @@ export function SalarySheet({ onClose }) {
               </>
             )
           })()}
+          </div>
           <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 12 }}>
             {where === 'cloud' ? '고친 내용은 바로 저장돼요' : '이 기기에만 저장돼요 (Supabase에 anding_salary 테이블을 만들면 어디서나 같이 보여요)'}
           </div>
