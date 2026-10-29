@@ -526,6 +526,109 @@ function PaymentDetail() {
   )
 }
 
+// 스터디룸: 오늘~모레, 날짜 칩으로 바꿔 보고 2인실·4인실 나란히
+const roomTimes = t => (t || '').split('~').map(x => x.trim().slice(-5))
+function RoomDetail() {
+  const { data, status, error, loading } = useApi('/api/room_detail')
+  const [day, setDay] = useState(0)
+  if (status === 404 || (data && !data.days)) return <IframeDetail k="room" path="/room" />
+  if (error) return <Muted>{error}</Muted>
+  if (loading && !data) return <Muted>불러오는 중…</Muted>
+  const d = data.days[day] || data.days[0]
+  const nowHM = new Date().toTimeString().slice(0, 5)
+  const col = (label, rows) => (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <Label>{label} {rows.length}</Label>
+      <Card>
+        {rows.length === 0 && <div style={{ padding: '14px', color: C.sub, fontSize: 14 }}>예약 없음</div>}
+        {rows.map((r, i) => {
+          const [a, b] = roomTimes(r.time)
+          const now = day === 0 && a <= nowHM && nowHM <= b, done = day === 0 && b < nowHM
+          return (
+            <div key={i} style={{ padding: '10px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', opacity: done ? 0.45 : 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: now ? COL.room : C.text }}>{a}–{b}{now && <span style={{ fontSize: 11, marginLeft: 6, color: '#fff', background: COL.room, borderRadius: 999, padding: '1px 6px', verticalAlign: 2 }}>이용 중</span>}</div>
+              <div style={{ fontSize: 12.5, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name || '-'}</div>
+            </div>
+          )
+        })}
+      </Card>
+    </div>
+  )
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {data.days.map((x, i) => (
+          <button key={i} onClick={() => setDay(i)} aria-pressed={day === i} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: day === i ? COL.room : C.card, color: day === i ? '#fff' : COL.room, border: `0.5px solid ${day === i ? COL.room : C.sep}` }}>
+            {i === 0 ? '오늘' : x.label}{(x.count_2 + x.count_4) > 0 && ` ${x.count_2 + x.count_4}`}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {col('2인실', d.reservations_2 || [])}
+        {col('4인실', d.reservations_4 || [])}
+      </div>
+      <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {data.updated_time}</div>
+    </div>
+  )
+}
+
+// 월별 매출: 이번 달·지난달 일별 누적 선 그래프 + 요약
+function MonthlyChart({ prev, curr, top }) {
+  const W = 340, H = 150, L = 34, B = 18
+  const x = i => L + i / 30 * (W - L - 6)
+  const y = v => 6 + (1 - v / top) * (H - B - 6)
+  const line = arr => arr.map((v, i) => v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean).join(' ')
+  const ticks = [0, top / 2, top]
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block' }} role="img" aria-label="월별 누적 매출">
+      {ticks.map(v => <g key={v}><line x1={L} x2={W - 6} y1={y(v)} y2={y(v)} stroke={C.sep} /><text x={L - 4} y={y(v) + 3} fontSize="9" fill={C.sub} textAnchor="end">{man(v)}</text></g>)}
+      {[1, 5, 10, 15, 20, 25, 31].map(dd => <text key={dd} x={x(dd - 1)} y={H - 4} fontSize="9" fill={C.sub} textAnchor="middle">{dd}</text>)}
+      <polyline points={line(prev)} fill="none" stroke="#b8bcc4" strokeWidth="1.6" strokeDasharray="4 3" />
+      <polyline points={line(curr)} fill="none" stroke={COL.monthly} strokeWidth="2.2" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function MonthlyDetail() {
+  const { data: d, status, error, loading } = useApi('/api/monthly_detail')
+  if (status === 404 || (d && !d.cum_curr)) return <IframeDetail k="monthly" path="/monthly" />
+  if (error) return <Muted>{error}</Muted>
+  if (loading && !d) return <Muted>불러오는 중…</Muted>
+  const num = v => typeof v === 'number' ? v : Number(String(v || 0).replace(/[^\d]/g, ''))
+  const cur = num(d.summary_amount_curr), predicted = num(d.predicted_amount), avg = num(d.daily_avg)
+  const today = new Date().getDate()
+  // 지난달 같은 날까지 누적 (그날 기록이 없으면 그 전 마지막 값)
+  const prevSameDay = d.cum_prev.slice(0, today).filter(v => v != null).pop() || 0
+  const diff = prevSameDay ? Math.round((cur - prevSameDay) / prevSameDay * 100) : null
+  const top = Math.max(predicted, ...d.cum_prev.filter(v => v != null), ...d.cum_curr.filter(v => v != null), 1)
+  const row = (label, value, color) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: `0.5px solid ${C.sep}`, fontSize: 15 }}>
+      <span style={{ color: C.sub }}>{label}</span><b style={{ fontWeight: 600, color }}>{value}</b>
+    </div>
+  )
+  return (
+    <div>
+      <Card style={{ padding: '14px 16px 8px' }}>
+        <div style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>{d.month}월 누적</div>
+        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', color: COL.monthly }}>{won(cur)}원</div>
+        {diff != null && <div style={{ fontSize: 13, color: diff >= 0 ? '#2d9e6b' : '#d95f4b', fontWeight: 600 }}>지난달 같은 날보다 {diff >= 0 ? '+' : ''}{diff}%</div>}
+        <div style={{ marginTop: 8 }}><MonthlyChart prev={d.cum_prev} curr={d.cum_curr} top={top} /></div>
+        <div style={{ display: 'flex', gap: 14, fontSize: 12, color: C.sub, padding: '2px 0 4px', justifyContent: 'center' }}>
+          <span><span style={{ display: 'inline-block', width: 14, height: 2, background: COL.monthly, verticalAlign: 3, marginRight: 4 }} />{d.month}월</span>
+          <span><span style={{ display: 'inline-block', width: 14, height: 0, borderTop: '2px dashed #b8bcc4', verticalAlign: 3, marginRight: 4 }} />{d.prev_month}월</span>
+        </div>
+      </Card>
+      <Card style={{ marginTop: 10 }}>
+        <div style={{ marginTop: -1 }} />
+        {row(`${d.month}월 예상 매출`, `${won(predicted)}원`, COL.monthly)}
+        {row(`최근 ${d.recent_n || 30}일 일평균`, `${won(avg)}원`)}
+        {row(`${d.prev_month}월 매출`, `${won(d.summary_amount_prev)}원`)}
+      </Card>
+      <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.updated_time}</div>
+    </div>
+  )
+}
+
 function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
@@ -535,6 +638,8 @@ function Detail({ k, d, onClose, onSms, onReload }) {
       {k === 'seat' ? <SeatDetail />
         : k === 'payment' ? <PaymentDetail />
         : k === 'locker' ? <LockerList d={d} onSms={onSms} />
+        : k === 'room' ? <RoomDetail />
+        : k === 'monthly' ? <MonthlyDetail />
         : <IframeDetail k={k} path={info.path} />}
     </Sheet>
   )
