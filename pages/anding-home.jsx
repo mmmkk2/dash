@@ -27,7 +27,10 @@ async function getSummary() {
   if (!r.ok) throw new Error(`앤딩 서버 응답 ${r.status}`)
   const ct = r.headers.get('content-type') || ''
   if (!ct.includes('json')) return { login: true } // 로그인 화면으로 넘겨진 경우
-  return { data: await r.json() }
+  const data = await r.json()
+  // 사물함 번호가 '27번'처럼 와서 화면의 'N번'과 겹치지 않게 숫자만
+  for (const k of ['expired', 'expiring']) for (const x of data.locker?.[k] || []) x.no = String(x.no ?? '').replace(/번$/, '')
+  return { data }
 }
 
 function Login({ onDone }) {
