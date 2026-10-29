@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, Phone, ChevronRight } from 'lucide-react'
+import { MoreHorizontal, MessageSquare, ChevronRight } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 
@@ -81,20 +81,71 @@ function Hero({ d }) {
 
 const Label = ({ children }) => <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 6px', marginTop: 14 }}>{children}</div>
 
-function CallChip({ hp }) {
-  if (!hp) return null
+// 문자 버튼 — 누르면 문구를 고르고 고쳐서 앤딩 서버(smsko)로 바로 보낸다
+function SmsChip({ r, onSms }) {
+  if (!r.hp) return null
   return (
-    <a href={`tel:${hp}`} onClick={e => e.stopPropagation()} aria-label={`${hp} 전화`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: GREEN, background: GREEN + '14', borderRadius: 999, padding: '4px 9px', textDecoration: 'none', flexShrink: 0 }}>
-      <Phone size={12} />전화
-    </a>
+    <button onClick={e => { e.stopPropagation(); onSms(r) }} aria-label={`${r.name || r.hp}에게 문자`} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: GREEN, background: GREEN + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0 }}>
+      <MessageSquare size={12} />문자
+    </button>
+  )
+}
+
+// 문자 생성기(sms_generator.html)의 사물함 문구와 같게
+const CAFE = '앤딩스터디카페 상도점'
+const who = n => n ? `${n} 회원님` : '회원님'
+const SMS_TEMPLATES = {
+  expiring: { label: '오늘 만료', make: r => `[${CAFE}]\n${who(r.name)}, 이용 중이신 사물함의 사용 기간이 오늘${hhmm(r.end) ? ` ${hhmm(r.end)}에` : ''} 만료됩니다.\n이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n감사합니다.` },
+  expired: { label: '만료', make: r => `[${CAFE}]\n${who(r.name)}, 이용 중이신 사물함의 사용 기간이 만료되었습니다.\n이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n금일까지 연장이 완료되지 않으면 사물함 이용이 종료될 수 있습니다.\n감사합니다.` },
+  cleared: { label: '종료·짐보관', make: r => `[${CAFE}]\n안녕하세요, ${who(r.name)}.\n사물함 결제가 진행되지 않아 이용이 종료되었습니다.\n\n내부 짐은 휴게실 옷걸이 아래에 보관 중이니, 빠른 시일 내에 찾아가 주시기 바랍니다.\n\n미수령 시 발생하는 분실에 대해서는 책임을 지지 않는 점 양해 부탁드립니다.\n감사합니다.` },
+}
+const bytes = t => [...t].reduce((n, ch) => n + (ch.charCodeAt(0) > 127 ? 2 : 1), 0)
+
+function SmsSheet({ r, onClose }) {
+  const [kind, setKind] = useState(r.kind)
+  const [text, setText] = useState(() => SMS_TEMPLATES[r.kind].make(r))
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState(null)
+  useBackClose(true, onClose)
+  const pick = k => { setKind(k); setText(SMS_TEMPLATES[k].make(r)) }
+  const n = bytes(text)
+  async function send() {
+    if (!confirm(`${r.name || ''} ${r.hp}\n이 번호로 문자를 보낼까요?`)) return
+    setBusy(true); setMsg(null)
+    try {
+      const res = await fetch(`${API}/api/sms/send`, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ phone: r.hp, text, category: 'info' }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || `발송 실패 (${res.status})`)
+      setMsg({ ok: true, text: '보냈어요' })
+      setTimeout(onClose, 900)
+    } catch (e) { setMsg({ ok: false, text: e.message }) } finally { setBusy(false) }
+  }
+  return (
+    <Sheet title="문자 보내기" tint={GREEN} doneLabel={busy ? '보내는 중…' : '보내기'} doneDisabled={busy || !text.trim()} onDone={send} onCancel={onClose}>
+      <div style={{ fontSize: 15, padding: '0 4px 10px' }}>{r.no && <b style={{ fontWeight: 600 }}>사물함 {r.no}번 </b>}{r.name || '미등록'} <span style={{ color: C.sub }}>{r.hp}</span></div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {Object.entries(SMS_TEMPLATES).map(([k, t]) => (
+          <button key={k} onClick={() => pick(k)} aria-pressed={kind === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: kind === k ? GREEN : C.card, color: kind === k ? '#fff' : GREEN, border: `0.5px solid ${kind === k ? GREEN : C.sep}` }}>{t.label}</button>
+        ))}
+      </div>
+      <textarea value={text} onChange={e => setText(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', minHeight: 230, resize: 'vertical', border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 14px', fontSize: 15, lineHeight: 1.5, fontFamily: F, color: C.text, background: C.card, outline: 'none' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.sub, padding: '6px 4px 0' }}>
+        <span>{n > 90 ? '장문(LMS)' : '단문(SMS)'} · {n}바이트</span>
+        {msg && <span style={{ color: msg.ok ? GREEN : '#e5484d', fontWeight: 600 }}>{msg.text}</span>}
+      </div>
+    </Sheet>
   )
 }
 
 // 처리할 것: 사물함 만료완료·만료예정, 지금 이용 중인 스터디룸
-function Todo({ d }) {
+function Todo({ d, onSms }) {
   const rows = [
-    ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), hp: r.hp })),
-    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), hp: r.hp })),
+    ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
+    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expiring' } })),
     ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} {r.name} 이용 중</>, right: `~${r.end}` })),
   ]
   if (!rows.length) return null
@@ -107,7 +158,7 @@ function Todo({ d }) {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
-            <CallChip hp={r.hp} />
+            {r.sms && <SmsChip r={r.sms} onSms={onSms} />}
           </div>
         ))}
       </div>
@@ -162,8 +213,8 @@ const DETAIL = {
   locker: { title: '사물함' },
 }
 
-function LockerList({ d }) {
-  const group = (title, rows) => rows.length > 0 && (
+function LockerList({ d, onSms }) {
+  const group = (title, rows, kind) => rows.length > 0 && (
     <>
       <Label>{title} {rows.length}</Label>
       <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}` }}>
@@ -171,7 +222,7 @@ function LockerList({ d }) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15 }}>
             <b style={{ fontWeight: 600, minWidth: 36 }}>{r.no}번</b>
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
-            <CallChip hp={r.hp} />
+            <SmsChip r={{ ...r, kind }} onSms={onSms} />
           </div>
         ))}
       </div>
@@ -180,15 +231,15 @@ function LockerList({ d }) {
   return (
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>이용 중 {d.locker.active ?? '-'}개 · 빈 사물함 {d.locker.active != null ? d.locker.total - d.locker.active : '-'}개</div>
-      {group('만료완료', d.locker.expired)}
-      {group('오늘 만료', d.locker.expiring)}
+      {group('만료완료', d.locker.expired, 'expired')}
+      {group('오늘 만료', d.locker.expiring, 'expiring')}
       {!d.locker.expired.length && !d.locker.expiring.length && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>만료된 사물함이 없어요</div>}
       <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.locker.updated}</div>
     </div>
   )
 }
 
-function Detail({ k, d, onClose }) {
+function Detail({ k, d, onClose, onSms }) {
   const info = DETAIL[k]
   const [loaded, setLoaded] = useState(false)
   useBackClose(true, onClose)
@@ -208,7 +259,7 @@ function Detail({ k, d, onClose }) {
           {!loaded && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
           <iframe title={info.title} src={API + info.path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(88dvh - 110px - env(safe-area-inset-bottom))', display: 'block' }} />
         </div>
-      ) : <LockerList d={d} />}
+      ) : <LockerList d={d} onSms={onSms} />}
     </Sheet>
   )
 }
@@ -218,6 +269,7 @@ export default function AndingHome() {
   const tabBar = useShowTabBar()
   const [state, setState] = useState({ loading: true })
   const [detail, setDetail] = useState(null)
+  const [sms, setSms] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
@@ -274,13 +326,14 @@ export default function AndingHome() {
         {d && (
           <>
             <Hero d={d} />
-            <Todo d={d} />
+            <Todo d={d} onSms={setSms} />
             <Tiles d={d} open={setDetail} />
             <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>Updated {hhmm(d.seat.updated) || hhmm(d.now)} · 1분마다 자동 갱신</div>
           </>
         )}
       </div>
-      {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} />}
+      {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} onSms={setSms} />}
+      {sms && <SmsSheet r={sms} onClose={() => setSms(null)} />}
     </div>
   )
 }
