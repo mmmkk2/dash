@@ -91,7 +91,7 @@ function SmsChip({ r, onSms }) {
   )
 }
 
-// 문자 생성기(sms_generator.html)의 사물함 문구와 같게. 오늘 만료는 알림톡이 자동으로 가서 문자 없음
+// 문자 생성기(sms_generator.html)의 사물함 문구와 같게 ('오늘 만료' 안내는 알림톡이 자동으로 가서 문구 없음)
 const CAFE = '앤딩스터디카페 상도점'
 const who = n => n ? `${n} 회원님` : '회원님'
 const SMS_TEMPLATES = {
@@ -144,7 +144,7 @@ function SmsSheet({ r, onClose }) {
 function Todo({ d, onSms }) {
   const rows = [
     ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
-    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end) })),
+    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expired' } })),
     ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} {r.name} 이용 중</>, right: `~${r.end}` })),
   ]
   if (!rows.length) return null
@@ -221,7 +221,7 @@ function LockerList({ d, onSms }) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15 }}>
             <b style={{ fontWeight: 600, minWidth: 36 }}>{r.no}번</b>
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
-            {kind && <SmsChip r={{ ...r, kind }} onSms={onSms} />}
+            <SmsChip r={{ ...r, kind }} onSms={onSms} />
           </div>
         ))}
       </div>
@@ -231,7 +231,7 @@ function LockerList({ d, onSms }) {
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>이용 중 {d.locker.active ?? '-'}개 · 빈 사물함 {d.locker.active != null ? d.locker.total - d.locker.active : '-'}개</div>
       {group('만료완료', d.locker.expired, 'expired')}
-      {group('오늘 만료', d.locker.expiring)}
+      {group('오늘 만료', d.locker.expiring, 'expired')}
       {!d.locker.expired.length && !d.locker.expiring.length && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>만료된 사물함이 없어요</div>}
       <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.locker.updated}</div>
     </div>
