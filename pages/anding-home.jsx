@@ -249,6 +249,17 @@ const DETAIL = {
   locker: { title: '사물함' },
 }
 
+// 사물함 배치도: 앤딩 사물함 수집이 코보페이 '사물함 배치도'를 찍어 둔 그림 (아직 없으면 안 보임)
+function LockerMap({ ts }) {
+  const [ok, setOk] = useState(true)
+  if (!ok) return null
+  return (
+    <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden', marginTop: 10 }}>
+      <img src={`${API}/static/images/locker_map.png?ts=${encodeURIComponent(ts || '')}`} alt="사물함 배치도" onError={() => setOk(false)} style={{ display: 'block', width: '100%' }} />
+    </div>
+  )
+}
+
 function LockerList({ d, onSms }) {
   const group = (title, rows, kind) => rows.length > 0 && (
     <>
@@ -268,6 +279,7 @@ function LockerList({ d, onSms }) {
   return (
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>이용 중 {d.locker.active ?? '-'}개 · 빈 사물함 {d.locker.active != null ? d.locker.total - d.locker.active : '-'}개</div>
+      <LockerMap ts={d.locker.updated} />
       {group('만료완료', d.locker.expired, 'expired')}
       {group('오늘 만료', d.locker.expiring, 'expired')}
       {!d.locker.expired.length && !d.locker.expiring.length && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>만료된 사물함이 없어요</div>}
