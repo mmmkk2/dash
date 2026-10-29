@@ -66,12 +66,6 @@ export function SettingsSheet({ onClose }) {
             <Row label="주의 알림 보내기"><Switch on={!!st.alert_warning_seat_enabled} onChange={v => set('alert_warning_seat_enabled', v)} color="#d97706" /></Row>
             <Row label="누적 이용자 경고" sub="오늘 누적 이용자가 이 수 이상 (WARNING_CUM_THRESHOLD)" last>{num('cum')}</Row>
           </Card>
-          <Label>좌석 자동 판매 조절</Label>
-          <Card>
-            <Row label="자동 조절" sub="SEAT_AUTO"><Switch on={!!st.seat_auto} onChange={v => set('seat_auto', v)} color={GREEN} /></Row>
-            <Row label="제한" sub="잔여석이 이 수 이하이면 (SEAT_SALE_LIMIT)">{num('seat_sale_limit')}</Row>
-            <Row label="풀기" sub="잔여석이 이 수 이상이면 (SEAT_SALE_RELEASE)" last>{num('seat_sale_release')}</Row>
-          </Card>
           <Label>네이버 예약 동기화</Label>
           <Card>
             <Row label="아이디"><input value={st.naver_id || ''} onChange={e => set('naver_id', e.target.value)} autoComplete="off" style={{ ...inputStyle, width: 150 }} /></Row>
@@ -81,7 +75,8 @@ export function SettingsSheet({ onClose }) {
             <Row label="업체 ID"><input value={st.naver_bize_id || ''} onChange={e => set('naver_bize_id', e.target.value)} style={{ ...inputStyle, width: 150 }} /></Row>
             <Row label="동기화 간격" sub="초" last>{num('naver_sync_interval', 72)}</Row>
           </Card>
-          <div style={{ fontSize: 12, color: C.sub, padding: '10px 4px 0', lineHeight: 1.5 }}>상품 판매(시험기간·잔여 제한·전체 OFF 등)는 앤딩 > 상품 판매에서 바꿔요.</div>
+          {/* 잔여석에 따른 판매 제한·풀기는 상품 판매 설정(SALE_LIMIT/SALE_RELEASE)이 실제로 쓰는 값이라 여기선 뺐음 (SEAT_AUTO·SEAT_SALE_*는 어디서도 안 씀) */}
+          <div style={{ fontSize: 12, color: C.sub, padding: '10px 4px 0', lineHeight: 1.5 }}>잔여석에 따른 판매 제한·풀기, 시험기간, 전체 OFF는 앤딩 > 상품 판매에서 바꿔요.</div>
         </>
       )}
     </Sheet>
