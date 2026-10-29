@@ -134,7 +134,7 @@ function LockerEndChip({ r }) {
 // 문자 생성기(sms_generator.html)의 사물함 문구와 같게 ('오늘 만료' 안내는 알림톡이 자동으로 가서 문구 없음)
 const CAFE = '앤딩스터디카페 상도점'
 // 문자는 발신전용 번호라 답장 대신 카카오톡 채널로 문의받는다
-const CONTACT = '\n\nhttps://pf.kakao.com/_zxlbTn/chat\n(발신전용번호, 문의는 카카오톡)'
+const CONTACT = '\n\n문의: https://pf.kakao.com/_zxlbTn/chat\n(발신전용번호, 문의는 카카오톡)'
 const who = n => n ? `${n} 회원님` : '회원님'
 const SMS_TEMPLATES = {
   expired: { label: '만료', make: r => `[${CAFE}]\n${who(r.name)}, 이용 중이신 사물함의 사용 기간이 만료되었습니다.\n이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n금일까지 연장이 완료되지 않으면 사물함 이용이 종료될 수 있습니다.\n감사합니다.${CONTACT}` },
