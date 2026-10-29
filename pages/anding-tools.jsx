@@ -283,10 +283,77 @@ async function saveImage(el, name) {
   setTimeout(() => { a.remove(); URL.revokeObjectURL(a.href) }, 1000)
 }
 
+// 이미지 전용 배치: 폰 한 화면(390px 폭)에 보이게 — 그 달은 날짜를 세로 2단, 연간은 12달 2단
+function SalaryImage({ year, mon, calc, hourly }) {
+  const cell = { padding: '3px 4px', fontSize: 11, textAlign: 'center', borderBottom: `0.5px solid ${C.sep}`, fontVariantNumeric: 'tabular-nums' }
+  const head = { ...cell, fontSize: 10, fontWeight: 600, color: '#fff', background: '#5f6b66', borderBottom: 'none' }
+  const box = { background: '#fff', borderRadius: 12, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }
+  if (!mon) {
+    const all = Array.from({ length: 12 }, (_, i) => ({ mon: i + 1, ...calc(i + 1) }))
+    const tot = all.reduce((a, m) => ({ hours: a.hours + m.hours, pay: a.pay + m.pay }), { hours: 0, pay: 0 })
+    return (
+      <div style={{ width: 390, padding: 14, boxSizing: 'border-box', background: C.bg, fontFamily: F, color: C.text }}>
+        <div style={{ fontSize: 15, fontWeight: 700 }}>{year} 매니저 급여 · 연간</div>
+        <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>시급 {won(hourly)}원 · 매월 10일 지급</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 10 }}>
+          {all.map(m => (
+            <div key={m.mon} style={{ ...box, padding: '7px 10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><b>{m.mon}월</b><span style={{ color: C.sub }}>{m.hours.toFixed(1)}h</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: GREEN, textAlign: 'right', marginTop: 2 }}>{won(Math.round(m.pay))}원</div>
+              {m.extra > 0 && <div style={{ fontSize: 10, color: '#7b52ab', textAlign: 'right' }}>추가 {won(m.extra)}원</div>}
+            </div>
+          ))}
+        </div>
+        <div style={{ ...box, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', marginTop: 8, background: '#5f6b66', color: '#fff' }}>
+          <b style={{ fontSize: 13 }}>연간 합계 <span style={{ fontWeight: 500, fontSize: 11, opacity: 0.75 }}>{tot.hours.toFixed(1)}h</span></b>
+          <b style={{ fontSize: 15 }}>{won(Math.round(tot.pay))}원</b>
+        </div>
+      </div>
+    )
+  }
+  const m = calc(mon)
+  const half = Math.ceil(m.days.length / 2)
+  const cols = [m.days.slice(0, half), m.days.slice(half)]
+  const first = m.days[0]?.date.replace(/-/g, '.'), last = m.days[m.days.length - 1]?.date.replace(/-/g, '.')
+  return (
+    <div style={{ width: 390, padding: 14, boxSizing: 'border-box', background: C.bg, fontFamily: F, color: C.text }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ fontSize: 15, fontWeight: 700 }}>{year} · {mon}월 근무기록</div>
+        <div style={{ fontSize: 11, color: C.sub }}>{year}.{pad2(mon)}.10 지급</div>
+      </div>
+      <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>{first} ~ {last} · 시급 {won(hourly)}원</div>
+      <div style={{ ...box, display: 'flex', alignItems: 'baseline', gap: 10, padding: '8px 12px', marginTop: 8 }}>
+        <span style={{ fontSize: 22, fontWeight: 700, color: GREEN }}>{won(Math.round(m.pay))}원</span>
+        <span style={{ fontSize: 12, color: C.sub }}>{m.hours.toFixed(1)}시간{m.extra > 0 && ` · 추가 ${won(m.extra)}원`}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+        {cols.map((col, ci) => (
+          <table key={ci} style={{ ...box, borderCollapse: 'separate', borderSpacing: 0, width: '100%' }}>
+            <thead><tr><th style={head}>날짜</th><th style={head}>요일</th><th style={head}>시간</th><th style={head}>일급</th></tr></thead>
+            <tbody>
+              {col.map(d => {
+                const bg = d.dow === 0 ? '#fff6f6' : d.dow === 6 ? '#f6f8ff' : '#fff'
+                return (
+                  <tr key={d.date} style={{ background: bg }}>
+                    <td style={{ ...cell, color: C.sub }}>{d.date.slice(5).replace('-', '/')}</td>
+                    <td style={{ ...cell, fontWeight: d.dow % 6 === 0 ? 700 : 400, color: d.dow === 0 ? '#d14343' : d.dow === 6 ? '#3b6fd1' : C.sub }}>{WD[d.dow]}</td>
+                    <td style={{ ...cell, fontWeight: 600 }}>{Number(d.hrs) || 0}</td>
+                    <td style={{ ...cell, color: C.sub, textAlign: 'right' }}>{won(Math.round((Number(d.hrs) || 0) * hourly))}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function SalarySheet({ onClose }) {
   useBackClose(true, onClose)
   const shotRef = useRef(null)
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState(false) // 저장 중엔 화면 밖에 이미지 전용 배치를 그려 찍는다
   const year = new Date().getFullYear()
   const { data, update, where } = useSalary(year)
   const [tab, setTab] = useState(0) // 0 = 연간
@@ -307,6 +374,8 @@ export function SalarySheet({ onClose }) {
       actions={data && (
         <button disabled={saving} onClick={async () => {
           setSaving(true)
+          // 이미지 전용 배치가 그려질 때까지 두 프레임 기다림
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
           try { await saveImage(shotRef.current, `salary_${year}${tab ? '_' + pad2(tab) : '_year'}.png`) }
           catch { alert('이미지를 만들지 못했어요') } finally { setSaving(false) }
         }} style={{ ...plain, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}`, opacity: saving ? 0.5 : 1 }}>
@@ -319,8 +388,11 @@ export function SalarySheet({ onClose }) {
             {chip(tab === 0, '연간', () => setTab(0))}
             {Array.from({ length: 12 }, (_, i) => chip(tab === i + 1, `${i + 1}월`, () => setTab(i + 1)))}
           </div>
-          <div ref={shotRef} style={{ background: C.bg, padding: '2px 0 4px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, padding: '10px 4px 0' }}>{year} 매니저 급여{tab ? ` · ${tab}월` : ' · 연간'}</div>
+          {saving && (
+            <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0 }}>
+              <div ref={shotRef}><SalaryImage year={year} mon={tab} calc={calc} hourly={hourly} /></div>
+            </div>
+          )}
           {tab === 0 ? (() => {
             const all = Array.from({ length: 12 }, (_, i) => ({ mon: i + 1, ...calc(i + 1) }))
             const tot = all.reduce((a, m) => ({ hours: a.hours + m.hours, extra: a.extra + m.extra, pay: a.pay + m.pay }), { hours: 0, extra: 0, pay: 0 })
@@ -373,7 +445,6 @@ export function SalarySheet({ onClose }) {
               </>
             )
           })()}
-          </div>
           <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 12 }}>
             {where === 'cloud' ? '고친 내용은 바로 저장돼요' : '이 기기에만 저장돼요 (Supabase에 anding_salary 테이블을 만들면 어디서나 같이 보여요)'}
           </div>
