@@ -4,19 +4,12 @@ import { MoreHorizontal, MessageSquare, ChevronRight } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
+import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
+import { SettingsSheet, SmsToolSheet, SalarySheet } from './anding-tools'
 
 // 앤딩 관리자 메인 — 내비서가 직접 그리는 화면.
 // 숫자는 앤딩 앱(맥)의 /api/summary 에서 받고, 상세 표·그래프는 앤딩 앱 화면을 시트 안에 띄운다.
 // /andingapp/* 는 vercel.json에서 앤딩 앱으로 중계되어 같은 주소라 로그인 쿠키가 그대로 실린다.
-const API = '/andingapp'
-const F = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif"
-const C = { bg: '#f7f7f7', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)' }
-// 앤딩 테마(naebiseo_theme.js)의 섹션 색과 같게
-const COL = { seat: '#3d7ebf', product: '#2d9e6b', payment: '#7b52ab', monthly: '#1a8fa0', room: '#d97706', locker: '#c2537a' }
-const GREEN = '#3e9478'
-const plain = { border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
-
-const won = n => (n ?? 0).toLocaleString('ko-KR')
 const man = n => n >= 10000 ? `${Math.round(n / 10000).toLocaleString('ko-KR')}만` : won(n)
 const hhmm = s => (s || '').match(/\d{2}:\d{2}/)?.[0] || ''
 
@@ -324,14 +317,6 @@ function LockerList({ d, onSms }) {
 }
 
 // 상품 판매 설정 (기존 관리자 화면의 판매 모드 폼과 같은 값) — 즉시 적용하면 맥이 상품 판매 토글을 바로 돌린다
-function Switch({ on, onChange, color }) {
-  return (
-    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} style={{ ...plain, width: 44, height: 26, borderRadius: 999, background: on ? color : 'rgba(120,120,128,0.24)', position: 'relative', flexShrink: 0, transition: 'background .15s' }}>
-      <span style={{ position: 'absolute', top: 2, left: on ? 20 : 2, width: 22, height: 22, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left .15s' }} />
-    </button>
-  )
-}
-
 function SalePanel({ onApplied }) {
   const [st, setSt] = useState(null)
   const [err, setErr] = useState('')
@@ -740,11 +725,12 @@ export default function AndingHome() {
   }, [load])
 
   const [loginOpen, setLoginOpen] = useState(false)
+  const [tool, setTool] = useState(null) // ⋯ 메뉴 도구: settings | sms | salary
   const menu = [
     { label: '새로고침', run: load },
-    { label: '설정', run: () => navigate('/anding/classic?go=env_config') },
-    { label: '문자 생성기', run: () => navigate('/anding/classic?go=sms') },
-    { label: '급여 관리표', run: () => navigate('/anding/classic?go=salary') },
+    { label: '설정', run: () => setTool('settings') },
+    { label: '문자 생성기', run: () => setTool('sms') },
+    { label: '급여 관리표', run: () => setTool('salary') },
     { label: '기존 관리자 화면', run: () => navigate('/anding/classic') },
     // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
     { label: '앤딩 로그인', run: () => setLoginOpen(true) },
@@ -794,6 +780,9 @@ export default function AndingHome() {
       </div>
       {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} onSms={setSms} onReload={load} />}
       {sms && <SmsSheet r={sms} onClose={() => setSms(null)} />}
+      {tool === 'settings' && <SettingsSheet onClose={() => setTool(null)} />}
+      {tool === 'sms' && <SmsToolSheet onClose={() => setTool(null)} />}
+      {tool === 'salary' && <SalarySheet onClose={() => setTool(null)} />}
     </div>
   )
 }
