@@ -4786,14 +4786,6 @@ export default function App(){
                 </button>
               );
             })}
-            {/* 칩이 작아져서 앤딩 관리자 바로가기는 같은 줄 오른쪽에 */}
-            {entity==="cafe"&&(
-              <a href="/anding" onClick={e=>{e.preventDefault();navigate("/anding");}} style={{
-                marginLeft:"auto",display:"inline-flex",alignItems:"center",gap:"3px",padding:"5px 6px 5px 10px",borderRadius:"99px",
-                whiteSpace:"nowrap",color:C.inkMid,fontFamily:FONT,fontSize:"12px",fontWeight:600,textDecoration:"none"}}>
-                앤딩 관리자 <ChevronRight size={13}/>
-              </a>
-            )}
           </div>
 
           {/* Balance */}
