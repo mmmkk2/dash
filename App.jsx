@@ -5,6 +5,7 @@ import Calculator from './pages/calculator'
 import Budget from './pages/budget'
 import Assets from './pages/assets'
 import Anding from './pages/anding'
+import AndingHome from './pages/anding-home'
 import Notes from './pages/notes'
 import Login, { supabase } from './pages/login'
 import TabBar from './src/TabBar'
@@ -29,6 +30,7 @@ const PAGE_TITLES = {
   '/budget/goion': '가계부 · 고이온',
   '/assets': '내 자산',
   '/anding': '앤딩 관리자',
+  '/anding/classic': '앤딩 관리자',
   '/notes': '메모',
   '/notes/calendar': '일정',
 }
@@ -71,7 +73,8 @@ export default function App() {
             <Route path="/budget" element={<Budget />} />
             <Route path="/budget/:entity" element={<Budget />} />
             <Route path="/assets" element={<Assets />} />
-            <Route path="/anding" element={<Anding />} />
+            <Route path="/anding" element={<AndingHome />} />
+            <Route path="/anding/classic" element={<Anding />} />
             <Route path="/notes" element={<Notes />} />
             <Route path="/notes/calendar" element={<Notes />} />
           </>
@@ -81,7 +84,7 @@ export default function App() {
             <Route path="/budget" element={<Login onLogin={setSession} />} />
             <Route path="/budget/:entity" element={<Login onLogin={setSession} />} />
             <Route path="/assets" element={<Login onLogin={setSession} />} />
-            <Route path="/anding" element={<Login onLogin={setSession} />} />
+            <Route path="/anding/*" element={<Login onLogin={setSession} />} />
             <Route path="/notes/*" element={<Login onLogin={setSession} />} />
           </>
         )}
