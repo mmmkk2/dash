@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MoreHorizontal, MessageSquare, ChevronRight } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
@@ -91,6 +91,43 @@ function SmsChip({ r, onSms }) {
   )
 }
 
+// 만료된 내역만 종료 가능. 서버는 코보페이의 최신 만료일을 다시 확인한다.
+const isLockerExpired = r => {
+  const date = new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00')
+  return Number.isFinite(date.getTime()) && date.getTime() <= Date.now()
+}
+function LockerEndChip({ r }) {
+  const [busy, setBusy] = useState(false)
+  const alive = useRef(true)
+  useEffect(() => () => { alive.current = false }, [])
+  if (!isLockerExpired(r)) return null
+  const end = async e => {
+    e.stopPropagation()
+    if (busy || !confirm(`사물함 ${r.no}번 · ${r.name || '미등록'}\n만료: ${r.end}\n\n이용을 종료해서 빈 사물함으로 바꿀까요?`)) return
+    setBusy(true)
+    try {
+      const res = await fetch(`${API}/api/locker/end`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(r) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '종료 요청에 실패했어요')
+      for (let i = 0; i < 100; i++) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        const check = await fetch(`${API}/api/locker/end/${data.job}`, { credentials: 'same-origin' })
+        const job = await check.json()
+        if (!check.ok) throw new Error(job.error || '처리 상태를 확인하지 못했어요')
+        if (job.status === 'done') {
+          window.dispatchEvent(new Event('anding-locker-ended'))
+          alert(job.message || '이용 종료 완료')
+          return
+        }
+        if (job.status === 'error') throw new Error(job.message)
+      }
+      throw new Error('처리 시간이 길어지고 있어요. 다시 누르기 전에 현황을 새로고침해 주세요.')
+    } catch (error) { alert(error.message || '종료 처리에 실패했어요') }
+    finally { if (alive.current) setBusy(false) }
+  }
+  return <button onClick={end} disabled={busy} aria-label={`사물함 ${r.no}번 이용 종료`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy ? 0.6 : 1 }}>{busy ? '처리 중…' : '이용 종료'}</button>
+}
+
 // 문자 생성기(sms_generator.html)의 사물함 문구와 같게 ('오늘 만료' 안내는 알림톡이 자동으로 가서 문구 없음)
 const CAFE = '앤딩스터디카페 상도점'
 const who = n => n ? `${n} 회원님` : '회원님'
@@ -157,7 +194,7 @@ function Todo({ d, onSms }) {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
-            {r.sms && <SmsChip r={r.sms} onSms={onSms} />}
+            {r.sms && <><SmsChip r={r.sms} onSms={onSms} /><LockerEndChip r={r.sms} /></>}
           </div>
         ))}
       </div>
@@ -222,6 +259,7 @@ function LockerList({ d, onSms }) {
             <b style={{ fontWeight: 600, minWidth: 36 }}>{r.no}번</b>
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
             <SmsChip r={{ ...r, kind }} onSms={onSms} />
+            <LockerEndChip r={r} />
           </div>
         ))}
       </div>
@@ -276,9 +314,10 @@ export default function AndingHome() {
   }, [])
   useEffect(() => {
     load()
+    window.addEventListener('anding-locker-ended', load)
     // 수집 스크립트가 1~5분 간격이라 1분마다 다시 받는다 (화면이 보일 때만)
     const t = setInterval(() => { if (!document.hidden) load() }, 60000)
-    return () => clearInterval(t)
+    return () => { clearInterval(t); window.removeEventListener('anding-locker-ended', load) }
   }, [load])
 
   const menu = [
