@@ -230,8 +230,8 @@ function SmsSheet({ r, onClose }) {
 // 처리할 것: 사물함 만료완료·만료예정, 지금 이용 중인 스터디룸
 function Todo({ d, onSms }) {
   const rows = [
-    // 고정석 공석은 맨 위 (새 고정석 손님을 받을 수 있는 자리)
-    ...(d.seat.fixed_vacant || []).map(no => ({ c: COL.seat, text: <>고정석 {no}번 <b style={{ fontWeight: 600 }}>공석</b></>, right: d.seat.fixed_total ? `고정석 ${d.seat.fixed_total - d.seat.fixed_vacant.length}/${d.seat.fixed_total}` : '' })),
+    // 이용권이 끝난 고정석은 맨 위 (새 고정석 손님을 받을 수 있는 자리)
+    ...(d.seat.fixed_ended || []).map(r => ({ c: COL.seat, text: <>고정석 {r.no}번 {r.name || ''} <b style={{ fontWeight: 600 }}>이용권 종료</b></>, right: (r.end || '').slice(5, 10).replace('.', '/') })),
     ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
     ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expired' } })),
     ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} {r.name} 이용 중</>, right: `~${r.end}` })),
