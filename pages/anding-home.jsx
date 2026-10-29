@@ -121,12 +121,12 @@ const isLockerExpired = r => {
   const date = new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00')
   return Number.isFinite(date.getTime()) && date.getTime() <= Date.now()
 }
-// 만료된 사물함: 'N번 리셋해주세요' 문구를 클립보드에 복사 (카톡에 직접 붙여넣기)
+// 만료된 사물함: '사물함 N번 리셋해주세요.' 문구를 클립보드에 복사 (카톡에 직접 붙여넣기)
 function LockerResetCopyChip({ r }) {
   const [copied, setCopied] = useState(false)
   if (!isLockerExpired(r)) return null
   const number = String(r.no || '').replace(/번$/, '')
-  const text = `${number}번 리셋해주세요`
+  const text = `사물함 ${number}번 리셋해주세요.`
   const copy = async e => {
     e.stopPropagation()
     try {
@@ -141,7 +141,7 @@ function LockerResetCopyChip({ r }) {
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
-  return <button onClick={copy} aria-label={`'${text}' 복사`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0 }}>{copied ? '복사됨' : '리셋 문구 복사'}</button>
+  return <button onClick={copy} aria-label={`'${text}' 복사`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0 }}>{copied ? '복사됨' : '리셋 복사'}</button>
 }
 
 function LockerEndChip({ r }) {
