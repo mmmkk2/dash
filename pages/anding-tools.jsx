@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
-import { API, F, C, GREEN, plain, won, Switch } from './anding-shared'
+import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
 
 // 앤딩 ⋯ 메뉴의 도구들: 설정 · 문자 생성기 · 급여 관리표 (예전엔 앤딩 앱 화면을 따로 열었음)
 
@@ -22,9 +22,86 @@ function Row({ label, sub, children, last }) {
   )
 }
 
+// 상품 판매 설정 (기존 관리자 화면의 판매 모드 폼과 같은 값) — 즉시 적용하면 맥이 상품 판매 토글을 바로 돌린다
+export function SalePanel({ onApplied }) {
+  const [st, setSt] = useState(null)
+  const [err, setErr] = useState('')
+  const [status, setStatus] = useState('') // '', 'pending', 'done 12:00:01', 'error …'
+  const poll = useRef(null)
+  const loadSt = () => fetch(`${API}/api/sale_settings`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 404 ? '맥 앤딩 앱에 아직 반영되지 않았어요 (404)' : `불러오기 실패 (${r.status})`)))
+    .then(setSt).catch(e => setErr(e.message))
+  useEffect(() => { loadSt(); return () => clearInterval(poll.current) }, [])
+  if (err) return <div style={{ color: C.sub, fontSize: 14, padding: '4px 4px 12px' }}>판매 설정: {err}</div>
+  if (!st) return <div style={{ color: C.sub, fontSize: 14, padding: '4px 4px 12px' }}>판매 설정 불러오는 중…</div>
+  const set = (k, v) => setSt(o => ({ ...o, [k]: v }))
+  async function apply() {
+    const body = new URLSearchParams({ sale_limit: st.sale_limit, sale_release: st.sale_release, sale_limit_time: st.limit_time || '', sale_release_time: st.release_time || '' })
+    if (st.exam_mode) body.set('exam_mode', 'true')
+    if (st.all_off) body.set('all_off', 'true')
+    if (st.auto_limit_on) body.set('auto_limit_on', 'true')
+    if (st.auto_release_on) body.set('auto_release_on', 'true')
+    body.set('day6h_present', '1'); body.set('day6h_start', st.day6h_start || '12:00'); body.set('day6h_end', st.day6h_end || '22:00')
+    if (st.day6h_on) body.set('day6h_on', 'true')
+    setStatus('pending')
+    try {
+      const r = await fetch(`${API}/set_toggle_and_run`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !j.ok) throw new Error(j.error || `적용 실패 (${r.status})`)
+    } catch (e) { setStatus('error ' + e.message); return }
+    // 상품 판매 토글이 끝날 때까지 2초마다 확인 (최대 2분)
+    const started = Date.now()
+    clearInterval(poll.current)
+    poll.current = setInterval(async () => {
+      const t = await fetch(`${API}/toggle_status`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).catch(() => null)
+      if (t?.status === 'done') { clearInterval(poll.current); setStatus('done ' + t.completed_at); loadSt(); onApplied() }
+      else if (Date.now() - started > 120000) { clearInterval(poll.current); setStatus('error 2분 넘게 끝나지 않았어요 — 기존 관리자 화면에서 확인해 주세요') }
+    }, 2000)
+  }
+  const num = (k, color) => (
+    <input type="number" min="1" max="30" value={st[k]} onChange={e => set(k, e.target.value)} style={{ width: 46, padding: '4px 6px', borderRadius: 8, border: `0.5px solid ${C.sep}`, fontSize: 15, textAlign: 'center', fontFamily: F, color }} />
+  )
+  const time = (k, color) => (
+    <input type="time" value={st[k] || ''} onChange={e => set(k, e.target.value)} style={{ padding: '3px 6px', borderRadius: 8, border: `0.5px solid ${C.sep}`, fontSize: 14, fontFamily: F, color, background: '#fff' }} />
+  )
+  const row = (label, color, k, sub, last) => (
+    <div style={{ padding: '11px 14px', borderBottom: last ? 'none' : `0.5px solid ${C.sep}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1, fontSize: 15.5, fontWeight: st[k] ? 600 : 400, color: st[k] ? color : C.text }}>{label}</div>
+        <Switch on={!!st[k]} onChange={v => set(k, v)} color={color} />
+      </div>
+      {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, color: C.sub, marginTop: 6 }}>{sub}</div>}
+    </div>
+  )
+  const RED = '#e5484d', BLUE = '#4a90d9', ORANGE = '#d97706'
+  const pending = status === 'pending'
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px', fontSize: 13, color: C.sub }}>
+        지금 판매 모드
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: st.mode_color, borderRadius: 999, padding: '2px 9px' }}>{st.mode}</span>
+        {st.last_forced && <span style={{ marginLeft: 'auto' }}>마지막 적용 {st.last_forced.slice(5, 16).replace('-', '/')}</span>}
+      </div>
+      <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}` }}>
+        {row('시험기간', BLUE, 'exam_mode', <>구매 {st.exam_buy || '—'} · 연장 {st.exam_ext || '—'}</>)}
+        {row('잔여 제한', RED, 'auto_limit_on', <>잔여 {num('sale_limit', RED)} 이하 · {time('limit_time', RED)} 이후 → 제한</>)}
+        {row('잔여 풀기', GREEN, 'auto_release_on', <>잔여 {num('sale_release', GREEN)} 이상 · {time('release_time', GREEN)} 이후 → 풀기</>)}
+        {'day6h_on' in st && row('낮 시간 6시간권 판매 중지', ORANGE, 'day6h_on', <>{time('day6h_start', ORANGE)} ~ {time('day6h_end', ORANGE)} 동안 1회권 6시간 구매 막기</>)}
+        {row('전체 OFF', RED, 'all_off', null, true)}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+        <button onClick={apply} disabled={pending} style={{ ...plain, background: COL.product, color: '#fff', fontSize: 15, fontWeight: 600, borderRadius: 999, padding: '9px 20px', opacity: pending ? 0.5 : 1 }}>즉시 적용</button>
+        <span style={{ fontSize: 13, fontWeight: 600, color: status.startsWith('error') ? RED : status.startsWith('done') ? GREEN : C.sub }}>
+          {pending ? '적용 중… (1분 정도 걸려요)' : status.startsWith('done') ? `적용 완료 ${status.slice(5)}` : status.startsWith('error') ? status.slice(6) : ''}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ───────────────────────── 설정 ─────────────────────────
 // 앤딩 앱 /env_config 와 같은 값 (.env). 네이버 비밀번호는 받아오지 않고, 바꿀 때만 입력
-export function SettingsSheet({ onClose }) {
+export function SettingsSheet({ onClose, onApplied }) {
   useBackClose(true, onClose)
   const [st, setSt] = useState(null)
   const [pw, setPw] = useState('')
@@ -54,11 +131,14 @@ export function SettingsSheet({ onClose }) {
   }
   return (
     <Sheet title="설정" tint={GREEN} doneLabel={busy ? '저장 중…' : '저장'} doneDisabled={!st || busy} onDone={save} onCancel={onClose} full="78dvh" inset>
+      {/* 상품 판매 설정은 '즉시 적용'으로 따로 반영, 아래 알림·네이버는 위 '저장'으로 */}
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 6px' }}>상품 판매 <span style={{ fontWeight: 400 }}>· 즉시 적용으로 바로 반영</span></div>
+      <SalePanel onApplied={onApplied || (() => {})} />
       {msg && <div style={{ fontSize: 14, fontWeight: 600, color: msg.ok ? GREEN : '#e5484d', padding: '0 4px 8px' }}>{msg.text}</div>}
       {!st && !msg && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
       {st && (
         <>
-          <Label>좌석 알림</Label>
+          <Label>좌석 알림 <span style={{ fontWeight: 400 }}>· 위 저장 버튼으로</span></Label>
           <Card>
             <Row label="위험 기준" sub="잔여석이 이 수 이하이면 위험 (DANGER_THRESHOLD)">{num('danger')}</Row>
             <Row label="위험 알림 보내기"><Switch on={!!st.alert_danger_seat_enabled} onChange={v => set('alert_danger_seat_enabled', v)} color="#e5484d" /></Row>
@@ -75,8 +155,7 @@ export function SettingsSheet({ onClose }) {
             <Row label="업체 ID"><input value={st.naver_bize_id || ''} onChange={e => set('naver_bize_id', e.target.value)} style={{ ...inputStyle, width: 150 }} /></Row>
             <Row label="동기화 간격" sub="초" last>{num('naver_sync_interval', 72)}</Row>
           </Card>
-          {/* 잔여석에 따른 판매 제한·풀기는 상품 판매 설정(SALE_LIMIT/SALE_RELEASE)이 실제로 쓰는 값이라 여기선 뺐음 (SEAT_AUTO·SEAT_SALE_*는 어디서도 안 씀) */}
-          <div style={{ fontSize: 12, color: C.sub, padding: '10px 4px 0', lineHeight: 1.5 }}>잔여석에 따른 판매 제한·풀기, 시험기간, 전체 OFF는 앤딩 > 상품 판매에서 바꿔요.</div>
+          {/* SEAT_AUTO·SEAT_SALE_*는 어디서도 안 써서 뺐음 — 잔여석 판매 제한·풀기는 위 상품 판매(SALE_LIMIT/SALE_RELEASE) */}
         </>
       )}
     </Sheet>
