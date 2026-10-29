@@ -629,6 +629,47 @@ function MonthlyDetail() {
   )
 }
 
+// 상품 표: 1회·시간·기간이용권 칩으로 바꿔 보고, 판매·연장 켜짐을 점으로
+const PRODUCT_TABS = [['once', '1회이용권'], ['hour', '시간이용권'], ['period', '기간이용권']]
+function ProductTable() {
+  const { data, status, error, loading } = useApi('/api/products')
+  const [tab, setTab] = useState('once')
+  if (status === 404) return <IframeDetail k="product" path="/product" />
+  if (error) return <Muted>{error}</Muted>
+  if (loading && !data) return <Muted>불러오는 중…</Muted>
+  const rows = data.tabs[tab] || []
+  const flag = (on, label) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600, color: on ? COL.product : C.sub, opacity: on ? 1 : 0.6 }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: on ? COL.product : 'transparent', border: `1.5px solid ${on ? COL.product : C.sub}`, boxSizing: 'border-box' }} />{label}
+    </span>
+  )
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {PRODUCT_TABS.map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} aria-pressed={tab === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: tab === k ? COL.product : C.card, color: tab === k ? '#fff' : COL.product, border: `0.5px solid ${tab === k ? COL.product : C.sep}` }}>
+            {label} {(data.tabs[k] || []).filter(p => p.sale).length}/{(data.tabs[k] || []).length}
+          </button>
+        ))}
+      </div>
+      {rows.length === 0 ? <Muted>상품이 없어요</Muted> : (
+        <Card>
+          {rows.map((p, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5 }}>
+              <div style={{ flex: 1, minWidth: 0, opacity: p.sale || p.extend ? 1 : 0.5 }}>
+                <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                <div style={{ fontSize: 12, color: C.sub }}>{p.unit} · {won(p.price)}원</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>{flag(p.sale, '판매')}{flag(p.extend, '연장')}</div>
+            </div>
+          ))}
+        </Card>
+      )}
+      <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {data.updated}</div>
+    </div>
+  )
+}
+
 function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
@@ -640,6 +681,7 @@ function Detail({ k, d, onClose, onSms, onReload }) {
         : k === 'locker' ? <LockerList d={d} onSms={onSms} />
         : k === 'room' ? <RoomDetail />
         : k === 'monthly' ? <MonthlyDetail />
+        : k === 'product' ? <ProductTable />
         : <IframeDetail k={k} path={info.path} />}
     </Sheet>
   )
