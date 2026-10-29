@@ -22,6 +22,8 @@ const hhmm = s => (s || '').match(/\d{2}:\d{2}/)?.[0] || ''
 async function getSummary() {
   const r = await fetch(`${API}/api/summary`, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
   if (r.status === 401 || r.status === 403) return { login: true }
+  // 404: 맥의 앤딩 앱이 아직 /api/summary가 없는 예전 코드 (자동 반영이 멈췄거나 재시작 전)
+  if (r.status === 404) throw new Error('맥 앤딩 앱에 새 기능이 아직 반영되지 않았어요 (404)')
   if (!r.ok) throw new Error(`앤딩 서버 응답 ${r.status}`)
   const ct = r.headers.get('content-type') || ''
   if (!ct.includes('json')) return { login: true } // 로그인 화면으로 넘겨진 경우
@@ -263,7 +265,10 @@ export default function AndingHome() {
         {state.error && (
           <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15, lineHeight: 1.6 }}>
             앤딩 서버에 연결하지 못했어요<br /><span style={{ fontSize: 13 }}>{state.error}</span><br />
-            <button onClick={load} style={{ ...plain, marginTop: 14, color: GREEN, fontWeight: 600, fontSize: 15 }}>다시 시도</button>
+            <div style={{ display: 'flex', gap: 18, justifyContent: 'center', marginTop: 14 }}>
+              <button onClick={load} style={{ ...plain, color: GREEN, fontWeight: 600, fontSize: 15 }}>다시 시도</button>
+              <button onClick={() => navigate('/anding/classic')} style={{ ...plain, color: C.text, fontWeight: 600, fontSize: 15 }}>기존 화면 열기</button>
+            </div>
           </div>
         )}
         {d && (
