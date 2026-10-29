@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MoreHorizontal, MessageSquare, ChevronRight } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
+import { supabase } from './login'
 
 // 앤딩 관리자 메인 — 내비서가 직접 그리는 화면.
 // 숫자는 앤딩 앱(맥)의 /api/summary 에서 받고, 상세 표·그래프는 앤딩 앱 화면을 시트 안에 띄운다.
@@ -19,7 +20,38 @@ const won = n => (n ?? 0).toLocaleString('ko-KR')
 const man = n => n >= 10000 ? `${Math.round(n / 10000).toLocaleString('ko-KR')}만` : won(n)
 const hhmm = s => (s || '').match(/\d{2}:\d{2}/)?.[0] || ''
 
+// 읽기는 Supabase(맥의 anding_dash_sync가 1분마다 올림)에서 먼저 — 맥이 꺼져 있어도 마지막 현황이 보인다.
+// 없거나 못 읽으면(테이블 전, 권한 없음) 지금처럼 맥 앤딩 앱 API로
+const syncKey = path => 'dash:' + path.replace(/^\/api\//, '').replace(/\?date=/, ':')
+async function fromSync(path) {
+  try {
+    const { data, error } = await supabase.from('anding_dashboard').select('data').eq('key', syncKey(path)).maybeSingle()
+    return error ? null : data?.data ?? null
+  } catch { return null }
+}
+// 배치도 그림: Supabase 비공개 버킷의 서명 URL, 안 되면 맥 앤딩 앱 주소
+async function mapUrl(name, ts) {
+  try {
+    const { data } = await supabase.storage.from('anding').createSignedUrl(name, 3600)
+    if (data?.signedUrl) return data.signedUrl
+  } catch {}
+  return `${API}/static/images/${name}?ts=${encodeURIComponent(ts || '')}`
+}
+function useMapUrl(name, ts) {
+  const [url, setUrl] = useState(null)
+  useEffect(() => { let alive = true; mapUrl(name, ts).then(u => alive && setUrl(u)); return () => { alive = false } }, [name, ts])
+  return url
+}
+
+const tidyLockers = data => {
+  // 사물함 번호가 '27번'처럼 와서 화면의 'N번'과 겹치지 않게 숫자만
+  for (const k of ['expired', 'expiring']) for (const x of data.locker?.[k] || []) x.no = String(x.no ?? '').replace(/번$/, '')
+  return data
+}
+
 async function getSummary() {
+  const synced = await fromSync('/api/summary')
+  if (synced) return { data: tidyLockers(synced) }
   const r = await fetch(`${API}/api/summary`, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
   if (r.status === 401 || r.status === 403) return { login: true }
   // 404: 맥의 앤딩 앱이 아직 /api/summary가 없는 예전 코드 (자동 반영이 멈췄거나 재시작 전)
@@ -27,10 +59,7 @@ async function getSummary() {
   if (!r.ok) throw new Error(`앤딩 서버 응답 ${r.status}`)
   const ct = r.headers.get('content-type') || ''
   if (!ct.includes('json')) return { login: true } // 로그인 화면으로 넘겨진 경우
-  const data = await r.json()
-  // 사물함 번호가 '27번'처럼 와서 화면의 'N번'과 겹치지 않게 숫자만
-  for (const k of ['expired', 'expiring']) for (const x of data.locker?.[k] || []) x.no = String(x.no ?? '').replace(/번$/, '')
-  return { data }
+  return { data: tidyLockers(await r.json()) }
 }
 
 function Login({ onDone }) {
@@ -257,10 +286,11 @@ const DETAIL = {
 // 사물함 배치도: 앤딩 사물함 수집이 코보페이 '사물함 배치도'를 찍어 둔 그림 (아직 없으면 안 보임)
 function LockerMap({ ts }) {
   const [ok, setOk] = useState(true)
-  if (!ok) return null
+  const url = useMapUrl('locker_map.png', ts)
+  if (!ok || !url) return null
   return (
     <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden', marginTop: 10 }}>
-      <img src={`${API}/static/images/locker_map.png?ts=${encodeURIComponent(ts || '')}`} alt="사물함 배치도" onError={() => setOk(false)} style={{ display: 'block', width: '100%' }} />
+      <img src={url} alt="사물함 배치도" onError={() => setOk(false)} style={{ display: 'block', width: '100%' }} />
     </div>
   )
 }
@@ -384,10 +414,10 @@ function useApi(path) {
   useEffect(() => {
     let alive = true
     setSt(o => ({ ...o, loading: true }))
-    fetch(API + path, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    fromSync(path).then(synced => synced ? alive && setSt({ data: synced }) : fetch(API + path, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(async r => ({ status: r.status, body: await r.json().catch(() => null) }))
       .then(({ status, body }) => alive && setSt(status === 200 && body ? { data: body } : { status, error: body?.error || `불러오기 실패 (${status})` }))
-      .catch(e => alive && setSt({ error: e.message }))
+      .catch(e => alive && setSt({ error: e.message })))
     return () => { alive = false }
   }, [path])
   return st
@@ -445,6 +475,7 @@ function SeatChart({ d }) {
 
 function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
+  const seatMap = useMapUrl('seat_map.png', d?.updated)
   if (status === 404) return <IframeDetail k="seat" path="/seat" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !d) return <Muted>불러오는 중…</Muted>
@@ -472,9 +503,9 @@ function SeatDetail() {
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>자유석 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
       <Card style={{ padding: '10px 8px 4px', marginTop: 10 }}><SeatChart d={d} /></Card>
-      <Card style={{ marginTop: 10 }}>
-        <img src={`${API}/static/images/seat_map.png?ts=${encodeURIComponent(d.updated)}`} alt="좌석 배치도" onError={e => { e.currentTarget.parentElement.style.display = 'none' }} style={{ display: 'block', width: '100%' }} />
-      </Card>
+      {seatMap && <Card style={{ marginTop: 10 }}>
+        <img src={seatMap} alt="좌석 배치도" onError={e => { e.currentTarget.parentElement.style.display = 'none' }} style={{ display: 'block', width: '100%' }} />
+      </Card>}
       {list('6시간 안에 종료', soon, true)}
       {list('자유석', d.seats['자유석'] || [])}
       {list('노트북석', d.seats['노트북석'] || [])}
@@ -708,12 +739,15 @@ export default function AndingHome() {
     return () => { clearInterval(t); window.removeEventListener('anding-locker-ended', load) }
   }, [load])
 
+  const [loginOpen, setLoginOpen] = useState(false)
   const menu = [
     { label: '새로고침', run: load },
     { label: '설정', run: () => navigate('/anding/classic?go=env_config') },
     { label: '문자 생성기', run: () => navigate('/anding/classic?go=sms') },
     { label: '급여 관리표', run: () => navigate('/anding/classic?go=salary') },
     { label: '기존 관리자 화면', run: () => navigate('/anding/classic') },
+    // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
+    { label: '앤딩 로그인', run: () => setLoginOpen(true) },
     { label: '로그아웃', danger: true, run: async () => { if (!confirm('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
   ]
 
@@ -739,7 +773,7 @@ export default function AndingHome() {
         </div>
 
         {state.loading && <div style={{ textAlign: 'center', color: C.sub, padding: '80px 0' }}>불러오는 중…</div>}
-        {state.login && <Login onDone={load} />}
+        {(state.login || loginOpen) && <Login onDone={() => { setLoginOpen(false); load() }} />}
         {state.error && (
           <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15, lineHeight: 1.6 }}>
             앤딩 서버에 연결하지 못했어요<br /><span style={{ fontSize: 13 }}>{state.error}</span><br />
