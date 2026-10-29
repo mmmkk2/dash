@@ -121,12 +121,12 @@ const isLockerExpired = r => {
   const date = new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00')
   return Number.isFinite(date.getTime()) && date.getTime() <= Date.now()
 }
-// 만료된 사물함: '사물함 N번 리셋해주세요.' 문구를 클립보드에 복사 (카톡에 직접 붙여넣기)
+// 만료된 사물함: '사물함 N번 리셋 봐주세요.' 문구를 클립보드에 복사 (카톡에 직접 붙여넣기)
 function LockerResetCopyChip({ r }) {
   const [copied, setCopied] = useState(false)
   if (!isLockerExpired(r)) return null
   const number = String(r.no || '').replace(/번$/, '')
-  const text = `사물함 ${number}번 리셋해주세요.`
+  const text = `사물함 ${number}번 리셋 봐주세요.`
   const copy = async e => {
     e.stopPropagation()
     try {
