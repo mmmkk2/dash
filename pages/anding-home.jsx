@@ -482,44 +482,54 @@ function SeatChart({ d }) {
   )
 }
 
+// 좌석 상세: 위에 요약·그래프, 아래는 칩으로 하나씩 (배치도 / 곧 종료 / 자유석 / 노트북석 / 고정석) — 세로로 길게 늘어지지 않게
 function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
   const seatMap = useMapUrl('seat_map.png', d?.updated)
+  const [view, setView] = useState('map')
+  const [mapFailed, setMapFailed] = useState(false)
   if (status === 404) return <IframeDetail k="seat" path="/seat" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !d) return <Muted>불러오는 중…</Muted>
   const now = Date.now()
   const parse = s => new Date((s || '').replace(/\./g, '-').replace(' ', 'T')).getTime()
   const soon = (d.seats['자유석'] || []).filter(r => { const e = parse(r.end); return e >= now && e - now <= 6 * 3600e3 }).sort((a, b) => parse(a.end) - parse(b.end))
-  const list = (title, rows, end) => rows.length > 0 && (
-    <>
-      <Label>{title} {rows.length}</Label>
-      <Card>
-        {rows.map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5 }}>
-            <b style={{ fontWeight: 600, minWidth: 30, color: COL.seat }}>{r.seat}</b>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {r.name || '미등록'}
-              <div style={{ fontSize: 12, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}</div>
-            </div>
-            <div style={{ fontSize: 12, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>{end ? <>~{shortTime(r.end)}</> : <>{shortTime(r.start)} 입실</>}</div>
-          </div>
-        ))}
-      </Card>
-    </>
+  const views = [
+    ['map', '배치도', null],
+    ['soon', '곧 종료', soon, true],
+    ['free', '자유석', d.seats['자유석'] || []],
+    ['laptop', '노트북석', d.seats['노트북석'] || []],
+    ['fixed', '고정석', d.seats['고정석'] || [], true],
+  ]
+  const cur = views.find(v => v[0] === view) || views[0]
+  // 한 사람 한 줄: 좌석 · 이름 · 상품 · 시각
+  const list = (rows, end) => rows.length === 0 ? <Muted>없어요</Muted> : (
+    <Card>
+      {rows.map((r, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14, whiteSpace: 'nowrap' }}>
+          <b style={{ fontWeight: 600, minWidth: 24, color: COL.seat }}>{r.seat}</b>
+          <span style={{ flexShrink: 0 }}>{r.name || '미등록'}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.sub, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}</span>
+          <span style={{ fontSize: 12, color: C.sub }}>{end ? `~${shortTime(r.end)}` : `${hhmm(r.start)} 입실`}</span>
+        </div>
+      ))}
+    </Card>
   )
   return (
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>자유석 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
-      <Card style={{ padding: '10px 8px 4px', marginTop: 10 }}><SeatChart d={d} /></Card>
-      {seatMap && <Card style={{ marginTop: 10 }}>
-        <img src={seatMap} alt="좌석 배치도" onError={e => { e.currentTarget.parentElement.style.display = 'none' }} style={{ display: 'block', width: '100%' }} />
-      </Card>}
-      {list('6시간 안에 종료', soon, true)}
-      {list('자유석', d.seats['자유석'] || [])}
-      {list('노트북석', d.seats['노트북석'] || [])}
-      {list('고정석', d.seats['고정석'] || [], true)}
-      <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.updated}</div>
+      <Card style={{ padding: '8px 8px 2px', marginTop: 8 }}><SeatChart d={d} /></Card>
+      <div style={{ display: 'flex', gap: 6, margin: '10px 0 8px', overflowX: 'auto' }}>
+        {views.map(([k, label, rows]) => (
+          <button key={k} onClick={() => setView(k)} aria-pressed={view === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', whiteSpace: 'nowrap', background: view === k ? COL.seat : C.card, color: view === k ? '#fff' : COL.seat, border: `0.5px solid ${view === k ? COL.seat : C.sep}` }}>
+            {label}{rows ? ` ${rows.length}` : ''}
+          </button>
+        ))}
+      </div>
+      {cur[0] === 'map'
+        ? (seatMap && !mapFailed ? <Card key="map"><img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%' }} /></Card> : <Muted>배치도가 아직 없어요</Muted>)
+        : <div key={view}>{list(cur[2], cur[3])}</div>}
+      <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 12 }}>Updated {d.updated}</div>
     </div>
   )
 }
