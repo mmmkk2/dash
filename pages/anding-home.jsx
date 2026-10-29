@@ -121,28 +121,65 @@ const isLockerExpired = r => {
   const date = new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00')
   return Number.isFinite(date.getTime()) && date.getTime() <= Date.now()
 }
+// 백승재님께 'N번 사물함 리셋 봐주세요.' 카톡 — 맥이 백그라운드로 보내고, 여기선 상태를 2초마다 확인
+const resetQuery = r => new URLSearchParams({ no: r.no || '', end: r.end || '', use_id: r.use_id || '' })
+const RESET_LABEL = { none: '리셋 요청', sending: '전송 중…', sent: '요청 완료', likely_sent: '요청 완료', unconfirmed: '확인 필요', failed: '리셋 요청' }
 function LockerResetRequestChip({ r }) {
+  const [status, setStatus] = useState('none')
   const [busy, setBusy] = useState(false)
-  const [sent, setSent] = useState(false)
-  if (!isLockerExpired(r)) return null
+  const poll = useRef(null)
   const number = String(r.no || '').replace(/번$/, '')
-  const send = async e => {
+  const message = `${number}번 사물함 리셋 봐주세요.`
+  const check = async () => {
+    const res = await fetch(`${API}/api/locker/reset-status?${resetQuery(r)}`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
+    const j = res?.ok ? await res.json().catch(() => null) : null
+    if (j?.status) setStatus(j.status)
+    return j
+  }
+  const watch = () => {
+    clearInterval(poll.current)
+    const started = Date.now()
+    poll.current = setInterval(async () => {
+      const j = await check()
+      if (j && j.status !== 'sending') {
+        clearInterval(poll.current)
+        if (j.status === 'failed') { alert(j.error || j.message); setStatus('none') }
+        else if (j.status === 'likely_sent') alert(j.message)
+        else if (j.status === 'unconfirmed') alert(`${j.message}\n\n확인 후 '확인 필요'를 눌러 알려주세요.`)
+      } else if (Date.now() - started > 120000) clearInterval(poll.current)
+    }, 2000)
+  }
+  // 이전에 보낸 적 있으면 그 상태로 (보내는 중이면 이어서 확인)
+  useEffect(() => { if (isLockerExpired(r)) check().then(j => j?.status === 'sending' && watch()); return () => clearInterval(poll.current) }, [r.no, r.end, r.use_id])
+  if (!isLockerExpired(r)) return null
+  const post = async (path, body) => {
+    const res = await fetch(`${API}${path}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(body) })
+    if (res.redirected || res.status === 401 || res.status === 403) throw new Error('앤딩 관리자 로그인 후 다시 눌러주세요. (⋯ > 앤딩 로그인)')
+    return { res, j: await res.json().catch(() => ({})) }
+  }
+  const click = async e => {
     e.stopPropagation()
-    if (busy || sent) return
-    const message = `${number}번 사물함 리셋 봐주세요.`
-    if (!confirm(`받는 사람: 백승재\n\n${message}\n\n이 내용으로 카카오톡을 보낼까요?`)) return
+    if (busy || status === 'sending' || status === 'sent' || status === 'likely_sent') return
     setBusy(true)
     try {
-      const response = await fetch(`${API}/api/locker/reset-request`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ no: r.no, end: r.end, use_id: r.use_id }) })
-      if (response.redirected || response.status === 401 || response.status === 403) throw new Error('앤딩 관리자 로그인 후 다시 눌러주세요.')
-      const result = await response.json()
-      if (!response.ok || !result.ok) throw new Error(result.error || '카톡 발송을 확인하지 못했어요.')
-      setSent(true)
-      alert(result.message)
-    } catch (error) { alert(error.message || '카톡 발송을 확인하지 못했어요.') }
+      if (status === 'unconfirmed') {
+        // 결과가 불확실했던 건: 채팅방을 보고 알려주면 완료 처리하거나 다시 보낼 수 있게
+        const went = confirm(`백승재님 채팅방에 '${message}'가 갔나요?\n\n확인 = 갔어요 (완료로)\n취소 = 안 갔어요 (다시 보낼 수 있게)`)
+        const { j } = await post('/api/locker/reset-resolve', { no: r.no, end: r.end, use_id: r.use_id, sent: went })
+        if (!j.ok) throw new Error(j.error || '처리하지 못했어요')
+        setStatus(j.status)
+        return
+      }
+      if (!confirm(`받는 사람: 백승재\n\n${message}\n\n이 내용으로 카카오톡을 보낼까요?`)) return
+      const { res, j } = await post('/api/locker/reset-request', { no: r.no, end: r.end, use_id: r.use_id })
+      if (j.status) setStatus(j.status)
+      if (res.status === 202 || j.status === 'sending') return watch()
+      if (!res.ok || !j.ok) throw new Error(j.error || '카톡 요청을 접수하지 못했어요.')
+    } catch (error) { alert(error.message || '카톡 요청을 접수하지 못했어요.') }
     finally { setBusy(false) }
   }
-  return <button onClick={send} disabled={busy || sent} aria-label={`백승재님께 ${number}번 사물함 리셋 요청`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy ? 0.6 : 1 }}>{sent ? '요청 완료' : busy ? '전송 중…' : '리셋 요청'}</button>
+  const done = status === 'sent' || status === 'likely_sent'
+  return <button onClick={click} disabled={busy || status === 'sending' || done} aria-label={`백승재님께 ${number}번 사물함 리셋 요청`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: status === 'unconfirmed' ? '#b45309' : COL.locker, background: (status === 'unconfirmed' ? '#b45309' : COL.locker) + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy || status === 'sending' ? 0.6 : 1 }}>{RESET_LABEL[status] || '리셋 요청'}</button>
 }
 
 function LockerEndChip({ r }) {
