@@ -189,15 +189,17 @@ export function useBackClose(open, onClose) {
   }, [open])
 }
 
-export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, tint = C.tint, children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: C.bg, width: '100%', maxWidth: full ? 760 : 680, borderRadius: '22px 22px 0 0', overflowY: 'auto',
+        // inset: 화면 가장자리에서 띄운 카드 모양 (좌우·아래 여백, 네 모서리 둥글게)
+        ...(inset && { width: 'calc(100% - 20px)', maxWidth: 640, borderRadius: 22, marginBottom: 'calc(10px + env(safe-area-inset-bottom))' }),
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
         // full에 높이(예: '78dvh')를 주면 그 높이로
         ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : { maxHeight: '92dvh' }),
-        paddingBottom: 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
+        paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
           <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{title}</div>

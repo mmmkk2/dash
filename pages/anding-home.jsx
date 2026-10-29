@@ -633,7 +633,7 @@ function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
   return (
-    <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh">
+    <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh" inset>
       {k === 'product' && <SalePanel onApplied={onReload} />}
       {k === 'seat' ? <SeatDetail />
         : k === 'payment' ? <PaymentDetail />
