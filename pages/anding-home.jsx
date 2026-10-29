@@ -303,6 +303,8 @@ function SalePanel({ onApplied }) {
     if (st.all_off) body.set('all_off', 'true')
     if (st.auto_limit_on) body.set('auto_limit_on', 'true')
     if (st.auto_release_on) body.set('auto_release_on', 'true')
+    body.set('day6h_present', '1'); body.set('day6h_start', st.day6h_start || '12:00'); body.set('day6h_end', st.day6h_end || '22:00')
+    if (st.day6h_on) body.set('day6h_on', 'true')
     setStatus('pending')
     try {
       const r = await fetch(`${API}/set_toggle_and_run`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body })
@@ -333,7 +335,7 @@ function SalePanel({ onApplied }) {
       {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, color: C.sub, marginTop: 6 }}>{sub}</div>}
     </div>
   )
-  const RED = '#e5484d', BLUE = '#4a90d9'
+  const RED = '#e5484d', BLUE = '#4a90d9', ORANGE = '#d97706'
   const pending = status === 'pending'
   return (
     <div style={{ marginBottom: 14 }}>
@@ -346,6 +348,7 @@ function SalePanel({ onApplied }) {
         {row('시험기간', BLUE, 'exam_mode', <>구매 {st.exam_buy || '—'} · 연장 {st.exam_ext || '—'}</>)}
         {row('잔여 제한', RED, 'auto_limit_on', <>잔여 {num('sale_limit', RED)} 이하 · {time('limit_time', RED)} 이후 → 제한</>)}
         {row('잔여 풀기', GREEN, 'auto_release_on', <>잔여 {num('sale_release', GREEN)} 이상 · {time('release_time', GREEN)} 이후 → 풀기</>)}
+        {'day6h_on' in st && row('낮 시간 6시간권 판매 중지', ORANGE, 'day6h_on', <>{time('day6h_start', ORANGE)} ~ {time('day6h_end', ORANGE)} 동안 1회권 6시간 구매 막기</>)}
         {row('전체 OFF', RED, 'all_off', null, true)}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
