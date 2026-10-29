@@ -511,13 +511,19 @@ function RoomDetail() {
   if (status === 404 || (data && !data.days)) return <IframeDetail k="room" path="/room" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !data) return <Muted>불러오는 중…</Muted>
-  const d = data.days[day] || data.days[0]
+  // 날짜는 맥 수집 시점이 아니라 오늘 기준 (맥이 멈춰 있어도 오늘·내일·모레). 수집에 없는 날은 빈 칸
+  const days = [0, 1, 2].map(o => {
+    const t = new Date(Date.now() + o * 864e5), date = ymdDot(t)
+    const label = `${String(t.getMonth() + 1).padStart(2, '0')}/${String(t.getDate()).padStart(2, '0')} (${'일월화수목금토'[t.getDay()]})`
+    return { ...(data.days.find(x => x.date === date) || { missing: true, count_2: 0, count_4: 0 }), date, label }
+  })
+  const d = days[day]
   const nowHM = new Date().toTimeString().slice(0, 5)
   const col = (label, rows) => (
     <div style={{ flex: 1, minWidth: 0 }}>
       <Label>{label} {rows.length}</Label>
       <Card>
-        {rows.length === 0 && <div style={{ padding: '14px', color: C.sub, fontSize: 14 }}>예약 없음</div>}
+        {rows.length === 0 && <div style={{ padding: '14px', color: C.sub, fontSize: 14 }}>{d.missing ? '아직 불러오지 않음' : '예약 없음'}</div>}
         {rows.map((r, i) => {
           const [a, b] = roomTimes(r.time)
           const now = day === 0 && a <= nowHM && nowHM <= b, done = day === 0 && b < nowHM
@@ -534,7 +540,7 @@ function RoomDetail() {
   return (
     <div>
       <div style={{ display: 'flex', gap: 6 }}>
-        {data.days.map((x, i) => (
+        {days.map((x, i) => (
           <button key={i} onClick={() => setDay(i)} aria-pressed={day === i} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: day === i ? COL.room : C.card, color: day === i ? '#fff' : COL.room, border: `0.5px solid ${day === i ? COL.room : C.sep}` }}>
             {i === 0 ? '오늘' : x.label}{(x.count_2 + x.count_4) > 0 && ` ${x.count_2 + x.count_4}`}
           </button>
