@@ -276,7 +276,89 @@ function LockerList({ d, onSms }) {
   )
 }
 
-function Detail({ k, d, onClose, onSms }) {
+// 상품 판매 설정 (기존 관리자 화면의 판매 모드 폼과 같은 값) — 즉시 적용하면 맥이 상품 판매 토글을 바로 돌린다
+function Switch({ on, onChange, color }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} style={{ ...plain, width: 44, height: 26, borderRadius: 999, background: on ? color : 'rgba(120,120,128,0.24)', position: 'relative', flexShrink: 0, transition: 'background .15s' }}>
+      <span style={{ position: 'absolute', top: 2, left: on ? 20 : 2, width: 22, height: 22, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left .15s' }} />
+    </button>
+  )
+}
+
+function SalePanel({ onApplied }) {
+  const [st, setSt] = useState(null)
+  const [err, setErr] = useState('')
+  const [status, setStatus] = useState('') // '', 'pending', 'done 12:00:01', 'error …'
+  const poll = useRef(null)
+  const loadSt = () => fetch(`${API}/api/sale_settings`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error(r.status === 404 ? '맥 앤딩 앱에 아직 반영되지 않았어요 (404)' : `불러오기 실패 (${r.status})`)))
+    .then(setSt).catch(e => setErr(e.message))
+  useEffect(() => { loadSt(); return () => clearInterval(poll.current) }, [])
+  if (err) return <div style={{ color: C.sub, fontSize: 14, padding: '4px 4px 12px' }}>판매 설정: {err}</div>
+  if (!st) return <div style={{ color: C.sub, fontSize: 14, padding: '4px 4px 12px' }}>판매 설정 불러오는 중…</div>
+  const set = (k, v) => setSt(o => ({ ...o, [k]: v }))
+  async function apply() {
+    const body = new URLSearchParams({ sale_limit: st.sale_limit, sale_release: st.sale_release, sale_limit_time: st.limit_time || '', sale_release_time: st.release_time || '' })
+    if (st.exam_mode) body.set('exam_mode', 'true')
+    if (st.all_off) body.set('all_off', 'true')
+    if (st.auto_limit_on) body.set('auto_limit_on', 'true')
+    if (st.auto_release_on) body.set('auto_release_on', 'true')
+    setStatus('pending')
+    try {
+      const r = await fetch(`${API}/set_toggle_and_run`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !j.ok) throw new Error(j.error || `적용 실패 (${r.status})`)
+    } catch (e) { setStatus('error ' + e.message); return }
+    // 상품 판매 토글이 끝날 때까지 2초마다 확인 (최대 2분)
+    const started = Date.now()
+    clearInterval(poll.current)
+    poll.current = setInterval(async () => {
+      const t = await fetch(`${API}/toggle_status`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(r => r.json()).catch(() => null)
+      if (t?.status === 'done') { clearInterval(poll.current); setStatus('done ' + t.completed_at); loadSt(); onApplied() }
+      else if (Date.now() - started > 120000) { clearInterval(poll.current); setStatus('error 2분 넘게 끝나지 않았어요 — 기존 관리자 화면에서 확인해 주세요') }
+    }, 2000)
+  }
+  const num = (k, color) => (
+    <input type="number" min="1" max="30" value={st[k]} onChange={e => set(k, e.target.value)} style={{ width: 46, padding: '4px 6px', borderRadius: 8, border: `0.5px solid ${C.sep}`, fontSize: 15, textAlign: 'center', fontFamily: F, color }} />
+  )
+  const time = (k, color) => (
+    <input type="time" value={st[k] || ''} onChange={e => set(k, e.target.value)} style={{ padding: '3px 6px', borderRadius: 8, border: `0.5px solid ${C.sep}`, fontSize: 14, fontFamily: F, color, background: '#fff' }} />
+  )
+  const row = (label, color, k, sub, last) => (
+    <div style={{ padding: '11px 14px', borderBottom: last ? 'none' : `0.5px solid ${C.sep}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1, fontSize: 15.5, fontWeight: st[k] ? 600 : 400, color: st[k] ? color : C.text }}>{label}</div>
+        <Switch on={!!st[k]} onChange={v => set(k, v)} color={color} />
+      </div>
+      {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, color: C.sub, marginTop: 6 }}>{sub}</div>}
+    </div>
+  )
+  const RED = '#e5484d', BLUE = '#4a90d9'
+  const pending = status === 'pending'
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px', fontSize: 13, color: C.sub }}>
+        지금 판매 모드
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: st.mode_color, borderRadius: 999, padding: '2px 9px' }}>{st.mode}</span>
+        {st.last_forced && <span style={{ marginLeft: 'auto' }}>마지막 적용 {st.last_forced.slice(5, 16).replace('-', '/')}</span>}
+      </div>
+      <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}` }}>
+        {row('시험기간', BLUE, 'exam_mode', <>구매 {st.exam_buy || '—'} · 연장 {st.exam_ext || '—'}</>)}
+        {row('잔여 제한', RED, 'auto_limit_on', <>잔여 {num('sale_limit', RED)} 이하 · {time('limit_time', RED)} 이후 → 제한</>)}
+        {row('잔여 풀기', GREEN, 'auto_release_on', <>잔여 {num('sale_release', GREEN)} 이상 · {time('release_time', GREEN)} 이후 → 풀기</>)}
+        {row('전체 OFF', RED, 'all_off', null, true)}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+        <button onClick={apply} disabled={pending} style={{ ...plain, background: COL.product, color: '#fff', fontSize: 15, fontWeight: 600, borderRadius: 999, padding: '9px 20px', opacity: pending ? 0.5 : 1 }}>즉시 적용</button>
+        <span style={{ fontSize: 13, fontWeight: 600, color: status.startsWith('error') ? RED : status.startsWith('done') ? GREEN : C.sub }}>
+          {pending ? '적용 중… (1분 정도 걸려요)' : status.startsWith('done') ? `적용 완료 ${status.slice(5)}` : status.startsWith('error') ? status.slice(6) : ''}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   const [loaded, setLoaded] = useState(false)
   useBackClose(true, onClose)
@@ -291,6 +373,7 @@ function Detail({ k, d, onClose, onSms }) {
   }
   return (
     <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full>
+      {k === 'product' && <SalePanel onApplied={onReload} />}
       {info.path ? (
         <div style={{ background: '#fff', borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
           {!loaded && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
@@ -370,7 +453,7 @@ export default function AndingHome() {
           </>
         )}
       </div>
-      {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} onSms={setSms} />}
+      {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} onSms={setSms} onReload={load} />}
       {sms && <SmsSheet r={sms} onClose={() => setSms(null)} />}
     </div>
   )
