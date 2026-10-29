@@ -2023,11 +2023,16 @@ export default function AssetsApp() {
           </div>
         )}
 
-        {/* Tab */}
-        <div style={{ display: "flex", background: C.white, borderRadius: 12, padding: 3, border: `0.5px solid ${C.border}`, gap: 2, marginBottom: 14 }}>
-          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금·공제"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => (
-            <button key={k} onClick={() => setTab(k)} style={{ flex: 1, padding: "8px 2px", border: "none", borderRadius: 9, cursor: "pointer", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", background: tab === k ? `color-mix(in srgb, ${TAB_COLOR[k]} 14%, #fff)` : "transparent", color: tab === k ? TAB_COLOR[k] : C.inkLight, fontFamily: F, transition: "all 0.15s" }}>{l}</button>
-          ))}
+        {/* Tab — 메모·일정·가계부 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 분류 색으로 채움 */}
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 14 }}>
+          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금·공제"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => {
+            const on = tab === k, c = TAB_COLOR[k]
+            return (
+              <button key={k} onClick={() => setTab(k)} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", padding: "5px 10px", borderRadius: 999, cursor: "pointer", fontWeight: 600, fontSize: 12, border: `0.5px solid ${on ? c : C.border}`, background: on ? c : C.white, color: on ? "#fff" : c, fontFamily: F, transition: "all 0.15s" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : c }} />{l}
+              </button>
+            )
+          })}
         </div>
 
         {/* Loading */}
