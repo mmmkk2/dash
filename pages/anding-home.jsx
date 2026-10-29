@@ -121,115 +121,27 @@ const isLockerExpired = r => {
   const date = new Date((r.end || '').replace(/\./g, '-').replace(' ', 'T') + ':00+09:00')
   return Number.isFinite(date.getTime()) && date.getTime() <= Date.now()
 }
-// 백승재님께 'N번 사물함 리셋 봐주세요.' 카톡 — 맥이 백그라운드로 보내고, 여기선 상태를 2초마다 확인
-// 완료는 맥이 채팅 기록 맨 마지막 줄까지 확인했거나(auto) 사람이 '갔어요'로 확인한(manual) 경우만.
-// 입력칸만 비고 확인 못한 건(likely_sent)·결과 모름(unconfirmed)은 '확인 필요'로 두고, 채팅방을 본 뒤 고르게 한다.
-const resetQuery = r => new URLSearchParams({ no: r.no || '', end: r.end || '', use_id: r.use_id || '' })
-const RESET_LABEL = { none: '리셋 요청', cleared: '리셋 요청', failed: '리셋 요청', sending: '전송 중…', sent: '요청 완료', likely_sent: '확인 필요', unconfirmed: '확인 필요' }
-// 완료(sent)일 때의 판정 출처. 확인 필요 상태의 auto는 '맥 자동 전송'일 뿐 확인된 게 아님
-const SOURCE_LABEL = { auto: '맥이 채팅 기록에서 확인', manual: '직접 확인해서 표시', unknown: '확인 방법 기록 없음' }
-
-// 확인 창: 기본(앞·강조) 버튼은 늘 '보내지 않음' 쪽
-function ResetDialog({ title, lines, actions, onClose }) {
-  useBackClose(true, onClose)
-  return (
-    <div onClick={e => { e.stopPropagation(); onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} role="dialog" aria-label={title} style={{ background: C.bg, borderRadius: 20, width: '100%', maxWidth: 360, padding: '18px 16px 14px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', fontFamily: F }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{title}</div>
-        {lines.map((l, i) => <div key={i} style={{ fontSize: 14, color: i === 0 ? C.text : C.sub, marginTop: i === 0 ? 8 : 4, lineHeight: 1.45 }}>{l}</div>)}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
-          {actions.map((a, i) => (
-            <button key={a.label} autoFocus={i === 0} onClick={a.run} style={{ ...plain, padding: '12px 0', borderRadius: 14, fontSize: 15, fontWeight: 600, textAlign: 'center',
-              background: a.primary ? COL.locker : C.card, color: a.primary ? '#fff' : a.danger ? '#b45309' : C.text, border: a.primary ? 'none' : `0.5px solid ${C.sep}` }}>{a.label}</button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function LockerResetRequestChip({ r }) {
-  const [info, setInfo] = useState({ status: 'none' })
-  const [busy, setBusy] = useState(false)
-  const [dialog, setDialog] = useState(null)
-  const poll = useRef(null)
-  const status = info.status || 'none'
-  const number = String(r.no || '').replace(/번$/, '')
-  const message = `${number}번 사물함 리셋 봐주세요.`
-  const check = async () => {
-    const res = await fetch(`${API}/api/locker/reset-status?${resetQuery(r)}`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
-    const j = res?.ok ? await res.json().catch(() => null) : null
-    if (j?.status) setInfo(j)
-    return j
-  }
-  const watch = () => {
-    clearInterval(poll.current)
-    const started = Date.now()
-    poll.current = setInterval(async () => {
-      const j = await check()
-      if (j && j.status !== 'sending') {
-        clearInterval(poll.current)
-        if (j.status === 'failed') alert(j.error || j.message)
-        else if (j.status === 'likely_sent' || j.status === 'unconfirmed') alert(`${j.message}\n\n채팅방을 확인한 뒤 '확인 필요'를 눌러 알려주세요.`)
-      } else if (Date.now() - started > 120000) clearInterval(poll.current)
-    }, 2000)
-  }
-  // 이전에 보낸 적 있으면 그 상태로 (보내는 중이면 이어서 확인)
-  useEffect(() => { if (isLockerExpired(r)) check().then(j => j?.status === 'sending' && watch()); return () => clearInterval(poll.current) }, [r.no, r.end, r.use_id])
+// 만료된 사물함: 'N번 리셋해주세요' 문구를 클립보드에 복사 (카톡에 직접 붙여넣기)
+function LockerResetCopyChip({ r }) {
+  const [copied, setCopied] = useState(false)
   if (!isLockerExpired(r)) return null
-  const post = async (path, body) => {
-    const res = await fetch(`${API}${path}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ no: r.no, end: r.end, use_id: r.use_id, ...body }) })
-    if (res.redirected || res.status === 401 || res.status === 403) throw new Error('앤딩 관리자 로그인 후 다시 눌러주세요. (⋯ > 앤딩 로그인)')
-    return { res, j: await res.json().catch(() => ({})) }
-  }
-  const run = fn => async () => {
-    setDialog(null); setBusy(true)
-    try { await fn() } catch (error) { alert(error.message || '처리하지 못했어요.') } finally { setBusy(false) }
-  }
-  const doSend = async (resend = false) => {
-    const { res, j } = await post('/api/locker/reset-request', resend ? { resend: true } : {})
-    if (j.status) setInfo(j)
-    if (res.status === 202 || j.status === 'sending') return watch()
-    if (!res.ok || !j.ok) throw new Error(j.error || '카톡 요청을 접수하지 못했어요.')
-  }
-  const doResolve = async sent => {
-    const { j } = await post('/api/locker/reset-resolve', { sent })
-    if (!j.ok) throw new Error(j.error || '처리하지 못했어요')
-    setInfo(j)
-  }
-  const send = resend => run(() => doSend(resend))
-  const resolve = sent => run(() => doResolve(sent))
-  const detail = [info.source && (status === 'sent' ? `판정: ${SOURCE_LABEL[info.source] || info.source}` : info.source === 'manual' ? '직접 확인해서 표시' : '맥 자동 전송'), info.attempts ? `시도 ${info.attempts}회` : '', info.updated && `마지막 ${info.updated.slice(5, 16)}`].filter(Boolean).join(' · ')
-  const open = e => {
+  const number = String(r.no || '').replace(/번$/, '')
+  const text = `${number}번 리셋해주세요`
+  const copy = async e => {
     e.stopPropagation()
-    if (busy || status === 'sending') return
-    const close = () => setDialog(null)
-    if (status === 'likely_sent' || status === 'unconfirmed') {
-      setDialog({ title: '채팅방을 확인해 주세요', lines: [`백승재님 채팅방에 '${message}'가 있나요?`, info.message, detail], actions: [
-        { label: '안 갔어요 · 다시 보내기', primary: true, run: run(async () => { await doResolve(false); await doSend() }) },
-        { label: '갔어요 (완료로 표시)', run: resolve(true) },
-        { label: '닫기', run: close },
-      ] })
-    } else if (status === 'sent') {
-      setDialog({ title: '이미 요청한 사물함이에요', lines: [`'${message}'`, detail, '채팅방에 없다면 다시 보낼 수 있어요.'], actions: [
-        { label: '닫기', primary: true, run: close },
-        { label: '채팅방에 없어요 · 다시 보내기', danger: true, run: send(true) },
-      ] })
-    } else {
-      setDialog({ title: '백승재님께 카톡을 보낼까요?', lines: [`'${message}'`, info.status === 'failed' ? `지난번: ${info.error || info.message}` : '맥 카카오톡으로 바로 보내요.'], actions: [
-        { label: '보내기', primary: true, run: send() },
-        { label: '취소', run: close },
-      ] })
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // 클립보드 권한이 없을 때: 임시 입력칸으로 복사
+      const ta = document.createElement('textarea')
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(ta); ta.select()
+      try { document.execCommand('copy') } finally { ta.remove() }
     }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
-  const warn = status === 'likely_sent' || status === 'unconfirmed'
-  const color = warn ? '#b45309' : COL.locker
-  return (
-    <>
-      <button onClick={open} disabled={busy || status === 'sending'} aria-label={`백승재님께 ${number}번 사물함 리셋 요청`} style={{ ...plain, fontSize: 12, fontWeight: 600, color, background: color + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy || status === 'sending' ? 0.6 : 1 }}>{busy ? '처리 중…' : RESET_LABEL[status] || '리셋 요청'}</button>
-      {dialog && <ResetDialog {...dialog} onClose={() => setDialog(null)} />}
-    </>
-  )
+  return <button onClick={copy} aria-label={`'${text}' 복사`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0 }}>{copied ? '복사됨' : '리셋 문구 복사'}</button>
 }
 
 function LockerEndChip({ r }) {
@@ -332,7 +244,7 @@ function Todo({ d, onSms }) {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
-            {r.sms && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 5, maxWidth: 210 }}><SmsChip r={r.sms} onSms={onSms} /><LockerEndChip r={r.sms} /><LockerResetRequestChip r={r.sms} /></div>}
+            {r.sms && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 5, maxWidth: 210 }}><SmsChip r={r.sms} onSms={onSms} /><LockerEndChip r={r.sms} /><LockerResetCopyChip r={r.sms} /></div>}
           </div>
         ))}
       </div>
@@ -410,7 +322,7 @@ function LockerList({ d, onSms }) {
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
             <SmsChip r={{ ...r, kind }} onSms={onSms} />
             <LockerEndChip r={r} />
-            <LockerResetRequestChip r={r} />
+            <LockerResetCopyChip r={r} />
           </div>
         ))}
       </div>
