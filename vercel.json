@@ -40,5 +40,11 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "claude/**": false
+    }
+  }
 }
