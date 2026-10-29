@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { RotateCw, MoreHorizontal } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useShowTabBar } from '../src/TabBar'
 
 // 앤딩 스터디카페 관리자(별도 앱)를 내비서 안 한 화면으로 띄운다.
 // 다른 주소를 그대로 끼워 넣으면 브라우저가 로그인 쿠키를 막기 때문에,
 // vercel.json에서 /andingapp/* 를 앤딩 앱으로 중계해 같은 주소에서 연다.
 const EMBED_URL = '/andingapp/admin'
+// 새 앤딩 화면(anding-home)의 ⋯ 메뉴에서 설정·문자 생성기·급여 관리표를 바로 열 때 (?go=sms 등)
+const GO = { env_config: '/andingapp/env_config', sms: '/andingapp/sms', salary: '/andingapp/salary' }
 
 // 메모·일정과 같은 톤의 테마를 앤딩 화면(같은 주소라 접근 가능)과 그 안의 상세 화면들에 덧입힌다
 const THEME_HREF = '/anding-theme.css?v=11'
@@ -125,6 +128,8 @@ function applyTheme(doc, nested, frame) {
 }
 
 export default function Anding() {
+  const navigate = useNavigate()
+  const startUrl = GO[new URLSearchParams(window.location.search).get('go')] || EMBED_URL
   const frame = useRef(null)
   const detach = useRef(() => {})
   const [pull, setPull] = useState(0)
@@ -156,6 +161,7 @@ export default function Anding() {
   const pick = m => {
     setMenuOpen(false)
     if (m === 'home') { frame.current.src = EMBED_URL; return }
+    if (m === 'new') { navigate('/anding'); return }
     m.el.click()
   }
 
@@ -227,17 +233,15 @@ export default function Anding() {
       {/* 머리: 하단 탭이 있으면 작은 제목(22px), 없을 때(PC 등)는 큰 제목 + 오른쪽 ⋯ 메뉴 */}
       <div style={{ flexShrink: 0, maxWidth: 680, width: '100%', boxSizing: 'border-box', margin: '0 auto', padding: tabBar ? 'calc(8px + env(safe-area-inset-top)) 16px 2px' : 'calc(16px + env(safe-area-inset-top)) 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 5 }}>
         <div style={{ fontSize: tabBar ? 22 : 28, fontWeight: 700, letterSpacing: tabBar ? '-0.5px' : '-0.7px', lineHeight: tabBar ? '38px' : 1.25, color: '#1c1c1e' }}>앤딩</div>
-        {(menu.length > 0 || !atHome) && (
-          <button aria-label="메뉴" onClick={() => setMenuOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: '#fff', border: '0.5px solid rgba(60,60,67,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1c1c1e', cursor: 'pointer' }}>
-            <MoreHorizontal size={18} />
-          </button>
-        )}
+        <button aria-label="메뉴" onClick={() => setMenuOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: '#fff', border: '0.5px solid rgba(60,60,67,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1c1c1e', cursor: 'pointer' }}>
+          <MoreHorizontal size={18} />
+        </button>
         {menuOpen && (
           <>
             <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
             <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 16, zIndex: 41, background: '#fff', borderRadius: 14, border: '0.5px solid rgba(60,60,67,0.12)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 4, minWidth: 160 }}>
-              {[...(atHome ? [] : [{ label: '관리자 화면으로', key: 'home' }]), ...menu].map(m => (
-                <button key={m.key || m.label} onClick={() => pick(m.key === 'home' ? 'home' : m)} style={{
+              {[{ label: '새 앤딩 화면', key: 'new' }, ...(atHome ? [] : [{ label: '관리자 화면으로', key: 'home' }]), ...menu].map(m => (
+                <button key={m.key || m.label} onClick={() => pick(m.key || m)} style={{
                   display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', borderRadius: 10, padding: '10px 12px',
                   fontSize: 15, color: /로그아웃/.test(m.label) ? '#d95f4b' : '#1c1c1e', cursor: 'pointer', fontFamily: font, whiteSpace: 'nowrap',
                 }}>{m.label}</button>
@@ -247,7 +251,7 @@ export default function Anding() {
         )}
       </div>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
-        <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={EMBED_URL} allow="clipboard-write"
+        <iframe ref={frame} onLoad={onFrameLoad} title="앤딩스터디카페 관리자" src={startUrl} allow="clipboard-write"
           style={{ border: 0, width: '100%', height: '100%', display: 'block', opacity: themed ? 1 : 0, transition: 'opacity .15s' }} />
         <style>{`@keyframes anding-refresh-spin { to { transform: rotate(360deg); } }`}</style>
         {(pull > 10 || refreshing) && <div role="status" aria-label={refreshing ? '새로고침 중' : pull >= 88 ? '놓으면 새로고침' : '당겨서 새로고침'} style={{ position: 'absolute', top: `${refreshing ? 24 : Math.max(0, pull - 40)}px`, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.96)', color: '#4285f4', boxShadow: '0 2px 10px #00000014' }}>

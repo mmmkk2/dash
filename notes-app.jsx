@@ -172,7 +172,7 @@ window.addEventListener('popstate', () => {
   const top = backStack.pop()
   if (top) { top.byBack = true; top.close() }
 })
-function useBackClose(open, onClose) {
+export function useBackClose(open, onClose) {
   const ref = useRef(onClose)
   ref.current = onClose
   useEffect(() => {
@@ -189,7 +189,7 @@ function useBackClose(open, onClose) {
   }, [open])
 }
 
-function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, tint = C.tint, children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, doneLabel = '저장', hideCancel, tint = C.tint, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
