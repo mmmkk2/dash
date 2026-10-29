@@ -4783,9 +4783,10 @@ export default function App(){
               const e=ENTITIES[ek];const sel=entity===ek;
               return(
                 <button key={ek} onClick={()=>switchEntity(ek)} style={{
-                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`0.5px solid ${sel?e.color+"66":C.border}`,
-                  background:sel?`${e.color}18`:C.white,
-                  color:e.color,
+                  flex:1,padding:"10px 4px",borderRadius:"99px",cursor:"pointer",border:`0.5px solid ${sel?e.color:C.border}`,
+                  // 선택된 사업은 사업 색으로 채우고 흰 글씨 (메모·일정 태그 칩과 같은 방식)
+                  background:sel?e.color:C.white,
+                  color:sel?"#fff":e.color,
                   fontFamily:FONT,fontSize:"14px",fontWeight:600,
                   transition:"all 0.2s",boxShadow:"none"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"6px",lineHeight:1.3,padding:"1px 0",whiteSpace:"nowrap"}}>{narrow?e.short:e.label}</div>
