@@ -91,11 +91,10 @@ function SmsChip({ r, onSms }) {
   )
 }
 
-// 문자 생성기(sms_generator.html)의 사물함 문구와 같게
+// 문자 생성기(sms_generator.html)의 사물함 문구와 같게. 오늘 만료는 알림톡이 자동으로 가서 문자 없음
 const CAFE = '앤딩스터디카페 상도점'
 const who = n => n ? `${n} 회원님` : '회원님'
 const SMS_TEMPLATES = {
-  expiring: { label: '오늘 만료', make: r => `[${CAFE}]\n${who(r.name)}, 이용 중이신 사물함의 사용 기간이 오늘${hhmm(r.end) ? ` ${hhmm(r.end)}에` : ''} 만료됩니다.\n이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n감사합니다.` },
   expired: { label: '만료', make: r => `[${CAFE}]\n${who(r.name)}, 이용 중이신 사물함의 사용 기간이 만료되었습니다.\n이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n금일까지 연장이 완료되지 않으면 사물함 이용이 종료될 수 있습니다.\n감사합니다.` },
   cleared: { label: '종료·짐보관', make: r => `[${CAFE}]\n안녕하세요, ${who(r.name)}.\n사물함 결제가 진행되지 않아 이용이 종료되었습니다.\n\n내부 짐은 휴게실 옷걸이 아래에 보관 중이니, 빠른 시일 내에 찾아가 주시기 바랍니다.\n\n미수령 시 발생하는 분실에 대해서는 책임을 지지 않는 점 양해 부탁드립니다.\n감사합니다.` },
 }
@@ -145,7 +144,7 @@ function SmsSheet({ r, onClose }) {
 function Todo({ d, onSms }) {
   const rows = [
     ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
-    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expiring' } })),
+    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end) })),
     ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} {r.name} 이용 중</>, right: `~${r.end}` })),
   ]
   if (!rows.length) return null
@@ -222,7 +221,7 @@ function LockerList({ d, onSms }) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15 }}>
             <b style={{ fontWeight: 600, minWidth: 36 }}>{r.no}번</b>
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
-            <SmsChip r={{ ...r, kind }} onSms={onSms} />
+            {kind && <SmsChip r={{ ...r, kind }} onSms={onSms} />}
           </div>
         ))}
       </div>
@@ -232,7 +231,7 @@ function LockerList({ d, onSms }) {
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>이용 중 {d.locker.active ?? '-'}개 · 빈 사물함 {d.locker.active != null ? d.locker.total - d.locker.active : '-'}개</div>
       {group('만료완료', d.locker.expired, 'expired')}
-      {group('오늘 만료', d.locker.expiring, 'expiring')}
+      {group('오늘 만료', d.locker.expiring)}
       {!d.locker.expired.length && !d.locker.expiring.length && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>만료된 사물함이 없어요</div>}
       <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.locker.updated}</div>
     </div>
