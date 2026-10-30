@@ -484,7 +484,7 @@ function SeatChart({ d }) {
 function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
   const seatMap = useMapUrl('seat_map.png', d?.updated)
-  const [view, setView] = useState('map')
+  const [view, setView] = useState('soon')
   const [mapFailed, setMapFailed] = useState(false)
   if (status === 404) return <IframeDetail k="seat" path="/seat" />
   if (error) return <Muted>{error}</Muted>
@@ -493,7 +493,6 @@ function SeatDetail() {
   const parse = s => new Date((s || '').replace(/\./g, '-').replace(' ', 'T')).getTime()
   const soon = (d.seats['자유석'] || []).filter(r => { const e = parse(r.end); return e >= now && e - now <= 6 * 3600e3 }).sort((a, b) => parse(a.end) - parse(b.end))
   const views = [
-    ['map', '배치도', null],
     ['soon', '곧 종료', soon, true],
     ['free', '자유석', d.seats['자유석'] || []],
     ['laptop', '노트북석', d.seats['노트북석'] || []],
@@ -516,17 +515,25 @@ function SeatDetail() {
   return (
     <div>
       <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>자유석 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
-      <Card style={{ padding: '8px 8px 2px', marginTop: 8 }}><SeatChart d={d} /></Card>
-      <div style={{ display: 'flex', gap: 6, margin: '10px 0 8px', overflowX: 'auto' }}>
+      {/* 그래프·배치도는 한 줄에 나란히, 목록을 내려도 위에 고정 */}
+      <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg, paddingTop: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <Card style={{ flex: 1, minWidth: 0, padding: '8px 6px 2px', display: 'flex', alignItems: 'center' }}><SeatChart d={d} /></Card>
+        <Card style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {seatMap && !mapFailed
+            ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%' }} />
+            : <span style={{ fontSize: 12, color: C.sub, padding: 12 }}>배치도 없음</span>}
+        </Card>
+      </div>
+      <div style={{ display: 'flex', gap: 6, padding: '10px 0 8px', overflowX: 'auto' }}>
         {views.map(([k, label, rows]) => (
           <button key={k} onClick={() => setView(k)} aria-pressed={view === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', whiteSpace: 'nowrap', background: view === k ? COL.seat : C.card, color: view === k ? '#fff' : COL.seat, border: `0.5px solid ${view === k ? COL.seat : C.sep}` }}>
             {label}{rows ? ` ${rows.length}` : ''}
           </button>
         ))}
       </div>
-      {cur[0] === 'map'
-        ? (seatMap && !mapFailed ? <Card key="map"><img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%' }} /></Card> : <Muted>배치도가 아직 없어요</Muted>)
-        : <div key={view}>{list(cur[2], cur[3])}</div>}
+      </div>
+      <div key={view}>{list(cur[2], cur[3])}</div>
       <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 12 }}>Updated {d.updated}</div>
     </div>
   )
