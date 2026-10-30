@@ -703,26 +703,27 @@ function Detail({ k, d, onClose, onSms, onReload }) {
   )
 }
 
-// 매장 문열기: 맥의 앤딩 앱이 봇 브라우저로 코보페이 문열기를 누른다 (실제 문이 열리므로 한 번 더 묻는다)
-function GateButton({ onLogin }) {
-  const [busy, setBusy] = useState(false)
-  const [done, setDone] = useState(false)
+// 매장 문열기 (⋯ 메뉴): 맥의 앤딩 앱이 코보페이 로그인으로 문열기를 누른다 (실제 문이 열리므로 한 번 더 묻는다)
+// 진행 중·완료는 헤더에 작은 표시로만 보여준다
+function useGate(onLogin) {
+  const [status, setStatus] = useState(null) // null | 'busy' | 'done'
   async function open() {
-    if (busy || !confirm('매장 문을 열까요?')) return
-    setBusy(true)
+    if (status === 'busy' || !confirm('매장 문을 열까요?')) return
+    setStatus('busy')
     try {
       const res = await fetch(`${API}/api/gate/open`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      if (res.status === 401 || res.status === 403) { alert('문열기는 앤딩 로그인이 필요해요'); onLogin(); return }
+      if (res.status === 401 || res.status === 403) { setStatus(null); alert('문열기는 앤딩 로그인이 필요해요'); onLogin(); return }
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.ok) throw new Error(j.error || `문열기 실패 (${res.status})`)
-      setDone(true); setTimeout(() => setDone(false), 3000)
-    } catch (e) { alert(e.message || '문열기에 실패했어요') } finally { setBusy(false) }
+      setStatus('done'); setTimeout(() => setStatus(null), 3000)
+    } catch (e) { setStatus(null); alert(e.message || '문열기에 실패했어요') }
   }
-  return (
-    <button onClick={open} disabled={busy} aria-label="매장 문열기" style={{ ...plain, height: 38, borderRadius: 12, padding: '0 12px', background: done ? GREEN : C.card, color: done ? '#fff' : GREEN, border: `0.5px solid ${done ? GREEN : C.sep}`, display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 600, opacity: busy ? 0.6 : 1 }}>
-      <DoorOpen size={16} />{busy ? '여는 중…' : done ? '열었어요' : '문열기'}
-    </button>
+  const badge = status && (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: status === 'done' ? '#fff' : GREEN, background: status === 'done' ? GREEN : GREEN + '14', borderRadius: 999, padding: '5px 10px' }}>
+      <DoorOpen size={14} />{status === 'busy' ? '여는 중…' : '열었어요'}
+    </span>
   )
+  return { open, badge }
 }
 
 export default function AndingHome() {
@@ -746,7 +747,9 @@ export default function AndingHome() {
 
   const [loginOpen, setLoginOpen] = useState(false)
   const [tool, setTool] = useState(null) // ⋯ 메뉴 도구: settings | sms | salary
+  const gate = useGate(() => setLoginOpen(true))
   const menu = [
+    { label: '문열기', run: gate.open },
     { label: '새로고침', run: load },
     { label: '설정', run: () => setTool('settings') },
     { label: '문자 생성기', run: () => setTool('sms') },
@@ -763,8 +766,8 @@ export default function AndingHome() {
       <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 16px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative' }}>
           <div style={{ fontSize: tabBar ? 22 : 28, fontWeight: 700, letterSpacing: tabBar ? '-0.5px' : '-0.7px', lineHeight: tabBar ? '38px' : 1.25 }}>앤딩</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-          <GateButton onLogin={() => setLoginOpen(true)} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {gate.badge}
           <button aria-label="메뉴" onClick={() => setMenuOpen(o => !o)} style={{ ...plain, width: 38, height: 38, borderRadius: 12, background: C.card, border: `0.5px solid ${C.sep}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text }}>
             <MoreHorizontal size={18} />
           </button>
