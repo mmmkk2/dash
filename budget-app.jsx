@@ -47,10 +47,12 @@ const txToRow = t => ({
   images: t.images||[],
 });
 function getTxImageUrl(path){ return `${SUPABASE_URL}/storage/v1/object/public/tx-images/${path}`; }
+// 첨부는 사진과 PDF (PDF는 썸네일 대신 PDF 칸, 누르면 새 창으로 열기)
+const isPdfPath = p => /\.pdf$/i.test(p||"");
 async function uploadTxImage(txId, file){
   const ext=file.name.split(".").pop()||"jpg";
   const path=`${txId}/${Date.now()}.${ext}`;
-  const {error}=await supabaseClient.storage.from("tx-images").upload(path,file,{upsert:false});
+  const {error}=await supabaseClient.storage.from("tx-images").upload(path,file,{upsert:false,contentType:file.type||(/\.pdf$/i.test(file.name)?"application/pdf":undefined)});
   if(error)throw error;
   return path;
 }
@@ -676,11 +678,11 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         );
       })()}
 
-      {/* 이미지 첨부 (부동산만) */}
-      {entity==="realty"&&(
+      {/* 영수증·사진·PDF 첨부 (모든 사업) */}
+      {(
         <div style={{marginBottom:"12px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"7px"}}>
-            <SLabel style={{marginBottom:0}}>영수증/사진</SLabel>
+            <SLabel style={{marginBottom:0}}>영수증/사진·PDF</SLabel>
             <button type="button" onClick={()=>imgInputRef.current?.click()}
               style={{display:"flex",alignItems:"center",gap:"4px",fontSize:"11px",fontWeight:600,
                 color:"#1d4e89",background:"#e8f0fb",border:"none",borderRadius:"8px",
@@ -688,7 +690,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               📎 첨부
             </button>
           </div>
-          <input ref={imgInputRef} type="file" accept="image/*" multiple style={{display:"none"}}
+          <input ref={imgInputRef} type="file" accept="image/*,application/pdf,.pdf" multiple style={{display:"none"}}
             onChange={e=>{
               const files=Array.from(e.target.files||[]);
               const newImgs=files.map(f=>({file:f,preview:URL.createObjectURL(f)}));
@@ -699,8 +701,10 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
               {existingImages.map((path,i)=>(
                 <div key={path} style={{position:"relative",width:64,height:64}}>
-                  <img src={getTxImageUrl(path)} alt=""
-                    style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1px solid ${C.border}`}}/>
+                  {isPdfPath(path)
+                    ?<a href={getTxImageUrl(path)} target="_blank" rel="noreferrer" style={{textDecoration:"none"}}><div style={{width:64,height:64,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"10px",fontWeight:700}}>PDF</span></div></a>
+                    :<img src={getTxImageUrl(path)} alt=""
+                    style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1px solid ${C.border}`}}/>}
                   <button type="button" onClick={()=>setExistingImages(p=>p.filter((_,j)=>j!==i))}
                     style={{position:"absolute",top:-5,right:-5,width:18,height:18,borderRadius:"50%",
                       background:"#b5451b",color:"#fff",border:"none",cursor:"pointer",
@@ -709,8 +713,10 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               ))}
               {pendingImages.map((img,i)=>(
                 <div key={i} style={{position:"relative",width:64,height:64}}>
-                  <img src={img.preview} alt=""
-                    style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1.5px dashed ${C.border}`}}/>
+                  {isPdfPath(img.file.name)
+                    ?<div style={{width:64,height:64,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"10px",fontWeight:700}}>PDF</span></div>
+                    :<img src={img.preview} alt=""
+                    style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1.5px dashed ${C.border}`}}/>}
                   <button type="button" onClick={()=>setPendingImages(p=>p.filter((_,j)=>j!==i))}
                     style={{position:"absolute",top:-5,right:-5,width:18,height:18,borderRadius:"50%",
                       background:"#b5451b",color:"#fff",border:"none",cursor:"pointer",
@@ -1777,7 +1783,7 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         border:`1px solid ${ec}55`,fontFamily:FONT}}>소모품</span>}
                       {tx.images&&tx.images.length>0&&<span style={{fontSize:"9px",color:"#1d4e89",
-                        fontFamily:FONT}}>📷 {tx.images.length}</span>}
+                        fontFamily:FONT}}>📎 {tx.images.length}</span>}
                     </div>
                     <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:FONT,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
@@ -2883,15 +2889,15 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                     <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px",background:C.paper}}>
                       <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,
                         fontFamily:FONT,marginBottom:"8px",letterSpacing:"0.05em"}}>
-                        📷 사진 ({propImgs.length})
+                        📎 사진·PDF ({propImgs.length})
                       </div>
                       <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
                         {propImgs.map((img,i)=>(
-                          <button key={i} type="button" onClick={()=>setLightbox(getTxImageUrl(img.path))}
+                          <button key={i} type="button" onClick={()=>isPdfPath(img.path)?window.open(getTxImageUrl(img.path),"_blank"):setLightbox(getTxImageUrl(img.path))}
                             style={{padding:0,border:"none",background:"none",cursor:"pointer",borderRadius:"8px",overflow:"hidden"}}>
-                            <img src={getTxImageUrl(img.path)} alt={img.memo}
+                            {isPdfPath(img.path)?<div style={{width:72,height:72,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"10px",fontWeight:700}}>PDF</span></div>:<img src={getTxImageUrl(img.path)} alt={img.memo}
                               style={{width:72,height:72,objectFit:"cover",borderRadius:"8px",
-                                border:`1px solid ${C.border}`,display:"block"}}/>
+                                border:`1px solid ${C.border}`,display:"block"}}/>}
                           </button>
                         ))}
                       </div>
