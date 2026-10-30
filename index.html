@@ -17,6 +17,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // 화면 파일(main 스크립트)을 8초가 지나도 못 불러오면(흰 화면) 캐시를 비우고 다시 여는 버튼을 보여준다
+      setTimeout(function () {
+        var root = document.getElementById('root')
+        if (window.__appStarted || !root || root.childElementCount) return
+        root.innerHTML = '<div style="min-height:100vh;background:#f6f6f6;font-family:-apple-system,sans-serif;padding:60px 20px;text-align:center;color:#1d1d1f">'
+          + '<div style="font-size:18px;font-weight:700">화면을 불러오지 못했어요</div>'
+          + '<div style="font-size:13px;color:#86868b;margin:12px 0 20px">새 버전으로 바뀌는 중이거나 저장된 화면이 오래됐을 수 있어요</div>'
+          + '<button id="reset" style="border:none;border-radius:999px;padding:12px 22px;font-size:15px;font-weight:600;color:#fff;background:#3e9478">다시 열기</button></div>'
+        document.getElementById('reset').onclick = async function () {
+          try { for (const k of await caches.keys()) await caches.delete(k) } catch (e) {}
+          try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister() } catch (e) {}
+          location.reload()
+        }
+      }, 8000)
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
