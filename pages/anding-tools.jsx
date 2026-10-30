@@ -213,9 +213,6 @@ const SMS = [
 const SMS_BY_KEY = Object.fromEntries(SMS.flatMap(g => g.items).map(t => [t.key, t]))
 const smsBytes = t => [...t].reduce((n, ch) => n + (ch.charCodeAt(0) > 127 ? 2 : 1), 0)
 
-// 앤딩 메인 상단 고정석 안내: 본문(화면 표시)과 머릿말·꼬리말까지 붙인 전체 문자(복사)
-export const fixedSeatNotice = () => ({ body: SMS_BY_KEY.fixed.make({}).body.trim(), full: buildSms(SMS_BY_KEY.fixed, {}, true, true) })
-
 function buildSms(t, v, withHead, withFoot) {
   const { head, body, foot } = t.make(v)
   let text = ''

@@ -5,7 +5,7 @@ import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
 import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
-import { SettingsSheet, SmsToolSheet, SalarySheet, fixedSeatNotice } from './anding-tools'
+import { SettingsSheet, SmsToolSheet, SalarySheet } from './anding-tools'
 
 // 앤딩 관리자 메인 — 내비서가 직접 그리는 화면.
 // 숫자는 앤딩 앱(맥)의 /api/summary 에서 받고, 상세 표·그래프는 앤딩 앱 화면을 시트 안에 띄운다.
@@ -109,26 +109,45 @@ function Login({ onDone }) {
   )
 }
 
-// 고정석 안내 메모: 메인 맨 위에 늘 보이게, 복사하면 머릿말·꼬리말까지 붙은 문자 전체
-function FixedNotice() {
-  const [copied, setCopied] = useState(false)
-  const { body, full } = fixedSeatNotice()
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(full) } catch {
-      const ta = document.createElement('textarea')
-      ta.value = full; ta.style.cssText = 'position:fixed;opacity:0'
-      document.body.appendChild(ta); ta.select()
-      try { document.execCommand('copy') } finally { ta.remove() }
+// 메인 맨 위 간단 메모 (고정석 대기자 등). Supabase anding_memo(본인만), 테이블이 없으면 이 기기에만 저장
+const MEMO_LOCAL = 'anding-main-memo'
+function AndingMemo() {
+  const [text, setText] = useState('')
+  const [where, setWhere] = useState(null) // 'cloud' | 'local'
+  const [saved, setSaved] = useState(true)
+  const timer = useRef(null)
+  useEffect(() => {
+    supabase.from('anding_memo').select('content').maybeSingle().then(({ data, error }) => {
+      if (error) {
+        setWhere('local')
+        try { setText(localStorage.getItem(MEMO_LOCAL) || '') } catch {}
+      } else { setWhere('cloud'); setText(data?.content || '') }
+    })
+  }, [])
+  const save = async value => {
+    if (where === 'cloud') {
+      const { error } = await supabase.from('anding_memo').upsert({ content: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      if (error) return
+    } else {
+      try { localStorage.setItem(MEMO_LOCAL, value) } catch {}
     }
-    setCopied(true); setTimeout(() => setCopied(false), 1500)
+    setSaved(true)
   }
+  const change = value => {
+    setText(value); setSaved(false)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => save(value), 800)
+  }
+  if (!where) return null
   return (
-    <div style={{ background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 14px', marginBottom: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: COL.seat }} />고정석 안내
-        <button onClick={copy} style={{ ...plain, marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: COL.seat, background: COL.seat + '14', borderRadius: 999, padding: '4px 10px' }}>{copied ? '복사됨' : '복사'}</button>
+    <div style={{ background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', fontSize: 12.5, fontWeight: 700, color: C.sub }}>
+        메모
+        <span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5 }}>{saved ? (where === 'local' ? '이 기기에만 저장' : '') : '저장 중…'}</span>
       </div>
-      <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.5, marginTop: 6, whiteSpace: 'pre-line' }}>{body}</div>
+      <textarea value={text} onChange={e => change(e.target.value)} onBlur={() => { clearTimeout(timer.current); if (!saved) save(text) }}
+        placeholder="고정석 대기자 등 간단 메모" rows={Math.max(2, text.split('\n').length)}
+        style={{ width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: '6px 0 0', fontSize: 14.5, lineHeight: 1.5, fontFamily: F, color: C.text, background: 'transparent' }} />
     </div>
   )
 }
@@ -821,7 +840,7 @@ export default function AndingHome() {
         )}
         {d && (
           <>
-            <FixedNotice />
+            <AndingMemo />
             <Hero d={d} />
             <Todo d={d} onSms={setSms} />
             <Tiles d={d} open={setDetail} />
