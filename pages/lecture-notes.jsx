@@ -249,7 +249,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           {edit.editing ? (
             <>
               <input value={edit.title} onChange={e => setEdit(ed => ({ ...ed, title: e.target.value }))} placeholder="제목" autoFocus={!edit.id} style={{ ...input, fontSize: 22, fontWeight: 700, padding: '2px 0' }} />
-              <input value={edit.subject} onChange={e => setEdit(ed => ({ ...ed, subject: e.target.value }))} placeholder="과목·강의 (예: 경매 기초)" list="note-subjects" style={{ ...input, fontSize: 14, color: C.sub, padding: '6px 0 10px', borderBottom: `0.5px solid ${C.sep}` }} />
+              <input value={edit.subject} onChange={e => setEdit(ed => ({ ...ed, subject: e.target.value }))} placeholder="태그 · 과목 (예: 경매 기초)" list="note-subjects" style={{ ...input, fontSize: 14, color: C.sub, padding: '6px 0 10px', borderBottom: `0.5px solid ${C.sep}` }} />
               <datalist id="note-subjects">{subjects.map(s => <option key={s} value={s} />)}</datalist>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
                 <button onClick={() => prefix('## ')} style={toolBtn}><Heading size={14} />소제목</button>
