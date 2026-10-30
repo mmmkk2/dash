@@ -200,8 +200,9 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       {!edit && <Fab label="새 노트" onClick={create} />}
 
       {viewer && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#fff', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'calc(10px + env(safe-area-inset-top)) 14px 10px', borderBottom: `0.5px solid ${C.sep}` }}>
+        <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: 'calc(100% - 20px)', maxWidth: 640, height: '90dvh', marginBottom: 'calc(10px + env(safe-area-inset-bottom))', background: '#fff', borderRadius: 22, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 12px', borderBottom: `0.5px solid ${C.sep}` }}>
             <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{viewer.name}</div>
             <button onClick={() => setViewer(null)} style={{ ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '7px 16px' }}>닫기</button>
           </div>
@@ -210,10 +211,11 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             ? <iframe title={viewer.name} srcDoc={viewer.html} sandbox="allow-scripts allow-popups" style={{ flex: 1, border: 'none', width: '100%' }} />
             : <pre style={{ flex: 1, margin: 0, padding: 16, overflow: 'auto', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{viewer.text}</pre>}
         </div>
+        </div>
       )}
 
       {edit && (
-        <Sheet full="92dvh" title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
+        <Sheet full="90dvh" inset title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
@@ -222,8 +224,6 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             {!edit.editing && <button onClick={toMemo} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}><StickyNote size={14} />메모로</button>}
             <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, color: C.sub }}><Trash2 size={18} /></button>
           </>}>
-          {/* 긴 글이라 좌우 여백을 조금 더 */}
-          <div style={{ padding: '0 10px' }}>
           {edit.editing ? (
             <>
               <input value={edit.title} onChange={e => setEdit(ed => ({ ...ed, title: e.target.value }))} placeholder="제목" autoFocus={!edit.id} style={{ ...input, fontSize: 22, fontWeight: 700, padding: '2px 0' }} />
@@ -253,7 +253,6 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
               <NoteBody text={edit.content} />
             </>
           )}
-          </div>
         </Sheet>
       )}
     </div>
