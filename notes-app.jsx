@@ -194,7 +194,8 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: C.bg, width: '100%', maxWidth: full ? 760 : 680, borderRadius: '22px 22px 0 0', overflowY: 'auto',
+        // 폭은 화면의 목록 카드와 같은 선(좌우 12px, 최대 680px)에 맞춘다
+        background: C.bg, width: 'calc(100% - 24px)', maxWidth: full ? 760 : 680, borderRadius: '22px 22px 0 0', overflowY: 'auto',
         // inset: 화면 가장자리에서 띄운 카드 모양 (좌우·아래 여백, 네 모서리 둥글게)
         ...(inset && { width: 'calc(100% - 20px)', maxWidth: 640, borderRadius: 22, marginBottom: 'calc(10px + env(safe-area-inset-bottom))' }),
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
@@ -202,7 +203,7 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : { maxHeight: '92dvh' }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 10, padding: '18px 16px 12px' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: '18px 14px 12px' }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
           {actions}
           {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
@@ -1115,7 +1116,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
-      <header style={{ maxWidth: 680, margin: '0 auto', padding: `calc(${tabBar ? 8 : 16}px + env(safe-area-inset-top)) 16px ${tabBar ? 0 : 8}px` }}>
+      <header style={{ maxWidth: 680, margin: '0 auto', padding: `calc(${tabBar ? 8 : 16}px + env(safe-area-inset-top)) 12px ${tabBar ? 0 : 8}px` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* 하단 탭이 있으면 지금 화면 이름을 작은 제목(22px)으로 */}
           {tabBar ? <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', lineHeight: '38px' }}>{tab === 'memo' ? '메모' : '일정'}</div> : (
@@ -1136,7 +1137,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
           </div>
         )}
       </header>
-      <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 16px calc(100px + var(--tabbar, 0px) + env(safe-area-inset-bottom))' }}>
+      <main style={{ maxWidth: 680, margin: '0 auto', padding: '10px 12px calc(100px + var(--tabbar, 0px) + env(safe-area-inset-bottom))' }}>
         {err && (
           <div onClick={() => setErr('')} style={{ background: C.card, color: C.red, borderRadius: 12, padding: '12px 16px', fontSize: 15, marginBottom: 16, cursor: 'pointer' }}>
             {err} {/relation|does not exist|schema cache|bucket/i.test(err) && '— supabase_setup.sql 의 최신 섹션을 실행하세요.'}
