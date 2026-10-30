@@ -144,7 +144,7 @@ function Modal({ open, onClose, children }) {
   if (!open) return null;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(26,20,16,0.6)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", padding: "8px 20px calc(36px + env(safe-area-inset-bottom))", width: "calc(100% - 16px)", maxWidth: 660, maxHeight: "min(78vh, calc(100dvh - 80px))", overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", padding: "8px 20px calc(36px + env(safe-area-inset-bottom))", width: "calc(100% - 16px)", maxWidth: 660, height: "min(78dvh, calc(100dvh - 80px))", overflowY: "auto" }}>
         <div style={{ width: 36, height: 4, background: C.border, borderRadius: 99, margin: "10px auto 18px", cursor: "pointer" }} onClick={onClose} />
         {children}
       </div>
