@@ -743,9 +743,19 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     return Array.from({ length: weeks * 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d })
   }, [month])
 
+  // 다가오는 일정을 단계별로: 3일 안 / 이번 주 / 다음 주 / 그 이후(5개까지)
   const upcoming = useMemo(() => {
-    const t = todayStr()
-    return shown.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99'))).slice(0, 5)
+    const t = todayStr(), now = new Date(t + 'T00:00:00')
+    const days = e => Math.round((new Date(e.date + 'T00:00:00') - now) / 864e5)
+    const weekEnd = 6 - now.getDay() // 이번 주 토요일까지 남은 날 (달력처럼 일요일 시작)
+    const list = shown.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))
+    const groups = [['3일 안', []], ['이번 주', []], ['다음 주', []], ['그 이후', []]]
+    for (const e of list) {
+      const d = days(e)
+      groups[d <= 3 ? 0 : d <= weekEnd ? 1 : d <= weekEnd + 7 ? 2 : 3][1].push(e)
+    }
+    groups[3][1] = groups[3][1].slice(0, 5)
+    return groups.filter(([, es]) => es.length)
   }, [shown])
 
   const moveMonth = n => setMonth(m => new Date(m.getFullYear(), m.getMonth() + n, 1))
@@ -976,11 +986,11 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         {dayEvents.map((e, i) => <EventRow key={e.id} e={e} last={i === dayEvents.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
       </Group>
 
-      {upcoming.length > 0 && (
-        <Group header="다가오는 일정">
-          {upcoming.map((e, i) => <EventRow key={e.id} e={e} showDate last={i === upcoming.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
+      {upcoming.map(([label, es]) => (
+        <Group key={label} header={label}>
+          {es.map((e, i) => <EventRow key={e.id} e={e} showDate last={i === es.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
         </Group>
-      )}
+      ))}
 
       <Fab label="일정 추가" color={TAGS[tagFilter]?.color || CAL_TINT} onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
 

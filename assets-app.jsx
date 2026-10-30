@@ -1600,6 +1600,7 @@ function TaxReportView({ sales, year = 2026 }) {
 
 export default function AssetsApp() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false); // 추가 버튼 고르기 메뉴
   const hasTabBar = useShowTabBar();
   const [assets,   setAssets]   = useState([]);
   const [stocks,   setStocks]   = useState([]);
@@ -1975,8 +1976,33 @@ export default function AssetsApp() {
           )}
         </div>
 
+        {/* Tab — 메모·일정·가계부 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 분류 색으로 채움 */}
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 12 }}>
+          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금·공제"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => {
+            const on = tab === k, c = TAB_COLOR[k]
+            return (
+              <button key={k} onClick={() => { setTab(k); setFabOpen(false) }} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", padding: "5px 10px", borderRadius: 999, cursor: "pointer", fontWeight: 600, fontSize: 12, border: `0.5px solid ${on ? c : C.border}`, background: on ? c : C.white, color: on ? "#fff" : c, fontFamily: F, transition: "all 0.15s" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : c }} />{l}
+              </button>
+            )
+          })}
+        </div>
+
         {/* 순자산 */}
-        <div style={{ background: "linear-gradient(135deg, #e9f1fb 0%, #f1ecfa 100%)", borderRadius: 16, padding: "16px 18px", border: "0.5px solid #d9e3f2", marginBottom: 12 }}>
+        <div style={{ background: C.white, borderRadius: 16, padding: "16px 18px", border: `0.5px solid ${C.border}`, marginBottom: 12, position: "relative" }}>
+          {/* 비중 원그래프: 카드 오른쪽 위에 작게 */}
+          {pieData.length > 0 && (
+            <div style={{ position: "absolute", top: 12, right: 12, width: 84, height: 84 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={26} outerRadius={40} paddingAngle={3} stroke="none">
+                    {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip formatter={v => [fmt(v)]} contentStyle={tt} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
           <div style={{ fontSize: 13, fontWeight: 600, color: C.inkLight, marginBottom: 2 }}>순자산 (부채 차감)</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", color: C.ink }}>
             {fmtS(total - loanTotal)}<span style={{ fontSize: 15, fontWeight: 500, color: C.inkLight, marginLeft: 3 }}>원</span>
@@ -2007,33 +2033,6 @@ export default function AssetsApp() {
       </div>
 
       <div style={{ maxWidth: 660, margin: "0 auto", padding: "0 16px" }}>
-
-        {/* Donut */}
-        {pieData.length > 0 && (
-          <div style={{ background: C.white, borderRadius: 16, padding: "12px 18px 6px", border: `0.5px solid ${C.border}`, marginBottom: 14 }}>
-            <ResponsiveContainer width="100%" height={150}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={56} paddingAngle={3}>
-                  {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip formatter={v => [fmt(v)]} contentStyle={tt} />
-                <Legend iconType="circle" iconSize={7} formatter={v => <span style={{ fontSize: 10, color: C.inkMid, fontFamily: F }}>{v}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {/* Tab — 메모·일정·가계부 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 분류 색으로 채움 */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 14 }}>
-          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금·공제"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => {
-            const on = tab === k, c = TAB_COLOR[k]
-            return (
-              <button key={k} onClick={() => setTab(k)} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", padding: "5px 10px", borderRadius: 999, cursor: "pointer", fontWeight: 600, fontSize: 12, border: `0.5px solid ${on ? c : C.border}`, background: on ? c : C.white, color: on ? "#fff" : c, fontFamily: F, transition: "all 0.15s" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : c }} />{l}
-              </button>
-            )
-          })}
-        </div>
 
         {/* Loading */}
         {dbLoading && (
@@ -3034,69 +3033,38 @@ export default function AssetsApp() {
         })()}
       </div>
 
-      {/* FAB */}
-      {!dbLoading && tab === "asset" && (
-        <button onClick={() => setModal("addAsset")} style={{
-          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(24px, calc(50% - 314px))", zIndex: 200,
-          width: 56, height: 56, borderRadius: "50%", border: "none",
-          background: TAB_COLOR.asset, color: "#fff", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.18)", transition: "transform 0.15s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-          <Plus size={26} />
-        </button>
-      )}
-      {!dbLoading && tab === "loan" && (
-        <button onClick={() => setModal("addLoan")} style={{
-          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(24px, calc(50% - 314px))", zIndex: 200,
-          width: 56, height: 56, borderRadius: "50%", border: "none",
-          background: TAB_COLOR.loan, color: "#fff", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.18)", transition: "transform 0.15s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-          <Plus size={26} />
-        </button>
-      )}
-      {!dbLoading && tab === "pension" && (
-        <button onClick={() => setModal("addPension")} style={{
-          position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(24px, calc(50% - 314px))", zIndex: 200,
-          width: 56, height: 56, borderRadius: "50%", border: "none",
-          background: TAB_COLOR.pension, color: "#fff", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.18)", transition: "transform 0.15s",
-        }}
-          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-          <Plus size={26} />
-        </button>
-      )}
-      {!dbLoading && tab === "stock" && (
-        <div style={{ position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(16px, calc(50% - 314px))", zIndex: 200, display: "flex", gap: 8 }}>
-          <button onClick={() => setModal("addDeposit")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.stock, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
-            <Plus size={15} /> 예수금
-          </button>
-          <button onClick={() => setModal("addStock")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.stock, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
-            <Plus size={15} /> 종목
-          </button>
-        </div>
-      )}
-      {!dbLoading && tab === "vest" && (
-        <div style={{ position: "fixed", bottom: "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))", right: "max(16px, calc(50% - 314px))", zIndex: 200, display: "flex", gap: 8 }}>
-          <button onClick={() => setModal("addOffering")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.vest, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
-            <Plus size={15} /> ESPP
-          </button>
-          <button onClick={() => setModal("addVesting")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.vest, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
-            <Plus size={15} /> RSU
-          </button>
-          <button onClick={() => setModal("batchVesting")} style={{ display: "flex", alignItems: "center", gap: 6, background: TAB_COLOR.vest, color: "#fff", border: "none", borderRadius: 14, padding: "13px 18px", fontFamily: F, fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.18)" }}>
-            <Plus size={15} /> RSU 일괄
-          </button>
-        </div>
-      )}
+      {/* FAB: 다른 화면처럼 동그란 + 하나. 추가할 게 여러 가지인 탭(주식·AMAT)은 눌러서 고르기 */}
+      {!dbLoading && (() => {
+        const opts = {
+          asset: [["기타자산", "addAsset"]], loan: [["부채", "addLoan"]], pension: [["연금·공제", "addPension"]],
+          stock: [["예수금", "addDeposit"], ["종목", "addStock"]],
+          vest: [["ESPP", "addOffering"], ["RSU", "addVesting"], ["RSU 일괄", "batchVesting"]],
+        }[tab] || []
+        if (!opts.length) return null
+        const c = TAB_COLOR[tab]
+        const pos = { position: "fixed", right: "max(20px, calc(50% - 310px))", zIndex: 200 }
+        const bottom = "calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"
+        return (
+          <>
+            {fabOpen && <div onClick={() => setFabOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 199 }} />}
+            {fabOpen && (
+              <div style={{ ...pos, bottom: `calc(${bottom} + 66px)`, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                {opts.map(([l, m]) => (
+                  <button key={m} onClick={() => { setFabOpen(false); setModal(m) }} style={{ display: "flex", alignItems: "center", gap: 6, background: C.white, color: c, border: `0.5px solid ${C.border}`, borderRadius: 999, padding: "10px 16px", fontFamily: F, fontSize: 15, fontWeight: 600, cursor: "pointer", boxShadow: "0 6px 20px rgba(0,0,0,0.12)" }}>
+                    <Plus size={15} />{l}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button aria-label="추가" onClick={() => opts.length === 1 ? setModal(opts[0][1]) : setFabOpen(o => !o)} style={{
+              ...pos, bottom, width: 56, height: 56, borderRadius: "50%", border: "none", background: c, color: "#fff", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 20px rgba(0,0,0,0.18)",
+            }}>
+              <Plus size={26} style={{ transform: fabOpen ? "rotate(45deg)" : "none", transition: "transform .15s" }} />
+            </button>
+          </>
+        )
+      })()}
 
       {/* Modals */}
       <Modal open={modal === "addStock"} onClose={() => { setModal(null); setAddInitial(null); }}>
