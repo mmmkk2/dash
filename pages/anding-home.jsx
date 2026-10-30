@@ -151,7 +151,7 @@ function AndingMemo() {
     timer.current = setTimeout(() => save(value), 800)
   }
   if (state === 'loading') return null
-  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginBottom: 10 }
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginTop: 10 }
   if (state === 'missing') return <div style={{ ...card, fontSize: 13, color: C.sub }}>메모를 쓰려면 Supabase에 anding_memo 테이블을 만들어 주세요 (supabase_setup.sql 맨 아래)</div>
   return (
     <div style={card}>
@@ -889,8 +889,8 @@ export default function AndingHome() {
         )}
         {d && (
           <>
-            <AndingMemo />
             <Hero d={d} />
+            <AndingMemo />
             <Todo d={d} onSms={setSms} />
             <Tiles d={d} open={setDetail} />
             <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>{d.stale
