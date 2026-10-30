@@ -108,9 +108,22 @@ function Group({ header, children }) {
   )
 }
 
-function Row({ children, onClick, last, style }) {
+// onLongPress: 꾹 누르면(0.5초, 손가락이 거의 안 움직일 때) 실행하고 그 뒤 클릭은 무시
+function Row({ children, onClick, onLongPress, last, style }) {
+  const timer = useRef(null), fired = useRef(false), start = useRef(null)
+  const cancel = () => { clearTimeout(timer.current); start.current = null }
+  const press = onLongPress && {
+    onPointerDown: e => {
+      fired.current = false; start.current = [e.clientX, e.clientY]
+      timer.current = setTimeout(() => { fired.current = true; navigator.vibrate?.(15); onLongPress() }, 500)
+    },
+    onPointerMove: e => { if (start.current && Math.hypot(e.clientX - start.current[0], e.clientY - start.current[1]) > 8) cancel() },
+    onPointerUp: cancel, onPointerLeave: cancel, onPointerCancel: cancel,
+    onContextMenu: e => e.preventDefault(), // 길게 누를 때 뜨는 브라우저 메뉴 막기
+  }
+  const click = e => { if (fired.current) { fired.current = false; return } onClick?.(e) }
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, paddingLeft: 16, cursor: onClick ? 'pointer' : 'default', ...style }}>
+    <div onClick={click} {...press} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, paddingLeft: 16, cursor: onClick ? 'pointer' : 'default', ...(onLongPress && { userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }), ...style }}>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px 11px 0', borderBottom: last ? 'none' : `0.5px solid ${C.sep}`, alignSelf: 'stretch' }}>
         {children}
       </div>
@@ -539,6 +552,13 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     setEdit(null); reload(); onMovedToNote?.()
   }
 
+  // 목록에서 꾹 누르면 고정/해제 (내용·수정 시각은 그대로)
+  async function togglePin(m) {
+    const { error } = await supabase.from('memos').update({ pinned: !m.pinned }).eq('id', m.id)
+    if (error) return setErr(error.message)
+    reload()
+  }
+
   // 보관/꺼내기: 내용·수정 시각은 그대로 두고 archived만 바꾼다
   async function setArchived(id, on) {
     const { error } = await supabase.from('memos').update({ archived: on }).eq('id', id)
@@ -566,7 +586,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     // 다 끝난 메모(체크 모두 완료 또는 마감 지남)는 보관을 권한다 — 자동으로 숨기진 않음
     const done = !m.archived && ((checks.length > 0 && doneN === checks.length) || (m.due_date && m.due_date < todayStr()))
     return (
-      <Row key={m.id} onClick={() => open(m)} last={i === arr.length - 1}>
+      <Row key={m.id} onClick={() => open(m)} onLongPress={() => togglePin(m)} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {TAGS[m.tag] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag].color, flexShrink: 0 }} />}
