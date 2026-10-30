@@ -209,7 +209,7 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
         // 크기는 가계부 창과 같게(최대 660px 가운데, 높이 최대 78%, 안쪽 좌우 20px), 폰에서는 양옆 12px 남김
-        background: C.bg, width: 'calc(100% - 24px)', maxWidth: full ? 760 : 660, borderRadius: '24px 24px 0 0', overflowY: 'auto',
+        background: C.bg, width: 'calc(100% - 16px)', maxWidth: full ? 760 : 660, borderRadius: '24px 24px 0 0', overflowY: 'auto',
         // inset: 화면 가장자리에서 띄운 카드 모양 (좌우·아래 여백, 네 모서리 둥글게)
         ...(inset && { width: 'calc(100% - 20px)', maxWidth: 640, borderRadius: 22, marginBottom: 'calc(10px + env(safe-area-inset-bottom))' }),
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
