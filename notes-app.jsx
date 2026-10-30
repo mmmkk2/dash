@@ -202,10 +202,11 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         // full에 높이(예: '78dvh')를 주면 그 높이로
         // maxH: 위를 남겨 바깥을 눌러 닫기 쉽게 (기본은 가계부 창과 같은 높이)
         // height: 내용 길이와 상관없이 같은 높이로 (노트 창을 메모 창과 같게)
-        ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : height ? { height, maxHeight: maxH } : { maxHeight: maxH }),
+        // 크게 보기(full=true)는 화면 전체로 (위 여백 없이, 모서리 없이)
+        ...(full === true ? { height: '100dvh', width: '100%', maxWidth: 'none', borderRadius: 0, boxSizing: 'border-box' } : full ? { height: full } : height ? { height, maxHeight: maxH } : { maxHeight: maxH }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : '18px 20px 12px' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : full === true ? 'calc(14px + env(safe-area-inset-top)) 20px 12px' : '18px 20px 12px' }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
           {actions}
           {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
@@ -366,7 +367,7 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full, read
       <div ref={boxRef} onClick={e => { if (!readOnly && e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
         style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: readOnly ? 'default' : 'text',
           // 크게 보기면 화면 대부분을, 평소엔 읽기·편집 모두 화면의 45% (내용 길이와 상관없이 같은 크기)
-          ...(full ? { height: `calc(88dvh - ${readOnly ? 200 : 255}px - env(safe-area-inset-bottom))`, minHeight: 200 }
+          ...(full ? { height: `calc(100dvh - ${readOnly ? 200 : 255}px - env(safe-area-inset-bottom) - env(safe-area-inset-top))`, minHeight: 200 }
             : { height: '45dvh', minHeight: 180 }) }}>
         {/* 읽기 보기: 키보드 없이 큰 글씨로, 체크 항목은 바로 체크 가능 */}
         {readOnly && lines.map((l, i) => (
