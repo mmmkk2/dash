@@ -217,7 +217,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
 
       {viewer && (
         <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-        <div onClick={e => e.stopPropagation()} style={{ width: 'calc(100% - 20px)', maxWidth: 640, height: '90dvh', marginBottom: 'calc(10px + env(safe-area-inset-bottom))', background: '#fff', borderRadius: 22, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 680, height: '92dvh', background: '#fff', borderRadius: '22px 22px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 12px', borderBottom: `0.5px solid ${C.sep}` }}>
             <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{viewer.name}</div>
             <button onClick={() => setViewer(null)} style={{ ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '7px 16px' }}>닫기</button>
@@ -231,7 +231,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       )}
 
       {edit && (
-        <Sheet full="90dvh" inset title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
+        <Sheet title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
