@@ -5,7 +5,7 @@ import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
 import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
-import { SettingsSheet, SmsToolSheet, SalarySheet } from './anding-tools'
+import { SettingsSheet, SmsToolSheet, SalarySheet, fixedSeatNotice } from './anding-tools'
 
 // 앤딩 관리자 메인 — 내비서가 직접 그리는 화면.
 // 숫자는 앤딩 앱(맥)의 /api/summary 에서 받고, 상세 표·그래프는 앤딩 앱 화면을 시트 안에 띄운다.
@@ -106,6 +106,30 @@ function Login({ onDone }) {
       {err && <div style={{ color: '#e5484d', fontSize: 14, padding: '10px 4px 0' }}>{err}</div>}
       <button disabled={busy || !id || !pw} style={{ ...plain, width: '100%', marginTop: 16, padding: '14px 0', borderRadius: 14, background: GREEN, color: '#fff', fontSize: 16, fontWeight: 600, opacity: busy || !id || !pw ? 0.5 : 1 }}>로그인</button>
     </form>
+  )
+}
+
+// 고정석 안내 메모: 메인 맨 위에 늘 보이게, 복사하면 머릿말·꼬리말까지 붙은 문자 전체
+function FixedNotice() {
+  const [copied, setCopied] = useState(false)
+  const { body, full } = fixedSeatNotice()
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(full) } catch {
+      const ta = document.createElement('textarea')
+      ta.value = full; ta.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(ta); ta.select()
+      try { document.execCommand('copy') } finally { ta.remove() }
+    }
+    setCopied(true); setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <div style={{ background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 14px', marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: COL.seat }} />고정석 안내
+        <button onClick={copy} style={{ ...plain, marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: COL.seat, background: COL.seat + '14', borderRadius: 999, padding: '4px 10px' }}>{copied ? '복사됨' : '복사'}</button>
+      </div>
+      <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.5, marginTop: 6, whiteSpace: 'pre-line' }}>{body}</div>
+    </div>
   )
 }
 
@@ -797,6 +821,7 @@ export default function AndingHome() {
         )}
         {d && (
           <>
+            <FixedNotice />
             <Hero d={d} />
             <Todo d={d} onSms={setSms} />
             <Tiles d={d} open={setDetail} />
