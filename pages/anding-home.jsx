@@ -485,8 +485,8 @@ function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
   const seatMap = useMapUrl('seat_map.png', d?.updated)
   const [view, setView] = useState('soon')
-  // 위 카드: 배치도/그래프 중 하나 (마지막 선택을 기억)
-  const [top, setTop] = useState(() => { try { return localStorage.getItem('anding-seat-top') || 'map' } catch { return 'map' } })
+  // 위 카드: 그래프/배치도 중 하나 (기본 그래프, 마지막 선택을 기억)
+  const [top, setTop] = useState(() => { try { return localStorage.getItem('anding-seat-top') || 'chart' } catch { return 'chart' } })
   const pickTop = k => { setTop(k); try { localStorage.setItem('anding-seat-top', k) } catch {} }
   const [mapFailed, setMapFailed] = useState(false)
   if (status === 404) return <IframeDetail k="seat" path="/seat" />
@@ -522,7 +522,7 @@ function SeatDetail() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px' }}>
         <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>자유 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
         <div style={{ display: 'flex', background: '#e9e9eb', borderRadius: 9, padding: 2, flexShrink: 0 }}>
-          {[['map', '배치도'], ['chart', '그래프']].map(([k, label]) => (
+          {[['chart', '그래프'], ['map', '배치도']].map(([k, label]) => (
             <button key={k} onClick={() => pickTop(k)} aria-pressed={top === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 7, padding: '4px 10px', background: top === k ? '#fff' : 'transparent', color: top === k ? C.text : C.sub, boxShadow: top === k ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{label}</button>
           ))}
         </div>
