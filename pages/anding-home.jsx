@@ -109,21 +109,30 @@ function Login({ onDone }) {
   )
 }
 
-// 메인 맨 위 간단 메모 (고정석 대기자 등). Supabase에만 저장 — 이미 있는 anding_salary(본인만, RLS)의
-// year=0 행을 메모 칸으로 쓴다 (급여표는 실제 연도만 읽으므로 겹치지 않음, 테이블을 새로 만들 필요 없음)
-const MEMO_YEAR = 0
+// 메인 맨 위 간단 메모 (고정석 대기자 등). Supabase anding_memo 테이블에만 저장 (본인만, RLS)
 function AndingMemo() {
   const [text, setText] = useState('')
-  const [state, setState] = useState('loading') // loading | ok | saving | error
+  const [state, setState] = useState('loading') // loading | ok | saving | error | missing
   const timer = useRef(null)
   useEffect(() => {
-    supabase.from('anding_salary').select('data').eq('year', MEMO_YEAR).maybeSingle().then(({ data, error }) => {
-      if (error) return setState('error')
-      setText(data?.data?.memo || ''); setState('ok')
-    })
+    (async () => {
+      const { data, error } = await supabase.from('anding_memo').select('content').maybeSingle()
+      if (error) return setState(/anding_memo/.test(error.message) ? 'missing' : 'error')
+      let content = data?.content || ''
+      // 잠깐 급여표(anding_salary year=0)에 저장했던 메모가 있으면 옮기고 급여표에서는 지운다
+      const { data: old } = await supabase.from('anding_salary').select('data').eq('year', 0).maybeSingle()
+      if (old) {
+        if (!content && old.data?.memo) {
+          content = old.data.memo
+          await supabase.from('anding_memo').upsert({ content, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+        }
+        await supabase.from('anding_salary').delete().eq('year', 0)
+      }
+      setText(content); setState('ok')
+    })()
   }, [])
   const save = async value => {
-    const { error } = await supabase.from('anding_salary').upsert({ year: MEMO_YEAR, data: { memo: value }, updated_at: new Date().toISOString() }, { onConflict: 'user_id,year' })
+    const { error } = await supabase.from('anding_memo').upsert({ content: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
     setState(error ? 'error' : 'ok')
   }
   const change = value => {
@@ -132,8 +141,10 @@ function AndingMemo() {
     timer.current = setTimeout(() => save(value), 800)
   }
   if (state === 'loading') return null
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginBottom: 10 }
+  if (state === 'missing') return <div style={{ ...card, fontSize: 13, color: C.sub }}>메모를 쓰려면 Supabase에 anding_memo 테이블을 만들어 주세요 (supabase_setup.sql 맨 아래)</div>
   return (
-    <div style={{ background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginBottom: 10 }}>
+    <div style={card}>
       <div style={{ display: 'flex', alignItems: 'center', fontSize: 12.5, fontWeight: 700, color: C.sub }}>
         메모
         <span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{state === 'saving' ? '저장 중…' : state === 'error' ? '저장 안 됨 (Supabase 연결 확인)' : ''}</span>
