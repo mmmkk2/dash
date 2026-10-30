@@ -222,6 +222,8 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             {!edit.editing && <button onClick={toMemo} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}><StickyNote size={14} />메모로</button>}
             <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, color: C.sub }}><Trash2 size={18} /></button>
           </>}>
+          {/* 긴 글이라 좌우 여백을 조금 더 */}
+          <div style={{ padding: '0 10px' }}>
           {edit.editing ? (
             <>
               <input value={edit.title} onChange={e => setEdit(ed => ({ ...ed, title: e.target.value }))} placeholder="제목" autoFocus={!edit.id} style={{ ...input, fontSize: 22, fontWeight: 700, padding: '2px 0' }} />
@@ -251,6 +253,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
               <NoteBody text={edit.content} />
             </>
           )}
+          </div>
         </Sheet>
       )}
     </div>
