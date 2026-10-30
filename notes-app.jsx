@@ -190,7 +190,7 @@ export function useBackClose(open, onClose) {
   }, [open])
 }
 
-export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', height, children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -201,7 +201,8 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
         // full에 높이(예: '78dvh')를 주면 그 높이로
         // maxH: 위를 남겨 바깥을 눌러 닫기 쉽게 (기본은 가계부 창과 같은 높이)
-        ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : { maxHeight: maxH }),
+        // height: 내용 길이와 상관없이 같은 높이로 (노트 창을 메모 창과 같게)
+        ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : height ? { height, maxHeight: maxH } : { maxHeight: maxH }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : '18px 20px 12px' }}>

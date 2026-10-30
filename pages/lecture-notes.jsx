@@ -1,7 +1,7 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ChevronDown, StickyNote } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
 import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab } from '../notes-app'
 
@@ -86,6 +86,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const [subject, setSubject] = useState('')
   const [edit, setEdit] = useState(null) // { id?, title, subject, content, files, editing, uploaded }
   const [uploading, setUploading] = useState(0)
+  const [full, setFull] = useState(false) // 크게 보기 (메모 창과 같은 방식)
   const fileRef = useRef(null)
 
   async function load() {
@@ -124,6 +125,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     removeAttached(edit.files); setEdit(null); load()
   }
   useBackClose(!!edit, () => (edit?.editing ? save() : setEdit(null)))
+  useBackClose(!!edit && full, () => setFull(false))
 
   async function addFiles(list) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -231,14 +233,18 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       )}
 
       {edit && (
-        <Sheet title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
+        // 높이는 메모 읽기 창과 같게 (메모 본문 45dvh + 머리·아래 198px), 크게 보기는 메모와 같은 full
+        <Sheet full={full} height="calc(45dvh + 198px)" title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
           onDone={edit.editing ? save : () => setEdit(e => ({ ...e, editing: true }))}
-          actions={edit.id && <>
-            {!edit.editing && <button onClick={toMemo} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}><StickyNote size={14} />메모로</button>}
-            <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, color: C.sub }}><Trash2 size={18} /></button>
+          actions={<>
+            <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
+              {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
+            </button>
+            {edit.id && !edit.editing && <button onClick={toMemo} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}><StickyNote size={14} />메모로</button>}
+            {edit.id && <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
           {edit.editing ? (
             <>
