@@ -246,3 +246,13 @@ create table if not exists anding_salary (
 alter table anding_salary enable row level security;
 drop policy if exists "본인 급여표만" on anding_salary;
 create policy "본인 급여표만" on anding_salary for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 앤딩 메인 간단 메모 (고정석 대기자 등, 본인만)
+create table if not exists anding_memo (
+  user_id    uuid primary key references auth.users default auth.uid(),
+  content    text not null default '',
+  updated_at timestamptz default now()
+);
+alter table anding_memo enable row level security;
+drop policy if exists "본인 메모만" on anding_memo;
+create policy "본인 메모만" on anding_memo for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
