@@ -720,15 +720,18 @@ function MonthlyDetail() {
 }
 
 // 상품 표: 1회·시간·기간이용권 칩으로 바꿔 보고, 판매·연장 켜짐을 점으로
-const PRODUCT_TABS = [['once', '1회이용권'], ['hour', '시간이용권'], ['period', '기간이용권']]
+const PRODUCT_TABS = [['once', '1회이용권'], ['hour', '시간이용권'], ['period', '기간이용권'], ['fixed', '고정석']]
 function ProductTable() {
   const { data, status, error, loading } = useApi('/api/products')
   const [tab, setTab] = useState('once')
   if (status === 404) return <IframeDetail k="product" path="/product" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !data) return <Muted>불러오는 중…</Muted>
-  // 고정석 상품은 판매 현황에서 뺀다 (따로 관리)
-  const list = k => (data.tabs[k] || []).filter(p => !(p.name || '').includes('고정석'))
+  // 고정석 상품은 다른 탭에서 빼고 '고정석' 탭에 모아 보여준다
+  const isFixed = p => (p.name || '').includes('고정석')
+  const list = k => k === 'fixed'
+    ? Object.values(data.tabs).flat().filter(isFixed)
+    : (data.tabs[k] || []).filter(p => !isFixed(p))
   const rows = list(tab)
   const flag = (on, label) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600, color: on ? COL.product : C.sub, opacity: on ? 1 : 0.6 }}>
