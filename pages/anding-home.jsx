@@ -456,9 +456,8 @@ const t2m = s => { const d = new Date(s); return d.getHours() * 60 + d.getMinute
 const shortTime = s => (s || '').replace(/^\d{4}\./, '').replace(/\./g, '/').replace(/^(\d\d\/\d\d) /, '$1 ')
 
 // 오늘(05시~다음날 05시) 자유석 이용자 수 그래프
-// compact: 배치도 옆 좁은 칸용 (세로로 조금 길게, 시간 눈금은 6시간마다)
-function SeatChart({ d, compact }) {
-  const W = compact ? 170 : 340, H = compact ? 150 : 130, L = 22, B = 18
+function SeatChart({ d, H = 130 }) {
+  const W = 340, L = 26, B = 18
   const start = new Date(d.start).getTime(), span = new Date(d.end).getTime() - start
   const max = Math.max(d.total_free || 0, ...d.history.map(h => h[1]), 1)
   const x = t => L + (new Date(t).getTime() - start) / span * (W - L - 4)
@@ -471,7 +470,7 @@ function SeatChart({ d, compact }) {
         <g key={v}><line x1={L} x2={W - 4} y1={y(v)} y2={y(v)} stroke={C.sep} /><text x={L - 4} y={y(v) + 3} fontSize="9" fill={C.sub} textAnchor="end">{v}</text></g>
       ))}
       {limit > 0 && <line x1={L} x2={W - 4} y1={y(limit)} y2={y(limit)} stroke="#e5484d" strokeDasharray="3 3" opacity=".6" />}
-      {(compact ? [0, 6, 12, 18, 24] : [0, 3, 6, 9, 12, 15, 18, 21, 24]).map(h => {
+      {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => {
         const xx = L + h / 24 * (W - L - 4)
         return <text key={h} x={xx} y={H - 4} fontSize="9" fill={C.sub} textAnchor="middle">{String((5 + h) % 24).padStart(2, '0')}</text>
       })}
@@ -486,6 +485,9 @@ function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
   const seatMap = useMapUrl('seat_map.png', d?.updated)
   const [view, setView] = useState('soon')
+  // 위 카드: 배치도/그래프 중 하나 (마지막 선택을 기억)
+  const [top, setTop] = useState(() => { try { return localStorage.getItem('anding-seat-top') || 'map' } catch { return 'map' } })
+  const pickTop = k => { setTop(k); try { localStorage.setItem('anding-seat-top', k) } catch {} }
   const [mapFailed, setMapFailed] = useState(false)
   if (status === 404) return <IframeDetail k="seat" path="/seat" />
   if (error) return <Muted>{error}</Muted>
@@ -515,17 +517,24 @@ function SeatDetail() {
   )
   return (
     <div>
-      <div style={{ fontSize: 15, color: C.sub, padding: '0 4px' }}>자유석 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
-      {/* 그래프·배치도는 한 줄에 나란히, 목록을 내려도 위에 고정 */}
-      <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg, paddingTop: 8 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-        <Card style={{ flex: 2, minWidth: 0, padding: '8px 4px 2px', display: 'flex', alignItems: 'center' }}><SeatChart d={d} compact /></Card>
-        <Card style={{ flex: 3, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {seatMap && !mapFailed
-            ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%' }} />
-            : <span style={{ fontSize: 12, color: C.sub, padding: 12 }}>배치도 없음</span>}
-        </Card>
+      {/* 위: 요약 + 그래프/배치도 토글, 그 아래 큰 카드 하나. 목록을 내려도 위에 고정 */}
+      <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px' }}>
+        <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>자유 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
+        <div style={{ display: 'flex', background: '#e9e9eb', borderRadius: 9, padding: 2, flexShrink: 0 }}>
+          {[['map', '배치도'], ['chart', '그래프']].map(([k, label]) => (
+            <button key={k} onClick={() => pickTop(k)} aria-pressed={top === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 7, padding: '4px 10px', background: top === k ? '#fff' : 'transparent', color: top === k ? C.text : C.sub, boxShadow: top === k ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{label}</button>
+          ))}
+        </div>
       </div>
+      {/* 배치도·그래프 같은 비율(16:10) — 바꿔도 화면이 들썩이지 않게 */}
+      <Card style={{ aspectRatio: '16 / 10', width: '84%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(top === 'map' && seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
+        {top === 'chart'
+          ? <div style={{ width: '100%', padding: '8px 8px 2px' }}><SeatChart d={d} H={196} /></div>
+          : seatMap && !mapFailed
+            ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+            : <div style={{ fontSize: 13, color: C.sub }}>배치도가 아직 없어요</div>}
+      </Card>
       <div style={{ display: 'flex', gap: 6, padding: '10px 0 8px', overflowX: 'auto' }}>
         {views.map(([k, label, rows]) => (
           <button key={k} onClick={() => setView(k)} aria-pressed={view === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', whiteSpace: 'nowrap', background: view === k ? COL.seat : C.card, color: view === k ? '#fff' : COL.seat, border: `0.5px solid ${view === k ? COL.seat : C.sep}` }}>
