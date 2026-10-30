@@ -220,6 +220,8 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : full === true ? 'calc(14px + env(safe-area-inset-top)) 20px 12px' : '18px 20px 12px' }}>
+          {/* 크게 보기는 바깥(배경)이 없어 눌러 닫을 곳이 없으니 왼쪽 X로 바로 닫기 (바깥 누름과 같은 동작: 편집 중이면 저장하고 닫음) */}
+          {full === true && <button onClick={onBackdrop} aria-label="닫기" style={{ ...plain, display: 'flex', color: C.text, padding: 4, marginLeft: -6 }}><X size={22} /></button>}
           {/* titleLines=2: 긴 제목은 버튼 옆에서 두 줄까지 (노트) */}
           <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, overflow: 'hidden', ...(titleLines > 1
             ? { display: '-webkit-box', WebkitLineClamp: titleLines, WebkitBoxOrient: 'vertical', lineHeight: 1.3, letterSpacing: '-0.02em', wordBreak: 'keep-all' }
