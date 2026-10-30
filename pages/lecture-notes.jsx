@@ -19,6 +19,22 @@ const parse = text => (text || '').split('\n').map((line, i) => {
   return { kind: line.trim() ? 'p' : 'gap', text: line, i }
 })
 
+// 본문의 주소(http·https·www.)는 눌러서 새 창으로 열리게
+const URL_RE = /(https?:\/\/|www\.)[^\s<>"']+/g
+function Linkify({ text }) {
+  const out = []
+  let last = 0
+  for (const m of text.matchAll(URL_RE)) {
+    const url = m[0].replace(/[).,;:!?\]}'"]+$/, '') // 문장 끝 문장부호는 주소에서 뺀다
+    if (m.index > last) out.push(text.slice(last, m.index))
+    out.push(<a key={m.index} href={url.startsWith('www.') ? `https://${url}` : url} target="_blank" rel="noreferrer"
+      style={{ color: '#2f6fb3', textDecoration: 'underline', textUnderlineOffset: 3, wordBreak: 'break-all' }}>{url}</a>)
+    last = m.index + url.length
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
+}
+
 function NoteBody({ text }) {
   const lines = useMemo(() => parse(text), [text])
   const heads = lines.filter(l => l.kind === 'h1' || l.kind === 'h2')
@@ -41,9 +57,9 @@ function NoteBody({ text }) {
           const id = `note-line-${l.i}`
           if (l.kind === 'h1') return <div key={l.i} id={id} style={{ fontSize: 19, fontWeight: 700, margin: '18px 0 6px', scrollMarginTop: 80 }}>{l.text}</div>
           if (l.kind === 'h2') return <div key={l.i} id={id} style={{ fontSize: 16.5, fontWeight: 700, margin: '14px 0 4px', scrollMarginTop: 80 }}>{l.text}</div>
-          if (l.kind === 'li') return <div key={l.i} style={{ display: 'flex', gap: 8, paddingLeft: 4 }}><span style={{ color: C.sub }}>•</span><span style={{ flex: 1, whiteSpace: 'pre-wrap' }}>{l.text}</span></div>
+          if (l.kind === 'li') return <div key={l.i} style={{ display: 'flex', gap: 8, paddingLeft: 4 }}><span style={{ color: C.sub }}>•</span><span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></span></div>
           if (l.kind === 'gap') return <div key={l.i} style={{ height: 10 }} />
-          return <div key={l.i} style={{ whiteSpace: 'pre-wrap' }}>{l.text}</div>
+          return <div key={l.i} style={{ whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></div>
         })}
       </div>
     </>
