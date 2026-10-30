@@ -54,6 +54,10 @@ const tidyLockers = data => {
 
 // 맥 수집이 멈춰 있어도 날짜는 오늘 기준: 받은 요약을 지금 시각으로 다시 나눈다
 // (스터디룸은 오늘 것만·이용 중 다시 계산, 사물함은 만료/오늘 만료 다시 분류, 지난 날 결제·지난 달 매출은 0)
+// 스터디룸 예약 시각 판단: 끝 시각이 시작보다 이르면(23:00–01:30) 자정을 넘는 예약 → 오늘 안에서는 끝나지 않음
+const roomNow = (start, end, hm) => end < start ? hm >= start : start <= hm && hm <= end
+const roomDone = (start, end, hm) => end < start ? false : end < hm
+
 function freshen(d) {
   const now = new Date(), today = ymdDot(now), nowHM = now.toTimeString().slice(0, 5)
   const dataDay = (d.now || '').slice(0, 10).replace(/-/g, '.')
@@ -66,7 +70,7 @@ function freshen(d) {
     ...d, stale, today: now,
     studyroom: {
       ...d.studyroom,
-      items: d.studyroom.items.filter(r => (r.date || dataDay) === today).map(r => ({ ...r, now: r.start <= nowHM && nowHM <= r.end, done: r.end < nowHM })),
+      items: d.studyroom.items.filter(r => (r.date || dataDay) === today).map(r => ({ ...r, now: roomNow(r.start, r.end, nowHM), done: roomDone(r.start, r.end, nowHM) })),
     },
     locker: {
       ...d.locker,
@@ -633,7 +637,7 @@ function RoomDetail() {
         {rows.length === 0 && <div style={{ padding: '14px', color: C.sub, fontSize: 14 }}>{d.missing ? '아직 불러오지 않음' : '예약 없음'}</div>}
         {rows.map((r, i) => {
           const [a, b] = roomTimes(r.time)
-          const now = day === 0 && a <= nowHM && nowHM <= b, done = day === 0 && b < nowHM
+          const now = day === 0 && roomNow(a, b, nowHM), done = day === 0 && roomDone(a, b, nowHM)
           return (
             <div key={i} style={{ padding: '10px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', opacity: done ? 0.45 : 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: now ? COL.room : C.text }}>{a}–{b}{now && <span style={{ fontSize: 11, marginLeft: 6, color: '#fff', background: COL.room, borderRadius: 999, padding: '1px 6px', verticalAlign: 2 }}>이용 중</span>}</div>
