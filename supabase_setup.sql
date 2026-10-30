@@ -256,3 +256,28 @@ create table if not exists anding_memo (
 alter table anding_memo enable row level security;
 drop policy if exists "본인 메모만" on anding_memo;
 create policy "본인 메모만" on anding_memo for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 노트 (메모 화면의 '노트': 강의노트처럼 긴 글 + PDF 등 첨부, 본인만)
+create table if not exists lecture_notes (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references auth.users not null default auth.uid(),
+  title      text not null default '',
+  subject    text default null,
+  content    text not null default '',
+  files      jsonb not null default '[]',   -- [{ path, name, size, type }]
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table lecture_notes enable row level security;
+drop policy if exists "본인 노트만" on lecture_notes;
+create policy "본인 노트만" on lecture_notes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+insert into storage.buckets (id, name, public, file_size_limit) values ('note-files', 'note-files', false, 52428800) on conflict (id) do nothing;
+drop policy if exists "note-files 본인 읽기" on storage.objects;
+drop policy if exists "note-files 본인 올리기" on storage.objects;
+drop policy if exists "note-files 본인 삭제" on storage.objects;
+create policy "note-files 본인 읽기" on storage.objects for select to authenticated
+  using (bucket_id = 'note-files' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "note-files 본인 올리기" on storage.objects for insert to authenticated
+  with check (bucket_id = 'note-files' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "note-files 본인 삭제" on storage.objects for delete to authenticated
+  using (bucket_id = 'note-files' and (storage.foldername(name))[1] = auth.uid()::text);
