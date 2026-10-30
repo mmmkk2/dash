@@ -190,7 +190,7 @@ export function useBackClose(open, onClose) {
   }, [open])
 }
 
-export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', height, children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', height, titleLines = 1, children }) {
   // 뒤 배경은 가계부 창과 같게: 어둡게 + 살짝 흐리게
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -208,7 +208,10 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : full === true ? 'calc(14px + env(safe-area-inset-top)) 20px 12px' : '18px 20px 12px' }}>
-          <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+          {/* titleLines=2: 긴 제목은 버튼 옆에서 두 줄까지 (노트) */}
+          <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, overflow: 'hidden', ...(titleLines > 1
+            ? { display: '-webkit-box', WebkitLineClamp: titleLines, WebkitBoxOrient: 'vertical', lineHeight: 1.3, letterSpacing: '-0.02em', wordBreak: 'keep-all' }
+            : { whiteSpace: 'nowrap', textOverflow: 'ellipsis' }) }}>{title}</div>
           {actions}
           {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
           <button onClick={onDone} disabled={doneDisabled} style={{

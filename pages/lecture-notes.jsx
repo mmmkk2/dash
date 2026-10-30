@@ -234,7 +234,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
 
       {edit && (
         // 높이는 메모 읽기 창과 같게 (메모 본문 45dvh + 머리·아래 198px), 크게 보기는 메모와 같은 full
-        <Sheet full={full} height="calc(45dvh + 198px)" title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
+        <Sheet full={full} height="calc(45dvh + 198px)" titleLines={2} title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : (edit.title || '제목 없음')} tint={C.tint}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
@@ -243,7 +243,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
               {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
             </button>
-            {edit.id && !edit.editing && <button onClick={toMemo} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}><StickyNote size={14} />메모로</button>}
+            {edit.id && !edit.editing && <button onClick={toMemo} aria-label="메모로 옮기기" title="메모로 옮기기" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><StickyNote size={19} /></button>}
             {edit.id && <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
           {edit.editing ? (
@@ -263,8 +263,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             </>
           ) : (
             <>
-              <div style={{ fontSize: 23, fontWeight: 700, letterSpacing: '-0.02em' }}>{edit.title || '제목 없음'}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.sub, margin: '6px 0 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.sub, margin: '0 0 12px' }}>
                 {edit.subject && <span style={{ background: C.fill, borderRadius: 6, padding: '2px 8px', color: C.text }}>{edit.subject}</span>}
                 <span>{shortDate(edit.updated_at)} 수정</span>
               </div>
