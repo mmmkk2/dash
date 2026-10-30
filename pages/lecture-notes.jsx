@@ -123,7 +123,18 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       } catch (e) { setErr(e.message) } finally { setUploading(n => n - 1) }
     }
   }
+  // HTML·글 파일은 저장소 주소로 열면 소스가 글자로(한글 깨짐) 나와서, 받아서 앱 안에서 UTF-8로 보여준다
+  const [viewer, setViewer] = useState(null) // { name, html } | { name, text }
+  useBackClose(!!viewer, () => setViewer(null))
   async function openFile(f) {
+    const isHtml = /\.html?$/i.test(f.name) || /html/i.test(f.type || '')
+    const isText = !isHtml && (/\.(txt|md|csv|json)$/i.test(f.name) || /^text\//i.test(f.type || ''))
+    if (isHtml || isText) {
+      const { data, error } = await supabase.storage.from(f.bucket || BUCKET).download(f.path)
+      if (error || !data) return setErr(error?.message || '파일을 열지 못했어요')
+      const body = new TextDecoder('utf-8').decode(await data.arrayBuffer())
+      return setViewer(isHtml ? { name: f.name, html: body } : { name: f.name, text: body })
+    }
     const w = window.open('', '_blank') // 팝업 차단을 피하려고 누른 순간 창부터 연다
     const { data, error } = await supabase.storage.from(f.bucket || BUCKET).createSignedUrl(f.path, 3600)
     if (error || !data?.signedUrl) { w?.close(); return setErr(error?.message || '파일을 열지 못했어요') }
@@ -187,6 +198,19 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
         )
       })}
       {!edit && <Fab label="새 노트" onClick={create} />}
+
+      {viewer && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#fff', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'calc(10px + env(safe-area-inset-top)) 14px 10px', borderBottom: `0.5px solid ${C.sep}` }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{viewer.name}</div>
+            <button onClick={() => setViewer(null)} style={{ ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '7px 16px' }}>닫기</button>
+          </div>
+          {viewer.html != null
+            // 올린 HTML은 따로 격리된 틀에서 (스크립트는 되지만 이 앱의 로그인·데이터에는 접근 못 함)
+            ? <iframe title={viewer.name} srcDoc={viewer.html} sandbox="allow-scripts allow-popups" style={{ flex: 1, border: 'none', width: '100%' }} />
+            : <pre style={{ flex: 1, margin: 0, padding: 16, overflow: 'auto', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{viewer.text}</pre>}
+        </div>
+      )}
 
       {edit && (
         <Sheet full="92dvh" title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : ''} tint={C.tint}
