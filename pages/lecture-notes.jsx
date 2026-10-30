@@ -233,9 +233,9 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
                 <button onClick={() => fileRef.current?.click()} style={toolBtn}><Paperclip size={14} />파일 추가</button>
                 <input ref={fileRef} type="file" multiple hidden onChange={e => { addFiles([...e.target.files]); e.target.value = '' }} />
               </div>
+              {edit.files.length > 0 && <div style={{ marginBottom: 10 }}>{edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} onRemove={() => setEdit(ed => ({ ...ed, files: ed.files.filter(x => x.path !== f.path) }))} />)}</div>}
               <GrowTextarea value={edit.content} minRows={12} maxHeight="none" onChange={e => setEdit(ed => ({ ...ed, content: e.target.value }))}
                 placeholder={'강의 내용을 정리해 보세요\n\n# 큰 제목\n## 소제목\n- 목록'} style={{ ...input, fontSize: 15.5, lineHeight: 1.6, resize: 'none' }} inputRef={taRef} />
-              {edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} onRemove={() => setEdit(ed => ({ ...ed, files: ed.files.filter(x => x.path !== f.path) }))} />)}
             </>
           ) : (
             <>
@@ -244,9 +244,11 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
                 {edit.subject && <span style={{ background: C.fill, borderRadius: 6, padding: '2px 8px', color: C.text }}>{edit.subject}</span>}
                 <span>{shortDate(edit.updated_at)} 수정</span>
               </div>
+              {edit.files.length > 0 && <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, marginBottom: 2 }}>첨부 {edit.files.length}</div>
+                {edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} />)}
+              </div>}
               <NoteBody text={edit.content} />
-              {edit.files.length > 0 && <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, margin: '18px 0 2px' }}>첨부 {edit.files.length}</div>}
-              {edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} />)}
             </>
           )}
         </Sheet>
