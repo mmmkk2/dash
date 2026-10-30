@@ -2,12 +2,13 @@ import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore } from 'lucide-react'
 import { supabase } from './pages/login'
+import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
 import InstallButton from './src/InstallButton'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
-const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
-const C = {
+export const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
+export const C = {
   bg: '#f7f7f7', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', faint: 'rgba(60,60,67,0.3)',
   sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)',
   tint: '#1c1c1e', tintSoft: 'rgba(0,0,0,0.06)', red: '#e5484d',
@@ -94,7 +95,7 @@ function dueLabel(due) {
   return [`D-${n}`, n <= 3 ? C.text : C.sub]
 }
 
-const plain = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
+export const plain = { background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
 const field = { ...plain, cursor: 'text', outline: 'none', fontSize: 16, color: C.text, width: '100%' }
 
 // ───────────────────────── 공통 컴포넌트 ─────────────────────────
@@ -152,7 +153,7 @@ function CallChips({ text }) {
 }
 
 // 내용만큼 늘어나는 입력칸 (너무 길면 maxHeight에서 멈추고 안에서 스크롤)
-function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, ...props }) {
+export function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, inputRef, ...props }) {
   const ref = useRef(null)
   useLayoutEffect(() => {
     const el = ref.current
@@ -160,7 +161,7 @@ function GrowTextarea({ value, minRows = 3, maxHeight = '50vh', style, ...props 
     el.style.height = 'auto'
     el.style.height = el.scrollHeight + 'px'
   }, [value])
-  return <textarea ref={ref} value={value} rows={minRows} {...props} style={{ ...style, maxHeight, overflowY: 'auto' }} />
+  return <textarea ref={el => { ref.current = el; if (inputRef) inputRef.current = el }} value={value} rows={minRows} {...props} style={{ ...style, maxHeight, overflowY: 'auto' }} />
 }
 
 // 폰 '뒤로 가기'로 열린 창부터 닫기: 창이 열리면 history에 한 칸 쌓고, 뒤로 가기가 오면 맨 위 창 하나만 닫는다
@@ -226,7 +227,7 @@ function Chip({ on, icon: Icon, children, onClick }) {
   )
 }
 
-function Fab({ label, onClick, color = C.tint }) {
+export function Fab({ label, onClick, color = C.tint }) {
   return (
     <button aria-label={label} onClick={onClick} style={{
       ...plain, position: 'fixed', zIndex: 20, right: 'max(20px, calc(50% - 320px))', bottom: 'calc(24px + var(--tabbar, 0px) + env(safe-area-inset-bottom))',
@@ -1091,6 +1092,9 @@ export default function NotesApp({ initialTab = 'memo' }) {
   useEffect(() => { loadMemos(); loadEvents(); loadBody() }, [])
 
   const switchTab = t => { setTab(t); navigate(t === 'memo' ? '/notes' : '/notes/calendar', { replace: true }) }
+  // 메모 화면 안의 메모 | 노트(강의노트처럼 긴 글·파일) 전환, 마지막 선택 기억
+  const [kind, setKind] = useState(() => { try { return localStorage.getItem('notes-kind') || 'memo' } catch { return 'memo' } })
+  const pickKind = k => { setKind(k); try { localStorage.setItem('notes-kind', k) } catch {} }
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
@@ -1121,8 +1125,15 @@ export default function NotesApp({ initialTab = 'memo' }) {
             {err} {/relation|does not exist|schema cache|bucket/i.test(err) && '— supabase_setup.sql 의 최신 섹션을 실행하세요.'}
           </div>
         )}
+        {tab === 'memo' && (
+          <div style={{ display: 'flex', background: C.fill, borderRadius: 9, padding: 2, marginBottom: 12 }}>
+            {[['memo', '메모'], ['note', '노트']].map(([k, label]) => (
+              <button key={k} onClick={() => pickKind(k)} aria-pressed={kind === k} style={{ ...plain, flex: 1, fontSize: 13, fontWeight: 600, borderRadius: 7, padding: '6px 0', background: kind === k ? '#fff' : 'transparent', color: kind === k ? C.text : C.sub, boxShadow: kind === k ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{label}</button>
+            ))}
+          </div>
+        )}
         {tab === 'memo'
-          ? <MemoTab memos={memos} reload={loadMemos} setErr={setErr} />
+          ? (kind === 'note' ? <LectureNotes setErr={setErr} /> : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} />)
           : <CalendarTab events={events} reload={loadEvents} setErr={setErr} body={body} reloadBody={loadBody} />}
       </main>
     </div>
