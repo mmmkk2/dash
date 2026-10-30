@@ -426,15 +426,22 @@ function LockerList({ d, onSms }) {
 }
 
 // 앤딩 앱 JSON API 읽기 (관리자 세션 쿠키 그대로)
+// 상세 데이터: 받은 것은 기억해 두고 다시 열 때 바로 보여준 뒤 새로 받는다
+const apiCache = new Map()
+async function loadApi(path) {
+  const synced = await fromSync(path)
+  if (synced) { apiCache.set(path, synced); return { data: synced } }
+  const r = await fetch(API + path, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+  const body = await r.json().catch(() => null)
+  if (r.status === 200 && body) { apiCache.set(path, body); return { data: body } }
+  return { status: r.status, error: body?.error || `불러오기 실패 (${r.status})` }
+}
 function useApi(path) {
-  const [st, setSt] = useState({ loading: true })
+  const [st, setSt] = useState(() => apiCache.has(path) ? { data: apiCache.get(path) } : { loading: true })
   useEffect(() => {
     let alive = true
     setSt(o => ({ ...o, loading: true }))
-    fromSync(path).then(synced => synced ? alive && setSt({ data: synced }) : fetch(API + path, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(async r => ({ status: r.status, body: await r.json().catch(() => null) }))
-      .then(({ status, body }) => alive && setSt(status === 200 && body ? { data: body } : { status, error: body?.error || `불러오기 실패 (${status})` }))
-      .catch(e => alive && setSt({ error: e.message })))
+    loadApi(path).then(r => alive && setSt(r)).catch(e => alive && setSt({ error: e.message }))
     return () => { alive = false }
   }, [path])
   return st
@@ -837,6 +844,12 @@ export default function AndingHome() {
   const d = state.data && freshen(state.data)
   const lockerTs = d?.locker.updated
   useEffect(() => { if (lockerTs !== undefined) preloadMap('locker_map.png', lockerTs) }, [lockerTs])
+  // 좌석도 미리: 좌석 상세 데이터와 좌석 배치도를 받아 두어 좌석 시트가 바로 뜨게
+  const seatTs = d?.seat.updated
+  useEffect(() => {
+    if (seatTs === undefined) return
+    loadApi('/api/seat_detail').then(r => r.data && preloadMap('seat_map.png', r.data.updated)).catch(() => {})
+  }, [seatTs])
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, letterSpacing: '-0.01em' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 16px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
