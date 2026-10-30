@@ -23,15 +23,25 @@ async function fromSync(path) {
   } catch { return null }
 }
 // 배치도 그림: Supabase 비공개 버킷의 서명 URL, 안 되면 맥 앤딩 앱 주소
+// 서명 URL은 받을 때마다 주소가 달라 브라우저 캐시를 못 써서, 50분 동안 같은 주소를 재사용하고
+// 그림이 바뀌면(ts) 뒤에 v=ts를 붙여 새로 받게 한다
+const mapCache = new Map() // name → { ts, url, until }
 async function mapUrl(name, ts) {
+  const hit = mapCache.get(name)
+  if (hit && hit.ts === ts && hit.until > Date.now()) return hit.url
+  let url = `${API}/static/images/${name}?ts=${encodeURIComponent(ts || '')}`
   try {
     const { data } = await supabase.storage.from('anding').createSignedUrl(name, 3600)
-    if (data?.signedUrl) return data.signedUrl
+    if (data?.signedUrl) url = `${data.signedUrl}&v=${encodeURIComponent(ts || '')}`
   } catch {}
-  return `${API}/static/images/${name}?ts=${encodeURIComponent(ts || '')}`
+  mapCache.set(name, { ts, url, until: Date.now() + 50 * 60e3 })
+  return url
 }
+// 시트를 열기 전에 미리 받아 두기 (사물함 배치도가 늦게 뜨지 않게)
+const preloadMap = (name, ts) => mapUrl(name, ts).then(u => { const img = new Image(); img.src = u })
 function useMapUrl(name, ts) {
-  const [url, setUrl] = useState(null)
+  const cached = mapCache.get(name)
+  const [url, setUrl] = useState(cached && cached.ts === ts && cached.until > Date.now() ? cached.url : null)
   useEffect(() => { let alive = true; mapUrl(name, ts).then(u => alive && setUrl(u)); return () => { alive = false } }, [name, ts])
   return url
 }
@@ -825,6 +835,8 @@ export default function AndingHome() {
   ]
 
   const d = state.data && freshen(state.data)
+  const lockerTs = d?.locker.updated
+  useEffect(() => { if (lockerTs !== undefined) preloadMap('locker_map.png', lockerTs) }, [lockerTs])
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, letterSpacing: '-0.01em' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 16px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
