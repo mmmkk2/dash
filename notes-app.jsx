@@ -191,8 +191,9 @@ export function useBackClose(open, onClose) {
 }
 
 export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', height, children }) {
+  // 뒤 배경은 가계부 창과 같게: 어둡게 + 살짝 흐리게
   return (
-    <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
         // 크기는 가계부 창과 같게(최대 660px 가운데, 높이 최대 78%, 안쪽 좌우 20px), 폰에서는 양옆 12px 남김
         background: C.bg, width: 'calc(100% - 24px)', maxWidth: full ? 760 : 660, borderRadius: '24px 24px 0 0', overflowY: 'auto',
