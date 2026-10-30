@@ -109,43 +109,36 @@ function Login({ onDone }) {
   )
 }
 
-// 메인 맨 위 간단 메모 (고정석 대기자 등). Supabase anding_memo(본인만), 테이블이 없으면 이 기기에만 저장
-const MEMO_LOCAL = 'anding-main-memo'
+// 메인 맨 위 간단 메모 (고정석 대기자 등). Supabase에만 저장 — 이미 있는 anding_salary(본인만, RLS)의
+// year=0 행을 메모 칸으로 쓴다 (급여표는 실제 연도만 읽으므로 겹치지 않음, 테이블을 새로 만들 필요 없음)
+const MEMO_YEAR = 0
 function AndingMemo() {
   const [text, setText] = useState('')
-  const [where, setWhere] = useState(null) // 'cloud' | 'local'
-  const [saved, setSaved] = useState(true)
+  const [state, setState] = useState('loading') // loading | ok | saving | error
   const timer = useRef(null)
   useEffect(() => {
-    supabase.from('anding_memo').select('content').maybeSingle().then(({ data, error }) => {
-      if (error) {
-        setWhere('local')
-        try { setText(localStorage.getItem(MEMO_LOCAL) || '') } catch {}
-      } else { setWhere('cloud'); setText(data?.content || '') }
+    supabase.from('anding_salary').select('data').eq('year', MEMO_YEAR).maybeSingle().then(({ data, error }) => {
+      if (error) return setState('error')
+      setText(data?.data?.memo || ''); setState('ok')
     })
   }, [])
   const save = async value => {
-    if (where === 'cloud') {
-      const { error } = await supabase.from('anding_memo').upsert({ content: value, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-      if (error) return
-    } else {
-      try { localStorage.setItem(MEMO_LOCAL, value) } catch {}
-    }
-    setSaved(true)
+    const { error } = await supabase.from('anding_salary').upsert({ year: MEMO_YEAR, data: { memo: value }, updated_at: new Date().toISOString() }, { onConflict: 'user_id,year' })
+    setState(error ? 'error' : 'ok')
   }
   const change = value => {
-    setText(value); setSaved(false)
+    setText(value); setState('saving')
     clearTimeout(timer.current)
     timer.current = setTimeout(() => save(value), 800)
   }
-  if (!where) return null
+  if (state === 'loading') return null
   return (
     <div style={{ background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginBottom: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', fontSize: 12.5, fontWeight: 700, color: C.sub }}>
         메모
-        <span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5 }}>{saved ? (where === 'local' ? '이 기기에만 저장' : '') : '저장 중…'}</span>
+        <span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{state === 'saving' ? '저장 중…' : state === 'error' ? '저장 안 됨 (Supabase 연결 확인)' : ''}</span>
       </div>
-      <textarea value={text} onChange={e => change(e.target.value)} onBlur={() => { clearTimeout(timer.current); if (!saved) save(text) }}
+      <textarea value={text} onChange={e => change(e.target.value)} onBlur={() => { if (state === 'saving') { clearTimeout(timer.current); save(text) } }}
         placeholder="고정석 대기자 등 간단 메모" rows={Math.max(2, text.split('\n').length)}
         style={{ width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: '6px 0 0', fontSize: 14.5, lineHeight: 1.5, fontFamily: F, color: C.text, background: 'transparent' }} />
     </div>
