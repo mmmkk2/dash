@@ -161,8 +161,8 @@ function shadeP(i){
 }
 
 // URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산, /budget/goion=고이온)
-const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty", goion:"goion" };
-const SLUG_ENTITY = { "":"personal", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty", goion:"goion" };
+const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty", goion:"goion", all:"all" };
+const SLUG_ENTITY = { "":"personal", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty", goion:"goion", all:"all" };
 const entityPath = ek => `/budget${ENTITY_SLUG[ek]?`/${ENTITY_SLUG[ek]}`:""}`;
 
 const TREE_PERSONAL = {
@@ -4667,8 +4667,10 @@ export default function App(){
   }
 
   const monthKey=`${year}-${String(month+1).padStart(2,"0")}`;
-  const viewTxs=useMemo(()=>txs.filter(t=>(yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey))&&t.entity===entity),[txs,monthKey,year,yearView,entity]);
-  const entityTxs=useMemo(()=>txs.filter(t=>t.entity===entity),[txs,entity]);
+  // 전체(all): 모든 사업 합쳐서 (카페 숨김이면 카페 빼고)
+  const inEntity=t=>entity==="all"?(!hideCafe||t.entity!=="cafe"):t.entity===entity;
+  const viewTxs=useMemo(()=>txs.filter(t=>(yearView?t.date.startsWith(String(year)):t.date.startsWith(monthKey))&&inEntity(t)),[txs,monthKey,year,yearView,entity,hideCafe]);
+  const entityTxs=useMemo(()=>txs.filter(inEntity),[txs,entity,hideCafe]);
   const realtyTags=useMemo(()=>[...new Set(txs.filter(t=>t.entity==="realty"&&t.cat3).map(t=>t.cat3))],[txs]);
   const income =useMemo(()=>{
     const inc=viewTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
@@ -4772,8 +4774,8 @@ export default function App(){
 
           {/* Entity tabs — 메모·일정 태그 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 사업 색으로 채움 */}
           <div style={{display:"flex",gap:"6px",marginBottom:"18px",overflowX:"auto"}}>
-            {visibleEntities.map(ek=>{
-              const e=ENTITIES[ek];const sel=entity===ek;
+            {["all",...visibleEntities].map(ek=>{
+              const e=ek==="all"?{...ENTITY_ALL,short:"전체"}:ENTITIES[ek];const sel=entity===ek;
               return(
                 <button key={ek} onClick={()=>switchEntity(ek)} aria-pressed={sel} style={{
                   display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap",
@@ -4821,14 +4823,14 @@ export default function App(){
           {[["list","내역",0],
             ...(!yearView?[["calendar","캘린더",0]]:[]),
             ["stats","통계",0],
-            ...(!yearView?[["fixed","반복",fixedOverdue]]:[]),
+            ...(!yearView&&entity!=="all"?[["fixed","반복",fixedOverdue]]:[]),
             ...(entity==="cafe"?[["supplies","소모품",supplyOverdue]]:[])
           ].map(([k,l,badge])=>(
             <button key={k} onClick={()=>setTab(k)} style={{
               flex:1,padding:"12px 10px",border:"none",background:"transparent",cursor:"pointer",position:"relative",
               fontWeight:tab===k?600:400,fontSize:"14px",
-              color:tab===k?ent.color:C.inkLight,
-              borderBottom:`3px solid ${tab===k?ent.color:"transparent"}`,
+              color:tab===k?(ent||ENTITY_ALL).color:C.inkLight,
+              borderBottom:`3px solid ${tab===k?(ent||ENTITY_ALL).color:"transparent"}`,
               marginBottom:"-1px",fontFamily:FONT,transition:"all 0.2s"}}>
               {l}
               {badge>0&&<span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",minWidth:"14px",height:"14px",padding:"0 3px",
@@ -4853,10 +4855,10 @@ export default function App(){
       </div>
 
       <Modal open={modal==="add"} onClose={()=>{setModal(null);setEditTx(null);}}>
-        <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
+        <TxForm initial={editTx||undefined} onSave={addTx} cards={cards} defaultEntity={entity==="all"?"personal":entity} saving={saving} supplies={supplies} propertyTags={realtyTags} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
       </Modal>
       <Modal open={modal==="edit"&&!!editTx} onClose={()=>{setModal(null);setEditTx(null);}}>
-        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{setEditTx({...editTx,id:null});setModal("add");}} cards={cards} defaultEntity={entity} saving={saving} supplies={supplies} propertyTags={realtyTags} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>}
+        {editTx&&<TxForm initial={editTx} onSave={updateTx} onDelete={()=>deleteTx(editTx.id)} onDuplicate={()=>{setEditTx({...editTx,id:null});setModal("add");}} cards={cards} defaultEntity={entity==="all"?"personal":entity} saving={saving} supplies={supplies} propertyTags={realtyTags} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>}
       </Modal>
       <Modal open={modal==="cats"} onClose={()=>setModal(null)}>
         <CategorySettings trees={trees} onChange={handleTrees}/>
