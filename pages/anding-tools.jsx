@@ -130,7 +130,7 @@ export function SettingsSheet({ onClose, onApplied }) {
     } catch (e) { setMsg({ ok: false, text: e.message }) } finally { setBusy(false) }
   }
   return (
-    <Sheet title="설정" tint={GREEN} doneLabel={busy ? '저장 중…' : '저장'} doneDisabled={!st || busy} onDone={save} onCancel={onClose} full="78dvh" inset>
+    <Sheet title="설정" tint={GREEN} doneLabel={busy ? '저장 중…' : '저장'} doneDisabled={!st || busy} onDone={save} onCancel={onClose} inset>
       {/* 상품 판매 설정은 '즉시 적용'으로 따로 반영, 아래 알림·네이버는 위 '저장'으로 */}
       <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 6px' }}>상품 판매 <span style={{ fontWeight: 400 }}>· 즉시 적용으로 바로 반영</span></div>
       <SalePanel onApplied={onApplied || (() => {})} />
@@ -261,7 +261,7 @@ export function SmsToolSheet({ onClose }) {
   )
   const n = smsBytes(text)
   return (
-    <Sheet title="문자 생성기" tint={GREEN} doneLabel={busy ? '보내는 중…' : '보내기'} doneDisabled={busy || !text.trim()} onDone={send} onCancel={onClose} full="78dvh" inset>
+    <Sheet title="문자 생성기" tint={GREEN} doneLabel={busy ? '보내는 중…' : '보내기'} doneDisabled={busy || !text.trim()} onDone={send} onCancel={onClose} inset>
       {SMS.map(g => (
         <div key={g.group} style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: C.sub, padding: '0 4px 5px' }}>{g.group}</div>
@@ -445,7 +445,7 @@ export function SalarySheet({ onClose }) {
     <button key={label} onClick={onClick} aria-pressed={on} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', whiteSpace: 'nowrap', background: on ? GREEN : C.card, color: on ? '#fff' : GREEN, border: `0.5px solid ${on ? GREEN : C.sep}` }}>{label}</button>
   )
   return (
-    <Sheet title={`${year} 매니저 급여`} tint={GREEN} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh" inset
+    <Sheet title={`${year} 매니저 급여`} tint={GREEN} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} inset
       actions={data && (
         <button disabled={saving} onClick={async () => {
           setSaving(true)

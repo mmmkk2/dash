@@ -823,7 +823,7 @@ function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
   return (
-    <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} full="78dvh" inset>
+    <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} inset>
       {/* 상품 판매는 보기만 — 판매 설정(시험기간·잔여 제한·전체 OFF 등)은 ⋯ > 설정에서 */}
       {k === 'product' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 10px', fontSize: 13, color: C.sub }}>

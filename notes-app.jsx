@@ -203,7 +203,7 @@ export function useBackClose(open, onClose) {
   }, [open])
 }
 
-export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', height, titleLines = 1, children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, height = 'min(78dvh, calc(100dvh - 80px))', titleLines = 1, children }) {
   // 뒤 배경은 가계부 창과 같게: 어둡게 + 살짝 흐리게
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -211,13 +211,12 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         // 크기는 가계부 창과 같게(최대 660px 가운데, 높이 최대 78%, 안쪽 좌우 20px), 폰에서는 양옆 12px 남김
         background: C.bg, width: 'calc(100% - 16px)', maxWidth: full ? 760 : 660, borderRadius: '24px 24px 0 0', overflowY: 'auto',
         // inset: 화면 가장자리에서 띄운 카드 모양 (좌우·아래 여백, 네 모서리 둥글게)
-        ...(inset && { width: 'calc(100% - 20px)', maxWidth: 640, borderRadius: 22, marginBottom: 'calc(10px + env(safe-area-inset-bottom))' }),
+        ...(inset && { width: 'calc(100% - 16px)', maxWidth: 640, borderRadius: 22, marginBottom: 'calc(10px + env(safe-area-inset-bottom))' }),
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
         // full에 높이(예: '78dvh')를 주면 그 높이로
-        // maxH: 위를 남겨 바깥을 눌러 닫기 쉽게 (기본은 가계부 창과 같은 높이)
-        // height: 내용 길이와 상관없이 같은 높이로 (노트 창을 메모 창과 같게)
+        // height: 내용 길이와 상관없이 모든 창이 같은 높이 (위를 남겨 바깥을 눌러 닫기 쉽게)
         // 크게 보기(full=true)는 화면 전체로 (위 여백 없이, 모서리 없이)
-        ...(full === true ? { height: '100dvh', width: '100%', maxWidth: 'none', borderRadius: 0, boxSizing: 'border-box' } : full ? { height: full } : height ? { height, maxHeight: maxH } : { maxHeight: maxH }),
+        ...(full === true ? { height: '100dvh', width: '100%', maxWidth: 'none', borderRadius: 0, boxSizing: 'border-box' } : { height: inset ? `calc(${full || height} - 10px - env(safe-area-inset-bottom))` : full || height }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : full === true ? 'calc(14px + env(safe-area-inset-top)) 20px 12px' : '18px 20px 12px' }}>

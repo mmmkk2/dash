@@ -219,7 +219,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
 
       {viewer && (
         <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-        <div onClick={e => e.stopPropagation()} style={{ width: 'calc(100% - 16px)', maxWidth: 660, height: 'min(78vh, calc(100dvh - 80px))', background: '#fff', borderRadius: '24px 24px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: 'calc(100% - 16px)', maxWidth: 660, height: 'min(78dvh, calc(100dvh - 80px))', background: '#fff', borderRadius: '24px 24px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 12px', borderBottom: `0.5px solid ${C.sep}` }}>
             <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{viewer.name}</div>
             <button onClick={() => setViewer(null)} style={{ ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '7px 16px' }}>닫기</button>
@@ -234,7 +234,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
 
       {edit && (
         // 높이는 메모 읽기 창과 같게 (메모 본문 45dvh + 머리·아래 198px), 크게 보기는 메모와 같은 full
-        <Sheet full={full} height="calc(45dvh + 198px)" titleLines={2} title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : (edit.title || '제목 없음')} tint={C.tint}
+        <Sheet full={full} titleLines={2} title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : (edit.title || '제목 없음')} tint={C.tint}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}

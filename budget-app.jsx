@@ -334,7 +334,7 @@ function Modal({open,onClose,children}){
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px calc(36px + env(safe-area-inset-bottom))",
         // 폰에서는 메모 창처럼 양옆 12px 남김 (큰 화면은 최대 660px 가운데)
-        width:"calc(100% - 16px)",maxWidth:"660px",maxHeight:"min(78vh,calc(100dvh - 80px))",overflowY:"auto",
+        width:"calc(100% - 16px)",maxWidth:"660px",height:"min(78dvh, calc(100dvh - 80px))",overflowY:"auto",
         boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`}}>
         <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
           margin:"10px auto 18px",cursor:"pointer"}} onClick={onClose}/>
