@@ -173,7 +173,20 @@ const ROOM_INFO = `현재 네이버와 직접 연동되지 않기 때문에, 실
 const NAME = { id: 'name', label: '회원 이름', placeholder: "비우면 '회원님'" }
 const LOCATION = { id: 'location', label: '짐 보관 위치', placeholder: '휴게실 옷걸이 아래' }
 // head: 머릿말 인사 / body: 본문 / foot: 꼬리말 (null이면 꼬리말 없음)
+// 자주 쓰는 고정석 안내를 맨 위·기본 선택으로
 const SMS = [
+  { group: '회원 안내', items: [
+    { key: 'fixed', label: '고정석 안내', fields: [{ id: 'name', label: '회원 이름', placeholder: '비우면 생략' }], make: v => ({ head: `안녕하세요${v.name ? `, ${v.name} 회원님` : ''}.\n고정석을 구매해 주셔서 감사합니다.`, body: '\n고정석 이용 시 출입문 자동 열림을 위해 키오스크 또는 앱에서 <고정석 입실> 버튼을 하루 1회 눌러주셔야 합니다.\n시스템 관리상 매일 오전 5시에 자동 퇴실 처리되며, 이후 다시 이용하실 경우 고정석 입실을 하루 1회 다시 눌러주셔야 출입문 열림 기능이 정상 활성화됩니다.\n', foot: '감사합니다.' }) },
+    { key: 'seat_expire', label: '좌석 만료', fields: [NAME], make: v => ({ head: `${v.name ? `${v.name} 회원님, ` : '회원님, '}이용 중이신 좌석의 이용 시간이 만료되었습니다.`, body: '계속 이용을 원하신다면 키오스크 또는 앱에서 재결제 후 이용해 주시기 바랍니다.', foot: '감사합니다.' }) },
+    { key: 'locker', label: '사물함 만료', fields: [NAME], make: v => ({ head: `${v.name ? `${v.name} 회원님, ` : '회원님, '}이용 중이신 사물함의 사용 기간이 만료되었습니다.`, body: '이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n금일까지 연장이 완료되지 않으면 사물함 이용이 종료될 수 있습니다.', foot: '감사합니다.' }) },
+    { key: 'locker_cleared', label: '사물함 종료·짐보관', fields: [NAME, LOCATION], make: v => ({ head: hi(v.name), body: `사물함 결제가 진행되지 않아 이용이 종료되었습니다.\n\n내부 짐은 ${v.location || '휴게실 옷걸이 아래'}에 보관 중이니, 빠른 시일 내에 찾아가 주시기 바랍니다.\n\n미수령 시 발생하는 분실에 대해서는 책임을 지지 않는 점 양해 부탁드립니다.`, foot: '감사합니다.' }) },
+    { key: 'refund', label: '환불 안내', fields: [
+      { id: 'name', label: '회원 이름', placeholder: '이름' }, { id: 'usedTime', label: '실제 이용시간', placeholder: '3시간 6분' },
+      { id: 'roundedTime', label: '올림 적용 시간', placeholder: '4시간' }, { id: 'rate', label: '시간당 요금', placeholder: '2,000' },
+      { id: 'deduct', label: '차감 금액', placeholder: '8,000' }, { id: 'refund', label: '환불 금액', placeholder: '21,000' },
+      { id: 'noBank', label: '은행명 미기재', toggle: true }, { id: 'minor', label: '미성년자', toggle: true },
+    ], make: v => ({ head: hi(v.name), body: `\n이용시간 ${v.usedTime || ''}은 ${v.roundedTime || ''}으로 올림 처리되며, 총 이용시간의 10% 이상 사용에 해당됩니다.\n\n따라서\n${v.roundedTime || ''} × ${v.rate || ''}원 = ${v.deduct || ''}원 차감 후\n환불 금액은 ${v.refund || ''}원입니다.${v.noBank ? '\n\n환불 신청서에 은행명이 기재되지 않아 확인이 어려운 상태입니다.\n은행명 포함하여 다시 전달 부탁드립니다.' : ''}${v.minor ? '\n\n미성년자의 경우 보호자(부모님) 계좌로만 입금 가능합니다.' : ''}\n\n카카오톡 채널로 답변 주시면 확인 후 빠르게 처리 도와드리겠습니다.\n${KAKAO}\n`, foot: '감사합니다.' }) },
+  ] },
   { group: '퇴실 / 자리', items: [
     { key: 'checkout_kiosk', label: '퇴실·키오스크', fields: [NAME], make: v => ({ head: hi(v.name), body: '원활한 좌석 운영과 회원님의 이용 시간 보호를 위해 퇴실 시 아래 사항을 꼭 확인해 주시길 부탁드립니다.\n\n1. 좌석 조명(스탠드) 끄기\n2. 키오스크/앱 이용 종료(퇴실) 처리\n   (미처리 시 시간이 계속 차감됩니다)\n\n공용 공간인 만큼 다음 이용자분을 위해 퇴실 시 꼭 한 번 더 확인 부탁드립니다.', foot: '감사합니다.' }) },
     { key: 'checkout_clean', label: '퇴실·정돈', fields: [NAME], make: v => ({ head: hi(v.name), body: '쾌적한 학습 환경 유지를 위해 퇴실 시 아래 사항을 꼭 지켜주시길 부탁드립니다.\n\n1. 의자는 책상 안으로 밀어 넣어주세요.\n2. 지우개 가루 등 개인 쓰레기는 깨끗이 치워주세요.\n\n공용 공간인 만큼 다음 이용자분을 위해 퇴실 시 좌석 정돈 부탁드립니다.', foot: '감사합니다.' }) },
@@ -186,18 +199,6 @@ const SMS = [
       : '\n⚠ 화장지는 절대 변기에 버리지 마시고, 반드시 휴지통에 버려주시기 바랍니다.\n\n저희 매장은 오래된 상가 건물로, 배관 구조상 화장지를 변기에 투입할 경우 막힘이 발생할 수 있으며 심한 경우 역류 및 넘침이 발생할 수 있습니다.\n\n쾌적한 이용 환경 유지를 위해 협조 부탁드립니다.', foot: '감사합니다.' }) },
     { key: 'snack', label: '간식 금지', fields: [NAME, { id: 'strict', label: '강경 경고 포함', toggle: true }], make: v => ({ head: hi(v.name), body: `스터디존 내 간식 섭취는 절대 금지입니다.\n비닐 소리, 냄새 등으로 다른 이용자에게 불편을 주는 행위가 발생하지 않도록 반드시 주의해주세요.\n\n간식은 지정된 휴게공간에서만 섭취 가능합니다.${v.strict ? '\n해당 규정을 반복 위반할 경우 즉시 퇴실 및 영구 이용 제한이 될 수 있습니다.' : ''}\n\n모든 회원분들이 집중할 수 있는 환경을 위해 반드시 협조 부탁드립니다.`, foot: null }) },
     { key: 'noise', label: '소음·정숙', fields: [{ id: 'names', label: '회원 이름들', placeholder: '비우면 생략' }], make: v => ({ head: '', body: `스터디존은 절대 정숙 구역입니다. 조용한 학습 환경 유지를 위해 대화 및 통화는 일절 금지되어 있으며, 속닥거리는 작은 소리도 다른 이용자에게 큰 방해가 될 수 있습니다.${v.names ? `\n\n${v.names} 회원님,\n속닥거리거나 쪽지를 주고받으며 공부하실 경우 이곳이 아닌 다른 장소를 이용해 주시기 바랍니다.\n규칙을 지키지 않을 경우 어떠한 예외 없이 즉시 퇴실 조치됩니다.` : ''}\n\n규정 위반이 반복될 경우, 경고 없이 영구 퇴실 및 이용 제한 조치가 이루어질 수 있습니다. 쾌적한 학습 환경을 위해 반드시 협조해 주시기 바랍니다.`, foot: null }) },
-  ] },
-  { group: '회원 안내', items: [
-    { key: 'seat_expire', label: '좌석 만료', fields: [NAME], make: v => ({ head: `${v.name ? `${v.name} 회원님, ` : '회원님, '}이용 중이신 좌석의 이용 시간이 만료되었습니다.`, body: '계속 이용을 원하신다면 키오스크 또는 앱에서 재결제 후 이용해 주시기 바랍니다.', foot: '감사합니다.' }) },
-    { key: 'locker', label: '사물함 만료', fields: [NAME], make: v => ({ head: `${v.name ? `${v.name} 회원님, ` : '회원님, '}이용 중이신 사물함의 사용 기간이 만료되었습니다.`, body: '이용을 계속 원하신다면 키오스크 또는 앱에서 연장 결제를 진행해 주세요.\n금일까지 연장이 완료되지 않으면 사물함 이용이 종료될 수 있습니다.', foot: '감사합니다.' }) },
-    { key: 'locker_cleared', label: '사물함 종료·짐보관', fields: [NAME, LOCATION], make: v => ({ head: hi(v.name), body: `사물함 결제가 진행되지 않아 이용이 종료되었습니다.\n\n내부 짐은 ${v.location || '휴게실 옷걸이 아래'}에 보관 중이니, 빠른 시일 내에 찾아가 주시기 바랍니다.\n\n미수령 시 발생하는 분실에 대해서는 책임을 지지 않는 점 양해 부탁드립니다.`, foot: '감사합니다.' }) },
-    { key: 'refund', label: '환불 안내', fields: [
-      { id: 'name', label: '회원 이름', placeholder: '이름' }, { id: 'usedTime', label: '실제 이용시간', placeholder: '3시간 6분' },
-      { id: 'roundedTime', label: '올림 적용 시간', placeholder: '4시간' }, { id: 'rate', label: '시간당 요금', placeholder: '2,000' },
-      { id: 'deduct', label: '차감 금액', placeholder: '8,000' }, { id: 'refund', label: '환불 금액', placeholder: '21,000' },
-      { id: 'noBank', label: '은행명 미기재', toggle: true }, { id: 'minor', label: '미성년자', toggle: true },
-    ], make: v => ({ head: hi(v.name), body: `\n이용시간 ${v.usedTime || ''}은 ${v.roundedTime || ''}으로 올림 처리되며, 총 이용시간의 10% 이상 사용에 해당됩니다.\n\n따라서\n${v.roundedTime || ''} × ${v.rate || ''}원 = ${v.deduct || ''}원 차감 후\n환불 금액은 ${v.refund || ''}원입니다.${v.noBank ? '\n\n환불 신청서에 은행명이 기재되지 않아 확인이 어려운 상태입니다.\n은행명 포함하여 다시 전달 부탁드립니다.' : ''}${v.minor ? '\n\n미성년자의 경우 보호자(부모님) 계좌로만 입금 가능합니다.' : ''}\n\n카카오톡 채널로 답변 주시면 확인 후 빠르게 처리 도와드리겠습니다.\n${KAKAO}\n`, foot: '감사합니다.' }) },
-    { key: 'fixed', label: '고정석 안내', fields: [{ id: 'name', label: '회원 이름', placeholder: '비우면 생략' }], make: v => ({ head: `안녕하세요${v.name ? `, ${v.name} 회원님` : ''}.\n고정석을 구매해 주셔서 감사합니다.`, body: '\n고정석 이용 시 출입문 자동 열림을 위해 키오스크 또는 앱에서 <고정석 입실> 버튼을 하루 1회 눌러주셔야 합니다.\n시스템 관리상 매일 오전 5시에 자동 퇴실 처리되며, 이후 다시 이용하실 경우 고정석 입실을 하루 1회 다시 눌러주셔야 출입문 열림 기능이 정상 활성화됩니다.\n', foot: '감사합니다.' }) },
   ] },
   { group: '룸 예약', items: [
     { key: 'room_ok', label: '룸 예약 가능', fields: [], make: () => ({ head: '안녕하세요! 앤딩스터디카페 상도점입니다.', body: `\n문의하신 예약 시간에 이용 가능합니다.\n\n${ROOM_INFO}\n`, foot: '감사합니다.' }) },
@@ -223,7 +224,7 @@ function buildSms(t, v, withHead, withFoot) {
 
 export function SmsToolSheet({ onClose }) {
   useBackClose(true, onClose)
-  const [key, setKey] = useState('checkout_kiosk')
+  const [key, setKey] = useState('fixed')
   const [vals, setVals] = useState({})
   const [head, setHead] = useState(true)
   const [foot, setFoot] = useState(true)
