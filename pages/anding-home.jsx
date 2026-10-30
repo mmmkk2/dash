@@ -727,10 +727,10 @@ function ProductTable() {
   if (status === 404) return <IframeDetail k="product" path="/product" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !data) return <Muted>불러오는 중…</Muted>
-  // 고정석 상품은 다른 탭에서 빼고 '고정석' 탭에 모아 보여준다
+  // 고정석 탭: 코보페이 '고정석' 탭에서 수집한 상품(+ 다른 탭에 섞인 이름에 '고정석'이 든 상품), 다른 탭에서는 뺀다
   const isFixed = p => (p.name || '').includes('고정석')
   const list = k => k === 'fixed'
-    ? Object.values(data.tabs).flat().filter(isFixed)
+    ? [...(data.tabs.fixed || []), ...['once', 'hour', 'period'].flatMap(t => (data.tabs[t] || []).filter(isFixed))]
     : (data.tabs[k] || []).filter(p => !isFixed(p))
   const rows = list(tab)
   const flag = (on, label) => (
