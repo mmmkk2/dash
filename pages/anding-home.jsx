@@ -317,7 +317,7 @@ function Todo({ d, onSms }) {
     ...(d.seat.fixed_ended || []).map(r => ({ c: COL.seat, text: <>고정석 {r.no}번 <b style={{ fontWeight: 600 }}>빈 자리</b></>, right: r.end ? `${r.name || ''} ~${r.end.slice(5, 10).replace('.', '/')}`.trim() : '' })),
     ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
     ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expired' } })),
-    ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} {r.name} 이용 중</>, right: `~${r.end}` })),
+    ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} <b style={{ fontWeight: 700 }}>{r.name}</b> 이용 중</>, right: `~${r.end}` })),
   ]
   if (!rows.length) return null
   return (
@@ -747,7 +747,7 @@ function ProductTable() {
           </button>
         ))}
       </div>
-      {rows.length === 0 ? <Muted>상품이 없어요</Muted> : (
+      {rows.length === 0 ? <Muted>{tab === 'fixed' ? (data.fixed_note || '아직 고정석 상품을 수집하지 않았어요 (다음 수집 후 보여요)') : '상품이 없어요'}</Muted> : (
         <Card>
           {rows.map((p, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5 }}>
