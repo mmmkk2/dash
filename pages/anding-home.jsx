@@ -170,18 +170,22 @@ function AndingMemo() {
     timer.current = setTimeout(() => save(value), 800)
   }
   if (state === 'loading') return null
-  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '10px 14px', marginTop: 10 }
-  if (state === 'missing') return <div style={{ ...card, fontSize: 13, color: C.sub }}>메모를 쓰려면 Supabase에 anding_memo 테이블을 만들어 주세요 (supabase_setup.sql 맨 아래)</div>
+  // '확인할 것'과 같은 모양: 위에 작은 제목, 카드 안은 한 줄 높이(내용만큼 늘어남)
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '11px 14px' }
+  const status = state === 'saving' ? '저장 중…' : state === 'error' ? '저장 안 됨 (Supabase 연결 확인)' : ''
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', fontSize: 12.5, fontWeight: 700, color: C.sub }}>
-        메모
-        <span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{state === 'saving' ? '저장 중…' : state === 'error' ? '저장 안 됨 (Supabase 연결 확인)' : ''}</span>
-      </div>
-      <textarea value={text} onChange={e => change(e.target.value)} onBlur={() => { if (state === 'saving') { clearTimeout(timer.current); save(text) } }}
-        placeholder="고정석 대기자 등 간단 메모" rows={Math.max(2, text.split('\n').length)}
-        style={{ width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: '6px 0 0', fontSize: 14.5, lineHeight: 1.5, fontFamily: F, color: C.text, background: 'transparent' }} />
-    </div>
+    <>
+      <Label>
+        <span style={{ display: 'flex' }}>메모<span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{status}</span></span>
+      </Label>
+      {state === 'missing'
+        ? <div style={{ ...card, fontSize: 13, color: C.sub }}>메모를 쓰려면 Supabase에 anding_memo 테이블을 만들어 주세요 (supabase_setup.sql 맨 아래)</div>
+        : <div style={card}>
+            <textarea value={text} onChange={e => change(e.target.value)} onBlur={() => { if (state === 'saving') { clearTimeout(timer.current); save(text) } }}
+              placeholder="고정석 대기자 등 간단 메모" rows={Math.max(1, text.split('\n').length)}
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: 0, fontSize: 14.5, lineHeight: 1.45, fontFamily: F, color: C.text, background: 'transparent' }} />
+          </div>}
+    </>
   )
 }
 
