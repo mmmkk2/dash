@@ -520,6 +520,18 @@ function SeatChart({ d, H = 130 }) {
   )
 }
 
+// 고정석 전체 목록: 자리마다 마지막 이용권(fixed_all) + 지금 입실 기록 중 더 늦게 끝나는 것. 자리 번호 순
+function fixedRows(d, now, parse) {
+  const by = {}
+  for (const r of d.fixed_all || []) by[r.no] = { seat: String(r.no), name: r.name, product: r.product, end: r.end }
+  for (const r of d.seats['고정석'] || []) {
+    const k = Number(r.seat)
+    if (Number.isNaN(k)) continue
+    if (!by[k] || (r.end || '') > (by[k].end || '')) by[k] = { seat: String(r.seat), name: r.name, product: r.product, end: r.end }
+  }
+  return Object.keys(by).sort((a, b) => a - b).map(k => ({ ...by[k], over: !by[k].end || parse(by[k].end) <= now }))
+}
+
 // 좌석 상세: 위에 요약·그래프, 아래는 칩으로 하나씩 (배치도 / 곧 종료 / 자유석 / 노트북석 / 고정석) — 세로로 길게 늘어지지 않게
 function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
@@ -539,11 +551,23 @@ function SeatDetail() {
     ['soon', '곧 종료', soon, true],
     ['free', '자유석', d.seats['자유석'] || []],
     ['laptop', '노트북석', d.seats['노트북석'] || []],
-    ['fixed', '고정석', d.seats['고정석'] || [], true],
+    ['fixed', '고정석', fixedRows(d, now, parse), 'fixed'],
   ]
   const cur = views.find(v => v[0] === view) || views[0]
   // 한 사람 한 줄: 좌석 · 이름 · 상품 · 시각
-  const list = (rows, end) => rows.length === 0 ? <Muted>없어요</Muted> : (
+  const list = (rows, end) => rows.length === 0 ? <Muted>없어요</Muted> : end === 'fixed' ? (
+    // 고정석: 자리마다 이용권 종류와 종료 시각(날짜까지). 이용권이 끝난 자리는 흐리게 '빈 자리'
+    <Card>
+      {rows.map((r, i) => (
+        <div key={r.seat} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14, whiteSpace: 'nowrap', opacity: r.over ? 0.5 : 1 }}>
+          <b style={{ fontWeight: 600, minWidth: 24, color: COL.seat }}>{r.seat}</b>
+          <span style={{ flexShrink: 0 }}>{r.over ? '빈 자리' : (r.name || '미등록')}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.sub, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.over ? (r.name ? `${r.name} · ${r.product || ''}` : '') : (r.product || '')}</span>
+          <span style={{ fontSize: 12, color: C.sub }}>{r.end ? `~${shortTime(r.end)}` : ''}</span>
+        </div>
+      ))}
+    </Card>
+  ) : (
     <Card>
       {rows.map((r, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14, whiteSpace: 'nowrap' }}>
@@ -578,7 +602,7 @@ function SeatDetail() {
       <div style={{ display: 'flex', gap: 6, padding: '10px 0 8px', overflowX: 'auto' }}>
         {views.map(([k, label, rows]) => (
           <button key={k} onClick={() => setView(k)} aria-pressed={view === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', whiteSpace: 'nowrap', background: view === k ? COL.seat : C.card, color: view === k ? '#fff' : COL.seat, border: `0.5px solid ${view === k ? COL.seat : C.sep}` }}>
-            {label}{rows ? ` ${rows.length}` : ''}
+            {label}{k === 'fixed' ? ` ${rows.filter(r => !r.over).length}/${rows.length}` : rows ? ` ${rows.length}` : ''}
           </button>
         ))}
       </div>
