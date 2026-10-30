@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, MessageSquare, ChevronRight } from 'lucide-react'
+import { MoreHorizontal, MessageSquare, ChevronRight, DoorOpen } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
@@ -703,6 +703,28 @@ function Detail({ k, d, onClose, onSms, onReload }) {
   )
 }
 
+// 매장 문열기: 맥의 앤딩 앱이 봇 브라우저로 코보페이 문열기를 누른다 (실제 문이 열리므로 한 번 더 묻는다)
+function GateButton({ onLogin }) {
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(false)
+  async function open() {
+    if (busy || !confirm('매장 문을 열까요?')) return
+    setBusy(true)
+    try {
+      const res = await fetch(`${API}/api/gate/open`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      if (res.status === 401 || res.status === 403) { alert('문열기는 앤딩 로그인이 필요해요'); onLogin(); return }
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || `문열기 실패 (${res.status})`)
+      setDone(true); setTimeout(() => setDone(false), 3000)
+    } catch (e) { alert(e.message || '문열기에 실패했어요') } finally { setBusy(false) }
+  }
+  return (
+    <button onClick={open} disabled={busy} aria-label="매장 문열기" style={{ ...plain, height: 38, borderRadius: 12, padding: '0 12px', background: done ? GREEN : C.card, color: done ? '#fff' : GREEN, border: `0.5px solid ${done ? GREEN : C.sep}`, display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 600, opacity: busy ? 0.6 : 1 }}>
+      <DoorOpen size={16} />{busy ? '여는 중…' : done ? '열었어요' : '문열기'}
+    </button>
+  )
+}
+
 export default function AndingHome() {
   const navigate = useNavigate()
   const tabBar = useShowTabBar()
@@ -741,9 +763,12 @@ export default function AndingHome() {
       <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 16px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative' }}>
           <div style={{ fontSize: tabBar ? 22 : 28, fontWeight: 700, letterSpacing: tabBar ? '-0.5px' : '-0.7px', lineHeight: tabBar ? '38px' : 1.25 }}>앤딩</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+          <GateButton onLogin={() => setLoginOpen(true)} />
           <button aria-label="메뉴" onClick={() => setMenuOpen(o => !o)} style={{ ...plain, width: 38, height: 38, borderRadius: 12, background: C.card, border: `0.5px solid ${C.sep}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text }}>
             <MoreHorizontal size={18} />
           </button>
+          </div>
           {menuOpen && (
             <>
               <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
