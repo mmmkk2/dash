@@ -456,8 +456,9 @@ const t2m = s => { const d = new Date(s); return d.getHours() * 60 + d.getMinute
 const shortTime = s => (s || '').replace(/^\d{4}\./, '').replace(/\./g, '/').replace(/^(\d\d\/\d\d) /, '$1 ')
 
 // 오늘(05시~다음날 05시) 자유석 이용자 수 그래프
-function SeatChart({ d }) {
-  const W = 340, H = 130, L = 26, B = 18
+// compact: 배치도 옆 좁은 칸용 (세로로 조금 길게, 시간 눈금은 6시간마다)
+function SeatChart({ d, compact }) {
+  const W = compact ? 170 : 340, H = compact ? 150 : 130, L = 22, B = 18
   const start = new Date(d.start).getTime(), span = new Date(d.end).getTime() - start
   const max = Math.max(d.total_free || 0, ...d.history.map(h => h[1]), 1)
   const x = t => L + (new Date(t).getTime() - start) / span * (W - L - 4)
@@ -470,7 +471,7 @@ function SeatChart({ d }) {
         <g key={v}><line x1={L} x2={W - 4} y1={y(v)} y2={y(v)} stroke={C.sep} /><text x={L - 4} y={y(v) + 3} fontSize="9" fill={C.sub} textAnchor="end">{v}</text></g>
       ))}
       {limit > 0 && <line x1={L} x2={W - 4} y1={y(limit)} y2={y(limit)} stroke="#e5484d" strokeDasharray="3 3" opacity=".6" />}
-      {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => {
+      {(compact ? [0, 6, 12, 18, 24] : [0, 3, 6, 9, 12, 15, 18, 21, 24]).map(h => {
         const xx = L + h / 24 * (W - L - 4)
         return <text key={h} x={xx} y={H - 4} fontSize="9" fill={C.sub} textAnchor="middle">{String((5 + h) % 24).padStart(2, '0')}</text>
       })}
@@ -518,8 +519,8 @@ function SeatDetail() {
       {/* 그래프·배치도는 한 줄에 나란히, 목록을 내려도 위에 고정 */}
       <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg, paddingTop: 8 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-        <Card style={{ flex: 1, minWidth: 0, padding: '8px 6px 2px', display: 'flex', alignItems: 'center' }}><SeatChart d={d} /></Card>
-        <Card style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Card style={{ flex: 2, minWidth: 0, padding: '8px 4px 2px', display: 'flex', alignItems: 'center' }}><SeatChart d={d} compact /></Card>
+        <Card style={{ flex: 3, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {seatMap && !mapFailed
             ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%' }} />
             : <span style={{ fontSize: 12, color: C.sub, padding: 12 }}>배치도 없음</span>}
