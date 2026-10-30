@@ -333,7 +333,8 @@ function Modal({open,onClose,children}){
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px calc(36px + env(safe-area-inset-bottom))",
-        width:"100%",maxWidth:"clamp(320px,100%,660px)",maxHeight:"min(78vh,calc(100dvh - 80px))",overflowY:"auto",
+        // 폰에서는 메모 창처럼 양옆 12px 남김 (큰 화면은 최대 660px 가운데)
+        width:"calc(100% - 24px)",maxWidth:"660px",maxHeight:"min(78vh,calc(100dvh - 80px))",overflowY:"auto",
         boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`}}>
         <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
           margin:"10px auto 18px",cursor:"pointer"}} onClick={onClose}/>
