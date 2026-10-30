@@ -218,7 +218,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       {!edit && <Fab label="새 노트" onClick={create} />}
 
       {viewer && (
-        <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
         <div onClick={e => e.stopPropagation()} style={{ width: 'calc(100% - 24px)', maxWidth: 660, height: 'min(78vh, calc(100dvh - 80px))', background: '#fff', borderRadius: '24px 24px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 12px', borderBottom: `0.5px solid ${C.sep}` }}>
             <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{viewer.name}</div>

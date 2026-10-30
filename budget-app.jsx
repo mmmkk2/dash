@@ -330,7 +330,7 @@ function Modal({open,onClose,children}){
   if(!open)return null;
   return createPortal(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(26,20,16,0.6)",
-      zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)"}}>
+      zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)"}}>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px calc(36px + env(safe-area-inset-bottom))",
         // 폰에서는 메모 창처럼 양옆 12px 남김 (큰 화면은 최대 660px 가운데)

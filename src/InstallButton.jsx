@@ -39,7 +39,7 @@ function InstallHelp({ onClose }) {
     </section>
   )
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: F }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', fontFamily: F }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, width: '100%', maxWidth: 560, borderRadius: '22px 22px 0 0', padding: '20px 20px calc(28px + env(safe-area-inset-bottom))' }}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ flex: 1, fontSize: 20, fontWeight: 700, color: C.text }}>앱으로 설치하기</div>
