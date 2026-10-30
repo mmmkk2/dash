@@ -710,7 +710,9 @@ function ProductTable() {
   if (status === 404) return <IframeDetail k="product" path="/product" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !data) return <Muted>불러오는 중…</Muted>
-  const rows = data.tabs[tab] || []
+  // 고정석 상품은 판매 현황에서 뺀다 (따로 관리)
+  const list = k => (data.tabs[k] || []).filter(p => !(p.name || '').includes('고정석'))
+  const rows = list(tab)
   const flag = (on, label) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600, color: on ? COL.product : C.sub, opacity: on ? 1 : 0.6 }}>
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: on ? COL.product : 'transparent', border: `1.5px solid ${on ? COL.product : C.sub}`, boxSizing: 'border-box' }} />{label}
@@ -721,7 +723,7 @@ function ProductTable() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         {PRODUCT_TABS.map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} aria-pressed={tab === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: tab === k ? COL.product : C.card, color: tab === k ? '#fff' : COL.product, border: `0.5px solid ${tab === k ? COL.product : C.sep}` }}>
-            {label} {(data.tabs[k] || []).filter(p => p.sale).length}/{(data.tabs[k] || []).length}
+            {label} {list(k).filter(p => p.sale).length}/{list(k).length}
           </button>
         ))}
       </div>
@@ -814,11 +816,9 @@ export default function AndingHome() {
   const gate = useGate(() => setLoginOpen(true))
   const menu = [
     { label: '문열기', run: gate.open },
-    { label: '새로고침', run: load },
     { label: '설정', run: () => setTool('settings') },
     { label: '문자 생성기', run: () => setTool('sms') },
     { label: '급여 관리표', run: () => setTool('salary') },
-    { label: '기존 관리자 화면', run: () => navigate('/anding/classic') },
     // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
     { label: '앤딩 로그인', run: () => setLoginOpen(true) },
     { label: '로그아웃', danger: true, run: async () => { if (!confirm('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
