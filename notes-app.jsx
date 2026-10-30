@@ -190,21 +190,21 @@ export function useBackClose(open, onClose) {
   }, [open])
 }
 
-export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = '92dvh', children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, maxH = 'min(78vh, calc(100dvh - 80px))', children }) {
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={e => e.stopPropagation()} style={{
-        // 폭은 화면의 목록 카드와 같은 선(좌우 12px, 최대 680px)에 맞춘다
-        background: C.bg, width: 'calc(100% - 24px)', maxWidth: full ? 760 : 680, borderRadius: '22px 22px 0 0', overflowY: 'auto',
+        // 크기는 가계부 창과 같게(최대 660px 가운데, 높이 최대 78%, 안쪽 좌우 20px), 폰에서는 양옆 12px 남김
+        background: C.bg, width: 'calc(100% - 24px)', maxWidth: full ? 760 : 660, borderRadius: '24px 24px 0 0', overflowY: 'auto',
         // inset: 화면 가장자리에서 띄운 카드 모양 (좌우·아래 여백, 네 모서리 둥글게)
         ...(inset && { width: 'calc(100% - 20px)', maxWidth: 640, borderRadius: 22, marginBottom: 'calc(10px + env(safe-area-inset-bottom))' }),
         // 크게 보기도 화면 전체가 아니라 위가 조금 보이는 큰 창
         // full에 높이(예: '78dvh')를 주면 그 높이로
-        // maxH: 긴 내용 창은 위를 조금 남겨 바깥을 눌러 닫기 쉽게
+        // maxH: 위를 남겨 바깥을 눌러 닫기 쉽게 (기본은 가계부 창과 같은 높이)
         ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : { maxHeight: maxH }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: '18px 14px 12px' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : '18px 20px 12px' }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
           {actions}
           {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
@@ -213,7 +213,7 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
             opacity: doneDisabled ? 0.35 : 1, cursor: doneDisabled ? 'default' : 'pointer',
           }}>{doneLabel}</button>
         </div>
-        <div style={{ padding: '8px 16px 0' }}>{children}</div>
+        <div style={{ padding: inset ? '8px 16px 0' : '8px 20px 0' }}>{children}</div>
       </div>
     </div>
   )
