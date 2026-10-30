@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen } from 'lucide-react'
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
@@ -202,8 +202,8 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         ...(full ? { height: typeof full === 'string' ? full : '88dvh' } : { maxHeight: '92dvh' }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 14, padding: '18px 16px 12px' }}>
-          <div style={{ flex: 1, fontSize: 20, fontWeight: 700 }}>{title}</div>
+        <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 10, padding: '18px 16px 12px' }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
           {actions}
           {!hideCancel && <button onClick={onCancel} style={{ ...plain, fontSize: 15, color: C.sub }}>취소</button>}
           <button onClick={onDone} disabled={doneDisabled} style={{
@@ -425,7 +425,7 @@ function TagChip({ tag, on, onClick, small, allColor = C.tint }) {
   )
 }
 
-function MemoTab({ memos, reload, setErr }) {
+function MemoTab({ memos, reload, setErr, onMovedToNote }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
   const [viewer, setViewer] = useState(null)
@@ -513,6 +513,22 @@ function MemoTab({ memos, reload, setErr }) {
     if (error) return setErr(error.message)
     removeImages([...new Set([...(edit.origImages || []), ...(edit.images || [])])])
     setEdit(null); reload()
+  }
+
+  // 메모 → 노트: 첫 줄은 제목, 나머지는 본문(체크 줄은 '- ' 목록으로), 사진은 노트 첨부로(메모 버킷에 그대로 둠), 태그는 과목으로
+  async function toNote() {
+    if (!confirm('이 메모를 노트로 옮길까요?')) return
+    const lines = (edit.content || '').split('\n').map(l => l.replace(CHECK_RE, '- '))
+    const first = lines.findIndex(l => l.trim())
+    const title = first >= 0 ? lines[first].replace(/^- /, '').trim().slice(0, 80) : ''
+    const content = first >= 0 ? lines.slice(first + 1).join('\n').replace(/^\n+/, '') : ''
+    const files = (edit.images || []).map((p, i) => ({ path: p, name: `사진 ${i + 1}.jpg`, size: 0, type: 'image/jpeg', bucket: IMG_BUCKET }))
+    const { error } = await supabase.from('lecture_notes').insert({ title, subject: TAGS[edit.tag]?.label || null, content, files, updated_at: new Date().toISOString() })
+    if (error) return setErr(error.message)
+    await supabase.from('memos').delete().eq('id', edit.id)
+    // 편집 중에 뺀 사진만 지운다 (남은 사진은 노트가 씀)
+    removeImages((edit.origImages || []).filter(p => !(edit.images || []).includes(p)))
+    setEdit(null); reload(); onMovedToNote?.()
   }
 
   // 보관/꺼내기: 내용·수정 시각은 그대로 두고 archived만 바꾼다
@@ -620,6 +636,7 @@ function MemoTab({ memos, reload, setErr }) {
             {edit.id && <button aria-label={edit.archived ? '보관 해제' : '메모 보관'} onClick={archiveOpen} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
               {edit.archived ? <ArchiveRestore size={19} /> : <Archive size={19} />}
             </button>}
+            {edit.id && !editing && <button aria-label="노트로 옮기기" title="노트로 옮기기" onClick={toNote} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><BookOpen size={19} /></button>}
             {edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
           {/* 읽기 보기에서 내용을 두 번 누르면 바로 편집 (체크·링크·사진 누름은 제외) */}
@@ -1133,7 +1150,9 @@ export default function NotesApp({ initialTab = 'memo' }) {
           </div>
         )}
         {tab === 'memo'
-          ? (kind === 'note' ? <LectureNotes setErr={setErr} /> : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} />)
+          ? (kind === 'note'
+            ? <LectureNotes setErr={setErr} onMovedToMemo={() => { loadMemos(); pickKind('memo') }} />
+            : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} onMovedToNote={() => pickKind('note')} />)
           : <CalendarTab events={events} reload={loadEvents} setErr={setErr} body={body} reloadBody={loadBody} />}
       </main>
     </div>

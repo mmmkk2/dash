@@ -1,11 +1,12 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ChevronDown } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ChevronDown, StickyNote } from 'lucide-react'
 import { supabase } from './login'
 import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab } from '../notes-app'
 
 const BUCKET = 'note-files'
+const MEMO_BUCKET = 'memo-images' // 메모에서 옮겨 온 사진은 메모 버킷에 그대로 두고 bucket으로 표시
 const MAX_FILE = 50 * 1024 * 1024
 const shortDate = s => { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()}` }
 const fileSize = n => n >= 1048576 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`
@@ -56,14 +57,14 @@ function FileRow({ f, onOpen, onRemove }) {
       {pdf ? <FileText size={20} color="#e5484d" /> : <FileIcon size={20} color={C.sub} />}
       <button onClick={onOpen} style={{ ...plain, flex: 1, minWidth: 0, textAlign: 'left' }}>
         <div style={{ fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: C.text }}>{f.name}</div>
-        <div style={{ fontSize: 12, color: C.sub }}>{fileSize(f.size || 0)}</div>
+        {f.size > 0 && <div style={{ fontSize: 12, color: C.sub }}>{fileSize(f.size)}</div>}
       </button>
       {onRemove && <button onClick={onRemove} aria-label={`${f.name} 빼기`} style={{ ...plain, color: C.sub, padding: 4 }}><X size={16} /></button>}
     </div>
   )
 }
 
-export default function LectureNotes({ setErr }) {
+export default function LectureNotes({ setErr, onMovedToMemo }) {
   const [notes, setNotes] = useState(null)
   const [q, setQ] = useState('')
   const [subject, setSubject] = useState('')
@@ -85,6 +86,8 @@ export default function LectureNotes({ setErr }) {
   const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
   const create = () => setEdit({ title: '', subject: subject || '', content: '', files: [], editing: true, uploaded: [] })
   const removeFiles = paths => { if (paths.length) supabase.storage.from(BUCKET).remove(paths) }
+  // 첨부 지우기: 파일마다 들어 있는 버킷에서
+  const removeAttached = files => { for (const b of new Set(files.map(f => f.bucket || BUCKET))) supabase.storage.from(b).remove(files.filter(f => (f.bucket || BUCKET) === b).map(f => f.path)) }
   const discard = () => { removeFiles(edit.uploaded); setEdit(null) }
 
   async function save() {
@@ -102,7 +105,7 @@ export default function LectureNotes({ setErr }) {
     if (!confirm('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
     const { error } = await supabase.from('lecture_notes').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
-    removeFiles(edit.files.map(f => f.path)); setEdit(null); load()
+    removeAttached(edit.files); setEdit(null); load()
   }
   useBackClose(!!edit, () => (edit?.editing ? save() : setEdit(null)))
 
@@ -122,9 +125,24 @@ export default function LectureNotes({ setErr }) {
   }
   async function openFile(f) {
     const w = window.open('', '_blank') // 팝업 차단을 피하려고 누른 순간 창부터 연다
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(f.path, 3600)
+    const { data, error } = await supabase.storage.from(f.bucket || BUCKET).createSignedUrl(f.path, 3600)
     if (error || !data?.signedUrl) { w?.close(); return setErr(error?.message || '파일을 열지 못했어요') }
     if (w) w.location.href = data.signedUrl; else location.href = data.signedUrl
+  }
+  // 노트 → 메모: 제목+본문(제목 표시 # 는 뗌)을 메모 한 장으로. 메모에서 온 사진은 메모 사진으로 돌아가고,
+  // 그 밖의 첨부(PDF 등)는 메모에 붙일 수 없어 지운다 (먼저 물어봄)
+  async function toMemo() {
+    const photos = edit.files.filter(f => f.bucket === MEMO_BUCKET)
+    const others = edit.files.filter(f => f.bucket !== MEMO_BUCKET)
+    if (!confirm(others.length ? `첨부 파일 ${others.length}개는 메모에 붙일 수 없어 지워져요.\n메모로 옮길까요?` : '이 노트를 메모로 옮길까요?')) return
+    const content = [edit.title.trim(), edit.content.replace(/^#{1,2} /gm, '')].filter(t => t.trim()).join('\n')
+    const row = { title: '', content, color: '#1c1c1e', pinned: false, updated_at: new Date().toISOString() }
+    if (photos.length) row.images = photos.map(f => f.path)
+    const { error } = await supabase.from('memos').insert(row)
+    if (error) return setErr(error.message)
+    await supabase.from('lecture_notes').delete().eq('id', edit.id)
+    removeAttached(others)
+    setEdit(null); load(); onMovedToMemo?.()
   }
   // 편집 중 줄 앞에 '## ' 또는 '- ' 넣기
   const taRef = useRef(null)
@@ -176,7 +194,10 @@ export default function LectureNotes({ setErr }) {
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
           onDone={edit.editing ? save : () => setEdit(e => ({ ...e, editing: true }))}
-          actions={edit.id && <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, color: C.sub }}><Trash2 size={18} /></button>}>
+          actions={edit.id && <>
+            {!edit.editing && <button onClick={toMemo} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}><StickyNote size={14} />메모로</button>}
+            <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, color: C.sub }}><Trash2 size={18} /></button>
+          </>}>
           {edit.editing ? (
             <>
               <input value={edit.title} onChange={e => setEdit(ed => ({ ...ed, title: e.target.value }))} placeholder="제목" autoFocus={!edit.id} style={{ ...input, fontSize: 22, fontWeight: 700, padding: '2px 0' }} />
