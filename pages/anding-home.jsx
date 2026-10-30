@@ -54,12 +54,24 @@ const tidyLockers = data => {
 
 // 맥 수집이 멈춰 있어도 날짜는 오늘 기준: 받은 요약을 지금 시각으로 다시 나눈다
 // (스터디룸은 오늘 것만·이용 중 다시 계산, 사물함은 만료/오늘 만료 다시 분류, 지난 날 결제·지난 달 매출은 0)
-// 스터디룸 예약 시각 판단: 끝 시각이 시작보다 이르면(23:00–01:30) 자정을 넘는 예약 → 오늘 안에서는 끝나지 않음
-const roomNow = (start, end, hm) => end < start ? hm >= start : start <= hm && hm <= end
-const roomDone = (start, end, hm) => end < start ? false : end < hm
+// 스터디룸 예약 시각: 날짜까지 붙여 실제 시각(ms)으로 비교 — 자정을 넘는 예약(23:00–01:30)도
+// 시작 전날 밤부터 끝나는 다음 날 새벽까지 '이용 중', 끝 시각이 지나야 '끝남'
+const kstMs = (date, hm) => new Date(`${date.replace(/\./g, '-')}T${hm}:00+09:00`).getTime()
+function roomSpan(date, start, endDate, end) {
+  const s = kstMs(date, start)
+  let e = kstMs(endDate || date, end)
+  if (e < s) e += 864e5 // 끝 날짜가 없고 시각이 거꾸로면 다음 날
+  return [s, e]
+}
+// 'YYYY.MM.DD HH:MM ~ YYYY.MM.DD HH:MM' (날짜 없으면 fallback 날짜)
+function parseRoomTime(t, fallbackDate) {
+  const [x, y] = (t || '').split('~').map(v => v.trim())
+  const dateOf = v => (v.match(/\d{4}\.\d{2}\.\d{2}/) || [fallbackDate])[0]
+  return { a: x.slice(-5), b: (y || '').slice(-5), span: roomSpan(dateOf(x), x.slice(-5), dateOf(y || ''), (y || '').slice(-5)) }
+}
 
 function freshen(d) {
-  const now = new Date(), today = ymdDot(now), nowHM = now.toTimeString().slice(0, 5)
+  const now = new Date(), today = ymdDot(now)
   const dataDay = (d.now || '').slice(0, 10).replace(/-/g, '.')
   // 10분 넘게 새 요약이 없으면 맥 수집이 멈춘 것으로 본다 (평소엔 1분마다 올라옴)
   const stale = now - new Date((d.now || '').replace(' ', 'T') + '+09:00') > 10 * 60e3
@@ -70,7 +82,10 @@ function freshen(d) {
     ...d, stale, today: now,
     studyroom: {
       ...d.studyroom,
-      items: d.studyroom.items.filter(r => (r.date || dataDay) === today).map(r => ({ ...r, now: roomNow(r.start, r.end, nowHM), done: roomDone(r.start, r.end, nowHM) })),
+      // 오늘 시작한 예약 + 어제 시작해 아직 안 끝난(자정 넘는) 예약
+      items: d.studyroom.items.map(r => ({ r, span: roomSpan(r.date || dataDay, r.start, r.end_date, r.end) }))
+        .filter(({ r, span }) => (r.date || dataDay) === today || (span[0] <= now.getTime() && now.getTime() <= span[1]))
+        .map(({ r, span }) => ({ ...r, now: span[0] <= now.getTime() && now.getTime() <= span[1], done: span[1] < now.getTime() })),
     },
     locker: {
       ...d.locker,
@@ -615,7 +630,6 @@ function PaymentDetail() {
 }
 
 // 스터디룸: 오늘~모레, 날짜 칩으로 바꿔 보고 2인실·4인실 나란히
-const roomTimes = t => (t || '').split('~').map(x => x.trim().slice(-5))
 function RoomDetail() {
   const { data, status, error, loading } = useApi('/api/room_detail')
   const [day, setDay] = useState(0)
@@ -628,16 +642,24 @@ function RoomDetail() {
     const label = `${String(t.getMonth() + 1).padStart(2, '0')}/${String(t.getDate()).padStart(2, '0')} (${'일월화수목금토'[t.getDay()]})`
     return { ...(data.days.find(x => x.date === date) || { missing: true, count_2: 0, count_4: 0 }), date, label }
   })
+  // 오늘 칸에는 전날 시작해 아직 이용 중인(자정 넘는) 예약도 맨 위에
+  const t0 = Date.now()
+  for (const k of ['reservations_2', 'reservations_4']) {
+    const carry = data.days.filter(x => x.date < days[0].date).flatMap(x => (x[k] || []).map(r => ({ ...r, _date: x.date })))
+      .filter(r => { const { span } = parseRoomTime(r.time, r._date); return span[0] <= t0 && t0 <= span[1] })
+    const have = days[0][k] || []
+    days[0] = { ...days[0], missing: days[0].missing && !carry.length, [k]: [...carry.filter(c => !have.some(h => h.time === c.time && h.name === c.name)), ...have] }
+  }
+  days[0] = { ...days[0], count_2: (days[0].reservations_2 || []).length, count_4: (days[0].reservations_4 || []).length }
   const d = days[day]
-  const nowHM = new Date().toTimeString().slice(0, 5)
   const col = (label, rows) => (
     <div style={{ flex: 1, minWidth: 0 }}>
       <Label>{label} {rows.length}</Label>
       <Card>
         {rows.length === 0 && <div style={{ padding: '14px', color: C.sub, fontSize: 14 }}>{d.missing ? '아직 불러오지 않음' : '예약 없음'}</div>}
         {rows.map((r, i) => {
-          const [a, b] = roomTimes(r.time)
-          const now = day === 0 && roomNow(a, b, nowHM), done = day === 0 && roomDone(a, b, nowHM)
+          const { a, b, span } = parseRoomTime(r.time, r._date || d.date)
+          const now = day === 0 && span[0] <= t0 && t0 <= span[1], done = day === 0 && span[1] < t0
           return (
             <div key={i} style={{ padding: '10px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', opacity: done ? 0.45 : 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: now ? COL.room : C.text }}>{a}–{b}{now && <span style={{ fontSize: 11, marginLeft: 6, color: '#fff', background: COL.room, borderRadius: 999, padding: '1px 6px', verticalAlign: 2 }}>이용 중</span>}</div>
