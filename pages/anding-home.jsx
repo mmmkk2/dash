@@ -1009,17 +1009,18 @@ function UsersDetail() {
   )
 }
 
-function Detail({ k, d, onClose, onSms, onReload }) {
+function Detail({ k, d, onClose, onSms, onReload, onSettings }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
   return (
     <Sheet title={info.title} tint={COL[k]} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} inset>
-      {/* 상품 판매는 보기만 — 판매 설정(시험기간·잔여 제한·전체 OFF 등)은 ⋯ > 설정에서 */}
+      {/* 상품 판매는 보기만 — 판매 설정(시험기간·잔여 제한·전체 OFF 등)은 '판매 설정' 버튼(= ⋯ > 설정) */}
       {k === 'product' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 10px', fontSize: 13, color: C.sub }}>
           지금 판매 모드
           <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: COL.product, borderRadius: 999, padding: '2px 9px' }}>{d.product.mode}</span>
-          <span style={{ marginLeft: 'auto', fontSize: 12 }}>바꾸기: ⋯ › 설정</span>
+          {/* 판매 설정 창을 바로 (상품 창 위에 열림) */}
+          <button onClick={onSettings} style={{ ...plain, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, fontSize: 12.5, fontWeight: 600, color: COL.product }}>판매 설정<ChevronRight size={14} /></button>
         </div>
       )}
       {k === 'seat' ? <SeatDetail />
@@ -1145,7 +1146,7 @@ export default function AndingHome() {
           </>
         )}
       </div>
-      {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} onSms={setSms} onReload={load} />}
+      {detail && d && <Detail k={detail} d={d} onClose={() => setDetail(null)} onSms={setSms} onReload={load} onSettings={() => setTool('settings')} />}
       {sms && <SmsSheet r={sms} onClose={() => setSms(null)} />}
       {tool === 'settings' && <SettingsSheet onClose={() => setTool(null)} onApplied={load} />}
       {tool === 'sms' && <SmsToolSheet onClose={() => setTool(null)} />}
