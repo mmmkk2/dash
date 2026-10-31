@@ -343,10 +343,10 @@ function Modal({open,onClose,title,children}){
   return createPortal(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(26,20,16,0.6)",
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)"}}>
-      <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}`}</style>
+      <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}.sheet-form div,.sheet-form input,.sheet-form select{min-width:0}.sheet-form input,.sheet-form select{max-width:100%}`}</style>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"24px 24px 0 0",paddingBottom:"calc(24px + env(safe-area-inset-bottom))",
-        width:"calc(100% - 16px)",maxWidth:"660px",height:"min(78dvh, calc(100dvh - 80px))",overflowY:"auto",
+        width:"calc(100% - 16px)",maxWidth:"660px",height:"min(78dvh, calc(100dvh - 80px))",overflowY:"auto",overflowX:"hidden",
         boxShadow:"0 -10px 40px rgba(0,0,0,0.12)"}}>
         <div style={{position:"sticky",top:0,zIndex:2,background:C.paper,display:"flex",alignItems:"center",gap:"8px",padding:"18px 20px 12px"}}>
           <div style={{flex:1,minWidth:0,fontSize:"20px",fontWeight:700,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:FONT}}>{head.title}</div>

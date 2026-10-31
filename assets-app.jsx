@@ -156,8 +156,8 @@ function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(26,20,16,0.6)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}`}</style>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", width: "calc(100% - 16px)", maxWidth: 660, height: "min(78dvh, calc(100dvh - 80px))", overflowY: "auto", paddingBottom: "calc(24px + env(safe-area-inset-bottom))", boxShadow: "0 -10px 40px rgba(0,0,0,0.12)" }}>
+      <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}.sheet-form div,.sheet-form input,.sheet-form select{min-width:0}.sheet-form input,.sheet-form select{max-width:100%}`}</style>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", width: "calc(100% - 16px)", maxWidth: 660, height: "min(78dvh, calc(100dvh - 80px))", overflowY: "auto", overflowX: "hidden", paddingBottom: "calc(24px + env(safe-area-inset-bottom))", boxShadow: "0 -10px 40px rgba(0,0,0,0.12)" }}>
         <div style={{ position: "sticky", top: 0, zIndex: 2, background: C.white, display: "flex", alignItems: "center", gap: 8, padding: "18px 20px 12px" }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{head.title}</div>
           {head.submit && <button onClick={onClose} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 15, color: C.inkLight, fontFamily: F }}>취소</button>}
@@ -782,7 +782,18 @@ function syncLoanRepayments(loans, txs) {
   return changed;
 }
 
-function LoanForm({ initial = {}, onSave, onDelete }) {
+// 가계부 분류(settings.trees)에서 '원금상환'·'대출원금상환' 아래 항목을 모두 (부채마다 다른 항목에 연결할 수 있게)
+function loanItemsFromTrees(trees) {
+  const out = new Set();
+  const walk = (o, key) => {
+    if (Array.isArray(o)) { if (/원금상환/.test(key || "")) o.forEach(v => typeof v === "string" && v.trim() && out.add(v.trim())); return; }
+    if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) walk(v, k);
+  };
+  walk(trees);
+  return [...out];
+}
+
+function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
   const init = initial;
   const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
   const initMemo  = parseMemo(init.memo);
@@ -958,7 +969,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 4 }}>
         <select value={link} onChange={e => setLink(e.target.value)} style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: link ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F }}>
           <option value="">연결 안 함</option>
-          {[...new Set([...LOAN_LINK_ITEMS, ...(initMemo.budgetLink ? [initMemo.budgetLink] : [])])].map(v => <option key={v} value={v}>{v}</option>)}
+          {[...new Set([...(linkItems.length ? linkItems : LOAN_LINK_ITEMS), ...(initMemo.budgetLink ? [initMemo.budgetLink] : [])])].map(v => <option key={v} value={v}>{v}</option>)}
         </select>
       </div>
       <div style={{ fontSize: 11.5, color: C.inkLight, marginBottom: 12 }}>
@@ -1682,6 +1693,7 @@ export default function AssetsApp() {
   const [expandedCats, setExpandedCats] = useState(new Set());
   const [lastSaved, setLastSaved] = useState(null);
   const [dbLoading, setDbLoading] = useState(true);
+  const [loanLinkItems, setLoanLinkItems] = useState([]); // 가계부 원금상환 항목 (부채 연결용)
   const [addInitial, setAddInitial] = useState(null);
   const [snapshots,     setSnapshots]     = useState([]);
   const [vestings,      setVestings]      = useState([]);
@@ -1744,6 +1756,7 @@ export default function AssetsApp() {
       }
       if (dbSettings) {
         const byKey = Object.fromEntries(dbSettings.map(r => [r.key, r.value]));
+        if (byKey.trees) setLoanLinkItems(loanItemsFromTrees(byKey.trees));
         if (byKey.cats?.length) setCats(byKey.cats);
         if (byKey.usdKrw)      setUsdKrw(byKey.usdKrw);
         if (Array.isArray(byKey.stock_sales)) setStockSales(byKey.stock_sales);
@@ -3173,10 +3186,10 @@ export default function AssetsApp() {
         {editItem && <PensionForm initial={editItem} onSave={a => { updateAsset(a); }} onDelete={() => deleteAsset(editItem.id)} />}
       </Modal>
       <Modal open={modal === "addLoan"} onClose={() => setModal(null)}>
-        <LoanForm onSave={a => { addAsset(a); setModal(null); }} />
+        <LoanForm linkItems={loanLinkItems} onSave={a => { addAsset(a); setModal(null); }} />
       </Modal>
       <Modal open={modal === "editLoan" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
-        {editItem && <LoanForm initial={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} onDelete={() => deleteAsset(editItem.id)} />}
+        {editItem && <LoanForm linkItems={loanLinkItems} initial={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} onDelete={() => deleteAsset(editItem.id)} />}
       </Modal>
       <Modal open={modal === "payLoan" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <LoanPayForm loan={editItem} onSave={a => { updateAsset(a); setModal(null); setEditItem(null); }} />}
