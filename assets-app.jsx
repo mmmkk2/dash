@@ -141,13 +141,29 @@ function SLabel({ children }) {
   return <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 7, fontFamily: F }}>{children}</div>;
 }
 
-function Modal({ open, onClose, children }) {
+function Modal({ open, onClose, title, children }) {
+  const bodyRef = useRef(null);
+  const [head, setHead] = useState({ title: "", label: "", submit: false });
+  // 폼 안의 제목(data-form-title)과 맨 아래 큰 버튼(data-submit)을 읽어 위 머리에 (제목 + 취소 · 저장/추가). 버튼이 없는 창은 닫기만
+  useEffect(() => {
+    if (!open) return;
+    const body = bodyRef.current;
+    const t = body?.querySelector("[data-form-title]")?.textContent.trim() || title || "";
+    const b = body?.querySelector("[data-submit]");
+    const label = b ? (/저장 중/.test(b.textContent) ? "저장 중…" : (b.textContent.trim().replace(/^[^가-힣A-Za-z]+/, "") || "저장")) : "";
+    if (t !== head.title || label !== head.label || !!b !== head.submit) setHead({ title: t, label, submit: !!b });
+  });
   if (!open) return null;
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(26,20,16,0.6)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", padding: "8px 20px calc(36px + env(safe-area-inset-bottom))", width: "calc(100% - 16px)", maxWidth: 660, height: "min(78dvh, calc(100dvh - 80px))", overflowY: "auto" }}>
-        <div style={{ width: 36, height: 4, background: C.border, borderRadius: 99, margin: "10px auto 18px", cursor: "pointer" }} onClick={onClose} />
-        {children}
+      <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}`}</style>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", width: "calc(100% - 16px)", maxWidth: 660, height: "min(78dvh, calc(100dvh - 80px))", overflowY: "auto", paddingBottom: "calc(24px + env(safe-area-inset-bottom))", boxShadow: "0 -10px 40px rgba(0,0,0,0.12)" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 2, background: C.white, display: "flex", alignItems: "center", gap: 8, padding: "18px 20px 12px" }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{head.title}</div>
+          {head.submit && <button onClick={onClose} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 15, color: C.inkLight, fontFamily: F }}>취소</button>}
+          <button onClick={() => head.submit ? bodyRef.current?.querySelector("[data-submit]")?.click() : onClose()} style={{ border: "none", cursor: "pointer", fontSize: 15, fontWeight: 600, color: "#fff", background: C.ink, borderRadius: 999, padding: "8px 18px", fontFamily: F, whiteSpace: "nowrap" }}>{head.submit ? head.label : "닫기"}</button>
+        </div>
+        <div ref={bodyRef} className="sheet-form" style={{ padding: "8px 20px 0" }}>{children}</div>
       </div>
     </div>
   );
@@ -242,7 +258,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
   return (
     <div style={{ fontFamily: F }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "종목 수정" : "종목 추가"}</span>
+        <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "종목 수정" : "종목 추가"}</span>
         {isEdit && (
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => onCopy({ id: Date.now(), ticker: ticker.trim().toUpperCase(), name: name.trim() || ticker.trim().toUpperCase(), market, shares: parseFloat(String(shares).replace(/,/g,"")), avgPrice: parseFloat(String(avgPrice).replace(/,/g,"")), currentPrice: null, lastFetched: null, purchaseDate: purchaseDate || null, purchaseRate: market === "US" && purchaseRate ? parseFloat(purchaseRate) : null, institution: institution.trim(), accountSuffix: "" })}
@@ -329,7 +345,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
         </div>
       )}
 
-      <button onClick={submit} disabled={saving} style={{
+      <button data-submit onClick={submit} disabled={saving} style={{
         width: "100%", padding: 13, borderRadius: 12, border: "none",
         background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700,
         cursor: saving ? "not-allowed" : "pointer", fontFamily: F,
@@ -366,7 +382,7 @@ function AssetForm({ initial, cats, onSave, onDelete, saving, suggestions = [] }
   return (
     <div style={{ fontFamily: F }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "자산 수정" : "자산 추가"}</span>
+        <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "자산 수정" : "자산 추가"}</span>
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.down, fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
 
@@ -418,7 +434,7 @@ function AssetForm({ initial, cats, onSave, onDelete, saving, suggestions = [] }
         </div>
       </div>
 
-      <button onClick={submit} disabled={saving} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: catObj.color, color: "#fff", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: F, boxShadow: `0 4px 18px ${catObj.color}55`, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <button data-submit onClick={submit} disabled={saving} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: catObj.color, color: "#fff", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: F, boxShadow: `0 4px 18px ${catObj.color}55`, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {saving ? "저장 중…" : isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -444,7 +460,7 @@ function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
   return (
     <div style={{ fontFamily: F }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "예수금 수정" : "예수금 추가"}</span>
+        <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "예수금 수정" : "예수금 추가"}</span>
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.down, fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
 
@@ -479,7 +495,7 @@ function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
         </div>
       </div>
 
-      <button onClick={submit} disabled={saving} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: F, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <button data-submit onClick={submit} disabled={saving} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: F, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {saving ? "저장 중…" : isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -531,7 +547,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>연금·공제</span>
+      <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>연금·공제</span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 18, marginBottom: 12 }}>
         {PENSION_TYPES.map(t => (
           <button key={t} onClick={() => setType(t)} style={{ flex: "1 1 auto", padding: "9px 0", border: `1.5px solid ${type === t ? C.ink : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 13, background: type === t ? C.ink : C.white, color: type === t ? "#fff" : C.inkMid, fontFamily: F }}>
@@ -601,7 +617,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
         </>
       )}
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "추가"}
       </button>
       {onDelete && (
@@ -655,7 +671,7 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>DC 연금 ETF</span>
+      <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>DC 연금 ETF</span>
       <div style={{ display: "flex", gap: 6, marginTop: 16, marginBottom: 14 }}>
         {[["KR", "국내"], ["US", "해외"]].map(([m, l]) => (
           <button key={m} onClick={() => setMarket(m)} style={{ flex: 1, padding: "9px 0", border: `1.5px solid ${market === m ? C.ink : C.border}`, borderRadius: 9, fontWeight: 700, fontSize: 13, background: market === m ? C.ink : C.white, color: market === m ? "#fff" : C.inkMid, fontFamily: F, cursor: "pointer" }}>{l}</button>
@@ -693,7 +709,7 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", fontVariantNumeric: "tabular-nums" }} />
       </div>
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "ETF 추가"}
       </button>
       {onDelete && (
@@ -797,7 +813,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>부채</span>
+      <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>부채</span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 18, marginBottom: 12 }}>
         {LOAN_TYPES.map(t => (
           <button key={t} onClick={() => setLoanType(t)}
@@ -915,7 +931,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
         </div>
       )}
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, marginBottom: onDelete ? 10 : 0 }}>
         {init.id ? "저장" : "부채 추가"}
       </button>
       {onDelete && (
@@ -958,7 +974,7 @@ function LoanPayForm({ loan, onSave }) {
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>납입 기록</span>
+      <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>납입 기록</span>
       <div style={{ background: C.cream, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", margin: "14px 0 16px", fontSize: 12, color: C.ink, lineHeight: 1.7 }}>
         <div style={{ fontWeight: 700, marginBottom: 3 }}>{loan.name || loan.institution} · 잔액 {fmtS(loan.amount)}</div>
         {monthlyInt > 0 && <div>이번 달 이자 {fmtS(monthlyInt)}원 (잔액 × {m.rate}% ÷ 12)</div>}
@@ -987,7 +1003,7 @@ function LoanPayForm({ loan, onSave }) {
         </div>
       )}
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
         납입 완료
       </button>
     </div>
@@ -1011,7 +1027,7 @@ function PensionPayForm({ pension, onSave }) {
 
   return (
     <div style={{ padding: "4px 0 8px" }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>납입 기록</span>
+      <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>납입 기록</span>
       <div style={{ background: C.cream, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", margin: "14px 0 16px", fontSize: 12, color: C.ink, lineHeight: 1.7 }}>
         <div style={{ fontWeight: 700, marginBottom: 2 }}>{pension.accountSuffix} · {pension.name || pension.institution}</div>
         <div>현재 적립액 <strong>{fmtS(pension.amount)}</strong></div>
@@ -1034,7 +1050,7 @@ function PensionPayForm({ pension, onSave }) {
         </div>
       )}
       {err && <div style={{ fontSize: 12, color: "#e07a5f", fontWeight: 600, marginBottom: 10 }}>{err}</div>}
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
         납입 완료
       </button>
     </div>
@@ -1048,7 +1064,7 @@ function CatSettings({ cats, onChange }) {
 
   return (
     <div style={{ fontFamily: F }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 18 }}>분류 관리</div>
+      <div data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 18 }}>분류 관리</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
         {cats.map(c => (
           <div key={c.key} style={{ display: "flex", alignItems: "center", gap: 10, background: C.paper, borderRadius: 10, padding: "9px 14px", border: `1px solid ${C.border}` }}>
@@ -1083,7 +1099,7 @@ function GrantEditForm({ grantName, grantDate, onSave }) {
   }
   return (
     <div style={{ fontFamily: F }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>그랜트 수정</div>
+      <div data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>그랜트 수정</div>
       <div style={{ marginBottom: 12 }}>
         <SLabel>Grant ID</SLabel>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="AMK1066155"
@@ -1094,7 +1110,7 @@ function GrantEditForm({ grantName, grantDate, onSave }) {
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: date ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         <Check size={16} /> 저장
       </button>
     </div>
@@ -1125,7 +1141,7 @@ function VestingForm({ initial, onSave, onDelete }) {
   return (
     <div style={{ fontFamily: F }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "RSU 수정" : "RSU 추가"}</span>
+        <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "RSU 수정" : "RSU 추가"}</span>
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.down, fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
@@ -1165,7 +1181,7 @@ function VestingForm({ initial, onSave, onDelete }) {
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       )}
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
         {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -1186,7 +1202,7 @@ function VestCompleteForm({ item, currentPrice, onComplete, onClose }) {
 
   return (
     <div style={{ fontFamily: F }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 6 }}>베스팅 완료 처리</div>
+      <div data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 6 }}>베스팅 완료 처리</div>
       <div style={{ fontSize: 13, color: C.inkMid, marginBottom: 20 }}>{item.name} · {item.shares}주 · {item.vestDate}</div>
       <div style={{ marginBottom: 16 }}>
         <SLabel>베스팅 시점 주가 (USD)</SLabel>
@@ -1199,7 +1215,7 @@ function VestCompleteForm({ item, currentPrice, onComplete, onClose }) {
         </div>
         <span style={{ fontSize: 13, fontWeight: 600, color: addToStocks ? C.ink : C.inkMid }}>보유주식에 자동 등록 (베스팅가를 매입가로)</span>
       </button>
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>완료 처리</button>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>완료 처리</button>
     </div>
   );
 }
@@ -1228,7 +1244,7 @@ function EsppForm({ initial, onSave, onDelete }) {
   return (
     <div style={{ fontFamily: F }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "ESPP 수정" : "ESPP 추가"}</span>
+        <span data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{isEdit ? "ESPP 수정" : "ESPP 추가"}</span>
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.down, fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
       <div style={{ marginBottom: 12 }}>
@@ -1250,7 +1266,7 @@ function EsppForm({ initial, onSave, onDelete }) {
             style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(avgPrice) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
       </div>
-      <button onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+      <button data-submit onClick={submit} style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: "0 6px 20px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {isEdit ? <><Check size={16} /> 저장</> : <><Plus size={16} /> 추가</>}
       </button>
     </div>
@@ -1271,7 +1287,7 @@ function EsppCompleteForm({ item, currentPrice, rate, onComplete }) {
 
   return (
     <div style={{ fontFamily: F }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 6 }}>ESPP 구매 완료</div>
+      <div data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 6 }}>ESPP 구매 완료</div>
       <div style={{ fontSize: 13, color: C.inkMid, marginBottom: 20 }}>{item.name} · {item.startDate} ~ {item.endDate}</div>
       <div style={{ marginBottom: 16 }}>
         <SLabel>실제 매입가 (USD)</SLabel>
@@ -1283,7 +1299,7 @@ function EsppCompleteForm({ item, currentPrice, rate, onComplete }) {
           예상 매입 주수: {estShares}주 ({fmtS(totalKrw)} ÷ ${pp?.toFixed(2)} × {rate?.toLocaleString("ko-KR")}원)
         </div>
       )}
-      <button onClick={() => { const vp = parseFloat(purchasePrice); if (!vp) { setErr(true); setTimeout(() => setErr(false), 400); return; } onComplete(vp, estShares); }}
+      <button data-submit onClick={() => { const vp = parseFloat(purchasePrice); if (!vp) { setErr(true); setTimeout(() => setErr(false), 400); return; } onComplete(vp, estShares); }}
         style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: C.ink, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F }}>주식에 등록</button>
     </div>
   );
@@ -1400,7 +1416,7 @@ function VestingBatchForm({ onSave }) {
 
   return (
     <div style={{ fontFamily: F }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>RSU 일괄 입력</div>
+      <div data-form-title style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>RSU 일괄 입력</div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
         <div><SLabel>티커</SLabel>
@@ -1510,7 +1526,7 @@ function VestingBatchForm({ onSave }) {
         </button>
       )}
 
-      <button onClick={saveAll} disabled={saving || !generated || rows.length === 0}
+      <button data-submit onClick={saveAll} disabled={saving || !generated || rows.length === 0}
         style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: generated ? C.ink : C.border, color: "#fff", fontSize: 15, fontWeight: 700, cursor: generated ? "pointer" : "default", fontFamily: F, opacity: saving ? 0.6 : 1, boxShadow: generated ? "0 4px 18px #2d6a4f55" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         <Check size={16} /> {saving ? "저장 중…" : generated ? `전체 저장 (완료 ${vestedCount} + 예정 ${pendingCount}건)` : "일정을 먼저 생성하세요"}
       </button>
@@ -3137,10 +3153,10 @@ export default function AssetsApp() {
       <Modal open={modal === "editOffering" && !!editItem} onClose={() => { setModal(null); setEditItem(null); }}>
         {editItem && <EsppForm initial={editItem} onSave={s => { updateStock(s); }} onDelete={() => { deleteStock(editItem.id); }} />}
       </Modal>
-      <Modal open={modal === "stockSale"} onClose={() => setModal(null)}>
+      <Modal title="매도 처리" open={modal === "stockSale"} onClose={() => setModal(null)}>
         <StockSaleForm stocks={stocks} onSave={processStockSale} saving={saleSaving} />
       </Modal>
-      <Modal open={modal === "taxReport"} onClose={() => setModal(null)}>
+      <Modal title="양도세 신고" open={modal === "taxReport"} onClose={() => setModal(null)}>
         <TaxReportView sales={stockSales} year={2026} />
       </Modal>
 

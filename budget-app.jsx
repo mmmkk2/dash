@@ -327,19 +327,33 @@ function LoginScreen({onLogin}){
 }
 
 /* ── Modal ── */
-function Modal({open,onClose,children}){
+function Modal({open,onClose,title,children}){
+  const bodyRef=useRef(null);
+  const [head,setHead]=useState({title:"",label:"",submit:false});
+  // 폼 안 제목(data-form-title)·맨 아래 큰 버튼(data-submit)을 위 머리로 (메모·노트 창과 같게: 제목 + 취소 · 저장). 버튼이 없는 창은 닫기만
+  useEffect(()=>{
+    if(!open)return;
+    const body=bodyRef.current;
+    const t=body?.querySelector("[data-form-title]")?.textContent.trim()||title||"";
+    const b=body?.querySelector("[data-submit]");
+    const label=b?(/업로드 중/.test(b.textContent)?"올리는 중…":/저장 중/.test(b.textContent)?"저장 중…":(/추가/.test(b.textContent)?"추가":"저장")):"";
+    if(t!==head.title||label!==head.label||!!b!==head.submit)setHead({title:t,label,submit:!!b});
+  });
   if(!open)return null;
   return createPortal(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(26,20,16,0.6)",
       zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(2px)",WebkitBackdropFilter:"blur(2px)"}}>
+      <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}`}</style>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
-        background:C.paper,borderRadius:"24px 24px 0 0",padding:"8px 20px calc(36px + env(safe-area-inset-bottom))",
-        // 폰에서는 메모 창처럼 양옆 12px 남김 (큰 화면은 최대 660px 가운데)
+        background:C.paper,borderRadius:"24px 24px 0 0",paddingBottom:"calc(24px + env(safe-area-inset-bottom))",
         width:"calc(100% - 16px)",maxWidth:"660px",height:"min(78dvh, calc(100dvh - 80px))",overflowY:"auto",
-        boxShadow:"0 -16px 60px rgba(0,0,0,0.2)",border:`1px solid ${C.border}`}}>
-        <div style={{width:"36px",height:"3px",background:C.borderDark,borderRadius:"99px",
-          margin:"10px auto 18px",cursor:"pointer"}} onClick={onClose}/>
-        {children}
+        boxShadow:"0 -10px 40px rgba(0,0,0,0.12)"}}>
+        <div style={{position:"sticky",top:0,zIndex:2,background:C.paper,display:"flex",alignItems:"center",gap:"8px",padding:"18px 20px 12px"}}>
+          <div style={{flex:1,minWidth:0,fontSize:"20px",fontWeight:700,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:FONT}}>{head.title}</div>
+          {head.submit&&<button onClick={onClose} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:"15px",color:C.inkLight,fontFamily:FONT}}>취소</button>}
+          <button onClick={()=>head.submit?bodyRef.current?.querySelector("[data-submit]")?.click():onClose()} style={{border:"none",cursor:"pointer",fontSize:"15px",fontWeight:600,color:"#fff",background:C.ink,borderRadius:"999px",padding:"8px 18px",fontFamily:FONT,whiteSpace:"nowrap"}}>{head.submit?head.label:"닫기"}</button>
+        </div>
+        <div ref={bodyRef} className="sheet-form" style={{padding:"8px 20px 0"}}>{children}</div>
       </div>
     </div>,
     document.body
@@ -517,7 +531,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
     <div style={{fontFamily:FONT}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-          <span style={{fontFamily:FONT,fontSize:"18px",fontWeight:700,color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
+          <span data-form-title style={{fontFamily:FONT,fontSize:"18px",fontWeight:700,color:C.ink}}>{isEdit?"거래 수정":"거래 추가"}</span>
         </div>
         {isEdit&&(
           <div style={{display:"flex",gap:"6px"}}>
@@ -1117,7 +1131,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         <SLabel>메모</SLabel><Inp value={memo} onChange={e=>setMemo(e.target.value)} placeholder="선택사항"/>
       </div>
 
-      <button className="add-btn" onClick={submit} disabled={saving||uploadingImages} style={{
+      <button data-submit className="add-btn" onClick={submit} disabled={saving||uploadingImages} style={{
         width:"100%",padding:"13px",background:(saving||uploadingImages)?"#8e8e93":ent.color,color:"#fff",border:"none",
         borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:(saving||uploadingImages)?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
@@ -1266,7 +1280,7 @@ function CategorySettings({trees, onChange}){
   return(
     <div style={{fontFamily:FONT,width:"100%"}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"18px"}}>
-        <span style={{fontSize:"19px",fontWeight:700,color:C.ink}}>카테고리 관리</span>
+        <span data-form-title style={{fontSize:"19px",fontWeight:700,color:C.ink}}>카테고리 관리</span>
       </div>
       {/* entity tabs */}
       <div style={{display:"flex",gap:"6px",marginBottom:"16px"}}>
@@ -3219,12 +3233,12 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
         );})}
       </div>
 
-      <Modal open={!!drillCard} onClose={()=>setDrillCard(null)}>
+      <Modal title={drillCard?.name} open={!!drillCard} onClose={()=>setDrillCard(null)}>
         {drillCard&&(
           <div>
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px"}}>
               <div style={{width:"9px",height:"9px",borderRadius:"50%",background:drillCard.color,flexShrink:0}}/>
-              <div style={{fontSize:"15px",fontWeight:800,color:C.ink}}>{drillCard.name}</div>
+              <div data-form-title style={{fontSize:"15px",fontWeight:800,color:C.ink}}>{drillCard.name}</div>
               <div style={{marginLeft:"auto",fontSize:"13px",fontWeight:700,color:C.ink}}>{fmt(drillCard.value)}</div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -4022,7 +4036,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
     <div style={{fontFamily:FONT}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:"8px"}}>
-          <span style={{fontFamily:FONT,fontSize:"20px",color:C.ink}}>
+          <span data-form-title style={{fontFamily:FONT,fontSize:"20px",color:C.ink}}>
             {isEdit?"소모품 수정":"소모품 추가"}
           </span>
         </div>
@@ -4078,7 +4092,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
         </div>
       </div>
 
-      <button onClick={isEdit?handleEdit:handleAdd} disabled={saving} style={{
+      <button data-submit onClick={isEdit?handleEdit:handleAdd} disabled={saving} style={{
         width:"100%",padding:"14px",background:saving?"#8e8e93":P,color:"#fff",border:"none",
         borderRadius:"13px",fontSize:"15px",fontWeight:600,cursor:saving?"not-allowed":"pointer",
         display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",
@@ -4318,7 +4332,7 @@ function ThemePicker({ current, onChange }) {
   return (
     <div style={{fontFamily:FONT}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"22px"}}>
-        <span style={{fontFamily:FONT,fontSize:"21px",color:C.ink}}>테마</span>
+        <span data-form-title style={{fontFamily:FONT,fontSize:"21px",color:C.ink}}>테마</span>
         <span style={{fontSize:"11px",color:C.inkLight}}>Theme</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"10px"}}>
@@ -4871,18 +4885,18 @@ export default function App(){
       <Modal open={modal==="cats"} onClose={()=>setModal(null)}>
         <CategorySettings trees={trees} onChange={handleTrees}/>
       </Modal>
-      <Modal open={modal==="cards"} onClose={()=>setModal(null)}>
+      <Modal title="카드 관리" open={modal==="cards"} onClose={()=>setModal(null)}>
         <CardSettings cards={cards} onChange={handleCards}/>
       </Modal>
-      <Modal open={modal==="flow"} onClose={()=>setModal(null)}>
+      <Modal title="전체 현금흐름" open={modal==="flow"} onClose={()=>setModal(null)}>
         <CashFlowView txs={txs} year={year} month={month} yearView={yearView} cards={cards}
           setYear={setYear} setMonth={setMonth} setYearView={setYearView}
           onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
       </Modal>
-      <Modal open={modal==="import"} onClose={()=>setModal(null)}>
+      <Modal title="쿠팡 가져오기" open={modal==="import"} onClose={()=>setModal(null)}>
         <CoupangImport onRegister={tx=>{ const n=[...txs,tx]; setTxs(n); save(TX_KEY,n); if(isConfigured()) sb("transactions",{method:"POST",body:JSON.stringify(txToRow(tx))}).catch(console.error); }}/>
       </Modal>
-      <Modal open={modal==="taxdoc"} onClose={()=>setModal(null)}>
+      <Modal title="세무자료 체크리스트" open={modal==="taxdoc"} onClose={()=>setModal(null)}>
         <TaxDocChecklist txs={txs} taxDocIds={taxDocIds} onToggle={toggleTaxDoc} cards={cards}
           onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
       </Modal>
