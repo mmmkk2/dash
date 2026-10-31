@@ -1,7 +1,7 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, Pin, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
 import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu } from '../notes-app'
 import { ask } from '../src/dialog'
@@ -129,6 +129,8 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const [q, setQ] = useState('')
   const [subject, setSubject] = useState('')
   const [edit, setEdit] = useState(null) // { id?, title, subject, content, files, editing, uploaded }
+  const editRef = useRef(null)
+  editRef.current = edit
   const [uploading, setUploading] = useState(0)
   const [full, setFull] = useState(false) // 크게 보기 (메모 창과 같은 방식)
   const fileRef = useRef(null)
@@ -146,7 +148,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const matched = (notes || []).filter(n => (!subject || n.subject === subject)
     && (!q.trim() || `${n.title} ${n.subject} ${n.content}`.toLowerCase().includes(q.trim().toLowerCase())))
   // 보관한 노트는 아래 '보관함'에 접어 둔다 (검색할 때는 함께 보임)
-  const shown = q.trim() ? matched : matched.filter(n => !n.archived)
+  const shown = (q.trim() ? matched : matched.filter(n => !n.archived)).sort((a, b) => !!b.pinned - !!a.pinned)
   const archived = q.trim() ? [] : matched.filter(n => n.archived)
 
   const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], orig: n.content, snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
@@ -180,13 +182,16 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     if (error) setErr(error.message)
   }
   // 보관: 목록 아래 '보관함'으로 (다시 누르면 해제)
-  async function archive() {
+  // target: 목록에서 꾹 눌러 고른 노트 (없으면 열어 둔 노트)
+  async function archive(target) {
+    const edit = target?.id ? target : editRef.current
     const on = !edit.archived, id = edit.id
     const { error } = await supabase.from('lecture_notes').update({ archived: on }).eq('id', id)
     if (error) return setErr(/archived/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table lecture_notes add column if not exists archived boolean default false;' : error.message)
     setEdit(null); load()
   }
-  async function remove() {
+  async function remove(target) {
+    const edit = target?.id ? target : editRef.current
     if (!await ask('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
     const { error } = await supabase.from('lecture_notes').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
@@ -250,7 +255,8 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   }
   // 노트 → 메모: 제목+본문(제목 표시 # 는 뗌)을 메모 한 장으로. 메모에서 온 사진은 메모 사진으로 돌아가고,
   // 그 밖의 첨부(PDF 등)는 메모에 붙일 수 없어 지운다 (먼저 물어봄)
-  async function toMemo() {
+  async function toMemo(target) {
+    const edit = target?.id ? target : editRef.current
     const photos = edit.files.filter(f => f.bucket === MEMO_BUCKET)
     const others = edit.files.filter(f => f.bucket !== MEMO_BUCKET)
     const inline = imagePaths(edit.content)
@@ -278,11 +284,30 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const input = { width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', background: 'transparent', fontFamily: F, color: C.text }
   const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: C.text, background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 999, padding: '7px 11px' }
 
+  // 카드를 꾹 누르면 오른쪽에 보관·메모로·삭제 아이콘 (메모 목록과 같은 방식)
+  const [menu, setMenu] = useState(null) // { n, rect }
+  useBackClose(!!menu, () => setMenu(null))
+  const press = useRef({ timer: null, fired: false, x: 0, y: 0 })
+  const longPress = n => ({
+    onPointerDown: e => {
+      const el = e.currentTarget
+      press.current = { fired: false, x: e.clientX, y: e.clientY, timer: setTimeout(() => { press.current.fired = true; navigator.vibrate?.(15); setMenu({ n, rect: el.getBoundingClientRect() }) }, 500) }
+    },
+    onPointerMove: e => { if (Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 8) clearTimeout(press.current.timer) },
+    onPointerUp: () => clearTimeout(press.current.timer), onPointerLeave: () => clearTimeout(press.current.timer), onPointerCancel: () => clearTimeout(press.current.timer),
+    onContextMenu: e => e.preventDefault(),
+  })
+  async function pin(n) {
+    const { error } = await supabase.from('lecture_notes').update({ pinned: !n.pinned }).eq('id', n.id)
+    if (error) return setErr(/pinned/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table lecture_notes add column if not exists pinned boolean default false;' : error.message)
+    load()
+  }
+  const asTarget = n => ({ ...n, files: n.files || [] })
   const card = n => {
     const preview = parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || ''
     return (
-      <button key={n.id} onClick={() => open(n)} style={{ ...plain, display: 'block', width: '100%', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
-        <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title || '제목 없음'}</div>
+      <button key={n.id} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', ...plain, display: 'block', width: '100%', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
+        <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
         {preview && <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
           {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
@@ -324,6 +349,23 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           {showArchived && archived.map(card)}
         </>
       )}
+      {menu && (() => {
+        const { n, rect } = menu
+        const btn = (Icon, label, run, danger) => (
+          <button key={label} aria-label={label} title={label} onClick={() => { setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
+            <Icon size={15} />
+          </button>
+        )
+        return (
+          <div onClick={() => setMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: rect.top + rect.height / 2, right: window.innerWidth - rect.right + 15, transform: 'translateY(-50%)', display: 'flex', gap: 6, paddingLeft: 10, background: C.card }}>
+              {btn(Pin, n.pinned ? '고정 해제' : '고정', () => pin(n))}
+              {btn(n.archived ? ArchiveRestore : Archive, n.archived ? '복원' : '보관', () => archive(asTarget(n)))}
+              {btn(Trash2, '삭제', () => remove(asTarget(n)), true)}
+            </div>
+          </div>
+        )
+      })()}
       {!edit && <Fab label="새 노트" color={subjectColor(subject).color} onClick={create} />}
 
       {viewer && (

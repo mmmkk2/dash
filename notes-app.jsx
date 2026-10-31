@@ -690,8 +690,8 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
       {menu && (() => {
         const { m, rect } = menu
         // 줄 오른쪽 '보관' 버튼과 같은 자리, 아이콘만
-        const btn = (Icon, label, run) => (
-          <button key={label} aria-label={label} title={label} onClick={() => { setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: C.sub, background: C.fill, borderRadius: 999 }}>
+        const btn = (Icon, label, run, danger) => (
+          <button key={label} aria-label={label} title={label} onClick={() => { setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
             <Icon size={15} />
           </button>
         )
@@ -700,6 +700,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
             <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: rect.top + rect.height / 2, right: window.innerWidth - rect.right + 16, transform: 'translateY(-50%)', display: 'flex', gap: 6, paddingLeft: 10, background: C.card }}>
               {btn(Pin, m.pinned ? '고정 해제' : '고정', () => patch(m, { pinned: !m.pinned }))}
               {btn(m.archived ? ArchiveRestore : Archive, m.archived ? '복원' : '보관', () => patch(m, { archived: !m.archived }))}
+              {btn(Trash2, '삭제', () => remove(asEdit(m)), true)}
             </div>
           </div>
         )
