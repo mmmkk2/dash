@@ -312,7 +312,7 @@ function LockerResetCopyChip({ r }) {
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
-  return <button onClick={copy} aria-label={`'${text}' 복사`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0 }}>{copied ? '복사됨' : '리셋 복사'}</button>
+  return <button onClick={copy} aria-label={`'${text}' 복사`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0 }}>{copied ? '복사됨' : '리셋 요청'}</button>
 }
 
 function LockerEndChip({ r }) {
@@ -429,7 +429,7 @@ function Todo({ d, onSms }) {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
-            {r.sms && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 5, maxWidth: 210 }}><SmsChip r={r.sms} onSms={onSms} /><LockerEndChip r={r.sms} /><LockerResetCopyChip r={r.sms} /></div>}
+            {r.sms && <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 5, maxWidth: 210 }}><SmsChip r={r.sms} onSms={onSms} /><LockerResetCopyChip r={r.sms} /><LockerEndChip r={r.sms} /></div>}
           </div>
         ))}
       </div>
@@ -506,8 +506,8 @@ function LockerList({ d, onSms }) {
             <b style={{ fontWeight: 600, minWidth: 36 }}>{r.no}번</b>
             <div style={{ flex: 1, minWidth: 0 }}>{r.name || '미등록'}<div style={{ fontSize: 12, color: C.sub }}>{r.end}</div></div>
             <SmsChip r={{ ...r, kind }} onSms={onSms} />
-            <LockerEndChip r={r} />
             <LockerResetCopyChip r={r} />
+            <LockerEndChip r={r} />
           </div>
         ))}
       </div>
