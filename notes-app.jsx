@@ -116,7 +116,8 @@ function Row({ children, onClick, onLongPress, last, style }) {
   const press = onLongPress && {
     onPointerDown: e => {
       fired.current = false; start.current = [e.clientX, e.clientY]
-      timer.current = setTimeout(() => { fired.current = true; navigator.vibrate?.(15); onLongPress() }, 500)
+      const el = e.currentTarget
+      timer.current = setTimeout(() => { fired.current = true; navigator.vibrate?.(15); onLongPress(el.getBoundingClientRect()) }, 500)
     },
     onPointerMove: e => { if (start.current && Math.hypot(e.clientX - start.current[0], e.clientY - start.current[1]) > 8) cancel() },
     onPointerUp: cancel, onPointerLeave: cancel, onPointerCancel: cancel,
@@ -480,6 +481,8 @@ function TagChip({ tag, on, onClick, small, allColor = C.tint }) {
 function MemoTab({ memos, reload, setErr, onMovedToNote }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
+  const editRef = useRef(null)
+  editRef.current = edit
   const [viewer, setViewer] = useState(null)
   const [full, setFull] = useState(false) // 편집 창 크게 보기
   // 폰 뒤로 가기: 사진 → 크게 보기 → 메모 창 순서로 하나씩 닫기 (메모 창은 바깥 누름과 같이 저장하며 닫음)
@@ -559,7 +562,9 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     removeImages((edit.origImages || []).filter(p => !edit.images.includes(p)))
     setEdit(null); reload()
   }
-  async function remove() {
+  // target: 목록 꾹 누름 메뉴에서 고른 메모 (없으면 열어 둔 메모)
+  async function remove(target) {
+    const edit = target?.id ? target : editRef.current
     if (!await ask('이 메모를 삭제할까요?')) return
     const { error } = await supabase.from('memos').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
@@ -568,7 +573,8 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
   }
 
   // 메모 → 노트: 첫 줄은 제목, 나머지는 본문(체크 줄은 노트 체크리스트 그대로), 사진은 노트 첨부로(메모 버킷에 그대로 둠), 태그는 과목으로
-  async function toNote() {
+  async function toNote(target) {
+    const edit = target?.id ? target : editRef.current
     if (!await ask('이 메모를 노트로 옮길까요?')) return
     const lines = (edit.content || '').split('\n')
     const first = lines.findIndex(l => l.trim())
@@ -583,12 +589,15 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     setEdit(null); reload(); onMovedToNote?.()
   }
 
-  // 목록에서 꾹 누르면 고정/해제 (내용·수정 시각은 그대로)
-  async function togglePin(m) {
-    const { error } = await supabase.from('memos').update({ pinned: !m.pinned }).eq('id', m.id)
-    if (error) return setErr(error.message)
+  // 목록에서 꾹 누르면 작은 메뉴: 고정·태그·보관·노트로·삭제 (내용·수정 시각은 그대로)
+  const [menu, setMenu] = useState(null) // { m, rect }
+  useBackClose(!!menu, () => setMenu(null))
+  async function patch(m, row) {
+    const { error } = await supabase.from('memos').update(row).eq('id', m.id)
+    if (error) return setErr(/archived/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table memos add column if not exists archived boolean default false;' : error.message)
     reload()
   }
+  const asEdit = m => ({ ...m, content: joinText(m.title, m.content), origImages: m.images, images: m.images || [] })
 
   // 보관/꺼내기: 내용·수정 시각은 그대로 두고 archived만 바꾼다
   async function setArchived(id, on) {
@@ -617,7 +626,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     // 다 끝난 메모(체크 모두 완료 또는 마감 지남)는 보관을 권한다 — 자동으로 숨기진 않음
     const done = !m.archived && ((checks.length > 0 && doneN === checks.length) || (m.due_date && m.due_date < todayStr()))
     return (
-      <Row key={m.id} onClick={() => open(m)} onLongPress={() => togglePin(m)} last={i === arr.length - 1}>
+      <Row key={m.id} onClick={() => open(m)} onLongPress={rect => setMenu({ m, rect })} last={i === arr.length - 1}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {TAGS[m.tag] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag].color, flexShrink: 0 }} />}
@@ -677,6 +686,24 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
           {showArchived && <Group>{renderRows(archived)}</Group>}
         </>
       )}
+
+      {menu && (() => {
+        const { m, rect } = menu
+        // 줄 오른쪽 '보관' 버튼과 같은 자리, 아이콘만
+        const btn = (Icon, label, run) => (
+          <button key={label} aria-label={label} title={label} onClick={() => { setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: C.sub, background: C.fill, borderRadius: 999 }}>
+            <Icon size={15} />
+          </button>
+        )
+        return (
+          <div onClick={() => setMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }}>
+            <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: rect.top + rect.height / 2, right: window.innerWidth - rect.right + 16, transform: 'translateY(-50%)', display: 'flex', gap: 6, paddingLeft: 10, background: C.card }}>
+              {btn(Pin, m.pinned ? '고정 해제' : '고정', () => patch(m, { pinned: !m.pinned }))}
+              {btn(m.archived ? ArchiveRestore : Archive, m.archived ? '복원' : '보관', () => patch(m, { archived: !m.archived }))}
+            </div>
+          </div>
+        )
+      })()}
 
       <Fab label="새 메모" color={TAGS[tagFilter]?.color || MEMO_TINT} onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
