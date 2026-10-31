@@ -1102,7 +1102,7 @@ export default function AndingHome() {
   }, [seatTs])
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, letterSpacing: '-0.01em' }}>
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 16px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 12px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative' }}>
           <div style={{ fontSize: tabBar ? 22 : 28, fontWeight: 700, letterSpacing: tabBar ? '-0.5px' : '-0.7px', lineHeight: tabBar ? '38px' : 1.25 }}>앤딩</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
