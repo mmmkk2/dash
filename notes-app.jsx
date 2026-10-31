@@ -1126,8 +1126,9 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
           {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
           {first}
         </div>
-        {e.place && <a href={mapHref(e.place)} target="_blank" rel="noreferrer" onClick={ev => ev.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13.5, color: C.sub, marginTop: 2, textDecoration: 'none', overflow: 'hidden' }}>
-          <MapPin size={13} style={{ flexShrink: 0 }} /><span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.place}</span></a>}
+        {/* 목록에서는 장소만 보여주고, 지도는 일정을 연 뒤 '지도' 버튼으로 */}
+        {e.place && <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13.5, color: C.sub, marginTop: 2, overflow: 'hidden' }}>
+          <MapPin size={13} style={{ flexShrink: 0 }} /><span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.place}</span></div>}
         {rest.length > 0 && <div style={{ fontSize: 14, lineHeight: 1.4, color: C.sub, marginTop: 2, whiteSpace: 'pre-line', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{rest.join('\n')}</div>}
       </div>
       <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
