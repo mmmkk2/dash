@@ -290,3 +290,15 @@ alter table lecture_notes add column if not exists archived boolean default fals
 
 -- 노트 고정
 alter table lecture_notes add column if not exists pinned boolean default false;
+
+-- 앤딩 방문 기록 (앤딩 메인 '방문 기록': 날짜 + 한 줄 메모, 본인만)
+create table if not exists anding_visits (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references auth.users not null default auth.uid(),
+  date       text not null,          -- YYYY-MM-DD
+  memo       text default '',
+  created_at timestamptz default now()
+);
+alter table anding_visits enable row level security;
+drop policy if exists "본인 방문 기록만" on anding_visits;
+create policy "본인 방문 기록만" on anding_visits for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

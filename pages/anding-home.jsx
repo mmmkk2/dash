@@ -190,6 +190,70 @@ function AndingMemo() {
   )
 }
 
+// 앤딩 방문 기록(⋯ 메뉴): 다녀온 날짜와 한 줄 메모 (Supabase anding_visits, 본인만)
+const kDate = d => { const t = new Date(d + 'T00:00'); return `${t.getMonth() + 1}/${t.getDate()} (${'일월화수목금토'[t.getDay()]})` }
+const todayKey = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` }
+function VisitsSheet({ onClose }) {
+  const [rows, setRows] = useState(null)
+  const [missing, setMissing] = useState(false)
+  const [edit, setEdit] = useState(null) // { id?, date, memo }
+  useBackClose(!!edit, () => setEdit(null))
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from('anding_visits').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })
+    if (error) { setMissing(/anding_visits/.test(error.message)); return setRows([]) }
+    setRows(data)
+  }, [])
+  useEffect(() => { load() }, [load])
+  async function save() {
+    const row = { date: edit.date, memo: edit.memo.trim() }
+    const { error } = edit.id ? await supabase.from('anding_visits').update(row).eq('id', edit.id) : await supabase.from('anding_visits').insert(row)
+    if (error) return tell(error.message)
+    setEdit(null); load()
+  }
+  async function remove() {
+    if (!await ask('이 방문 기록을 삭제할까요?')) return
+    const { error } = await supabase.from('anding_visits').delete().eq('id', edit.id)
+    if (error) return tell(error.message)
+    setEdit(null); load()
+  }
+  if (!rows) return null
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, overflow: 'hidden' }
+  const ago = rows[0] && Math.round((new Date(todayKey() + 'T00:00') - new Date(rows[0].date + 'T00:00')) / 864e5)
+  const row = (r, i) => (
+    <button key={r.id} onClick={() => setEdit({ ...r, memo: r.memo || '' })} style={{ ...plain, display: 'flex', alignItems: 'baseline', gap: 10, width: '100%', textAlign: 'left', padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, color: C.text }}>
+      <span style={{ flexShrink: 0, fontWeight: 600, minWidth: 64 }}>{kDate(r.date)}</span>
+      <span style={{ flex: 1, minWidth: 0, color: r.memo ? C.text : C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.memo || '메모 없음'}</span>
+    </button>
+  )
+  const add = () => setEdit({ date: todayKey(), memo: '' })
+  return (
+    <>
+      <Sheet title="방문 기록" tint={GREEN} doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose} inset
+        actions={!missing && <button onClick={add} style={{ ...plain, fontSize: 14, fontWeight: 600, color: GREEN, padding: '6px 4px' }}>+ 기록</button>}>
+        {ago != null && <div style={{ fontSize: 13, color: C.sub, padding: '0 4px 8px' }}>{ago === 0 ? '오늘 방문' : `마지막 방문 ${ago}일 전`} · 총 {rows.length}번</div>}
+        {missing
+          ? <div style={{ ...card, padding: '11px 14px', fontSize: 13, color: C.sub }}>방문 기록을 쓰려면 Supabase에 anding_visits 테이블을 만들어 주세요 (supabase_setup.sql 맨 아래)</div>
+          : rows.length === 0
+            ? <button onClick={add} style={{ ...plain, ...card, display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', fontSize: 14, color: C.sub }}>다녀온 날을 기록해 보세요</button>
+            : <div style={card}>{rows.map(row)}</div>}
+      </Sheet>
+      {edit && (
+        <Sheet title={edit.id ? '방문 기록' : '방문 기록 추가'} tint={GREEN} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.date}>
+          <div style={{ ...card, display: 'flex', alignItems: 'center', padding: '10px 14px', marginBottom: 12 }}>
+            <span style={{ flex: 1, fontSize: 15 }}>날짜</span>
+            <input type="date" value={edit.date} onChange={e => setEdit({ ...edit, date: e.target.value })} style={{ border: 'none', outline: 'none', background: C.fill, borderRadius: 6, padding: '6px 10px', fontSize: 15, fontFamily: F, color: C.text }} />
+          </div>
+          <div style={{ ...card, padding: '11px 14px' }}>
+            <textarea autoFocus={!edit.id} value={edit.memo} onChange={e => setEdit({ ...edit, memo: e.target.value })} placeholder="한 일 · 확인한 것 (예: 에어컨 필터 청소, 사물함 3번 정리)" rows={4}
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: 0, fontSize: 15, lineHeight: 1.5, fontFamily: F, color: C.text, background: 'transparent' }} />
+          </div>
+          {edit.id && <button onClick={remove} style={{ ...plain, display: 'block', width: '100%', marginTop: 16, padding: 12, borderRadius: 14, background: C.card, border: `0.5px solid ${C.sep}`, color: '#e5484d', fontSize: 15 }}>삭제</button>}
+        </Sheet>
+      )}
+    </>
+  )
+}
+
 function Hero({ d }) {
   const s = d.seat
   const cell = (label, value) => (
@@ -900,13 +964,14 @@ export default function AndingHome() {
   }, [load])
 
   const [loginOpen, setLoginOpen] = useState(false)
-  const [tool, setTool] = useState(null) // ⋯ 메뉴 도구: settings | sms | salary
+  const [tool, setTool] = useState(null) // ⋯ 메뉴 도구: settings | sms | salary | visits
   const gate = useGate(() => setLoginOpen(true))
   const menu = [
     { label: '문열기', run: gate.open },
     { label: '설정', run: () => setTool('settings') },
     { label: '문자 생성기', run: () => setTool('sms') },
     { label: '급여 관리표', run: () => setTool('salary') },
+    { label: '방문 기록', run: () => setTool('visits') },
     // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
     { label: '앤딩 로그인', run: () => setLoginOpen(true) },
     { label: '로그아웃', danger: true, run: async () => { if (!await ask('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
@@ -972,6 +1037,7 @@ export default function AndingHome() {
       {tool === 'settings' && <SettingsSheet onClose={() => setTool(null)} onApplied={load} />}
       {tool === 'sms' && <SmsToolSheet onClose={() => setTool(null)} />}
       {tool === 'salary' && <SalarySheet onClose={() => setTool(null)} />}
+      {tool === 'visits' && <VisitsSheet onClose={() => setTool(null)} />}
     </div>
   )
 }
