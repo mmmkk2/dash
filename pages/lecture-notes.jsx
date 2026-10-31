@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
-import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage } from '../notes-app'
+import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu } from '../notes-app'
 import { ask } from '../src/dialog'
 
 // 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
@@ -352,9 +352,11 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
               {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
             </button>
-            {edit.id && !edit.editing && <button onClick={toMemo} aria-label="메모로 옮기기" title="메모로 옮기기" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><StickyNote size={19} /></button>}
-            {edit.id && !edit.editing && <button onClick={archive} aria-label={edit.archived ? '보관 해제' : '노트 보관'} title={edit.archived ? '보관 해제' : '보관'} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>{edit.archived ? <ArchiveRestore size={19} /> : <Archive size={19} />}</button>}
-            {edit.id && <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
+            {edit.id && <MoreMenu items={[
+              !edit.editing && { icon: edit.archived ? ArchiveRestore : Archive, label: edit.archived ? '보관 해제' : '보관', run: archive },
+              !edit.editing && { icon: StickyNote, label: '메모로 옮기기', run: toMemo },
+              { icon: Trash2, label: '삭제', danger: true, run: remove },
+            ]} />}
           </>}>
           {edit.editing ? (
             <>
