@@ -257,20 +257,23 @@ function VisitsSheet({ onClose }) {
 // 위 카드의 칸도 누르면 해당 상세로 (아래 타일과 같은 창)
 function Hero({ d, open }) {
   const s = d.seat
-  const cell = (label, value, k) => (
+  // 칸마다 아래 한 줄 보조 정보 (예전 좌석·결제·월 매출 타일 내용)
+  const cell = (label, value, k, sub) => (
     <button onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
       {label}<div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap' }}>{value}</div>
+      {sub && <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
     </button>
   )
+  const used = (s.used_free ?? 0) + (s.used_laptop ?? 0), total = (s.total_free ?? 0) + (s.total_laptop ?? 0)
   const date = d.today
   return (
     <div style={{ borderRadius: 20, padding: '16px 18px', color: '#fff', background: `linear-gradient(135deg, ${GREEN}, #2f7d8f)` }}>
       <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>오늘 매출 · {date.getMonth() + 1}월 {date.getDate()}일</div>
       <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', margin: '2px 0 10px' }}>{won(d.payment.amount)}원</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-        {cell('잔여 좌석', s.remain ?? '-', 'seat')}
-        {cell('결제', `${d.payment.count}건`, 'payment')}
-        {cell(`${d.monthly.month}월 누적`, man(d.monthly.amount), 'monthly')}
+        {cell('잔여 좌석', s.remain ?? '-', 'seat', `사용 ${used}/${total}`)}
+        {cell('결제', `${d.payment.count}건`, 'payment', `${hhmm(d.payment.updated)} 기준`)}
+        {cell(`${d.monthly.month}월 누적`, man(d.monthly.amount), 'monthly', `예상 ${man(d.monthly.predicted)}`)}
       </div>
     </div>
   )
@@ -456,23 +459,17 @@ function Tile({ color, title, value, unit, sub, bar, onClick, wide }) {
 
 function Tiles({ d, open }) {
   const s = d.seat
-  const used = (s.used_free ?? 0) + (s.used_laptop ?? 0), total = (s.total_free ?? 0) + (s.total_laptop ?? 0)
   const rooms = d.studyroom.items.filter(r => !r.done)
   const lockerAlert = d.locker.expired.length + d.locker.expiring.length
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
-      <Tile color={COL.seat} title="좌석" value={used} unit={total ? `/${total}` : ''} bar={total ? used / total * 100 : null}
-        sub={`노트북 ${s.used_laptop ?? '-'}/${s.total_laptop ?? '-'} · 오늘 ${s.today_users ?? '-'}명`} onClick={() => open('seat')} />
-      <Tile color={COL.payment} title="결제" value={`${d.payment.count}건`} sub={`${won(d.payment.amount)}원 · ${hhmm(d.payment.updated)} 기준`} onClick={() => open('payment')} />
       <Tile color={COL.room} title="스터디룸" value={`${rooms.length}건`}
         sub={rooms.length ? rooms.map(r => `${r.room} ${r.start}–${r.end}`).join(' · ') : '남은 예약 없음'} onClick={() => open('room')} />
       <Tile color={COL.locker} title="사물함" value={d.locker.active ?? '-'} unit={`/${d.locker.total}`}
         sub={lockerAlert ? <span style={{ color: COL.locker, fontWeight: 600 }}>만료 {d.locker.expired.length} · 오늘 {d.locker.expiring.length}</span> : '만료 없음'} onClick={() => open('locker')} />
       <Tile color={COL.product} title="상품 판매" value={d.product.mode} sub={`구매 ${d.product.buy}`} onClick={() => open('product')} />
-      <Tile color={COL.monthly} title={`${d.monthly.month}월 매출`} value={man(d.monthly.amount)}
-        sub={`일평균 ${man(d.monthly.daily_avg)} · 예상 ${man(d.monthly.predicted)}`} onClick={() => open('monthly')} />
       {/* 기간권 등록 수와 오늘 이용자 수 — 눌러서 날짜별 추이 */}
-      <Tile wide color={COL.users} title="이용자" value={`기간권 ${s.period ?? '-'}명`}
+      <Tile color={COL.users} title="이용자" value={`기간권 ${s.period ?? '-'}명`}
         sub={`오늘 이용자 ${s.today_users ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명`} onClick={() => open('users')} />
     </div>
   )
