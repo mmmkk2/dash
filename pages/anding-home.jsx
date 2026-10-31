@@ -333,11 +333,23 @@ function SmsSheet({ r, onClose }) {
   )
 }
 
+// 고정석 이용권이 3일 안에 끝나는 자리 (날짜 기준 D-day, 끝나는 순)
+function fixedExpiring(all) {
+  const now = Date.now(), today = new Date(new Date().toDateString()).getTime()
+  return (all || []).filter(r => r.end).map(r => {
+    const end = new Date(r.end.replace(/\./g, '-').replace(' ', 'T') + ':00+09:00').getTime()
+    const day = new Date(r.end.slice(0, 10).replace(/\./g, '-') + 'T00:00:00+09:00').getTime()
+    return { ...r, endMs: end, days: Math.round((day - today) / 864e5) }
+  }).filter(r => r.endMs > now && r.days <= 3).sort((a, b) => a.endMs - b.endMs)
+}
+
 // 처리할 것: 사물함 만료완료·만료예정, 지금 이용 중인 스터디룸
 function Todo({ d, onSms }) {
   const rows = [
     // 빈 고정석은 맨 위 (배치도에서 흰 칸 = 이용권 없는 자리, 새 고정석 손님을 받을 수 있음). 오른쪽은 마지막 이용자
     ...(d.seat.fixed_ended || []).map(r => ({ c: COL.seat, text: <>고정석 {r.no}번 <b style={{ fontWeight: 600 }}>빈 자리</b></>, right: r.end ? `${r.name || ''} ~${r.end.slice(5, 10).replace('.', '/')}`.trim() : '' })),
+    // 고정석 이용권 만료 예정 (3일 안, 아직 안 끝난 것). 끝난 자리는 위 '빈 자리'로
+    ...fixedExpiring(d.seat.fixed_all).map(r => ({ c: COL.seat, text: <>고정석 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>{r.days === 0 ? '오늘 만료' : `만료 D-${r.days}`}</b></>, right: `${r.end.slice(5, 10).replace('.', '/')} ${hhmm(r.end)}` })),
     ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
     ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expired' } })),
     ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} <b style={{ fontWeight: 700 }}>{r.name}</b> 이용 중</>, right: `~${r.end}` })),
