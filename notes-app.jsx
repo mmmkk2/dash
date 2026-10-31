@@ -859,7 +859,8 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const pressStart = (k, e) => {
     clearTimeout(press.current.timer)
     press.current = { fired: false, x: e.clientX, y: e.clientY, timer: setTimeout(() => {
-      press.current.fired = true; setSel(k); setShowLove(true); navigator.vibrate?.(10)
+      // 생리 정보를 꺼 두면 관계도 숨김 (길게 눌러도 안 나타남)
+      press.current.fired = true; setSel(k); if (showCycle) { setShowLove(true); navigator.vibrate?.(10) }
     }, 500) }
   }
   const pressMove = e => { if (Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 10) clearTimeout(press.current.timer) }
@@ -892,7 +893,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
           }}>{month.getFullYear()}년<ChevronDown size={16} style={{ transform: yearPage === null ? 'none' : 'rotate(180deg)', transition: 'transform .15s' }} /></button>
           {yearPage === null && <span>{month.getMonth() + 1}월</span>}
         </div>
-        <button aria-label="생리 정보 표시" aria-pressed={showCycle} title={showCycle ? '생리 정보 숨기기' : '생리 정보 보기'} onClick={() => setShowCycle(v => !v)}
+        <button aria-label="생리 정보 표시" aria-pressed={showCycle} title={showCycle ? '생리 정보 숨기기' : '생리 정보 보기'} onClick={() => { setShowCycle(v => !v); setShowLove(false) }}
           style={{ ...chevron, marginRight: 2 }}><Droplet size={18} color={showCycle ? BODY.period : C.faint} fill={showCycle ? BODY.period : 'none'} /></button>
         <button aria-label={yearPage === null ? '이전 달' : '이전 연도들'} style={chevron} onClick={() => yearPage === null ? moveMonth(-1) : setYearPage(yearPage - 12)}><ChevronLeft size={22} /></button>
         <button onClick={() => { goToday(); setYearPage(null) }} style={{ ...plain, fontSize: 13, fontWeight: 600, color: C.tint, background: C.tintSoft, borderRadius: 999, padding: '6px 12px' }}>오늘</button>
@@ -957,7 +958,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
         </>}
       </div>
 
-      {yearPage === null && (showCycle || showLove) && (
+      {yearPage === null && showCycle && (
         <div style={{ margin: '-12px 0 18px' }}>
           {body.ready ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -965,7 +966,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                 ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '5px 12px',
                 background: periodAction.active ? BODY.periodSoft : C.card, color: periodAction.active ? BODY.period : C.text, border: `0.5px solid ${periodAction.active ? 'transparent' : C.sep}`,
               }}><Droplet size={14} color={BODY.period} fill={periodAction.active ? BODY.period : 'none'} />{periodAction.label}</button>}
-              {showLove && <button onClick={toggleLove} disabled={busy} aria-pressed={loved} style={{ opacity: busy ? 0.6 : 1,
+              {showCycle && showLove && <button onClick={toggleLove} disabled={busy} aria-pressed={loved} style={{ opacity: busy ? 0.6 : 1,
                 ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '5px 12px',
                 background: loved ? BODY.loveSoft : C.card, color: loved ? BODY.love : C.text, border: `0.5px solid ${loved ? 'transparent' : C.sep}`,
               }}><Heart size={14} color={BODY.love} fill={loved ? BODY.love : 'none'} />관계</button>}
