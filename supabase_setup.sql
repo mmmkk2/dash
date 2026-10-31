@@ -287,3 +287,6 @@ alter table events add column if not exists place text default null;
 
 -- 노트 보관함
 alter table lecture_notes add column if not exists archived boolean default false;
+
+-- 노트 고정
+alter table lecture_notes add column if not exists pinned boolean default false;
