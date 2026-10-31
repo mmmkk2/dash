@@ -302,11 +302,32 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     if (error) return setErr(/pinned/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table lecture_notes add column if not exists pinned boolean default false;' : error.message)
     load()
   }
+  useEffect(() => {
+    if (!menu) return
+    const close = e => { if (!e.target.closest?.('[data-row-actions]')) setMenu(null) }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [menu])
+  // 꾹 누른 카드 오른쪽 가운데에 붙는 버튼 (카드와 함께 움직임)
+  const cardActions = n => {
+    const btn = (Icon, label, run, danger) => (
+      <button key={label} aria-label={label} title={label} onClick={e => { e.stopPropagation(); setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
+        <Icon size={15} />
+      </button>
+    )
+    return (
+      <div data-row-actions onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 15, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 6, paddingLeft: 10, background: C.card }}>
+        {btn(Pin, n.pinned ? '고정 해제' : '고정', () => pin(n))}
+        {btn(n.archived ? ArchiveRestore : Archive, n.archived ? '복원' : '보관', () => archive(asTarget(n)))}
+        {btn(Trash2, '삭제', () => remove(asTarget(n)), true)}
+      </div>
+    )
+  }
   const asTarget = n => ({ ...n, files: n.files || [] })
   const card = n => {
     const preview = parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || ''
     return (
-      <button key={n.id} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', ...plain, display: 'block', width: '100%', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
+      <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', ...plain, display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
         <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
         {preview && <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
@@ -314,7 +335,8 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           <span>{shortDate(n.updated_at)}</span>
           {n.files?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Paperclip size={12} />{n.files.length}</span>}
         </div>
-      </button>
+        {menu?.n.id === n.id && cardActions(n)}
+      </div>
     )
   }
 
@@ -349,23 +371,6 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           {showArchived && archived.map(card)}
         </>
       )}
-      {menu && (() => {
-        const { n, rect } = menu
-        const btn = (Icon, label, run, danger) => (
-          <button key={label} aria-label={label} title={label} onClick={() => { setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
-            <Icon size={15} />
-          </button>
-        )
-        return (
-          <div onClick={() => setMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }}>
-            <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: rect.top + rect.height / 2, right: window.innerWidth - rect.right + 15, transform: 'translateY(-50%)', display: 'flex', gap: 6, paddingLeft: 10, background: C.card }}>
-              {btn(Pin, n.pinned ? '고정 해제' : '고정', () => pin(n))}
-              {btn(n.archived ? ArchiveRestore : Archive, n.archived ? '복원' : '보관', () => archive(asTarget(n)))}
-              {btn(Trash2, '삭제', () => remove(asTarget(n)), true)}
-            </div>
-          </div>
-        )
-      })()}
       {!edit && <Fab label="새 노트" color={subjectColor(subject).color} onClick={create} />}
 
       {viewer && (
