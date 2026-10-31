@@ -284,3 +284,6 @@ create policy "note-files 본인 삭제" on storage.objects for delete to authen
 
 -- 일정 장소 (내비서 일정 편집의 '장소')
 alter table events add column if not exists place text default null;
+
+-- 노트 보관함
+alter table lecture_notes add column if not exists archived boolean default false;
