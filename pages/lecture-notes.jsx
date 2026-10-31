@@ -3,7 +3,18 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
-import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab } from '../notes-app'
+import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT } from '../notes-app'
+
+// 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
+const EXTRA = [{ color: '#c0697f', soft: '#fdf4f6' }, { color: '#4f9aa3', soft: '#f2f9fa' }, { color: '#b08a2e', soft: '#fcf9ef' }, { color: '#7b7fc4', soft: '#f6f6fd' }]
+function subjectColor(s) {
+  if (!s) return { color: MEMO_TINT, soft: C.fill }
+  const t = Object.values(TAGS).find(t => s.includes(t.label) || t.label.includes(s))
+  if (t) return t
+  let h = 0
+  for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return EXTRA[h % EXTRA.length]
+}
 
 const BUCKET = 'note-files'
 const MEMO_BUCKET = 'memo-images' // 메모에서 옮겨 온 사진은 메모 버킷에 그대로 두고 bucket으로 표시
@@ -189,15 +200,22 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.fill, borderRadius: 10, padding: '8px 10px', marginBottom: 10 }}>
-        <Search size={16} color={C.sub} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 10, border: `0.5px solid ${C.sep}` }}>
+        <Search size={16} color={C.sub} strokeWidth={2.2} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="노트 검색" style={{ ...input, fontSize: 15 }} />
       </div>
       {subjects.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10 }}>
-          {['', ...subjects].map(s => (
-            <button key={s || '_all'} onClick={() => setSubject(s)} aria-pressed={subject === s} style={{ ...plain, flexShrink: 0, fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '6px 12px', background: subject === s ? C.tint : C.card, color: subject === s ? '#fff' : C.text, border: `0.5px solid ${subject === s ? C.tint : C.sep}` }}>{s || '전체'}</button>
-          ))}
+        // 메모 태그 칩과 같은 모양: 선택하면 태그 색으로 채움, 아니면 흰 칩에 색 점·색 글씨 (전체는 메모와 같은 코랄)
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 18, paddingBottom: 2 }}>
+          {['', ...subjects].map(s => {
+            const on = subject === s, t = s && subjectColor(s)
+            return (
+              <button key={s || '_all'} onClick={() => setSubject(on && s ? '' : s)} aria-pressed={on} style={{ ...plain, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: on ? (t ? t.color : MEMO_TINT) : C.card, color: on ? '#fff' : (t ? t.color : C.text), border: `0.5px solid ${on && t ? t.color : C.sep}` }}>
+                {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? '#fff' : t.color }} />}
+                {s || '전체'}
+              </button>
+            )
+          })}
         </div>
       )}
       {notes && shown.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{notes.length ? '찾는 노트가 없어요' : '+ 버튼으로 첫 노트를 만들어 보세요'}</div>}
@@ -208,21 +226,21 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
             <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title || '제목 없음'}</div>
             {preview && <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
-              {n.subject && <span style={{ background: C.fill, borderRadius: 6, padding: '2px 7px', color: C.text }}>{n.subject}</span>}
+              {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
               <span>{shortDate(n.updated_at)}</span>
               {n.files?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Paperclip size={12} />{n.files.length}</span>}
             </div>
           </button>
         )
       })}
-      {!edit && <Fab label="새 노트" onClick={create} />}
+      {!edit && <Fab label="새 노트" color={subjectColor(subject).color} onClick={create} />}
 
       {viewer && (
         <div onClick={() => setViewer(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
         <div onClick={e => e.stopPropagation()} style={{ width: 'calc(100% - 16px)', maxWidth: 660, height: 'min(78dvh, calc(100dvh - 80px))', background: '#fff', borderRadius: '24px 24px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 12px', borderBottom: `0.5px solid ${C.sep}` }}>
             <div style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{viewer.name}</div>
-            <button onClick={() => setViewer(null)} style={{ ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: C.tint, borderRadius: 999, padding: '7px 16px' }}>닫기</button>
+            <button onClick={() => setViewer(null)} style={{ ...plain, fontSize: 15, fontWeight: 600, color: '#fff', background: MEMO_TINT, borderRadius: 999, padding: '7px 16px' }}>닫기</button>
           </div>
           {viewer.html != null
             // 올린 HTML은 따로 격리된 틀에서 (스크립트는 되지만 이 앱의 로그인·데이터에는 접근 못 함)
@@ -234,7 +252,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
 
       {edit && (
         // 높이는 메모 읽기 창과 같게 (메모 본문 45dvh + 머리·아래 198px), 크게 보기는 메모와 같은 full
-        <Sheet full={full} titleLines={2} title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : (edit.title || '제목 없음')} tint={C.tint}
+        <Sheet full={full} titleLines={2} title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : (edit.title || '제목 없음')} tint={subjectColor(edit.subject?.trim()).color}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
@@ -264,7 +282,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.sub, margin: '0 0 12px' }}>
-                {edit.subject && <span style={{ background: C.fill, borderRadius: 6, padding: '2px 8px', color: C.text }}>{edit.subject}</span>}
+                {edit.subject && <span style={{ background: subjectColor(edit.subject).soft, borderRadius: 6, padding: '2px 8px', color: subjectColor(edit.subject).color, fontWeight: 600 }}>{edit.subject}</span>}
                 <span>{shortDate(edit.updated_at)} 수정</span>
               </div>
               {edit.files.length > 0 && <div style={{ marginBottom: 14 }}>
