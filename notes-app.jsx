@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin } from 'lucide-react'
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
@@ -136,14 +136,21 @@ const PHONE_RE = /(?<![\d+])(?:\+82[-\s]?|0)\d{1,2}[-.\s]?\d{3,4}[-.\s]?\d{4}(?!
 const findPhones = text => [...new Set(text.match(PHONE_RE) || [])]
 const telHref = num => 'tel:' + num.replace(/[^\d+]/g, '')
 
-// 글 속 전화번호를 눌러서 바로 걸 수 있는 링크로
+// 글 속 전화번호는 바로 걸기, 주소(http·https·www.)는 새 창으로 열리는 링크로
+const URL_RE = /(https?:\/\/|www\.)[^\s<>"']+/g
 function Linkified({ text }) {
+  const found = [
+    ...[...text.matchAll(URL_RE)].map(m => { const url = m[0].replace(/[).,;:!?\]}'"]+$/, ''); return { i: m.index, s: url, href: url.startsWith('www.') ? `https://${url}` : url, url: true } }),
+    ...[...text.matchAll(PHONE_RE)].map(m => ({ i: m.index, s: m[0], href: telHref(m[0]) })),
+  ].sort((a, b) => a.i - b.i)
   const out = []
   let last = 0
-  for (const m of text.matchAll(PHONE_RE)) {
-    if (m.index > last) out.push(text.slice(last, m.index))
-    out.push(<a key={m.index} href={telHref(m[0])} onClick={e => e.stopPropagation()} style={{ color: C.text, textDecoration: 'underline', textUnderlineOffset: 3 }}>{m[0]}</a>)
-    last = m.index + m[0].length
+  for (const f of found) {
+    if (f.i < last) continue // 주소 안의 숫자는 전화번호로 보지 않음
+    if (f.i > last) out.push(text.slice(last, f.i))
+    out.push(<a key={f.i} href={f.href} {...(f.url && { target: '_blank', rel: 'noreferrer' })} onClick={e => e.stopPropagation()}
+      style={{ color: f.url ? '#2f6fb3' : C.text, textDecoration: 'underline', textUnderlineOffset: 3, ...(f.url && { wordBreak: 'break-all' }) }}>{f.s}</a>)
+    last = f.i + f.s.length
   }
   if (last < text.length) out.push(text.slice(last))
   return out
@@ -301,7 +308,7 @@ function PhotoViewer({ src, onClose, onDelete }) {
 }
 
 // ───────────────────────── 메모 ─────────────────────────
-function CheckCircle({ done, color = C.tint, onClick }) {
+export function CheckCircle({ done, color = C.tint, onClick }) {
   return (
     <button type="button" aria-label={done ? '체크 해제' : '체크'} onClick={onClick} style={{
       ...plain, width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -537,12 +544,12 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     setEdit(null); reload()
   }
 
-  // 메모 → 노트: 첫 줄은 제목, 나머지는 본문(체크 줄은 '- ' 목록으로), 사진은 노트 첨부로(메모 버킷에 그대로 둠), 태그는 과목으로
+  // 메모 → 노트: 첫 줄은 제목, 나머지는 본문(체크 줄은 노트 체크리스트 그대로), 사진은 노트 첨부로(메모 버킷에 그대로 둠), 태그는 과목으로
   async function toNote() {
     if (!confirm('이 메모를 노트로 옮길까요?')) return
-    const lines = (edit.content || '').split('\n').map(l => l.replace(CHECK_RE, '- '))
+    const lines = (edit.content || '').split('\n')
     const first = lines.findIndex(l => l.trim())
-    const title = first >= 0 ? lines[first].replace(/^- /, '').trim().slice(0, 80) : ''
+    const title = first >= 0 ? lines[first].replace(CHECK_RE, '').replace(/^- /, '').trim().slice(0, 80) : ''
     const content = first >= 0 ? lines.slice(first + 1).join('\n').replace(/^\n+/, '') : ''
     const files = (edit.images || []).map((p, i) => ({ path: p, name: `사진 ${i + 1}.jpg`, size: 0, type: 'image/jpeg', bucket: IMG_BUCKET }))
     const { error } = await supabase.from('lecture_notes').insert({ title, subject: TAGS[edit.tag]?.label || null, content, files, updated_at: new Date().toISOString() })
@@ -791,10 +798,11 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     if (!edit.text.trim()) return
     const row = { date: edit.date, time: edit.time ? (edit.end ? `${edit.time}~${edit.end}` : edit.time) : null, title: edit.text.trim(), memo: '', done: edit.done }
     if (edit.tag !== undefined) row.tag = edit.tag || null
+    if (edit.place?.trim() || edit.place0) row.place = edit.place?.trim() || null
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
       : await supabase.from('events').insert(row)
-    if (error) return setErr(/tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : error.message)
+    if (error) return setErr(/place/.test(error.message) ? '일정 장소를 쓰려면 supabase_setup.sql 의 events place 줄을 실행하세요.' : /tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : error.message)
     setEdit(null); reload()
   }
   async function remove() {
@@ -872,7 +880,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       : n === 0 ? '오늘 생리 예정일' : `생리 예정일 ${-n}일 지남`
     summary = [main, info.fertileDays.has(t) && !info.ongoing ? (info.ovulationDays.has(t) ? '배란 예정일' : '가임기') : null, `평균 주기 ${info.cycle}일`].filter(Boolean)
   }
-  const open = e => { const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, time, end, text: joinText(e.title, e.memo) }) }
+  const open = e => { const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, time, end, text: joinText(e.title, e.memo), place: e.place || '', place0: e.place || '' }) }
   const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
@@ -1043,6 +1051,15 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
               <TimeChips value={edit.end} fallback={addHour(edit.time)} canClear tint={TAGS[edit.tag]?.color || CAL_TINT} onChange={v => setEdit({ ...edit, end: v })} />
             )}
           </Group>
+          {/* 장소: 적으면 목록에 표시, 지도 버튼으로 네이버 지도 검색 */}
+          <Group>
+            <Row last>
+              <MapPin size={18} color={C.sub} style={{ flexShrink: 0 }} />
+              <input value={edit.place || ''} onChange={e => setEdit({ ...edit, place: e.target.value })} placeholder="장소"
+                style={{ ...field, flex: 1, minWidth: 0, fontSize: 16 }} />
+              {edit.place?.trim() && <a href={mapHref(edit.place)} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 600, color: TAGS[edit.tag]?.color || CAL_TINT, background: (TAGS[edit.tag]?.color || CAL_TINT) + '1a', borderRadius: 999, padding: '5px 10px', textDecoration: 'none', whiteSpace: 'nowrap' }}>지도</a>}
+            </Row>
+          </Group>
           {edit.id && (
             <Group>
               <Row last onClick={remove}>
@@ -1095,6 +1112,8 @@ function TimeChips({ value, fallback, onChange, tint, canClear }) {
   )
 }
 
+const mapHref = place => `https://map.naver.com/p/search/${encodeURIComponent(place.trim())}`
+
 function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
   return (
@@ -1107,6 +1126,8 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
           {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
           {first}
         </div>
+        {e.place && <a href={mapHref(e.place)} target="_blank" rel="noreferrer" onClick={ev => ev.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13.5, color: C.sub, marginTop: 2, textDecoration: 'none', overflow: 'hidden' }}>
+          <MapPin size={13} style={{ flexShrink: 0 }} /><span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.place}</span></a>}
         {rest.length > 0 && <div style={{ fontSize: 14, lineHeight: 1.4, color: C.sub, marginTop: 2, whiteSpace: 'pre-line', display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{rest.join('\n')}</div>}
       </div>
       <div style={{ fontSize: 14, color: C.sub, textAlign: 'right', whiteSpace: 'nowrap' }}>
