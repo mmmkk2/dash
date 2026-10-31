@@ -750,6 +750,38 @@ function calcLoanMonthly(repayType, prin, bal, annualRate, termMonths, maturity)
   return null;
 }
 
+// 가계부 '지출-고정비 › 원금상환' 항목 (가계부 기본 분류와 같은 이름)
+const LOAN_LINK_ITEMS = ["대출원금-주택", "대출원금-전세", "대출원금-신용", "대출원금-호텔", "대출원금-보험대출"];
+
+// 가계부 원금상환 → 연결된 부채 잔액. 거래마다 한 번만(txId), 가계부에서 고치거나 지우면 그만큼 되돌림
+function syncLoanRepayments(loans, txs) {
+  const changed = [];
+  for (const loan of loans) {
+    let m; try { m = JSON.parse(loan.memo || "{}"); } catch { continue; }
+    if (!m.budgetLink) continue;
+    const mine = txs.filter(t => t.cat3 === m.budgetLink && t.type === "expense" && (!m.linkFrom || t.date >= m.linkFrom));
+    const byId = Object.fromEntries(mine.map(t => [String(t.id), t]));
+    let amount = loan.amount, dirty = false;
+    const payments = [];
+    for (const p of m.payments || []) {
+      if (!p.txId) { payments.push(p); continue; }
+      const t = byId[p.txId];
+      if (!t) { amount += p.principal; dirty = true; continue; }           // 가계부에서 지움 → 되돌림
+      const v = Math.abs(Number(t.amount) || 0);
+      if (v !== p.principal || t.date !== p.date) { amount += p.principal - v; dirty = true; }
+      payments.push({ ...p, date: t.date, total: v, principal: v });
+      delete byId[p.txId];
+    }
+    for (const t of Object.values(byId)) {                                  // 새 원금상환
+      const v = Math.abs(Number(t.amount) || 0);
+      amount -= v; dirty = true;
+      payments.push({ date: t.date, total: v, principal: v, interest: 0, txId: String(t.id) });
+    }
+    if (dirty) changed.push({ ...loan, amount: Math.max(0, amount), memo: JSON.stringify({ ...m, payments }) });
+  }
+  return changed;
+}
+
 function LoanForm({ initial = {}, onSave, onDelete }) {
   const init = initial;
   const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
@@ -767,6 +799,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
   const [monthlyPrinStr, setMonthlyPrinStr] = useState(initMemo.monthlyPrincipal ? String(initMemo.monthlyPrincipal) : "");
   const [maturity,       setMaturity]       = useState(init.date || "");
   const [memo,           setMemo]           = useState(initMemo.memo || "");
+  const [link,           setLink]           = useState(initMemo.budgetLink || "");
   const [err,            setErr]            = useState("");
 
   const bal   = parseInt(balance.replace(/[^\d]/g, ""), 10) || 0;
@@ -799,6 +832,9 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
     if (repayType !== "직접입력") memoObj.repayType = repayType;
     if (repayType === "부분원금균등" && monthlyPrin) memoObj.monthlyPrincipal = monthlyPrin;
     if (memo.trim())     memoObj.memo       = memo.trim();
+    if (initMemo.payments) memoObj.payments = initMemo.payments; // 납입 기록은 그대로 (수정할 때 지워지지 않게)
+    // 가계부 원금상환 연결: 연결한 날부터의 가계부 기록만 잔액에 반영 (그 전 상환은 지금 잔액에 이미 들어 있음)
+    if (link) { memoObj.budgetLink = link; memoObj.linkFrom = link === initMemo.budgetLink && initMemo.linkFrom ? initMemo.linkFrom : new Date().toISOString().slice(0, 10); }
     onSave({
       id: init.id || Date.now(),
       cat: "대출",
@@ -917,6 +953,16 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
         <input type="date" value={maturity} onChange={e => setMaturity(e.target.value)}
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
+      </div>
+      <SLabel>가계부 원금상환 연결 (선택)</SLabel>
+      <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 4 }}>
+        <select value={link} onChange={e => setLink(e.target.value)} style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, color: link ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F }}>
+          <option value="">연결 안 함</option>
+          {[...new Set([...LOAN_LINK_ITEMS, ...(initMemo.budgetLink ? [initMemo.budgetLink] : [])])].map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+      </div>
+      <div style={{ fontSize: 11.5, color: C.inkLight, marginBottom: 12 }}>
+        {link ? `가계부에 '${link}'로 쓴 원금상환이 이 부채 잔액에서 빠져요${initMemo.linkFrom && link === initMemo.budgetLink ? ` (${initMemo.linkFrom}부터)` : " (오늘부터)"}` : "연결하면 가계부 원금상환 기록이 잔액에 자동 반영돼요"}
       </div>
       <SLabel>메모 (선택)</SLabel>
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
@@ -1660,7 +1706,18 @@ export default function AssetsApp() {
       sb("vesting_schedule?select=*&order=vest_date"),
       sb("espp_offerings?select=*&order=end_date"),
     ]).then(([dbAssets, dbStocks, dbSettings, dbSnaps, dbVestings, dbOfferings]) => {
-      if (dbAssets) setAssets(dbAssets.map(fromDbAsset));
+      if (dbAssets) {
+        const loadedAssets = dbAssets.map(fromDbAsset);
+        setAssets(loadedAssets);
+        // 가계부 원금상환 연동 (연결된 부채가 있을 때만 가계부 기록을 읽음)
+        const linked = loadedAssets.filter(a => a.cat === "대출" && /"budgetLink"/.test(a.memo || ""));
+        if (linked.length) sb("transactions?select=id,date,amount,cat3,type&cat2=in.(원금상환,대출원금상환)").then(txs => {
+          const changed = syncLoanRepayments(linked, txs || []);
+          if (!changed.length) return;
+          setAssets(p => p.map(x => changed.find(c => c.id === x.id) || x));
+          changed.forEach(c => sb("assets", { method: "POST", body: JSON.stringify(toDbAsset(c)), prefer: "resolution=merge-duplicates,return=minimal" }).catch(e => console.error("[loanSync]", e)));
+        }).catch(e => console.error("[loanSync]", e));
+      }
       if (dbStocks) {
         const loaded = dbStocks.map(fromDbStock);
         setStocks(loaded);
