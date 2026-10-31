@@ -6,6 +6,7 @@ import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
 import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
 import { SettingsSheet, SmsToolSheet, SalarySheet } from './anding-tools'
+import { ask, tell } from '../src/dialog'
 
 // 앤딩 관리자 메인 — 내비서가 직접 그리는 화면.
 // 숫자는 앤딩 앱(맥)의 /api/summary 에서 받고, 상세 표·그래프는 앤딩 앱 화면을 시트 안에 띄운다.
@@ -257,7 +258,7 @@ function LockerEndChip({ r }) {
   if (!isLockerExpired(r)) return null
   const end = async e => {
     e.stopPropagation()
-    if (busy || !confirm(`사물함 ${r.no}번 · ${r.name || '미등록'}\n만료: ${r.end}\n\n이용을 종료해서 빈 사물함으로 바꿀까요?`)) return
+    if (busy || !await ask(`사물함 ${r.no}번 · ${r.name || '미등록'}\n만료: ${r.end}\n\n이용을 종료해서 빈 사물함으로 바꿀까요?`)) return
     setBusy(true)
     try {
       const res = await fetch(`${API}/api/locker/end`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(r) })
@@ -270,13 +271,13 @@ function LockerEndChip({ r }) {
         if (!check.ok) throw new Error(job.error || '처리 상태를 확인하지 못했어요')
         if (job.status === 'done') {
           window.dispatchEvent(new Event('anding-locker-ended'))
-          alert(job.message || '이용 종료 완료')
+          tell(job.message || '이용 종료 완료')
           return
         }
         if (job.status === 'error') throw new Error(job.message)
       }
       throw new Error('처리 시간이 길어지고 있어요. 다시 누르기 전에 현황을 새로고침해 주세요.')
-    } catch (error) { alert(error.message || '종료 처리에 실패했어요') }
+    } catch (error) { tell(error.message || '종료 처리에 실패했어요') }
     finally { if (alive.current) setBusy(false) }
   }
   return <button onClick={end} disabled={busy} aria-label={`사물함 ${r.no}번 이용 종료`} style={{ ...plain, fontSize: 12, fontWeight: 600, color: COL.locker, background: COL.locker + '14', borderRadius: 999, padding: '4px 9px', flexShrink: 0, opacity: busy ? 0.6 : 1 }}>{busy ? '처리 중…' : '이용 종료'}</button>
@@ -302,7 +303,7 @@ function SmsSheet({ r, onClose }) {
   const pick = k => { setKind(k); setText(SMS_TEMPLATES[k].make(r)) }
   const n = bytes(text)
   async function send() {
-    if (!confirm(`${r.name || ''} ${r.hp}\n이 번호로 문자를 보낼까요?`)) return
+    if (!await ask(`${r.name || ''} ${r.hp}\n이 번호로 문자를 보낼까요?`)) return
     setBusy(true); setMsg(null)
     try {
       const res = await fetch(`${API}/api/sms/send`, {
@@ -861,15 +862,15 @@ function Detail({ k, d, onClose, onSms, onReload }) {
 function useGate(onLogin) {
   const [status, setStatus] = useState(null) // null | 'busy' | 'done'
   async function open() {
-    if (status === 'busy' || !confirm('매장 문을 열까요?')) return
+    if (status === 'busy' || !await ask('매장 문을 열까요?')) return
     setStatus('busy')
     try {
       const res = await fetch(`${API}/api/gate/open`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      if (res.status === 401 || res.status === 403) { setStatus(null); alert('문열기는 앤딩 로그인이 필요해요'); onLogin(); return }
+      if (res.status === 401 || res.status === 403) { setStatus(null); tell('문열기는 앤딩 로그인이 필요해요'); onLogin(); return }
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.ok) throw new Error(j.error || `문열기 실패 (${res.status})`)
       setStatus('done'); setTimeout(() => setStatus(null), 3000)
-    } catch (e) { setStatus(null); alert(e.message || '문열기에 실패했어요') }
+    } catch (e) { setStatus(null); tell(e.message || '문열기에 실패했어요') }
   }
   const badge = status && (
     <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: status === 'done' ? '#fff' : GREEN, background: status === 'done' ? GREEN : GREEN + '14', borderRadius: 999, padding: '5px 10px' }}>
@@ -908,7 +909,7 @@ export default function AndingHome() {
     { label: '급여 관리표', run: () => setTool('salary') },
     // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
     { label: '앤딩 로그인', run: () => setLoginOpen(true) },
-    { label: '로그아웃', danger: true, run: async () => { if (!confirm('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
+    { label: '로그아웃', danger: true, run: async () => { if (!await ask('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
   ]
 
   const d = state.data && freshen(state.data)

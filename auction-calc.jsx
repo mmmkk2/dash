@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ask } from './src/dialog'
     const SB_URL  = import.meta.env.VITE_SUPABASE_URL;
     const SB_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -526,8 +527,8 @@ import { useState, useEffect, useRef } from "react";
                 </div>
               ))}
               <button onClick={addProperty} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.muted,fontFamily:"inherit",flexShrink:0}}>+ 추가</button>
-              <button onClick={()=>{ if(window.confirm("예시 데이터로 초기화할까요?\n현재 데이터는 삭제됩니다.")) { const ex=defaultExamples(); setProps(ex); setActiveId(null); saveStorage(ex, null); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.muted,fontFamily:"inherit",flexShrink:0}}>예시 보기</button>
-              <button onClick={()=>{ if(window.confirm("물건을 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.")) { const np=blankProperty("새 물건 1"); setProps([np]); setActiveId(np.id); saveStorage([np], np.id); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.red,fontFamily:"inherit",flexShrink:0}}>모두 삭제</button>
+              <button onClick={async ()=>{ if(await ask("예시 데이터로 초기화할까요?\n현재 데이터는 삭제됩니다.")) { const ex=defaultExamples(); setProps(ex); setActiveId(null); saveStorage(ex, null); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.muted,fontFamily:"inherit",flexShrink:0}}>예시 보기</button>
+              <button onClick={async ()=>{ if(await ask("물건을 모두 삭제할까요?\n이 작업은 되돌릴 수 없습니다.")) { const np=blankProperty("새 물건 1"); setProps([np]); setActiveId(np.id); saveStorage([np], np.id); }}} style={{padding:"7px 11px",borderRadius:9,border:`1px dashed ${C.border}`,background:"none",fontSize:12,cursor:"pointer",color:C.red,fontFamily:"inherit",flexShrink:0}}>모두 삭제</button>
               <div style={{display:"flex",alignItems:"center",marginLeft:4}}>
                 {saveStatus==="saving" && <span style={{fontSize:10,color:C.muted}}>저장중</span>}
                 {saveStatus==="saved"  && <span style={{fontSize:13,color:C.green}}>✓</span>}

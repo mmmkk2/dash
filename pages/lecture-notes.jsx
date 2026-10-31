@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
 import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage } from '../notes-app'
+import { ask } from '../src/dialog'
 
 // 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
 const EXTRA = [{ color: '#c0697f', soft: '#fdf4f6' }, { color: '#4f9aa3', soft: '#f2f9fa' }, { color: '#b08a2e', soft: '#fcf9ef' }, { color: '#7b7fc4', soft: '#f6f6fd' }]
@@ -186,7 +187,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     setEdit(null); load()
   }
   async function remove() {
-    if (!confirm('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
+    if (!await ask('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
     const { error } = await supabase.from('lecture_notes').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
     removeAttached(edit.files); removeFiles(imagePaths(edit.content)); setEdit(null); load()
@@ -253,7 +254,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     const photos = edit.files.filter(f => f.bucket === MEMO_BUCKET)
     const others = edit.files.filter(f => f.bucket !== MEMO_BUCKET)
     const inline = imagePaths(edit.content)
-    if (!confirm(others.length + inline.length ? `첨부 파일·본문 사진 ${others.length + inline.length}개는 메모에 붙일 수 없어 지워져요.\n메모로 옮길까요?` : '이 노트를 메모로 옮길까요?')) return
+    if (!await ask(others.length + inline.length ? `첨부 파일·본문 사진 ${others.length + inline.length}개는 메모에 붙일 수 없어 지워져요.\n메모로 옮길까요?` : '이 노트를 메모로 옮길까요?')) return
     const content = [edit.title.trim(), edit.content.split('\n').filter(l => !IMG_RE.test(l)).join('\n').replace(/^#{1,2} /gm, '')].filter(t => t.trim()).join('\n')
     const row = { title: '', content, color: '#1c1c1e', pinned: false, updated_at: new Date().toISOString() }
     if (photos.length) row.images = photos.map(f => f.path)

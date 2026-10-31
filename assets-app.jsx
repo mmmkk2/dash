@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronUp, RefreshCw, Tren
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { supabase } from "./src/lib/supabase";
 import { useShowTabBar } from "./src/TabBar";
+import { ask } from './src/dialog'
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -604,7 +605,7 @@ function PensionForm({ initial = {}, onSave, onDelete }) {
         {init.id ? "저장" : "추가"}
       </button>
       {onDelete && (
-        <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F, marginTop: 0 }}>
+        <button onClick={async () => await ask("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F, marginTop: 0 }}>
           삭제
         </button>
       )}
@@ -696,7 +697,7 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
         {init.id ? "저장" : "ETF 추가"}
       </button>
       {onDelete && (
-        <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
+        <button onClick={async () => await ask("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
           삭제
         </button>
       )}
@@ -918,7 +919,7 @@ function LoanForm({ initial = {}, onSave, onDelete }) {
         {init.id ? "저장" : "부채 추가"}
       </button>
       {onDelete && (
-        <button onClick={() => window.confirm("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
+        <button onClick={async () => await ask("삭제할까요?") && onDelete()} style={{ width: "100%", padding: 12, borderRadius: 12, border: `1px solid #e07a5f`, background: C.white, color: "#e07a5f", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: F }}>
           삭제
         </button>
       )}
@@ -2868,7 +2869,7 @@ export default function AssetsApp() {
                           style={{ background: "none", border: "none", cursor: "pointer", padding: "11px 8px", color: C.inkLight, display: "flex", alignItems: "center" }}>
                           <Pencil size={13} />
                         </button>
-                        <button onClick={e => { e.stopPropagation(); if (window.confirm(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
+                        <button onClick={async e => { e.stopPropagation(); if (await ask(`'${grantName}' 그랜트 전체(${gvs.length}건)를 삭제할까요?`)) deleteGrant(grantName); }}
                           style={{ background: "none", border: "none", cursor: "pointer", padding: "11px 12px 11px 4px", color: "#b5451b", display: "flex", alignItems: "center" }}>
                           <Trash2 size={13} />
                         </button>

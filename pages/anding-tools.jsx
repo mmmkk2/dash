@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
 import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
+import { ask, tell } from '../src/dialog'
 
 // 앤딩 ⋯ 메뉴의 도구들: 설정 · 문자 생성기 · 급여 관리표 (예전엔 앤딩 앱 화면을 따로 열었음)
 
@@ -247,7 +248,7 @@ export function SmsToolSheet({ onClose }) {
   }
   async function send() {
     if (!/^01\d{8,9}$/.test(digits)) return setMsg({ ok: false, text: '받는 사람 휴대폰 번호를 넣어 주세요' })
-    if (!confirm(`${digits}\n이 번호로 문자를 보낼까요?`)) return
+    if (!await ask(`${digits}\n이 번호로 문자를 보낼까요?`)) return
     setBusy(true); setMsg(null)
     try {
       const r = await fetch(`${API}/api/sms/send`, { method: 'POST', credentials: 'same-origin', headers: { ...xhr, 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: digits, text, category: 'info' }) })
@@ -452,7 +453,7 @@ export function SalarySheet({ onClose }) {
           // 이미지 전용 배치가 그려질 때까지 두 프레임 기다림
           await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
           try { await saveImage(shotRef.current, `salary_${year}${tab ? '_' + pad2(tab) : '_year'}.png`) }
-          catch { alert('이미지를 만들지 못했어요') } finally { setSaving(false) }
+          catch { tell('이미지를 만들지 못했어요') } finally { setSaving(false) }
         }} style={{ ...plain, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}`, opacity: saving ? 0.5 : 1 }}>
           {saving ? '만드는 중…' : '이미지 저장'}
         </button>

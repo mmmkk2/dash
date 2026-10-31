@@ -5,6 +5,7 @@ import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
 import InstallButton from './src/InstallButton'
+import { ask } from './src/dialog'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
 export const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
@@ -537,7 +538,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     setEdit(null); reload()
   }
   async function remove() {
-    if (!confirm('이 메모를 삭제할까요?')) return
+    if (!await ask('이 메모를 삭제할까요?')) return
     const { error } = await supabase.from('memos').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
     removeImages([...new Set([...(edit.origImages || []), ...(edit.images || [])])])
@@ -546,7 +547,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
 
   // 메모 → 노트: 첫 줄은 제목, 나머지는 본문(체크 줄은 노트 체크리스트 그대로), 사진은 노트 첨부로(메모 버킷에 그대로 둠), 태그는 과목으로
   async function toNote() {
-    if (!confirm('이 메모를 노트로 옮길까요?')) return
+    if (!await ask('이 메모를 노트로 옮길까요?')) return
     const lines = (edit.content || '').split('\n')
     const first = lines.findIndex(l => l.trim())
     const title = first >= 0 ? lines[first].replace(CHECK_RE, '').replace(/^- /, '').trim().slice(0, 80) : ''
@@ -806,7 +807,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     setEdit(null); reload()
   }
   async function remove() {
-    if (!confirm('이 일정을 삭제할까요?')) return
+    if (!await ask('이 일정을 삭제할까요?')) return
     const { error } = await supabase.from('events').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
     setEdit(null); reload()
@@ -833,7 +834,7 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     ? (justEnded ? { label: '생리 여기까지 연장', run: () => supabase.from('periods').update({ end_date: sel }).eq('id', justEnded.id) }
       : { label: '생리 시작', run: () => supabase.from('periods').insert({ start_date: sel }) })
     : selPeriod.start_date === sel
-      ? { label: '생리 시작일', active: true, run: () => confirm('이 생리 기록을 삭제할까요?') && supabase.from('periods').delete().eq('id', selPeriod.id) }
+      ? { label: '생리 시작일', active: true, run: async () => await ask('이 생리 기록을 삭제할까요?') && supabase.from('periods').delete().eq('id', selPeriod.id) }
       : selPeriod.end_date === sel
         ? { label: `생리 ${diffDays(selPeriod.start_date, sel) + 1}일차 · 마지막 날`, active: true, run: () => supabase.from('periods').update({ end_date: null }).eq('id', selPeriod.id) }
         : { label: `생리 ${diffDays(selPeriod.start_date, sel) + 1}일차 · 여기서 끝`, active: true, run: () => supabase.from('periods').update({ end_date: sel }).eq('id', selPeriod.id) }
