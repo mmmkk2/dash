@@ -1952,7 +1952,7 @@ export default function AssetsApp() {
     <div style={{ minHeight: "100vh", background: C.bg, paddingBottom: "calc(80px + var(--tabbar, 0px))", fontFamily: F }}>
 
       {/* 머리: 메모·일정처럼 밝은 바탕, 순자산을 크게 */}
-      <div style={{ maxWidth: 660, margin: "0 auto", padding: `calc(${hasTabBar ? 8 : 16}px + env(safe-area-inset-top)) 16px 0` }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: `calc(${hasTabBar ? 8 : 16}px + env(safe-area-inset-top)) 12px 0` }}>
         {/* 머리: 다른 화면과 같은 큰 제목 + 오른쪽 ⋯ 메뉴 (분류 관리, 하단 탭이 없을 땐 가계부도) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
           <div style={{ fontSize: hasTabBar ? 22 : 28, fontWeight: 700, letterSpacing: hasTabBar ? "-0.5px" : "-0.7px", lineHeight: hasTabBar ? "38px" : 1.25, color: C.ink }}>자산</div>
@@ -2033,7 +2033,7 @@ export default function AssetsApp() {
 
       </div>
 
-      <div style={{ maxWidth: 660, margin: "0 auto", padding: "0 16px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "0 12px" }}>
 
         {/* Loading */}
         {dbLoading && (
