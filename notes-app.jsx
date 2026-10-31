@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal } from 'lucide-react'
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
@@ -209,6 +209,28 @@ export function useBackClose(open, onClose) {
       if (!entry.byBack) { skipPop++; window.history.back() }
     }
   }, [open])
+}
+
+// 창 머리의 ⋯ 메뉴: 자주 안 쓰는 동작(보관·옮기기·삭제)을 모아 둔다. items: [{ icon, label, run, danger }]
+export function MoreMenu({ items }) {
+  const [open, setOpen] = useState(false)
+  const list = items.filter(Boolean)
+  if (!list.length) return null
+  return (
+    <div style={{ position: 'relative', display: 'flex' }}>
+      <button aria-label="더보기" aria-expanded={open} onClick={() => setOpen(o => !o)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><MoreHorizontal size={21} /></button>
+      {open && <>
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 5 }} />
+        <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: -8, zIndex: 6, minWidth: 168, background: '#fff', borderRadius: 14, boxShadow: '0 8px 28px rgba(0,0,0,0.16)', border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
+          {list.map((it, i) => (
+            <button key={it.label} role="menuitem" onClick={() => { setOpen(false); it.run() }} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 14px', fontSize: 15, color: it.danger ? C.red : C.text, borderTop: i ? `0.5px solid ${C.sep}` : 'none', textAlign: 'left', whiteSpace: 'nowrap' }}>
+              <it.icon size={17} />{it.label}
+            </button>
+          ))}
+        </div>
+      </>}
+    </div>
+  )
 }
 
 export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, height = 'min(78dvh, calc(100dvh - 80px))', titleLines = 1, children }) {
@@ -670,11 +692,11 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
             <button aria-label={full ? '작게 보기' : '크게 보기'} onClick={() => setFull(f => !f)} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
               {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
             </button>
-            {edit.id && <button aria-label={edit.archived ? '보관 해제' : '메모 보관'} onClick={archiveOpen} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>
-              {edit.archived ? <ArchiveRestore size={19} /> : <Archive size={19} />}
-            </button>}
-            {edit.id && !editing && <button aria-label="노트로 옮기기" title="노트로 옮기기" onClick={toNote} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><BookOpen size={19} /></button>}
-            {edit.id && <button aria-label="메모 삭제" onClick={remove} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
+            {edit.id && <MoreMenu items={[
+              { icon: edit.archived ? ArchiveRestore : Archive, label: edit.archived ? '보관 해제' : '보관', run: archiveOpen },
+              !editing && { icon: BookOpen, label: '노트로 옮기기', run: toNote },
+              { icon: Trash2, label: '삭제', danger: true, run: remove },
+            ]} />}
           </>}>
           {/* 읽기 보기에서 내용을 두 번 누르면 바로 편집 (체크·링크·사진 누름은 제외) */}
           <div onClick={e => {
