@@ -1,9 +1,9 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
-import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT } from '../notes-app'
+import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle } from '../notes-app'
 
 // 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
 const EXTRA = [{ color: '#c0697f', soft: '#fdf4f6' }, { color: '#4f9aa3', soft: '#f2f9fa' }, { color: '#b08a2e', soft: '#fcf9ef' }, { color: '#7b7fc4', soft: '#f6f6fd' }]
@@ -22,8 +22,11 @@ const MAX_FILE = 50 * 1024 * 1024
 const shortDate = s => { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()}` }
 const fileSize = n => n >= 1048576 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`
 
-// 본문 한 줄씩: '# 제목' / '## 소제목' / '- 목록' / 그 외 문단
+// 본문 한 줄씩: '# 제목' / '## 소제목' / '- [ ] 체크'(메모와 같은 표기) / '- 목록' / 그 외 문단
+const CHECK_RE = /^- \[( |x)\] ?/
 const parse = text => (text || '').split('\n').map((line, i) => {
+  const c = line.match(CHECK_RE)
+  if (c) return { kind: 'check', done: c[1] === 'x', text: line.slice(c[0].length), i }
   const h = line.match(/^(#{1,2}) (.*)/)
   if (h) return { kind: h[1].length === 1 ? 'h1' : 'h2', text: h[2], i }
   if (/^[-*] /.test(line)) return { kind: 'li', text: line.slice(2), i }
@@ -46,7 +49,7 @@ function Linkify({ text }) {
   return out
 }
 
-function NoteBody({ text }) {
+function NoteBody({ text, onToggle, tint }) {
   const lines = useMemo(() => parse(text), [text])
   const heads = lines.filter(l => l.kind === 'h1' || l.kind === 'h2')
   const [tocOpen, setTocOpen] = useState(true)
@@ -69,6 +72,12 @@ function NoteBody({ text }) {
           if (l.kind === 'h1') return <div key={l.i} id={id} style={{ fontSize: 19, fontWeight: 700, margin: '18px 0 6px', scrollMarginTop: 80 }}>{l.text}</div>
           if (l.kind === 'h2') return <div key={l.i} id={id} style={{ fontSize: 16.5, fontWeight: 700, margin: '14px 0 4px', scrollMarginTop: 80 }}>{l.text}</div>
           if (l.kind === 'li') return <div key={l.i} style={{ display: 'flex', gap: 8, paddingLeft: 4 }}><span style={{ color: C.sub }}>•</span><span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></span></div>
+          if (l.kind === 'check') return (
+            <div key={l.i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '3px 0' }}>
+              <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} color={tint} onClick={() => onToggle?.(l.i)} /></span>
+              <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', color: l.done ? C.sub : C.text, textDecoration: l.done ? 'line-through' : 'none' }}><Linkify text={l.text} /></span>
+            </div>
+          )
           if (l.kind === 'gap') return <div key={l.i} style={{ height: 10 }} />
           return <div key={l.i} style={{ whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></div>
         })}
@@ -128,6 +137,16 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       : await supabase.from('lecture_notes').insert(row)
     if (error) return setErr(error.message)
     setEdit(null); load()
+  }
+  // 읽기 화면에서 체크: 바로 저장 (편집 버튼 없이)
+  async function toggleCheck(i) {
+    const ls = edit.content.split('\n')
+    ls[i] = ls[i].replace(/^- \[( |x)\]/, (_, d) => `- [${d === 'x' ? ' ' : 'x'}]`)
+    const content = ls.join('\n'), id = edit.id
+    setEdit(ed => ({ ...ed, content, snapshot: JSON.stringify([ed.title, ed.subject, content, ed.files]) }))
+    setNotes(ns => ns.map(n => n.id === id ? { ...n, content } : n))
+    const { error } = await supabase.from('lecture_notes').update({ content }).eq('id', id)
+    if (error) setErr(error.message)
   }
   async function remove() {
     if (!confirm('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
@@ -272,6 +291,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
                 <button onClick={() => prefix('## ')} style={toolBtn}><Heading size={14} />소제목</button>
                 <button onClick={() => prefix('- ')} style={toolBtn}><List size={14} />목록</button>
+                <button onClick={() => prefix('- [ ] ')} style={toolBtn}><ListChecks size={14} />체크</button>
                 <button onClick={() => fileRef.current?.click()} style={toolBtn}><Paperclip size={14} />파일 추가</button>
                 <input ref={fileRef} type="file" multiple hidden onChange={e => { addFiles([...e.target.files]); e.target.value = '' }} />
               </div>
@@ -289,7 +309,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, marginBottom: 2 }}>첨부 {edit.files.length}</div>
                 {edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} />)}
               </div>}
-              <NoteBody text={edit.content} />
+              <NoteBody text={edit.content} onToggle={toggleCheck} tint={subjectColor(edit.subject?.trim()).color} />
             </>
           )}
         </Sheet>

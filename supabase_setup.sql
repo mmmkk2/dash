@@ -281,3 +281,6 @@ create policy "note-files 본인 올리기" on storage.objects for insert to aut
   with check (bucket_id = 'note-files' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "note-files 본인 삭제" on storage.objects for delete to authenticated
   using (bucket_id = 'note-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 일정 장소 (내비서 일정 편집의 '장소')
+alter table events add column if not exists place text default null;
