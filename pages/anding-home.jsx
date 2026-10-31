@@ -851,8 +851,42 @@ function MonthlyDetail() {
         {row(`최근 ${d.recent_n || 30}일 일평균`, `${won(avg)}원`)}
         {row(`${d.prev_month}월 매출`, `${won(d.summary_amount_prev)}원`)}
       </Card>
+      <MonthHistory />
       <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 14 }}>Updated {d.updated_time}</div>
     </div>
+  )
+}
+
+// 지난 달들 매출: 맥이 모아 두는 날짜별 매출 기록(코보페이는 1년 지나면 사라짐). 달을 누르면 일별 막대
+function MonthHistory() {
+  const { data } = useApi('/api/sales_archive')
+  const [open, setOpen] = useState(null)
+  const days = data?.days
+  if (!days || !Object.keys(days).length) return null
+  const months = {}
+  for (const [k, v] of Object.entries(days)) months[k.slice(0, 7)] = (months[k.slice(0, 7)] || 0) + v
+  const list = Object.entries(months).sort((a, b) => b[0].localeCompare(a[0]))
+  const max = Math.max(...list.map(x => x[1]), 1)
+  const dailyOf = ym => {
+    const [y, m] = ym.split('-').map(Number), n = new Date(y, m, 0).getDate()
+    return Array.from({ length: n }, (_, i) => { const k = `${ym}-${String(i + 1).padStart(2, '0')}`; return { date: k, amount: days[k] ?? null } })
+  }
+  return (
+    <>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '16px 4px 6px' }}>월별 매출 · {list.length}개월</div>
+      <Card>
+        {list.map(([ym, total], i) => (
+          <div key={ym} style={{ borderTop: i ? `0.5px solid ${C.sep}` : 'none' }}>
+            <button onClick={() => setOpen(open === ym ? null : ym)} aria-expanded={open === ym} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', color: C.text, fontSize: 14.5 }}>
+              <span style={{ width: 66, textAlign: 'left', flexShrink: 0 }}>{ym.slice(2, 4)}년 {Number(ym.slice(5))}월</span>
+              <span style={{ flex: 1, height: 6, background: '#eee', borderRadius: 9, overflow: 'hidden' }}><span style={{ display: 'block', width: `${total / max * 100}%`, height: '100%', background: COL.monthly, opacity: open === ym ? 1 : 0.55, borderRadius: 9 }} /></span>
+              <b style={{ fontWeight: 600, width: 64, textAlign: 'right' }}>{man(total)}</b>
+            </button>
+            {open === ym && <div style={{ padding: '0 12px 8px' }}><DayBars days={dailyOf(ym)} field="amount" color={COL.monthly} H={100} fmt={man} /></div>}
+          </div>
+        ))}
+      </Card>
+    </>
   )
 }
 
@@ -903,7 +937,7 @@ function ProductTable() {
 }
 
 // 날짜별 막대 (빈 날은 비워 둠). 마지막 막대 위에 값
-function DayBars({ days, field, color, H = 120 }) {
+function DayBars({ days, field, color, H = 120, fmt = v => v }) {
   const vals = days.map(x => x[field])
   const max = Math.max(1, ...vals.filter(v => v != null))
   const W = 340, gap = days.length > 60 ? 1 : 2, bw = (W - gap * (days.length - 1)) / days.length
@@ -916,7 +950,7 @@ function DayBars({ days, field, color, H = 120 }) {
         const h = Math.max(2, v / max * (H - 16))
         return <rect key={x.date} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={Math.min(2, bw / 2)} fill={color} opacity={i === lastI ? 1 : 0.45} />
       })}
-      {lastI >= 0 && <text x={Math.min(W - 2, lastI * (bw + gap) + bw / 2)} y={H - Math.max(2, vals[lastI] / max * (H - 16)) - 4} textAnchor="end" fontSize="11" fontWeight="700" fill={color}>{vals[lastI]}</text>}
+      {lastI >= 0 && <text x={Math.min(W - 2, lastI * (bw + gap) + bw / 2)} y={H - Math.max(2, vals[lastI] / max * (H - 16)) - 4} textAnchor="end" fontSize="11" fontWeight="700" fill={color}>{fmt(vals[lastI])}</text>}
       {[0, Math.floor(days.length / 2), days.length - 1].map(i => days[i] && (
         <text key={i} x={i === 0 ? 0 : i === days.length - 1 ? W : i * (bw + gap) + bw / 2} y={H + 13} textAnchor={i === 0 ? 'start' : i === days.length - 1 ? 'end' : 'middle'} fontSize="10" fill="#8e8e93">{days[i].date.slice(5).replace('-', '/')}</text>
       ))}
