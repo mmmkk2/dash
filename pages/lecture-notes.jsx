@@ -358,8 +358,18 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           {edit.editing ? (
             <>
               <input value={edit.title} onChange={e => setEdit(ed => ({ ...ed, title: e.target.value }))} placeholder="제목" autoFocus={!edit.id} style={{ ...input, fontSize: 22, fontWeight: 700, padding: '2px 0' }} />
-              <input value={edit.subject} onChange={e => setEdit(ed => ({ ...ed, subject: e.target.value }))} placeholder="태그 · 과목 (예: 경매 기초)" list="note-subjects" style={{ ...input, fontSize: 14, color: C.sub, padding: '6px 0 10px', borderBottom: `0.5px solid ${C.sep}` }} />
-              <datalist id="note-subjects">{subjects.map(s => <option key={s} value={s} />)}</datalist>
+              {/* 태그: 쓰던 태그와 메모 태그를 색 칩으로 골라 붙이기 (다시 누르면 빼기), 없는 건 아래 칸에 새로 */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0 6px' }}>
+                {[...new Set([...subjects, ...Object.values(TAGS).map(t => t.label)])].map(t => {
+                  const on = edit.subject.trim() === t, c = subjectColor(t)
+                  return (
+                    <button key={t} type="button" onClick={() => setEdit(ed => ({ ...ed, subject: on ? '' : t }))} aria-pressed={on} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '7px 11px', background: on ? c.color : C.card, color: on ? '#fff' : c.color, border: `0.5px solid ${on ? c.color : C.sep}` }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? '#fff' : c.color }} />{t}
+                    </button>
+                  )
+                })}
+              </div>
+              <input value={edit.subject} onChange={e => setEdit(ed => ({ ...ed, subject: e.target.value }))} placeholder="새 태그 입력" style={{ ...input, fontSize: 14, color: C.sub, padding: '6px 0 10px', borderBottom: `0.5px solid ${C.sep}` }} />
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
                 <button onClick={() => prefix('## ')} style={toolBtn}><Heading size={14} />소제목</button>
                 <button onClick={() => prefix('- ')} style={toolBtn}><List size={14} />목록</button>
