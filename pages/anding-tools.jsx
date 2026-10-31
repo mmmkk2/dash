@@ -23,6 +23,58 @@ function Row({ label, sub, children, last }) {
   )
 }
 
+// 상품 이름이 판매 목록 항목과 맞는지 (맥의 _match_name과 같은 규칙: 공백 무시, '*'=전부, ✅로 시작하면 앞부분, 그 밖엔 똑같아야)
+const norm = v => String(v || '').replace(/\s/g, '')
+const matchOne = (name, p) => { const n = norm(name), q = norm(p); return !!q && (q === '*' || (q.includes('✅') ? n.startsWith(q) : n === q)) }
+const matchAny = (name, list) => (list || []).some(p => matchOne(name, p))
+
+// 1회권 상품마다 판매·연장 켜고 끄기 (기본 / 시험기간). 바꾼 내용은 '즉시 적용'으로 저장
+function ProductPatterns({ pats, setPats }) {
+  const [mode, setMode] = useState('normal')
+  const [names, setNames] = useState(null)
+  useEffect(() => {
+    fetch(`${API}/api/products`, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.ok ? r.json() : null).then(j => setNames((j?.tabs?.once || []).map(x => x.name).filter(n => n && !n.includes('고정석'))))
+      .catch(() => setNames([]))
+  }, [])
+  if (!names) return null
+  const all = [...pats.normal_buy, ...pats.normal_ext, ...pats.exam_buy, ...pats.exam_ext]
+  // 상품 목록 + 목록에 없는 항목(예전 설정)도 함께 보여 줌
+  const rows = [...names, ...[...new Set(all)].filter(p => norm(p) !== '*' && !names.some(n => matchOne(n, p)))]
+  const toggle = (name, use) => {
+    const key = `${mode}_${use}`, list = pats[key]
+    let next
+    if (matchAny(name, list)) next = list.includes('*') ? rows.filter(n => n !== name) : list.filter(p => !matchOne(name, p))
+    else next = [...list, name]
+    setPats({ ...pats, [key]: next })
+  }
+  const chip = (name, use, label) => {
+    const on = matchAny(name, pats[`${mode}_${use}`])
+    return <button onClick={() => toggle(name, use)} aria-pressed={on} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '4px 10px', background: on ? COL.product : 'transparent', color: on ? '#fff' : C.sub, border: `0.5px solid ${on ? COL.product : C.sep}` }}>{label}</button>
+  }
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '14px 4px 8px' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.sub }}>1회권 상품별 판매·연장</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', background: '#e9e9eb', borderRadius: 9, padding: 2 }}>
+          {[['normal', '기본'], ['exam', '시험기간']].map(([k, l]) => (
+            <button key={k} onClick={() => setMode(k)} aria-pressed={mode === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 7, padding: '4px 10px', background: mode === k ? '#fff' : 'transparent', color: mode === k ? C.text : C.sub, boxShadow: mode === k ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}` }}>
+        {rows.length === 0 && <div style={{ padding: '12px 14px', fontSize: 13, color: C.sub }}>상품 목록을 아직 못 읽었어요</div>}
+        {rows.map((name, i) => (
+          <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none' }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+            {chip(name, 'buy', '판매')}{chip(name, 'ext', '연장')}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 // 상품 판매 설정 (기존 관리자 화면의 판매 모드 폼과 같은 값) — 즉시 적용하면 맥이 상품 판매 토글을 바로 돌린다
 export function SalePanel({ onApplied }) {
   const [st, setSt] = useState(null)
@@ -36,14 +88,16 @@ export function SalePanel({ onApplied }) {
   if (err) return <div style={{ color: C.sub, fontSize: 14, padding: '4px 4px 12px' }}>판매 설정: {err}</div>
   if (!st) return <div style={{ color: C.sub, fontSize: 14, padding: '4px 4px 12px' }}>판매 설정 불러오는 중…</div>
   const set = (k, v) => setSt(o => ({ ...o, [k]: v }))
+  const setPats = p => setSt(o => ({ ...o, patterns: p, patternsDirty: true }))
   async function apply() {
     const body = new URLSearchParams({ sale_limit: st.sale_limit, sale_release: st.sale_release, sale_limit_time: st.limit_time || '', sale_release_time: st.release_time || '' })
     if (st.exam_mode) body.set('exam_mode', 'true')
     if (st.all_off) body.set('all_off', 'true')
     if (st.auto_limit_on) body.set('auto_limit_on', 'true')
     if (st.auto_release_on) body.set('auto_release_on', 'true')
+    // 낮 시간 6시간권 판매 중지는 쓰지 않음 → 적용할 때마다 꺼 둔다
     body.set('day6h_present', '1'); body.set('day6h_start', st.day6h_start || '12:00'); body.set('day6h_end', st.day6h_end || '22:00')
-    if (st.day6h_on) body.set('day6h_on', 'true')
+    if (st.patternsDirty) body.set('patterns', JSON.stringify(st.patterns))
     setStatus('pending')
     try {
       const r = await fetch(`${API}/set_toggle_and_run`, { method: 'POST', credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body })
@@ -74,7 +128,7 @@ export function SalePanel({ onApplied }) {
       {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, color: C.sub, marginTop: 6 }}>{sub}</div>}
     </div>
   )
-  const RED = '#e5484d', BLUE = '#4a90d9', ORANGE = '#d97706'
+  const RED = '#e5484d', BLUE = '#4a90d9'
   const pending = status === 'pending'
   return (
     <div style={{ marginBottom: 14 }}>
@@ -87,9 +141,9 @@ export function SalePanel({ onApplied }) {
         {row('시험기간', BLUE, 'exam_mode', <>구매 {st.exam_buy || '—'} · 연장 {st.exam_ext || '—'}</>)}
         {row('잔여 제한', RED, 'auto_limit_on', <>잔여 {num('sale_limit', RED)} 이하 · {time('limit_time', RED)} 이후 → 제한</>)}
         {row('잔여 풀기', GREEN, 'auto_release_on', <>잔여 {num('sale_release', GREEN)} 이상 · {time('release_time', GREEN)} 이후 → 풀기</>)}
-        {'day6h_on' in st && row('낮 시간 6시간권 판매 중지', ORANGE, 'day6h_on', <>{time('day6h_start', ORANGE)} ~ {time('day6h_end', ORANGE)} 동안 1회권 6시간 구매 막기</>)}
         {row('전체 OFF', RED, 'all_off', null, true)}
       </div>
+      {st.patterns && <ProductPatterns pats={st.patterns} setPats={setPats} />}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
         <button onClick={apply} disabled={pending} style={{ ...plain, background: COL.product, color: '#fff', fontSize: 15, fontWeight: 600, borderRadius: 999, padding: '9px 20px', opacity: pending ? 0.5 : 1 }}>즉시 적용</button>
         <span style={{ fontSize: 13, fontWeight: 600, color: status.startsWith('error') ? RED : status.startsWith('done') ? GREEN : C.sub }}>
