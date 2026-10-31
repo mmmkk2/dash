@@ -1675,6 +1675,21 @@ function TaxReportView({ sales, year = 2026 }) {
 export default function AssetsApp() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false); // 추가 버튼 고르기 메뉴
+  // 부채 줄 꾹 누르기 → 순서 바꾸기 버튼 (메모 목록과 같은 방식)
+  const [loanMenu, setLoanMenu] = useState(null);
+  const loanPressFired = useRef(false), loanPressT = useRef(null), loanPressXY = useRef(null);
+  const loanPress = id => ({
+    onPointerDown: e => { loanPressFired.current = false; loanPressXY.current = [e.clientX, e.clientY]; clearTimeout(loanPressT.current); loanPressT.current = setTimeout(() => { loanPressFired.current = true; navigator.vibrate?.(15); setLoanMenu(id); }, 500); },
+    onPointerMove: e => { const p = loanPressXY.current; if (p && Math.hypot(e.clientX - p[0], e.clientY - p[1]) > 8) clearTimeout(loanPressT.current); },
+    onPointerUp: () => clearTimeout(loanPressT.current), onPointerLeave: () => clearTimeout(loanPressT.current), onPointerCancel: () => clearTimeout(loanPressT.current),
+    onContextMenu: e => e.preventDefault(),
+  });
+  useEffect(() => {
+    if (loanMenu == null) return;
+    const close = e => { if (!e.target.closest?.("[data-loan-actions]")) setLoanMenu(null); };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [loanMenu]);
   const hasTabBar = useShowTabBar();
   const [assets,   setAssets]   = useState([]);
   const [stocks,   setStocks]   = useState([]);
@@ -2614,159 +2629,100 @@ export default function AssetsApp() {
           const loans = assets.filter(a => a.cat === "대출");
           const parseMemo = raw => { try { return JSON.parse(raw || "{}"); } catch { return {}; } };
           const today = new Date();
-
+          // 월 상환·월 이자 (요약과 각 줄이 같은 계산)
+          const monthOf = (a, m) => {
+            const mi = m.rate ? Math.round(a.amount * m.rate / 12 / 100) : 0;
+            const mt = (m.repayType && m.repayType !== "직접입력")
+              ? (calcLoanMonthly(m.repayType, m.principal || 0, a.amount, m.rate || 0, m.termMonths || 0, a.date) || m.monthly || 0)
+              : (m.monthly || 0);
+            return { mi, mt };
+          };
+          let sumInt = 0, sumTotal = 0;
+          loans.forEach(a => { const { mi, mt } = monthOf(a, parseMemo(a.memo)); sumInt += mi; sumTotal += mt; });
+          const sortedLoans = [...loans].sort((x, y) => (parseMemo(x.memo).order ?? 9999) - (parseMemo(y.memo).order ?? 9999));
+          const moveLoan = (idx, dir) => {
+            const ni = idx + dir;
+            if (ni < 0 || ni >= sortedLoans.length) return;
+            const a1 = sortedLoans[idx], a2 = sortedLoans[ni];
+            updateAsset({ ...a1, memo: JSON.stringify({ ...parseMemo(a1.memo), order: ni }) });
+            updateAsset({ ...a2, memo: JSON.stringify({ ...parseMemo(a2.memo), order: idx }) });
+          };
+          const iconBtn = (Icon, label, run, disabled) => (
+            <button key={label} aria-label={label} title={label} disabled={disabled} onClick={e => { e.stopPropagation(); run(); }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 28, border: "none", borderRadius: 999, background: C.cream, color: disabled ? C.border : C.inkLight, cursor: disabled ? "default" : "pointer" }}><Icon size={15} /></button>
+          );
           return (
             <>
-              {/* 요약 카드 */}
-              {loans.length > 0 && (() => {
-                let sumPrin = 0, sumInt = 0, sumTotal = 0;
-                loans.forEach(a => {
-                  const m = parseMemo(a.memo);
-                  const mi = m.rate ? Math.round(a.amount * m.rate / 12 / 100) : 0;
-                  const mt = (m.repayType && m.repayType !== "직접입력")
-                    ? (calcLoanMonthly(m.repayType, m.principal || 0, a.amount, m.rate || 0, m.termMonths || 0, a.date) || m.monthly || 0)
-                    : (m.monthly || 0);
-                  const mp = m.repayType === "이자만" ? 0 : Math.max(0, mt - mi);
-                  sumInt += mi; sumPrin += mp; sumTotal += mt;
-                });
-                return (
-                  <div style={{ ...tintCard(TAB_COLOR.loan), borderRadius: 16, padding: "16px 18px", marginBottom: 14, color: C.ink }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                      <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>부채</div>
-                      <div style={{ fontSize: 11, color: C.inkLight, fontWeight: 600 }}>{loans.length}건</div>
+              {/* 요약: 순자산 카드와 같은 흰 카드 */}
+              {loans.length > 0 && (
+                <div style={{ background: C.white, borderRadius: 16, border: `0.5px solid ${C.border}`, padding: "14px 16px", marginBottom: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  {[["총 잔액", fmtS(loanTotal), TAB_COLOR.loan], ["월 상환", sumTotal > 0 ? fmtS(sumTotal) : "—"], ["월 이자", sumInt > 0 ? fmtS(sumInt) : "—"]].map(([label, val, color]) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 12, color: C.inkLight, marginBottom: 2 }}>{label}</div>
+                      <div style={{ fontSize: 17, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: color || C.ink }}>{val}</div>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                      {[
-                        { label: "총 잔액", val: fmtS(loanTotal) },
-                        { label: "월 상환", val: sumTotal > 0 ? fmtS(sumTotal) : "—" },
-                        { label: "월 이자", val: sumInt > 0 ? fmtS(sumInt) : "—" },
-                      ].map(({ label, val }) => (
-                        <div key={label} style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
-                          <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{val}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
+                  ))}
+                </div>
+              )}
 
               {loans.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: C.inkMid, marginBottom: 6 }}>부채 내역이 없습니다</div>
-                  <div style={{ fontSize: 12, color: C.inkLight }}>신용, 마이너스통장, 주택담보 등을 추가하세요</div>
+                <div style={{ textAlign: "center", padding: "48px 20px", background: C.white, borderRadius: 16, border: `0.5px solid ${C.border}` }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.inkMid, marginBottom: 6 }}>부채 내역이 없어요</div>
+                  <div style={{ fontSize: 12, color: C.inkLight }}>신용, 마이너스통장, 주택담보 등을 + 버튼으로 추가하세요</div>
                 </div>
-              ) : (() => {
-                const sortedLoans = [...loans].sort((a, b) => {
-                  const oa = parseMemo(a.memo).order ?? 9999;
-                  const ob = parseMemo(b.memo).order ?? 9999;
-                  return oa - ob;
-                });
-                const moveLoan = (idx, dir) => {
-                  const ni = idx + dir;
-                  if (ni < 0 || ni >= sortedLoans.length) return;
-                  const a1 = sortedLoans[idx], a2 = sortedLoans[ni];
-                  const m1 = parseMemo(a1.memo), m2 = parseMemo(a2.memo);
-                  updateAsset({ ...a1, memo: JSON.stringify({ ...m1, order: ni }) });
-                  updateAsset({ ...a2, memo: JSON.stringify({ ...m2, order: idx }) });
-                };
-                return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {sortedLoans.map((a, idx) => {
-                      const m       = parseMemo(a.memo);
-                      const color   = LOAN_TYPE_COLORS[a.accountSuffix] || C.inkMid;
-                      const matDate = a.date ? new Date(a.date) : null;
-                      const dl      = matDate ? Math.ceil((matDate - today) / 86400000) : null;
-                      const dlColor = dl == null ? C.inkLight : dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : dl < 365 ? "#e07a5f" : C.inkMid;
-                      const annInt      = m.rate ? Math.round(a.amount * m.rate / 100) : null;
-                      const monthlyInt  = annInt != null ? Math.round(annInt / 12) : null;
-                      const monthlyPrin = m.monthly && monthlyInt != null ? Math.max(0, m.monthly - monthlyInt) : null;
-                      const repaid      = m.principal && a.amount ? Math.max(0, Math.round((1 - a.amount / m.principal) * 100)) : null;
-
-                      return (
-                        <div key={a.id} style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                          <div style={{ display: "flex", alignItems: "stretch" }}>
-                            <div style={{ width: 4, background: color, flexShrink: 0 }} />
-                            <div style={{ flex: 1, padding: "14px 16px" }}>
-                              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                                    <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: color, borderRadius: 5, padding: "2px 7px" }}>{a.accountSuffix}</span>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{a.name || a.institution}</span>
-                                  </div>
-                                  <div style={{ fontSize: 11, color: C.inkLight }}>{a.institution}</div>
-                                </div>
-                                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
-                                  <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>잔액</div>
-                                </div>
-                              </div>
-                              <div style={{ display: "flex", gap: 12, marginTop: 10, flexWrap: "wrap" }}>
-                                {m.rate != null && <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>금리 </span><strong>{m.rate}%</strong></div>}
-                                {m.monthly > 0 && monthlyInt != null ? (
-                                  <div style={{ fontSize: 11, color: C.inkMid }}>
-                                    <span style={{ color: C.inkLight }}>월상환 </span>
-                                    <strong>{fmtS(m.monthly)}</strong>
-                                    <span style={{ color: C.inkLight }}> (원금 {fmtS(monthlyPrin)} · 이자 {fmtS(monthlyInt)})</span>
-                                  </div>
-                                ) : monthlyInt != null ? (
-                                  <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>월이자 </span><strong>~{fmtS(monthlyInt)}</strong></div>
-                                ) : annInt != null ? (
-                                  <div style={{ fontSize: 11, color: C.inkMid }}><span style={{ color: C.inkLight }}>연이자 </span><strong>~{fmtS(annInt)}</strong></div>
-                                ) : null}
-                              </div>
-                              {m.monthly > 0 && monthlyInt != null && (
-                                <div style={{ display: "flex", gap: 0, marginTop: 7, borderRadius: 8, overflow: "hidden", height: 20 }}>
-                                  {monthlyPrin > 0 && (
-                                    <div style={{ flex: monthlyPrin, background: "#7b2d00", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 28 }}>
-                                      <span style={{ fontSize: 9, fontWeight: 700, color: "#fff" }}>원금 {fmtS(monthlyPrin)}</span>
-                                    </div>
-                                  )}
-                                  {monthlyInt > 0 && (
-                                    <div style={{ flex: monthlyInt, background: "#c0654a", display: "flex", alignItems: "center", justifyContent: "center", minWidth: 28 }}>
-                                      <span style={{ fontSize: 9, fontWeight: 700, color: "#fff" }}>이자 {fmtS(monthlyInt)}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              {(dl != null || repaid != null) && (
-                                <div style={{ display: "flex", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
-                                  {dl != null && <div style={{ fontSize: 11, color: dlColor, fontWeight: 700 }}>만기 {a.date}{dl < 0 ? " (만기됨)" : ` (D-${dl})`}</div>}
-                                  {repaid != null && (
-                                    <div style={{ fontSize: 11, color: C.inkMid }}>
-                                      <span style={{ color: C.inkLight }}>상환 </span><strong>{repaid}%</strong>
-                                      <span style={{ color: C.inkLight }}> ({fmtS(m.principal - a.amount)}원)</span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              {m.memo && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 5 }}>{m.memo}</div>}
+              ) : (
+                // 메모 목록처럼 한 카드 안에 줄로. 누르면 수정, 꾹 누르면 순서 바꾸기
+                <div style={{ background: C.white, borderRadius: 16, border: `0.5px solid ${C.border}`, overflow: "hidden" }}>
+                  {sortedLoans.map((a, idx) => {
+                    const m = parseMemo(a.memo);
+                    const color = LOAN_TYPE_COLORS[a.accountSuffix] || C.inkMid;
+                    const dl = a.date ? Math.ceil((new Date(a.date) - today) / 86400000) : null;
+                    const { mi, mt } = monthOf(a, m);
+                    const repaid = m.principal && a.amount ? Math.min(100, Math.max(0, Math.round((1 - a.amount / m.principal) * 100))) : null;
+                    const menuOn = loanMenu === a.id;
+                    return (
+                      <div key={a.id} role="button" tabIndex={0} {...loanPress(a.id)}
+                        onClick={() => { if (loanPressFired.current) { loanPressFired.current = false; return; } setEditItem(a); setModal("editLoan"); }}
+                        style={{ padding: "12px 16px", borderTop: idx ? `0.5px solid ${C.border}` : "none", cursor: "pointer", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 15.5, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name || a.institution}</span>
+                              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color, background: color + "14", borderRadius: 6, padding: "1px 6px" }}>{a.accountSuffix}</span>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", borderLeft: `1px solid ${C.border}` }}>
-                              <button onClick={() => moveLoan(idx, -1)} disabled={idx === 0}
-                                style={{ flex: 1, background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: idx === 0 ? "default" : "pointer", padding: "0 10px", color: idx === 0 ? C.border : C.inkLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <ChevronUp size={12} />
-                              </button>
-                              <button onClick={() => { setEditItem(a); setModal("payLoan"); }}
-                                style={{ flex: 1, background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer", padding: "0 10px", color: "#7b2d00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, minWidth: 40 }}>
-                                납입
-                              </button>
-                              <button onClick={() => { setEditItem(a); setModal("editLoan"); }}
-                                style={{ flex: 1, background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer", padding: "0 10px", color: C.inkLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <Pencil size={12} />
-                              </button>
-                              <button onClick={() => moveLoan(idx, 1)} disabled={idx === sortedLoans.length - 1}
-                                style={{ flex: 1, background: "none", border: "none", cursor: idx === sortedLoans.length - 1 ? "default" : "pointer", padding: "0 10px", color: idx === sortedLoans.length - 1 ? C.border : C.inkLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <ChevronDown size={12} />
-                              </button>
+                            <div style={{ fontSize: 12.5, color: C.inkLight, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {[a.name && a.institution, m.rate != null && `${m.rate}%`, mt > 0 ? `월 ${fmtS(mt)}${mi ? ` (이자 ${fmtS(mi)})` : ""}` : mi ? `월 이자 ${fmtS(mi)}` : null].filter(Boolean).join(" · ")}
                             </div>
                           </div>
+                          {menuOn ? (
+                            <div data-loan-actions style={{ display: "flex", gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                              {iconBtn(ChevronUp, "위로", () => moveLoan(idx, -1), idx === 0)}
+                              {iconBtn(ChevronDown, "아래로", () => moveLoan(idx, 1), idx === sortedLoans.length - 1)}
+                            </div>
+                          ) : (
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
+                              {dl != null && <div style={{ fontSize: 11.5, color: dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : C.inkLight, marginTop: 1 }}>{dl < 0 ? "만기됨" : `만기 D-${dl}`}</div>}
+                            </div>
+                          )}
+                          <button onClick={e => { e.stopPropagation(); setEditItem(a); setModal("payLoan"); }}
+                            style={{ flexShrink: 0, border: "none", borderRadius: 999, background: TAB_COLOR.loan + "1a", color: TAB_COLOR.loan, fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer", fontFamily: F }}>납입</button>
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                        {/* 상환 진행: 얇은 막대 */}
+                        {repaid != null && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                            <div style={{ flex: 1, height: 4, borderRadius: 9, background: C.cream, overflow: "hidden" }}>
+                              <div style={{ width: `${repaid}%`, height: "100%", background: TAB_COLOR.loan, borderRadius: 9 }} />
+                            </div>
+                            <span style={{ fontSize: 11, color: C.inkLight, flexShrink: 0 }}>상환 {repaid}%</span>
+                          </div>
+                        )}
+                        {m.memo && <div style={{ fontSize: 12, color: C.inkLight, marginTop: 5 }}>{m.memo}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           );
         })()}
