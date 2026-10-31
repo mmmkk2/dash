@@ -1745,6 +1745,13 @@ export default function AssetsApp() {
     setLastSync(now);
     setFetching(false);
   }, [stocks, usdKrw, vestings, offerings]);
+  // 시세는 화면을 열거나 새로고침하면 한 번 자동으로 (버튼 없이)
+  const autoPriced = useRef(false);
+  useEffect(() => {
+    if (dbLoading || autoPriced.current || !stocks.length) return;
+    autoPriced.current = true;
+    refreshPrices();
+  }, [dbLoading, stocks.length, refreshPrices]);
 
   /* ── Stock value calc ── */
   const rate = usdKrw || 1380;
@@ -1973,10 +1980,6 @@ export default function AssetsApp() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, position: "relative" }}>
           <div style={{ fontSize: hasTabBar ? 22 : 28, fontWeight: 700, letterSpacing: hasTabBar ? "-0.5px" : "-0.7px", lineHeight: hasTabBar ? "38px" : 1.25, color: C.ink }}>자산</div>
           <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
-          <button onClick={refreshPrices} disabled={fetching} style={{ display: "flex", alignItems: "center", gap: 5, height: 38, boxSizing: "border-box", background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: "0 12px", color: C.ink, fontSize: 13, fontWeight: 600, cursor: fetching ? "not-allowed" : "pointer", fontFamily: F }}>
-            <RefreshCw size={14} className={fetching ? "spin" : ""} />
-            {fetching ? "조회 중…" : "시세 갱신"}
-          </button>
           <button aria-label="메뉴" onClick={() => setMoreOpen(o => !o)} style={{ width: 38, height: 38, padding: 0, borderRadius: 12, background: C.white, border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: C.ink, cursor: "pointer" }}>
             <MoreHorizontal size={18} />
           </button>
@@ -1991,18 +1994,6 @@ export default function AssetsApp() {
               </div>
             </>
           )}
-        </div>
-
-        {/* Tab — 메모·일정·가계부 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 분류 색으로 채움 */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 12 }}>
-          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금·공제"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => {
-            const on = tab === k, c = TAB_COLOR[k]
-            return (
-              <button key={k} onClick={() => { setTab(k); setFabOpen(false) }} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", padding: "5px 10px", borderRadius: 999, cursor: "pointer", fontWeight: 600, fontSize: 12, border: `0.5px solid ${on ? c : C.border}`, background: on ? c : C.white, color: on ? "#fff" : c, fontFamily: F, transition: "all 0.15s" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: on ? "#fff" : c }} />{l}
-              </button>
-            )
-          })}
         </div>
 
         {/* 순자산 */}
@@ -2041,10 +2032,20 @@ export default function AssetsApp() {
           {/* 환율·시세 기준 시각 */}
           <div style={{ fontSize: 11, color: C.inkLight, marginTop: 8 }}>
             USD/KRW {rate.toLocaleString("ko-KR")}원
-            {lastSync && <span style={{ marginLeft: 6 }}>· {lastSync} 기준</span>}
+            {fetching ? <span style={{ marginLeft: 6 }}>· 시세 조회 중…</span> : lastSync && <span style={{ marginLeft: 6 }}>· {lastSync} 기준</span>}
             {fetchErr > 0 && <span style={{ marginLeft: 6, color: C.down }}>· {fetchErr}종목 조회 실패</span>}
             {lastSaved && <span style={{ marginLeft: 6 }}>· 저장 {lastSaved}</span>}
           </div>
+        </div>
+
+        {/* 화면 전환은 가계부(내역·캘린더·통계)처럼 밑줄 탭 — 칩은 다른 탭에서 '거르기'에만 씀 */}
+        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 14 }}>
+          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => {
+            const on = tab === k, c = TAB_COLOR[k]
+            return (
+              <button key={k} onClick={() => { setTab(k); setFabOpen(false) }} aria-pressed={on} style={{ flex: 1, padding: "12px 4px", border: "none", background: "transparent", cursor: "pointer", fontWeight: on ? 600 : 400, fontSize: 14, color: on ? c : C.inkLight, borderBottom: `3px solid ${on ? c : "transparent"}`, marginBottom: -1, fontFamily: F, whiteSpace: "nowrap", transition: "all 0.2s" }}>{l}</button>
+            )
+          })}
         </div>
 
       </div>
