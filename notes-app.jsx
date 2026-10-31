@@ -597,6 +597,27 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
     if (error) return setErr(/archived/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table memos add column if not exists archived boolean default false;' : error.message)
     reload()
   }
+  useEffect(() => {
+    if (!menu) return
+    const close = e => { if (!e.target.closest?.('[data-row-actions]')) setMenu(null) }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [menu])
+  // 꾹 누른 줄의 오른쪽(시간·보관 자리)에 그대로 놓이는 버튼
+  const rowActions = m => {
+    const btn = (Icon, label, run, danger) => (
+      <button key={label} aria-label={label} title={label} onClick={e => { e.stopPropagation(); setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
+        <Icon size={15} />
+      </button>
+    )
+    return (
+      <div data-row-actions onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        {btn(Pin, m.pinned ? '고정 해제' : '고정', () => patch(m, { pinned: !m.pinned }))}
+        {btn(m.archived ? ArchiveRestore : Archive, m.archived ? '복원' : '보관', () => patch(m, { archived: !m.archived }))}
+        {btn(Trash2, '삭제', () => remove(asEdit(m)), true)}
+      </div>
+    )
+  }
   const asEdit = m => ({ ...m, content: joinText(m.title, m.content), origImages: m.images, images: m.images || [] })
 
   // 보관/꺼내기: 내용·수정 시각은 그대로 두고 archived만 바꾼다
@@ -640,7 +661,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
             {preview || shortStamp(m.updated_at)}
           </div>
         </div>
-        {done ? (
+        {menu?.m.id === m.id ? rowActions(m) : done ? (
           <button aria-label="완료 · 보관" onClick={e => { e.stopPropagation(); setArchived(m.id, true) }} style={{
             ...plain, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 12, fontWeight: 600, color: C.sub,
             background: C.fill, borderRadius: 999, padding: '5px 9px',
@@ -687,24 +708,6 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
         </>
       )}
 
-      {menu && (() => {
-        const { m, rect } = menu
-        // 줄 오른쪽 '보관' 버튼과 같은 자리, 아이콘만
-        const btn = (Icon, label, run, danger) => (
-          <button key={label} aria-label={label} title={label} onClick={() => { setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
-            <Icon size={15} />
-          </button>
-        )
-        return (
-          <div onClick={() => setMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }}>
-            <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: rect.top + rect.height / 2, right: window.innerWidth - rect.right + 16, transform: 'translateY(-50%)', display: 'flex', gap: 6, paddingLeft: 10, background: C.card }}>
-              {btn(Pin, m.pinned ? '고정 해제' : '고정', () => patch(m, { pinned: !m.pinned }))}
-              {btn(m.archived ? ArchiveRestore : Archive, m.archived ? '복원' : '보관', () => patch(m, { archived: !m.archived }))}
-              {btn(Trash2, '삭제', () => remove(asEdit(m)), true)}
-            </div>
-          </div>
-        )
-      })()}
 
       <Fab label="새 메모" color={TAGS[tagFilter]?.color || MEMO_TINT} onClick={() => setEditing(true) || setEdit({ content: '', color: COLORS[0], pinned: false, uploaded: [], ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
