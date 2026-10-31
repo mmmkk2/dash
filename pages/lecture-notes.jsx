@@ -1,7 +1,7 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
 import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage } from '../notes-app'
 
@@ -141,8 +141,12 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   useEffect(() => { load() }, [])
 
   const subjects = useMemo(() => [...new Set((notes || []).map(n => n.subject).filter(Boolean))], [notes])
-  const shown = (notes || []).filter(n => (!subject || n.subject === subject)
+  const [showArchived, setShowArchived] = useState(false)
+  const matched = (notes || []).filter(n => (!subject || n.subject === subject)
     && (!q.trim() || `${n.title} ${n.subject} ${n.content}`.toLowerCase().includes(q.trim().toLowerCase())))
+  // 보관한 노트는 아래 '보관함'에 접어 둔다 (검색할 때는 함께 보임)
+  const shown = q.trim() ? matched : matched.filter(n => !n.archived)
+  const archived = q.trim() ? [] : matched.filter(n => n.archived)
 
   const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], orig: n.content, snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
   const create = () => setEdit({ title: '', subject: subject || '', content: '', files: [], editing: true, uploaded: [] })
@@ -173,6 +177,13 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     setNotes(ns => ns.map(n => n.id === id ? { ...n, content } : n))
     const { error } = await supabase.from('lecture_notes').update({ content }).eq('id', id)
     if (error) setErr(error.message)
+  }
+  // 보관: 목록 아래 '보관함'으로 (다시 누르면 해제)
+  async function archive() {
+    const on = !edit.archived, id = edit.id
+    const { error } = await supabase.from('lecture_notes').update({ archived: on }).eq('id', id)
+    if (error) return setErr(/archived/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table lecture_notes add column if not exists archived boolean default false;' : error.message)
+    setEdit(null); load()
   }
   async function remove() {
     if (!confirm('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
@@ -266,6 +277,21 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const input = { width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', background: 'transparent', fontFamily: F, color: C.text }
   const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: C.text, background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 999, padding: '7px 11px' }
 
+  const card = n => {
+    const preview = parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || ''
+    return (
+      <button key={n.id} onClick={() => open(n)} style={{ ...plain, display: 'block', width: '100%', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
+        <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title || '제목 없음'}</div>
+        {preview && <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
+          {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
+          <span>{shortDate(n.updated_at)}</span>
+          {n.files?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Paperclip size={12} />{n.files.length}</span>}
+        </div>
+      </button>
+    )
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 10, border: `0.5px solid ${C.sep}` }}>
@@ -286,21 +312,17 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           })}
         </div>
       )}
-      {notes && shown.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{notes.length ? '찾는 노트가 없어요' : '+ 버튼으로 첫 노트를 만들어 보세요'}</div>}
-      {shown.map(n => {
-        const preview = parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || ''
-        return (
-          <button key={n.id} onClick={() => open(n)} style={{ ...plain, display: 'block', width: '100%', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text }}>
-            <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title || '제목 없음'}</div>
-            {preview && <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
-              {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
-              <span>{shortDate(n.updated_at)}</span>
-              {n.files?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Paperclip size={12} />{n.files.length}</span>}
-            </div>
+      {notes && shown.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{archived.length ? '모두 보관했어요' : notes.length ? '찾는 노트가 없어요' : '+ 버튼으로 첫 노트를 만들어 보세요'}</div>}
+      {shown.map(card)}
+      {archived.length > 0 && (
+        <>
+          <button onClick={() => setShowArchived(v => !v)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: C.sub, padding: '12px 4px 8px' }}>
+            <Archive size={15} />보관함 {archived.length}
+            <ChevronDown size={16} style={{ transform: showArchived ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }} />
           </button>
-        )
-      })}
+          {showArchived && archived.map(card)}
+        </>
+      )}
       {!edit && <Fab label="새 노트" color={subjectColor(subject).color} onClick={create} />}
 
       {viewer && (
@@ -330,6 +352,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
               {full ? <Minimize2 size={19} /> : <Maximize2 size={19} />}
             </button>
             {edit.id && !edit.editing && <button onClick={toMemo} aria-label="메모로 옮기기" title="메모로 옮기기" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><StickyNote size={19} /></button>}
+            {edit.id && !edit.editing && <button onClick={archive} aria-label={edit.archived ? '보관 해제' : '노트 보관'} title={edit.archived ? '보관 해제' : '보관'} style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}>{edit.archived ? <ArchiveRestore size={19} /> : <Archive size={19} />}</button>}
             {edit.id && <button onClick={remove} aria-label="노트 삭제" style={{ ...plain, display: 'flex', color: C.sub, padding: 4 }}><Trash2 size={19} /></button>}
           </>}>
           {edit.editing ? (
