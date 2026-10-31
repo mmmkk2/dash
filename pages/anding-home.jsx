@@ -254,12 +254,13 @@ function VisitsSheet({ onClose }) {
   )
 }
 
-function Hero({ d }) {
+// 위 카드의 칸도 누르면 해당 상세로 (아래 타일과 같은 창)
+function Hero({ d, open }) {
   const s = d.seat
-  const cell = (label, value) => (
-    <div style={{ background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
+  const cell = (label, value, k) => (
+    <button onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
       {label}<div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap' }}>{value}</div>
-    </div>
+    </button>
   )
   const date = d.today
   return (
@@ -267,9 +268,9 @@ function Hero({ d }) {
       <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>오늘 매출 · {date.getMonth() + 1}월 {date.getDate()}일</div>
       <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', margin: '2px 0 10px' }}>{won(d.payment.amount)}원</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-        {cell('잔여 좌석', s.remain ?? '-')}
-        {cell('결제', `${d.payment.count}건`)}
-        {cell(`${d.monthly.month}월 누적`, man(d.monthly.amount))}
+        {cell('잔여 좌석', s.remain ?? '-', 'seat')}
+        {cell('결제', `${d.payment.count}건`, 'payment')}
+        {cell(`${d.monthly.month}월 누적`, man(d.monthly.amount), 'monthly')}
       </div>
     </div>
   )
@@ -437,9 +438,9 @@ function Todo({ d, onSms }) {
   )
 }
 
-function Tile({ color, title, value, unit, sub, bar, onClick }) {
+function Tile({ color, title, value, unit, sub, bar, onClick, wide }) {
   return (
-    <button onClick={onClick} style={{ ...plain, textAlign: 'left', background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 13px', minHeight: 108, display: 'flex', flexDirection: 'column', color: C.text, minWidth: 0 }}>
+    <button onClick={onClick} style={{ ...plain, textAlign: 'left', background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 13px', minHeight: 108, display: 'flex', flexDirection: 'column', color: C.text, minWidth: 0, ...(wide && { gridColumn: '1 / -1', minHeight: 0 }) }}>
       <div style={{ fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}
         <ChevronRight size={14} color="#c7c7cc" style={{ marginLeft: 'auto' }} />
@@ -470,6 +471,9 @@ function Tiles({ d, open }) {
       <Tile color={COL.product} title="상품 판매" value={d.product.mode} sub={`구매 ${d.product.buy}`} onClick={() => open('product')} />
       <Tile color={COL.monthly} title={`${d.monthly.month}월 매출`} value={man(d.monthly.amount)}
         sub={`일평균 ${man(d.monthly.daily_avg)} · 예상 ${man(d.monthly.predicted)}`} onClick={() => open('monthly')} />
+      {/* 기간권 등록 수와 오늘 이용자 수 — 눌러서 날짜별 추이 */}
+      <Tile wide color={COL.users} title="이용자" value={`기간권 ${s.period ?? '-'}명`}
+        sub={`오늘 이용자 ${s.today_users ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명`} onClick={() => open('users')} />
     </div>
   )
 }
@@ -482,6 +486,7 @@ const DETAIL = {
   product: { title: '상품', path: '/product' },
   monthly: { title: '월별 매출', path: '/monthly' },
   locker: { title: '사물함' },
+  users: { title: '이용자 · 기간권' },
 }
 
 // 사물함 배치도: 앤딩 사물함 수집이 코보페이 '사물함 배치도'를 찍어 둔 그림 (아직 없으면 안 보임)
@@ -897,6 +902,71 @@ function ProductTable() {
   )
 }
 
+// 날짜별 막대 (빈 날은 비워 둠). 마지막 막대 위에 값
+function DayBars({ days, field, color, H = 120 }) {
+  const vals = days.map(x => x[field])
+  const max = Math.max(1, ...vals.filter(v => v != null))
+  const W = 340, gap = days.length > 60 ? 1 : 2, bw = (W - gap * (days.length - 1)) / days.length
+  const lastI = vals.reduce((a, v, i) => v != null ? i : a, -1)
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 16}`} style={{ display: 'block', width: '100%' }}>
+      {days.map((x, i) => {
+        const v = vals[i]
+        if (v == null) return null
+        const h = Math.max(2, v / max * (H - 16))
+        return <rect key={x.date} x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={Math.min(2, bw / 2)} fill={color} opacity={i === lastI ? 1 : 0.45} />
+      })}
+      {lastI >= 0 && <text x={Math.min(W - 2, lastI * (bw + gap) + bw / 2)} y={H - Math.max(2, vals[lastI] / max * (H - 16)) - 4} textAnchor="end" fontSize="11" fontWeight="700" fill={color}>{vals[lastI]}</text>}
+      {[0, Math.floor(days.length / 2), days.length - 1].map(i => days[i] && (
+        <text key={i} x={i === 0 ? 0 : i === days.length - 1 ? W : i * (bw + gap) + bw / 2} y={H + 13} textAnchor={i === 0 ? 'start' : i === days.length - 1 ? 'end' : 'middle'} fontSize="10" fill="#8e8e93">{days[i].date.slice(5).replace('-', '/')}</text>
+      ))}
+    </svg>
+  )
+}
+
+// 이용자 상세: 날짜별 기간권 수 · 총 이용자 수 (맥이 그날 마지막 값을 남김)
+function UsersDetail() {
+  const { data: d, status, error, loading } = useApi('/api/daily_counts')
+  const [range, setRange] = useState(30)
+  if (status === 404 || (d && !d.days)) return <Muted>맥이 새 코드를 받은 뒤부터 쌓여요</Muted>
+  if (error) return <Muted>{error}</Muted>
+  if (loading && !d) return <Muted>불러오는 중…</Muted>
+  const by = Object.fromEntries(d.days.map(x => [x.date, x]))
+  const days = Array.from({ length: range }, (_, i) => {
+    const t = new Date(Date.now() - (range - 1 - i) * 864e5)
+    const k = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+    return { date: k, ...by[k] }
+  })
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 12px 6px', marginBottom: 10 }
+  const head = (t, v) => <div style={{ display: 'flex', alignItems: 'baseline', fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t}<span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: C.sub }}>{v}</span></div>
+  const avg = f => { const v = days.map(x => x[f]).filter(x => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : '-' }
+  const recent = [...d.days].reverse().slice(0, range)
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div style={{ display: 'flex', background: '#e9e9eb', borderRadius: 9, padding: 2 }}>
+          {[30, 90].map(n => (
+            <button key={n} onClick={() => setRange(n)} aria-pressed={range === n} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 7, padding: '4px 10px', background: range === n ? '#fff' : 'transparent', color: range === n ? C.text : C.sub, boxShadow: range === n ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{n}일</button>
+          ))}
+        </div>
+      </div>
+      <div style={card}>{head('기간권 등록', `평균 ${avg('period')}명`)}<DayBars days={days} field="period" color={COL.users} /></div>
+      <div style={card}>{head('총 이용자 (하루)', `평균 ${avg('users')}명`)}<DayBars days={days} field="users" color={COL.seat} /></div>
+      <Card>
+        <div style={{ display: 'flex', padding: '8px 12px', fontSize: 12, color: C.sub, fontWeight: 600 }}><span style={{ flex: 1 }}>날짜</span><span style={{ width: 70, textAlign: 'right' }}>기간권</span><span style={{ width: 70, textAlign: 'right' }}>이용자</span></div>
+        {recent.map(x => (
+          <div key={x.date} style={{ display: 'flex', padding: '8px 12px', borderTop: `0.5px solid ${C.sep}`, fontSize: 14 }}>
+            <span style={{ flex: 1 }}>{x.date.slice(5).replace('-', '/')} ({'일월화수목금토'[new Date(x.date + 'T00:00').getDay()]})</span>
+            <span style={{ width: 70, textAlign: 'right' }}>{x.period ?? '-'}</span>
+            <span style={{ width: 70, textAlign: 'right' }}>{x.users ?? '-'}</span>
+          </div>
+        ))}
+      </Card>
+      {d.updated && <div style={{ fontSize: 12, color: C.sub, textAlign: 'center', marginTop: 12 }}>Updated {d.updated}</div>}
+    </div>
+  )
+}
+
 function Detail({ k, d, onClose, onSms, onReload }) {
   const info = DETAIL[k]
   useBackClose(true, onClose)
@@ -916,6 +986,7 @@ function Detail({ k, d, onClose, onSms, onReload }) {
         : k === 'room' ? <RoomDetail />
         : k === 'monthly' ? <MonthlyDetail />
         : k === 'product' ? <ProductTable />
+        : k === 'users' ? <UsersDetail />
         : <IframeDetail k={k} path={info.path} />}
     </Sheet>
   )
@@ -1022,7 +1093,7 @@ export default function AndingHome() {
         )}
         {d && (
           <>
-            <Hero d={d} />
+            <Hero d={d} open={setDetail} />
             <AndingMemo />
             <Todo d={d} onSms={setSms} />
             <Tiles d={d} open={setDetail} />
