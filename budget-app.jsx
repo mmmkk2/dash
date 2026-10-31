@@ -1838,7 +1838,7 @@ function fmtCompact(n){
   }
   return n.toLocaleString("ko-KR");
 }
-function CalendarView({txs, year, month, onEdit, cards}){
+function CalendarView({txs, year, month, onEdit, cards, onMove}){
   const cardMap=useMemo(()=>Object.fromEntries(cards.map(c=>[c.id,c])),[cards]);
   const todayStr=useMemo(()=>{
     const t=new Date();
@@ -1873,17 +1873,29 @@ function CalendarView({txs, year, month, onEdit, cards}){
   },[selected,byDate]);
 
   const WEEKDAYS=["일","월","화","수","목","금","토"];
+  // 일정 달력처럼 좌우로 밀어 달 넘기기
+  const swipe=useRef(null);
+  const [dragX,setDragX]=useState(0);
+  const onTouchStart=e=>{const p=e.touches[0];swipe.current={x:p.clientX,y:p.clientY,dx:0,lock:null};};
+  const onTouchMove=e=>{const sw=swipe.current;if(!sw)return;const p=e.touches[0],dx=p.clientX-sw.x,dy=p.clientY-sw.y;
+    if(!sw.lock&&(Math.abs(dx)>8||Math.abs(dy)>8))sw.lock=Math.abs(dx)>Math.abs(dy)?"x":"y";
+    if(sw.lock==="x"){sw.dx=dx;setDragX(dx);}};
+  const onTouchEnd=()=>{const sw=swipe.current;swipe.current=null;if(sw?.lock==="x"&&Math.abs(sw.dx)>50)onMove?.(sw.dx<0?1:-1);setDragX(0);};
 
   return(
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:"4px"}}>
+      {/* 달력: 일정 탭과 같은 흰 카드·요일·날짜 모양 (날짜 아래에 그날 지출·수입) */}
+      <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+        style={{background:C.white,borderRadius:"16px",border:`0.5px solid ${C.border}`,padding:"12px 6px 8px",overflow:"hidden",touchAction:"pan-y"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",paddingBottom:"6px"}}>
         {WEEKDAYS.map((w,i)=>(
-          <div key={w} style={{textAlign:"center",fontSize:"10px",fontWeight:700,
-            color:i===0?"#b5451b":i===6?"#1d4e89":C.inkLight,
-            fontFamily:FONT,padding:"4px 0"}}>{w}</div>
+          <div key={w} style={{textAlign:"center",fontSize:"11px",fontWeight:600,
+            color:i===0||i===6?"rgba(60,60,67,0.3)":C.inkLight,fontFamily:FONT}}>{w}</div>
         ))}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"3px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",rowGap:"2px",
+        transform:`translateX(${dragX*0.5}px)`,opacity:1-Math.min(Math.abs(dragX)/400,0.4),
+        transition:dragX?"none":"transform .2s ease, opacity .2s ease"}}>
         {cells.map((d,i)=>{
           if(d===null)return <div key={i}/>;
           const dateStr=`${monthKey}-${String(d).padStart(2,"0")}`;
@@ -1893,28 +1905,25 @@ function CalendarView({txs, year, month, onEdit, cards}){
           const isSelected=dateStr===selected;
           return(
             <button key={i} onClick={()=>setSelected(dateStr)}
-              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",
-                minHeight:"52px",padding:"5px 2px",borderRadius:"10px",cursor:"pointer",
-                background:isSelected?C.ink:isToday?C.borderDark+"55":"transparent",
-                border:isSelected?`1px solid ${C.ink}`:`1px solid transparent`,
-                transition:"all 0.15s"}}>
-              <div style={{fontSize:"11px",fontWeight:isToday?800:500,
-                color:isSelected?C.white:dow===0?"#b5451b":dow===6?"#1d4e89":C.ink,
-                fontFamily:FONT}}>{d}</div>
+              style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1px",
+                minHeight:"58px",padding:"2px 0 4px",background:"none",border:"none",cursor:"pointer"}}>
+              <span style={{width:"32px",height:"32px",lineHeight:"32px",textAlign:"center",borderRadius:"12px",fontSize:"16px",
+                fontWeight:isToday||isSelected?700:400,fontFamily:FONT,
+                background:isSelected?P:isToday?P+"1f":"transparent",
+                color:isSelected?"#fff":isToday?P:dow===0||dow===6?C.inkLight:C.ink}}>{d}</span>
               {day&&(
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"1px"}}>
-                  {day.expense>0&&<div style={{fontSize:"8.5px",fontWeight:700,fontFamily:FONT,
-                    color:isSelected?"rgba(255,255,255,0.75)":C.inkMid}}>-{fmtCompact(day.expense)}</div>}
-                  {day.income>0&&<div style={{fontSize:"8.5px",fontWeight:700,fontFamily:FONT,
-                    color:isSelected?"rgba(255,255,255,0.9)":P}}>+{fmtCompact(day.income)}</div>}
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0,lineHeight:1.2}}>
+                  {day.expense>0&&<div style={{fontSize:"9px",fontWeight:600,fontFamily:FONT,color:C.inkMid}}>-{fmtCompact(day.expense)}</div>}
+                  {day.income>0&&<div style={{fontSize:"9px",fontWeight:600,fontFamily:FONT,color:P}}>+{fmtCompact(day.income)}</div>}
                 </div>
               )}
             </button>
           );
         })}
       </div>
+      </div>
 
-      <div style={{marginTop:"18px"}}>
+      <div style={{marginTop:"14px"}}>
         {!selected?(
           <div style={{textAlign:"center",padding:"24px 20px",color:C.inkLight,fontFamily:FONT,fontSize:"13px"}}>
             날짜를 선택하면 거래 내역이 보여요
@@ -4868,7 +4877,7 @@ export default function App(){
           </div>
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
-             :tab==="calendar"?<CalendarView txs={viewTxs} year={year} month={month} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards}/>
+             :tab==="calendar"?<CalendarView txs={viewTxs} year={year} month={month} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards} onMove={n=>n>0?nextMonth():prevMonth()}/>
              :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
 :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} onLink={updateTx} entity={entity} year={year} month={month}/>}
