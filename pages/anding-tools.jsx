@@ -101,11 +101,10 @@ export function SalePanel({ onApplied }) {
 }
 
 // ───────────────────────── 설정 ─────────────────────────
-// 앤딩 앱 /env_config 와 같은 값 (.env). 네이버 비밀번호는 받아오지 않고, 바꿀 때만 입력
+// 앤딩 앱 /env_config 와 같은 값 (.env). 화면에는 실제로 쓰이는 좌석 기준만
 export function SettingsSheet({ onClose, onApplied }) {
   useBackClose(true, onClose)
   const [st, setSt] = useState(null)
-  const [pw, setPw] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -119,44 +118,33 @@ export function SettingsSheet({ onClose, onApplied }) {
     setBusy(true); setMsg(null)
     const body = new URLSearchParams({
       danger: st.danger, warning: st.warning, cum: st.cum, seat_sale_limit: st.seat_sale_limit, seat_sale_release: st.seat_sale_release,
-      naver_id: st.naver_id || '', naver_pw: pw, naver_bize_id: st.naver_bize_id || '', naver_sync_interval: st.naver_sync_interval,
+      naver_id: st.naver_id || '', naver_pw: '', naver_bize_id: st.naver_bize_id || '', naver_sync_interval: st.naver_sync_interval,
     })
     for (const k of ['alert_danger_seat_enabled', 'alert_warning_seat_enabled', 'seat_auto']) if (st[k]) body.set(k, 'true')
     try {
       const r = await fetch(`${API}/update_env_config`, { method: 'POST', credentials: 'same-origin', headers: xhr, body })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || !j.ok) throw new Error(j.error || `저장 실패 (${r.status})`)
-      setMsg({ ok: true, text: '저장했어요' }); setPw('')
-      if (pw) set('naver_pw_set', true)
+      setMsg({ ok: true, text: '저장했어요' })
     } catch (e) { setMsg({ ok: false, text: e.message }) } finally { setBusy(false) }
   }
   return (
     <Sheet title="설정" tint={GREEN} doneLabel={busy ? '저장 중…' : '저장'} doneDisabled={!st || busy} onDone={save} onCancel={onClose} inset>
-      {/* 상품 판매 설정은 '즉시 적용'으로 따로 반영, 아래 알림·네이버는 위 '저장'으로 */}
+      {/* 상품 판매 설정은 '즉시 적용'으로 따로 반영, 아래 좌석 기준은 위 '저장'으로 */}
       <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 6px' }}>상품 판매 <span style={{ fontWeight: 400 }}>· 즉시 적용으로 바로 반영</span></div>
       <SalePanel onApplied={onApplied || (() => {})} />
       {msg && <div style={{ fontSize: 14, fontWeight: 600, color: msg.ok ? GREEN : '#e5484d', padding: '0 4px 8px' }}>{msg.text}</div>}
       {!st && !msg && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
       {st && (
         <>
-          <Label>좌석 알림 <span style={{ fontWeight: 400 }}>· 위 저장 버튼으로</span></Label>
+          {/* 맥 수집이 실제로 읽는 값만: 위험·주의 기준(좌석 색·텔레그램 알림), 누적 이용자 경고.
+              알림 켜기/끄기 스위치와 네이버 예약 동기화는 아무 데서도 안 써서 뺐음 (저장할 때 기존 값은 그대로 보냄) */}
+          <Label>좌석 기준 <span style={{ fontWeight: 400 }}>· 위 저장 버튼으로</span></Label>
           <Card>
-            <Row label="위험 기준" sub="잔여석이 이 수 이하이면 위험 (DANGER_THRESHOLD)">{num('danger')}</Row>
-            <Row label="위험 알림 보내기"><Switch on={!!st.alert_danger_seat_enabled} onChange={v => set('alert_danger_seat_enabled', v)} color="#e5484d" /></Row>
-            <Row label="주의 기준" sub="잔여석이 이 수 이하이면 주의 (WARNING_THRESHOLD)">{num('warning')}</Row>
-            <Row label="주의 알림 보내기"><Switch on={!!st.alert_warning_seat_enabled} onChange={v => set('alert_warning_seat_enabled', v)} color="#d97706" /></Row>
-            <Row label="누적 이용자 경고" sub="오늘 누적 이용자가 이 수 이상 (WARNING_CUM_THRESHOLD)" last>{num('cum')}</Row>
+            <Row label="위험 기준" sub="잔여석이 이 수 이하이면 빨강·위험 알림">{num('danger')}</Row>
+            <Row label="주의 기준" sub="잔여석이 이 수 이하이면 노랑·주의 알림">{num('warning')}</Row>
+            <Row label="누적 이용자 경고" sub="오늘 이용자가 이 수 이상이면 알림" last>{num('cum')}</Row>
           </Card>
-          <Label>네이버 예약 동기화</Label>
-          <Card>
-            <Row label="아이디"><input value={st.naver_id || ''} onChange={e => set('naver_id', e.target.value)} autoComplete="off" style={{ ...inputStyle, width: 150 }} /></Row>
-            <Row label="비밀번호" sub={st.naver_pw_set ? '저장돼 있어요 — 바꿀 때만 입력' : '저장된 비밀번호 없음'}>
-              <input type="password" value={pw} onChange={e => setPw(e.target.value)} autoComplete="new-password" placeholder="••••" style={{ ...inputStyle, width: 150 }} />
-            </Row>
-            <Row label="업체 ID"><input value={st.naver_bize_id || ''} onChange={e => set('naver_bize_id', e.target.value)} style={{ ...inputStyle, width: 150 }} /></Row>
-            <Row label="동기화 간격" sub="초" last>{num('naver_sync_interval', 72)}</Row>
-          </Card>
-          {/* SEAT_AUTO·SEAT_SALE_*는 어디서도 안 써서 뺐음 — 잔여석 판매 제한·풀기는 위 상품 판매(SALE_LIMIT/SALE_RELEASE) */}
         </>
       )}
     </Sheet>
