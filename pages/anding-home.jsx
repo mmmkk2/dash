@@ -526,7 +526,8 @@ function fixedRows(d, now, parse) {
   for (const r of d.fixed_all || []) by[r.no] = { seat: String(r.no), name: r.name, product: r.product, end: r.end }
   for (const r of d.seats['고정석'] || []) {
     const k = Number(r.seat)
-    if (Number.isNaN(k)) continue
+    // fixed_all이 있으면 그 자리만 (맥에서 뺀 자리 — 예: 39번 — 는 입실 기록이 있어도 숨김)
+    if (Number.isNaN(k) || (d.fixed_all?.length && !by[k])) continue
     if (!by[k] || (r.end || '') > (by[k].end || '')) by[k] = { seat: String(r.seat), name: r.name, product: r.product, end: r.end }
   }
   return Object.keys(by).sort((a, b) => a - b).map(k => ({ ...by[k], over: !by[k].end || parse(by[k].end) <= now }))
