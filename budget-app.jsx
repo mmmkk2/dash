@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { useShowTabBar } from "./src/TabBar";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { ask } from './src/dialog'
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
    Supabase 프로젝트 생성 후 아래 두 값을 교체하세요.
@@ -2320,8 +2321,8 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             cursor:"pointer",fontSize:"11px",color:C.ink,fontFamily:FONT,textAlign:"left"}}>
             <Pencil size={11}/> 날짜/금액 수정
           </button>
-          <button onClick={()=>{
-            if(window.confirm(`"${tx.memo}" 반복을 완전히 중단할까요?\n과거 거래 기록은 그대로 남고, 앞으로 예정에만 다시 안 떠요.`)){
+          <button onClick={async ()=>{
+            if(await ask(`"${tx.memo}" 반복을 완전히 중단할까요?\n과거 거래 기록은 그대로 남고, 앞으로 예정에만 다시 안 떠요.`)){
               stopRecurring(tx.memo); setFixedMenuOpenFor(null);
             }
           }} style={{display:"flex",alignItems:"center",gap:"6px",
@@ -4695,7 +4696,7 @@ export default function App(){
   function nextMonth(){if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}
 
   async function handleLogout(){
-    if(!window.confirm("로그아웃 하시겠습니까?"))return;
+    if(!await ask("로그아웃 하시겠습니까?"))return;
     await supabaseClient.auth.signOut();
   }
 
