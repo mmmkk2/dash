@@ -1,9 +1,9 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
-import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle } from '../notes-app'
+import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage } from '../notes-app'
 
 // 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
 const EXTRA = [{ color: '#c0697f', soft: '#fdf4f6' }, { color: '#4f9aa3', soft: '#f2f9fa' }, { color: '#b08a2e', soft: '#fcf9ef' }, { color: '#7b7fc4', soft: '#f6f6fd' }]
@@ -24,7 +24,12 @@ const fileSize = n => n >= 1048576 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.m
 
 // 본문 한 줄씩: '# 제목' / '## 소제목' / '- [ ] 체크'(메모와 같은 표기) / '- 목록' / 그 외 문단
 const CHECK_RE = /^- \[( |x)\] ?/
+// 본문 사이 사진: '![사진](저장 경로)' 한 줄 (note-files 버킷)
+const IMG_RE = /^!\[[^\]]*\]\(([^)\s]+)\)\s*$/
+const imagePaths = text => (text || '').split('\n').map(l => l.match(IMG_RE)?.[1]).filter(Boolean)
 const parse = text => (text || '').split('\n').map((line, i) => {
+  const im = line.match(IMG_RE)
+  if (im) return { kind: 'img', path: im[1], text: '', i }
   const c = line.match(CHECK_RE)
   if (c) return { kind: 'check', done: c[1] === 'x', text: line.slice(c[0].length), i }
   const h = line.match(/^(#{1,2}) (.*)/)
@@ -47,6 +52,23 @@ function Linkify({ text }) {
   }
   if (last < text.length) out.push(text.slice(last))
   return out
+}
+
+const signed = {} // path → { url, at } (50분 재사용)
+function NoteImage({ path }) {
+  const [url, setUrl] = useState(() => signed[path] && Date.now() - signed[path].at < 3000e3 ? signed[path].url : null)
+  useEffect(() => {
+    if (url) return
+    supabase.storage.from(BUCKET).createSignedUrl(path, 3600).then(({ data }) => {
+      if (data?.signedUrl) { signed[path] = { url: data.signedUrl, at: Date.now() }; setUrl(data.signedUrl) }
+    })
+  }, [path])
+  return (
+    <a href={url || undefined} target="_blank" rel="noreferrer" style={{ display: 'block', margin: '8px 0' }}>
+      {url ? <img src={url} alt="" loading="lazy" style={{ display: 'block', maxWidth: '100%', borderRadius: 12, border: `0.5px solid ${C.sep}` }} />
+        : <div style={{ height: 160, borderRadius: 12, background: C.fill }} />}
+    </a>
+  )
 }
 
 function NoteBody({ text, onToggle, tint }) {
@@ -72,6 +94,7 @@ function NoteBody({ text, onToggle, tint }) {
           if (l.kind === 'h1') return <div key={l.i} id={id} style={{ fontSize: 19, fontWeight: 700, margin: '18px 0 6px', scrollMarginTop: 80 }}>{l.text}</div>
           if (l.kind === 'h2') return <div key={l.i} id={id} style={{ fontSize: 16.5, fontWeight: 700, margin: '14px 0 4px', scrollMarginTop: 80 }}>{l.text}</div>
           if (l.kind === 'li') return <div key={l.i} style={{ display: 'flex', gap: 8, paddingLeft: 4 }}><span style={{ color: C.sub }}>•</span><span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></span></div>
+          if (l.kind === 'img') return <NoteImage key={l.i} path={l.path} />
           if (l.kind === 'check') return (
             <div key={l.i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '3px 0' }}>
               <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} color={tint} onClick={() => onToggle?.(l.i)} /></span>
@@ -108,6 +131,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const [uploading, setUploading] = useState(0)
   const [full, setFull] = useState(false) // 크게 보기 (메모 창과 같은 방식)
   const fileRef = useRef(null)
+  const imgRef = useRef(null)
 
   async function load() {
     const { data, error } = await supabase.from('lecture_notes').select('*').order('updated_at', { ascending: false })
@@ -120,7 +144,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const shown = (notes || []).filter(n => (!subject || n.subject === subject)
     && (!q.trim() || `${n.title} ${n.subject} ${n.content}`.toLowerCase().includes(q.trim().toLowerCase())))
 
-  const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
+  const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], orig: n.content, snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
   const create = () => setEdit({ title: '', subject: subject || '', content: '', files: [], editing: true, uploaded: [] })
   const removeFiles = paths => { if (paths.length) supabase.storage.from(BUCKET).remove(paths) }
   // 첨부 지우기: 파일마다 들어 있는 버킷에서
@@ -136,6 +160,8 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       ? await supabase.from('lecture_notes').update(row).eq('id', edit.id)
       : await supabase.from('lecture_notes').insert(row)
     if (error) return setErr(error.message)
+    const kept = new Set(imagePaths(edit.content))
+    removeFiles([...imagePaths(edit.orig), ...edit.uploaded.filter(p => /\.jpg$/.test(p))].filter(p => !kept.has(p) && !edit.files.some(f => f.path === p)))
     setEdit(null); load()
   }
   // 읽기 화면에서 체크: 바로 저장 (편집 버튼 없이)
@@ -152,7 +178,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
     if (!confirm('이 노트를 삭제할까요? 붙인 파일도 함께 지워져요.')) return
     const { error } = await supabase.from('lecture_notes').delete().eq('id', edit.id)
     if (error) return setErr(error.message)
-    removeAttached(edit.files); setEdit(null); load()
+    removeAttached(edit.files); removeFiles(imagePaths(edit.content)); setEdit(null); load()
   }
   useBackClose(!!edit, () => (edit?.editing ? save() : setEdit(null)))
   useBackClose(!!edit && full, () => setFull(false))
@@ -168,6 +194,28 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
         if (error) throw error
         const f = { path, name: file.name, size: file.size, type: file.type }
         setEdit(ed => ed && { ...ed, files: [...ed.files, f], uploaded: [...ed.uploaded, path] })
+      } catch (e) { setErr(e.message) } finally { setUploading(n => n - 1) }
+    }
+  }
+  // 사진: 줄이고(최대 1600px) 올린 뒤, 커서가 있는 줄 다음에 '![사진](경로)' 줄로 넣는다
+  async function addImages(list) {
+    const { data: { user } } = await supabase.auth.getUser()
+    const ta = taRef.current
+    let pos = ta ? ta.selectionEnd : null
+    for (const file of list) {
+      setUploading(n => n + 1)
+      try {
+        const path = `${user.id}/${crypto.randomUUID()}.jpg`
+        const { error } = await supabase.storage.from(BUCKET).upload(path, await shrinkImage(file), { contentType: 'image/jpeg' })
+        if (error) throw error
+        setEdit(ed => {
+          if (!ed) return ed
+          const c = ed.content, at = pos == null ? c.length : (c.indexOf('\n', pos) + 1 || c.length)
+          const before = c.slice(0, at), after = c.slice(at)
+          const ins = (before && !before.endsWith('\n') ? '\n' : '') + `![사진](${path})\n`
+          pos = before.length + ins.length
+          return { ...ed, content: before + ins + after, uploaded: [...ed.uploaded, path] }
+        })
       } catch (e) { setErr(e.message) } finally { setUploading(n => n - 1) }
     }
   }
@@ -193,14 +241,15 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   async function toMemo() {
     const photos = edit.files.filter(f => f.bucket === MEMO_BUCKET)
     const others = edit.files.filter(f => f.bucket !== MEMO_BUCKET)
-    if (!confirm(others.length ? `첨부 파일 ${others.length}개는 메모에 붙일 수 없어 지워져요.\n메모로 옮길까요?` : '이 노트를 메모로 옮길까요?')) return
-    const content = [edit.title.trim(), edit.content.replace(/^#{1,2} /gm, '')].filter(t => t.trim()).join('\n')
+    const inline = imagePaths(edit.content)
+    if (!confirm(others.length + inline.length ? `첨부 파일·본문 사진 ${others.length + inline.length}개는 메모에 붙일 수 없어 지워져요.\n메모로 옮길까요?` : '이 노트를 메모로 옮길까요?')) return
+    const content = [edit.title.trim(), edit.content.split('\n').filter(l => !IMG_RE.test(l)).join('\n').replace(/^#{1,2} /gm, '')].filter(t => t.trim()).join('\n')
     const row = { title: '', content, color: '#1c1c1e', pinned: false, updated_at: new Date().toISOString() }
     if (photos.length) row.images = photos.map(f => f.path)
     const { error } = await supabase.from('memos').insert(row)
     if (error) return setErr(error.message)
     await supabase.from('lecture_notes').delete().eq('id', edit.id)
-    removeAttached(others)
+    removeAttached(others); removeFiles(imagePaths(edit.content))
     setEdit(null); load(); onMovedToMemo?.()
   }
   // 편집 중 줄 앞에 '## ' 또는 '- ' 넣기
@@ -239,7 +288,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
       )}
       {notes && shown.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{notes.length ? '찾는 노트가 없어요' : '+ 버튼으로 첫 노트를 만들어 보세요'}</div>}
       {shown.map(n => {
-        const preview = parse(n.content).find(l => l.kind !== 'gap')?.text || ''
+        const preview = parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || ''
         return (
           <button key={n.id} onClick={() => open(n)} style={{ ...plain, display: 'block', width: '100%', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text }}>
             <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title || '제목 없음'}</div>
@@ -293,6 +342,8 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
                 <button onClick={() => prefix('- ')} style={toolBtn}><List size={14} />목록</button>
                 <button onClick={() => prefix('- [ ] ')} style={toolBtn}><ListChecks size={14} />체크</button>
                 <button onClick={() => fileRef.current?.click()} style={toolBtn}><Paperclip size={14} />파일 추가</button>
+                <button onClick={() => imgRef.current?.click()} style={toolBtn}><ImagePlus size={14} />사진</button>
+                <input ref={imgRef} type="file" accept="image/*" multiple hidden onChange={e => { addImages([...e.target.files]); e.target.value = '' }} />
                 <input ref={fileRef} type="file" multiple hidden onChange={e => { addFiles([...e.target.files]); e.target.value = '' }} />
               </div>
               {edit.files.length > 0 && <div style={{ marginBottom: 10 }}>{edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} onRemove={() => setEdit(ed => ({ ...ed, files: ed.files.filter(x => x.path !== f.path) }))} />)}</div>}

@@ -271,7 +271,7 @@ export function Fab({ label, onClick, color = C.tint }) {
 const IMG_BUCKET = 'memo-images'
 
 // 폰 사진은 커서 긴 변 1600px JPEG로 줄여서 올린다
-async function shrinkImage(file, max = 1600) {
+export async function shrinkImage(file, max = 1600) {
   const url = URL.createObjectURL(file)
   try {
     const img = await new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = url })
