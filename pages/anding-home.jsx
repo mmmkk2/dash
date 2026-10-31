@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, MessageSquare, ChevronRight, DoorOpen } from 'lucide-react'
+import { MoreHorizontal, MessageSquare, ChevronRight, DoorOpen, Trash2 } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
@@ -143,6 +143,7 @@ function Login({ onDone }) {
 function AndingMemo() {
   const [text, setText] = useState('')
   const [state, setState] = useState('loading') // loading | ok | saving | error | missing
+  const [adding, setAdding] = useState(false) // 비어 있을 때 '+ 메모'를 눌러 쓰는 중
   const timer = useRef(null)
   useEffect(() => {
     (async () => {
@@ -170,19 +171,28 @@ function AndingMemo() {
     clearTimeout(timer.current)
     timer.current = setTimeout(() => save(value), 800)
   }
+  const clear = async () => {
+    if (!await ask('메모를 지울까요?')) return
+    clearTimeout(timer.current); setText(''); setAdding(false); setState('saving'); save('')
+  }
   if (state === 'loading') return null
+  // 비어 있으면 카드 대신 작은 '+ 메모'만
+  if (state !== 'missing' && !text && !adding) return (
+    <button onClick={() => setAdding(true)} style={{ ...plain, display: 'block', marginTop: 12, padding: '2px 4px', fontSize: 13, fontWeight: 600, color: C.sub }}>+ 메모</button>
+  )
   // '확인할 것'과 같은 모양: 위에 작은 제목, 카드 안은 한 줄 높이(내용만큼 늘어남)
   const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '11px 14px' }
   const status = state === 'saving' ? '저장 중…' : state === 'error' ? '저장 안 됨 (Supabase 연결 확인)' : ''
   return (
     <>
       <Label>
-        <span style={{ display: 'flex' }}>메모<span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{status}</span></span>
+        <span style={{ display: 'flex', alignItems: 'center' }}>메모<span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{status}</span>
+          {text && <button onClick={clear} aria-label="메모 지우기" style={{ ...plain, display: 'flex', color: C.sub, marginLeft: 8, padding: 2 }}><Trash2 size={14} /></button>}</span>
       </Label>
       {state === 'missing'
         ? <div style={{ ...card, fontSize: 13, color: C.sub }}>메모를 쓰려면 Supabase에 anding_memo 테이블을 만들어 주세요 (supabase_setup.sql 맨 아래)</div>
         : <div style={card}>
-            <textarea value={text} onChange={e => change(e.target.value)} onBlur={() => { if (state === 'saving') { clearTimeout(timer.current); save(text) } }}
+            <textarea autoFocus={adding && !text} value={text} onChange={e => change(e.target.value)} onBlur={() => { if (state === 'saving') { clearTimeout(timer.current); save(text) } if (!text) setAdding(false) }}
               placeholder="고정석 대기자 등 간단 메모" rows={Math.max(1, text.split('\n').length)}
               style={{ display: 'block', width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: 0, fontSize: 14.5, lineHeight: 1.45, fontFamily: F, color: C.text, background: 'transparent' }} />
           </div>}
@@ -413,15 +423,15 @@ function fixedExpiring(all) {
 }
 
 // 처리할 것: 사물함 만료완료·만료예정, 지금 이용 중인 스터디룸
-function Todo({ d, onSms }) {
+function Todo({ d, onSms, open }) {
   const rows = [
     // 빈 고정석은 맨 위 (배치도에서 흰 칸 = 이용권 없는 자리, 새 고정석 손님을 받을 수 있음). 오른쪽은 마지막 이용자
-    ...(d.seat.fixed_ended || []).map(r => ({ c: COL.seat, text: <>고정석 {r.no}번 <b style={{ fontWeight: 600 }}>빈 자리</b></>, right: r.end ? `${r.name || ''} ~${r.end.slice(5, 10).replace('.', '/')}`.trim() : '' })),
+    ...(d.seat.fixed_ended || []).map(r => ({ k: 'seat', c: COL.seat, text: <>고정석 {r.no}번 <b style={{ fontWeight: 600 }}>빈 자리</b></>, right: r.end ? `${r.name || ''} ~${r.end.slice(5, 10).replace('.', '/')}`.trim() : '' })),
     // 고정석 이용권 만료 예정 (3일 안, 아직 안 끝난 것). 끝난 자리는 위 '빈 자리'로
-    ...fixedExpiring(d.seat.fixed_all).map(r => ({ c: COL.seat, text: <>고정석 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>{r.days === 0 ? '오늘 만료' : `만료 D-${r.days}`}</b></>, right: `${r.end.slice(5, 10).replace('.', '/')} ${hhmm(r.end)}` })),
-    ...d.locker.expired.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
-    ...d.locker.expiring.map(r => ({ c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expired' } })),
-    ...d.studyroom.items.filter(r => r.now).map(r => ({ c: COL.room, text: <>스터디룸 {r.room} <b style={{ fontWeight: 700 }}>{r.name}</b> 이용 중</>, right: `~${r.end}` })),
+    ...fixedExpiring(d.seat.fixed_all).map(r => ({ k: 'seat', c: COL.seat, text: <>고정석 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>{r.days === 0 ? '오늘 만료' : `만료 D-${r.days}`}</b></>, right: `${r.end.slice(5, 10).replace('.', '/')} ${hhmm(r.end)}` })),
+    ...d.locker.expired.map(r => ({ k: 'locker', c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>만료됨</b></>, right: r.end.slice(5, 10).replace('.', '/'), sms: { ...r, kind: 'expired' } })),
+    ...d.locker.expiring.map(r => ({ k: 'locker', c: COL.locker, text: <>사물함 {r.no}번 {r.name || '미등록'} <b style={{ fontWeight: 600 }}>오늘 만료</b></>, right: hhmm(r.end), sms: { ...r, kind: 'expired' } })),
+    ...d.studyroom.items.filter(r => r.now).map(r => ({ k: 'room', c: COL.room, text: <>스터디룸 {r.room} <b style={{ fontWeight: 700 }}>{r.name}</b> 이용 중</>, right: `~${r.end}` })),
   ]
   if (!rows.length) return null
   return (
@@ -429,7 +439,8 @@ function Todo({ d, onSms }) {
       <Label>확인할 것 {rows.length}</Label>
       <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}` }}>
         {rows.map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5 }}>
+          // 줄을 누르면 해당 상세(좌석·사물함·스터디룸) 창 — 문자·리셋·종료 버튼은 따로
+          <div key={i} role="button" tabIndex={0} onClick={() => open(r.k)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, cursor: 'pointer' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
@@ -1126,7 +1137,7 @@ export default function AndingHome() {
           <>
             <Hero d={d} open={setDetail} />
             <AndingMemo />
-            <Todo d={d} onSms={setSms} />
+            <Todo d={d} onSms={setSms} open={setDetail} />
             <Tiles d={d} open={setDetail} />
             <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>{d.stale
               ? <span style={{ color: '#d97706' }}>맥 수집이 {(d.now || '').slice(5, 16).replace('-', '/')}에서 멈춰 있어요 · 날짜는 오늘 기준</span>
