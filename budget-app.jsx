@@ -359,7 +359,7 @@ const Inp = ({style,...p}) => (
 /* ── Setup Guide ── */
 function SetupGuide(){
   return(
-    <div style={{background:C.white,borderRadius:"20px",padding:"24px",border:`1px solid ${C.border}`,margin:"16px 0"}}>
+    <div style={{background:C.white,borderRadius:"16px",padding:"24px",border:`1px solid ${C.border}`,margin:"16px 0"}}>
       <div style={{fontFamily:FONT,fontSize:"18px",color:C.ink,marginBottom:"6px"}}>Supabase 연동 필요</div>
       <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"20px",fontFamily:FONT}}>아래 순서대로 설정하면 폰+PC 어디서나 데이터가 동기화돼요</div>
       {[
@@ -1695,7 +1695,7 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
   },[filteredTxs]);
 
   if(!txs.length)return(
-    <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
+    <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"16px",border:`1px solid ${C.border}`}}>
       <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📭</div>
       <div style={{fontFamily:FONT,fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>비어있어요</div>
       <div style={{fontSize:"12px",color:C.inkLight}}>거래를 추가해보세요</div>
@@ -2394,7 +2394,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
   };
 
   if(!fixedTemplates.length) return(
-    <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
+    <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"16px",border:`1px solid ${C.border}`}}>
       <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📋</div>
       <div style={{fontFamily:FONT,fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>반복 항목이 없어요</div>
       <div style={{fontSize:"12px",color:C.inkLight}}>거래 추가 시 반복지출/반복수입 토글을 켜보세요</div>
@@ -2743,7 +2743,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:FONT,fontSize:"12px"};
 
   if(!txs.length)return(
-    <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
+    <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"16px",border:`1px solid ${C.border}`}}>
       <div style={{fontFamily:FONT,fontSize:"17px",color:C.inkMid}}>데이터가 없어요</div>
     </div>
   );
@@ -3277,7 +3277,7 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
         거래 목록에서 체크박스를 눌러 체크하면 여기 모여요. 반복지출/반복수입은 같은 이름의 다른 달 거래도 함께 체크·해제돼요. 세금 신고 때 이 화면만 확인하면 빠뜨리는 항목 없이 챙길 수 있어요. 제출 끝난 항목은 체크박스를 다시 눌러 해제하세요.
       </div>
       {flagged.length===0?(
-        <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"20px",border:`1px solid ${C.border}`}}>
+        <div style={{textAlign:"center",padding:"56px 20px",background:C.white,borderRadius:"16px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>🧾</div>
           <div style={{fontFamily:FONT,fontSize:"15px",color:C.inkMid,marginBottom:"4px"}}>체크된 항목이 없어요</div>
           <div style={{fontSize:"12px",color:C.inkLight}}>내역에서 체크박스를 눌러 추가해보세요</div>
@@ -4156,14 +4156,14 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
       {/* 소모품 카드 목록 */}
       {sorted.length===0
         ?<div style={{textAlign:"center",padding:"48px 20px",background:C.white,
-            borderRadius:"20px",border:`1px solid ${C.border}`}}>
+            borderRadius:"16px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:"34px",marginBottom:"12px",opacity:0.3}}>📦</div>
           <div style={{fontFamily:FONT,fontSize:"17px",color:C.inkMid,marginBottom:"4px"}}>소모품이 없어요</div>
           <div style={{fontSize:"12px",color:C.inkLight}}>추가 버튼으로 소모품을 등록해보세요</div>
         </div>
         :filtered.length===0
           ?<div style={{textAlign:"center",padding:"40px 20px",background:C.white,
-              borderRadius:"20px",border:`1px solid ${C.border}`}}>
+              borderRadius:"16px",border:`1px solid ${C.border}`}}>
             <div style={{fontSize:"28px",marginBottom:"10px",opacity:0.3}}>🔍</div>
             <div style={{fontFamily:FONT,fontSize:"15px",color:C.inkMid}}>&quot;{searchQuery}&quot; 검색 결과 없음</div>
           </div>
@@ -4711,9 +4711,9 @@ export default function App(){
     <div className="budget-app" style={{fontFamily:FONT,color:C.ink,fontSize:15,minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"}}>
 
       {/* Header */}
-      <div style={{background:C.cream,padding:hasTabBar?"calc(8px + env(safe-area-inset-top)) 16px 0":"16px 16px 0",color:C.ink,position:"relative",zIndex:5}}>
+      <div style={{background:C.cream,padding:hasTabBar?"calc(8px + env(safe-area-inset-top)) 12px 0":"16px 12px 0",color:C.ink,position:"relative",zIndex:5}}>
 
-        <div style={{maxWidth:"648px",margin:"0 auto",position:"relative"}}>
+        <div style={{maxWidth:"656px",margin:"0 auto",position:"relative"}}>
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:hasTabBar?"14px":"20px"}}>
             <div>
@@ -4799,7 +4799,7 @@ export default function App(){
           </div>
 
           {/* Balance */}
-          <div style={{background:C.paper,borderRadius:"20px",padding:"18px 20px",
+          <div style={{background:C.paper,borderRadius:"16px",padding:"18px 20px",
             border:`1px solid ${C.border}`,
             display:"grid",gridTemplateColumns:"1fr 1px 1fr 1px 1fr",alignItems:"center"}}>
             {[
@@ -4822,7 +4822,7 @@ export default function App(){
       </div>
 
       {/* Body */}
-      <div style={{maxWidth:"680px",margin:"0 auto",padding:"12px 16px 16px",
+      <div style={{maxWidth:"680px",margin:"0 auto",padding:"12px 12px 16px",
         background:C.cream}}>
 
         {!isConfigured()&&<SetupGuide/>}
