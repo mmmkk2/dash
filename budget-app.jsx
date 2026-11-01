@@ -4781,7 +4781,8 @@ export default function App(){
                 </div>
                 <div style={{background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",borderRadius:"12px",height:"38px",boxSizing:"border-box",display:"flex",alignItems:"center"}}>
                   <button aria-label="이전" onClick={yearView?()=>setYear(y=>y-1):prevMonth} style={{height:"36px",width:"30px",border:"none",background:"none",color:C.inkMid,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}><ChevronLeft size={16}/></button>
-                  <div style={{fontFamily:FONT,fontSize:"14px",fontWeight:700,minWidth:"54px",textAlign:"center",fontVariantNumeric:"tabular-nums",color:C.ink}}>{yearView?`${year}년`:`${year}.${String(month+1).padStart(2,"0")}`}</div>
+                  {/* 숫자는 아래 여백(글꼴 descent) 때문에 위로 떠 보여서 대문자 높이 기준으로 가운데 (아이폰 글꼴) */}
+                  <div style={{fontFamily:FONT,fontSize:"14px",fontWeight:700,minWidth:"54px",textAlign:"center",fontVariantNumeric:"tabular-nums",color:C.ink,lineHeight:1,textBox:"trim-both cap alphabetic"}}>{yearView?`${year}년`:`${year}.${String(month+1).padStart(2,"0")}`}</div>
                   <button aria-label="다음" onClick={yearView?()=>setYear(y=>y+1):nextMonth} style={{height:"36px",width:"30px",border:"none",background:"none",color:C.inkMid,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}><ChevronRight size={16}/></button>
                 </div>
                 <button onClick={()=>setShowMore(v=>!v)} title="더보기" aria-label="메뉴" style={{position:"relative",width:"38px",height:"38px",borderRadius:"12px",background:C.white,border:"0.5px solid rgba(60,60,67,0.12)",color:C.ink,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexShrink:0}}>
