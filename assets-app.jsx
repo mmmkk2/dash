@@ -43,6 +43,11 @@ const C = {
 };
 // 탭별 포인트 색 (무채색 바탕 위에 선택된 탭·요약 카드·추가 버튼에만)
 const TAB_COLOR = { stock: "#5b8fc9", asset: "#3f9fae", pension: "#8f6bbf", loan: "#d08a3a", vest: "#4fa784" };
+const TAB_LABEL = { stock: "주식", asset: "실물자산", pension: "연금", loan: "부채", vest: "AMAT" };
+const TAB_KEYS = Object.keys(TAB_LABEL);
+// 저장된 순서에서 모르는 탭은 빼고, 빠진 탭은 뒤에 붙임
+const normTabOrder = (o) => { const ok = (o || []).filter(k => TAB_KEYS.includes(k)); return [...new Set([...ok, ...TAB_KEYS])]; };
+const readTabOrder = () => { try { return normTabOrder(JSON.parse(localStorage.getItem("asset_tab_order"))); } catch { return TAB_KEYS; } };
 const tintCard = c => ({ background: `color-mix(in srgb, ${c} 5%, #fff)`, border: `0.5px solid color-mix(in srgb, ${c} 22%, #fff)` });
 const F = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif";
 
@@ -1702,7 +1707,48 @@ export default function AssetsApp() {
   const [lastSync, setLastSync] = useState(null);
   const [modal,    setModal]    = useState(null);
   const [editItem, setEditItem] = useState(null);
-  const [tab,      setTab]      = useState("stock");
+  const [tabOrder, setTabOrder] = useState(() => readTabOrder());
+  const [tab,      setTab]      = useState(() => readTabOrder()[0]);
+  /* 탭 순서 바꾸기: 0.5초 꾹 누르면 잡히고, 손가락을 옆 탭 위로 옮기면 자리 바꿈 */
+  const [dragTab,  setDragTab]  = useState(null);
+  const tabRowRef = useRef(null), tabTimer = useRef(null), tabStart = useRef(null), tabFired = useRef(false), tabOrderRef = useRef(tabOrder);
+  tabOrderRef.current = tabOrder;
+  const saveTabOrder = (order) => {
+    try { localStorage.setItem("asset_tab_order", JSON.stringify(order)); } catch {}
+    if (isConfigured()) sb("settings", { method: "POST", body: JSON.stringify({ key: "asset_tab_order", value: order }), prefer: "resolution=merge-duplicates,return=minimal" }).catch(() => {});
+  };
+  const tabPress = (k) => ({
+    onPointerDown: e => {
+      tabFired.current = false; tabStart.current = [e.clientX, e.clientY];
+      clearTimeout(tabTimer.current);
+      tabTimer.current = setTimeout(() => {
+        tabFired.current = true; navigator.vibrate?.(15); setDragTab(k);
+        // 잡은 뒤엔 창 전체에서 손가락을 따라감 (탭 자리가 바뀌어도 놓치지 않게)
+        const move = ev => {
+          ev.preventDefault();
+          const btns = [...(tabRowRef.current?.querySelectorAll("[data-tab]") || [])];
+          const over = btns.find(el => { const r = el.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX < r.right; });
+          const to = over?.dataset.tab;
+          if (!to || to === k) return;
+          const cur = tabOrderRef.current, next = cur.filter(x => x !== k);
+          next.splice(cur.indexOf(to), 0, k);
+          tabOrderRef.current = next; setTabOrder(next);
+        };
+        const end = () => {
+          window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
+          setDragTab(null); saveTabOrder(tabOrderRef.current);
+          setTimeout(() => { tabFired.current = false; }, 50); // 놓을 때 생기는 클릭만 무시
+        };
+        window.addEventListener("pointermove", move, { passive: false }); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+      }, 500);
+    },
+    onPointerMove: e => {
+      if (!tabFired.current && tabStart.current && Math.hypot(e.clientX - tabStart.current[0], e.clientY - tabStart.current[1]) > 8) { clearTimeout(tabTimer.current); tabStart.current = null; }
+    },
+    onPointerUp: () => clearTimeout(tabTimer.current),
+    onPointerCancel: () => clearTimeout(tabTimer.current),
+    onContextMenu: e => e.preventDefault(), // 길게 누를 때 뜨는 브라우저 메뉴 막기
+  });
   const [expanded, setExpanded] = useState(null);
   const [expandedAccounts, setExpandedAccounts] = useState(new Set());
   const [expandedCats, setExpandedCats] = useState(new Set());
@@ -1774,6 +1820,11 @@ export default function AssetsApp() {
         if (byKey.trees) setLoanLinkItems(loanItemsFromTrees(byKey.trees));
         if (byKey.cats?.length) setCats(byKey.cats);
         if (byKey.usdKrw)      setUsdKrw(byKey.usdKrw);
+        if (Array.isArray(byKey.asset_tab_order)) {
+          const order = normTabOrder(byKey.asset_tab_order);
+          setTabOrder(order);
+          try { localStorage.setItem("asset_tab_order", JSON.stringify(order)); } catch {}
+        }
         if (Array.isArray(byKey.stock_sales)) setStockSales(byKey.stock_sales);
       }
       if (dbSnaps)     setSnapshots(dbSnaps.map(fromDbSnap));
@@ -2109,7 +2160,7 @@ export default function AssetsApp() {
           <div style={{ display: "flex", gap: "4px 12px", marginTop: 10, paddingTop: 10, borderTop: "0.5px solid rgba(60,60,67,0.1)", flexWrap: "wrap", fontSize: 13, color: C.inkLight }}>
             <span>주식 {fmtS(stockValue)}</span>
             {depositTotal > 0 && <span>예수금 {fmtS(depositTotal)}</span>}
-            <span>기타자산 {fmtS(assetTotal)}</span>
+            <span>실물자산 {fmtS(assetTotal)}</span>
             {pensionTotal > 0 && <span>퇴직연금 {fmtS(pensionTotal)}</span>}
             {loanTotal > 0 && <span style={{ color: C.down }}>부채 -{fmtS(loanTotal)}</span>}
             {unvestedValue > 0 && <span>미확정 RSU {fmtS(unvestedValue)}</span>}
@@ -2124,11 +2175,12 @@ export default function AssetsApp() {
         </div>
 
         {/* 화면 전환은 가계부(내역·캘린더·통계)처럼 밑줄 탭 — 칩은 다른 탭에서 '거르기'에만 씀 */}
-        <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 14 }}>
-          {[["stock", "주식"], ["asset", "기타자산"], ["pension", "연금"], ["loan", "부채"], ["vest", "AMAT"]].map(([k, l]) => {
-            const on = tab === k, c = TAB_COLOR[k]
+        {/* 탭을 꾹 누른 채 옆으로 밀면 순서가 바뀜 */}
+        <div ref={tabRowRef} style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 14 }}>
+          {tabOrder.map(k => {
+            const on = tab === k, c = TAB_COLOR[k], dragging = dragTab === k
             return (
-              <button key={k} onClick={() => { setTab(k); setFabOpen(false) }} aria-pressed={on} style={{ flex: 1, padding: "12px 4px", border: "none", background: "transparent", cursor: "pointer", fontWeight: on ? 600 : 400, fontSize: 14, color: on ? c : C.inkLight, borderBottom: `3px solid ${on ? c : "transparent"}`, marginBottom: -1, fontFamily: F, whiteSpace: "nowrap", transition: "all 0.2s" }}>{l}</button>
+              <button key={k} data-tab={k} {...tabPress(k)} onClick={() => { if (tabFired.current) return; setTab(k); setFabOpen(false) }} aria-pressed={on} style={{ flex: 1, padding: "12px 4px", border: "none", background: dragging ? C.cream : "transparent", borderRadius: dragging ? "10px 10px 0 0" : 0, transform: dragging ? "scale(1.06)" : "none", cursor: "pointer", fontWeight: on ? 600 : 400, fontSize: 14, color: on ? c : C.inkLight, borderBottom: `3px solid ${on ? c : "transparent"}`, marginBottom: -1, fontFamily: F, whiteSpace: "nowrap", transition: "all 0.2s", touchAction: dragTab ? "none" : "pan-y", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}>{TAB_LABEL[k]}</button>
             )
           })}
         </div>
@@ -3080,7 +3132,7 @@ export default function AssetsApp() {
       {/* FAB: 다른 화면처럼 동그란 + 하나. 추가할 게 여러 가지인 탭(주식·AMAT)은 눌러서 고르기 */}
       {!dbLoading && (() => {
         const opts = {
-          asset: [["기타자산", "addAsset"]], loan: [["부채", "addLoan"]], pension: [["연금·공제", "addPension"]],
+          asset: [["실물자산", "addAsset"]], loan: [["부채", "addLoan"]], pension: [["연금·공제", "addPension"]],
           stock: [["예수금", "addDeposit"], ["종목", "addStock"]],
           vest: [["ESPP", "addOffering"], ["RSU", "addVesting"], ["RSU 일괄", "batchVesting"]],
         }[tab] || []
