@@ -390,7 +390,10 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
     const preview = unmark(parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || '')
     return (
       <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', ...plain, display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
-        <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {n.subject && <span style={{ width: 8, height: 8, borderRadius: '50%', background: subjectColor(n.subject).color, flexShrink: 0 }} />}
+          <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
+        </div>
         {preview && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
           {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
