@@ -417,9 +417,9 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: 10, border: `0.5px solid ${C.sep}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 10, padding: '5px 11px', marginBottom: 10, border: `0.5px solid ${C.sep}` }}>
         <Search size={16} color={C.sub} strokeWidth={2.2} />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="노트 검색" style={{ ...input, fontSize: 15 }} />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="노트 검색" style={{ ...input, fontSize: 16 }} />
       </div>
       {subjects.length > 0 && (
         // 메모 태그 칩과 같은 모양: 선택하면 태그 색으로 채움, 아니면 흰 칩에 색 점·색 글씨 (전체는 메모와 같은 코랄)
