@@ -177,7 +177,7 @@ const TREE_PERSONAL = {
     외화매도:[],"중고거래/당근":[],"호텔 배당금":[],컨커:[],"대출이자-무이자":[],서울런:[],서대문농아:[],기타:[],
   }},
   "저축/투자고정":{ color:"#1d4e89",accent:"#4a90d9",icon:"💙",children:{개인형irp:[],연금저축펀드:[],적금:[],주택청약:[]}},
-  "저축/투자유동":{ color:"#0077b6",accent:"#48cae4",icon:"🩵",children:{ESPP:[],주식투자:[],"청약수수료(카드)":[]}},
+  "저축/투자유동":{ color:"#0077b6",accent:"#48cae4",icon:"🩵",children:{ESPP:[],주식투자:[],부동산투자:[],"청약수수료(카드)":[]}},
   "지출-고정비":{ color:"#b5451b",accent:"#e07a5f",icon:"🔶",children:{
     생활:["관리비","월세/전세이자","인터넷사용료","통신비","휴대폰장기할부","자동차보험","자동차할부","보험-나","보험-엄마","기타"],
     원금상환:["대출원금-보험대출","대출원금-신용","대출원금-전세","대출원금-주택","대출원금-호텔"],
@@ -234,6 +234,9 @@ function withMissingTrees(saved){
   const out={...saved};
   let added=false;
   for(const ek of Object.keys(TREES_DEFAULT)) if(!out[ek]){ out[ek]=JSON.parse(JSON.stringify(TREES_DEFAULT[ek])); added=true; }
+  // 개인 '저축/투자유동'에 부동산투자(토지 등 투자금) 없으면 추가
+  const inv=out.personal?.["저축/투자유동"]?.children;
+  if(inv&&!("부동산투자" in inv)){ out.personal={...out.personal,"저축/투자유동":{...out.personal["저축/투자유동"],children:{...inv,부동산투자:[]}}}; added=true; }
   return [out, added];
 }
 const CAT_KEY = "gagibu_cats";
@@ -4627,6 +4630,12 @@ export default function App(){
         sb("settings?select=*&key=eq.trees"),
         sb("settings?select=*&key=eq.tax_doc_ids"),
       ]);
+      // 제주 토지 취득원가는 지출(용돈)이 아니라 투자금 → 저축/투자유동·부동산투자로 한 번 옮김
+      const fix=rows.filter(r=>r.entity==="personal"&&r.cat1==="지출-용돈"&&/제주도?\s*토지\s*취득/.test(r.memo||""));
+      fix.forEach(r=>{
+        Object.assign(r,{cat1:"저축/투자유동",cat2:"부동산투자",cat3:"",type:"income"});
+        sb(`transactions?id=eq.${r.id}`,{method:"PATCH",body:JSON.stringify({cat1:r.cat1,cat2:r.cat2,cat3:r.cat3,type:r.type}),prefer:"return=minimal"}).catch(e=>console.error("[투자금 이동]",e));
+      });
       setTxs(rows.map(rowToTx));
       if(cardRows.length) setCards(cardRows.map(rowToCard));
       setSupplies(supplyRows);
