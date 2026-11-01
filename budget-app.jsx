@@ -6,6 +6,7 @@ import { useShowTabBar } from "./src/TabBar";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { ask } from './src/dialog'
+import { openTextSize } from './src/textsize'
 
 /* ── Supabase 설정 ─────────────────────────────────────────────────────────────
    Supabase 프로젝트 생성 후 아래 두 값을 교체하세요.
@@ -299,7 +300,7 @@ function LoginScreen({onLogin}){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#f7f7f7",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+    <div style={{minHeight: "calc(100vh * var(--vz, 1))",background:"#f7f7f7",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
       <div style={{background:"#fff",borderRadius:"24px",padding:"40px 32px",width:"100%",maxWidth:"360px",
         boxShadow:"0 8px 40px rgba(0,0,0,0.10)"}}>
         <div style={{textAlign:"center",marginBottom:"32px"}}>
@@ -346,7 +347,7 @@ function Modal({open,onClose,title,children}){
       <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}.sheet-form div,.sheet-form input,.sheet-form select{min-width:0}.sheet-form input,.sheet-form select{max-width:100%}`}</style>
       <div onClick={e=>e.stopPropagation()} className="animate-up" style={{
         background:C.paper,borderRadius:"24px 24px 0 0",paddingBottom:"calc(24px + env(safe-area-inset-bottom))",
-        width:"calc(100% - 16px)",maxWidth:"660px",height:"min(78dvh, calc(100dvh - 80px))",overflowY:"auto",overflowX:"hidden",
+        width:"calc(100% - 16px)",maxWidth:"660px",height:"min(calc(78dvh * var(--vz, 1)), calc(calc(100dvh * var(--vz, 1)) - 80px))",overflowY:"auto",overflowX:"hidden",
         boxShadow:"0 -10px 40px rgba(0,0,0,0.12)"}}>
         <div style={{position:"sticky",top:0,zIndex:2,background:C.paper,display:"flex",alignItems:"center",gap:"8px",padding:"18px 20px 12px"}}>
           <div style={{flex:1,minWidth:0,fontSize:"20px",fontWeight:700,color:C.ink,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontFamily:FONT}}>{head.title}</div>
@@ -4742,14 +4743,14 @@ export default function App(){
   }
 
   if(session===undefined)return(
-    <div style={{minHeight:"100vh",background:"#f7f7f7",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{minHeight: "calc(100vh * var(--vz, 1))",background:"#f7f7f7",display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{fontFamily:FONT,fontSize:"13px",color:"#8e8e93"}}>로딩 중…</div>
     </div>
   );
   if(!session)return <LoginScreen onLogin={s=>{_authToken=s.access_token;setSession(s);}}/>;
 
   return(
-    <div className="budget-app" style={{fontFamily:FONT,color:C.ink,fontSize:15,minHeight:"100vh",background:C.cream,paddingBottom:"calc(80px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"}}>
+    <div className="budget-app" style={{fontFamily:FONT,color:C.ink,fontSize:15,minHeight: "calc(100vh * var(--vz, 1))",background:C.cream,paddingBottom:"calc(80px + var(--tabbar, 0px) + env(safe-area-inset-bottom))"}}>
 
       {/* Header */}
       <div style={{background:C.cream,padding:hasTabBar?"calc(8px + env(safe-area-inset-top)) 12px 0":"16px 12px 0",color:C.ink,position:"relative",zIndex:5}}>
@@ -4803,6 +4804,7 @@ export default function App(){
                         {label:"일정",emoji:"📅",action:()=>navigate("/notes/calendar")},
                       ]),
                       {label:"테마 변경",emoji:THEMES[themeKey].emoji,action:()=>setModal("theme")},
+                      {label:"글자 크기",action:openTextSize},
                       {label:"카테고리 관리",emoji:"🗂️",action:()=>setModal("cats")},
                       {label:"세무자료 체크리스트",emoji:"🧾",action:()=>setModal("taxdoc")},
                       {label:"로그아웃",emoji:"🚪",action:handleLogout},

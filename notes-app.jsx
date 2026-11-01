@@ -1,10 +1,11 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, createContext, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal, Link2 } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal, Link2, Type } from 'lucide-react'
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
 import { ask } from './src/dialog'
+import { openTextSize } from './src/textsize'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
 export const F = "-apple-system,BlinkMacSystemFont,'SF Pro Text','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
@@ -299,7 +300,7 @@ export function MoreMenu({ items }) {
   )
 }
 
-export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, height = 'min(78dvh, calc(100dvh - 80px))', titleLines = 1, children }) {
+export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisabled, actions, full, inset, doneLabel = '저장', hideCancel, tint = C.tint, height = 'min(calc(78dvh * var(--vz, 1)), calc(calc(100dvh * var(--vz, 1)) - 80px))', titleLines = 1, children }) {
   // 뒤 배경은 가계부 창과 같게: 어둡게 + 살짝 흐리게
   return (
     <div onClick={onBackdrop} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,16,0.6)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -312,7 +313,7 @@ export function Sheet({ title, onCancel, onDone, onBackdrop = onCancel, doneDisa
         // full에 높이(예: '78dvh')를 주면 그 높이로
         // height: 내용 길이와 상관없이 모든 창이 같은 높이 (위를 남겨 바깥을 눌러 닫기 쉽게)
         // 크게 보기(full=true)는 화면 전체로 (위 여백 없이, 모서리 없이)
-        ...(full === true ? { height: '100dvh', width: '100%', maxWidth: 'none', borderRadius: 0, boxSizing: 'border-box' } : { height: inset ? `calc(${full || height} - 10px - env(safe-area-inset-bottom))` : full || height }),
+        ...(full === true ? { height: 'calc(100dvh * var(--vz, 1))', width: '100%', maxWidth: 'none', borderRadius: 0, boxSizing: 'border-box' } : { height: inset ? `calc(${full || height} - 10px - env(safe-area-inset-bottom))` : full || height }),
         paddingBottom: inset ? 16 : 'calc(24px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,0.12)',
       }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.bg, display: 'flex', alignItems: 'center', gap: 8, padding: inset ? '18px 14px 12px' : full === true ? 'calc(14px + env(safe-area-inset-top)) 20px 12px' : '18px 20px 12px' }}>
@@ -481,8 +482,8 @@ function NoteEditor({ value, onChange, autoFocus, attachments, tools, full, read
       <div ref={boxRef} onClick={e => { if (!readOnly && e.target === e.currentTarget) setFocus({ i: lines.length - 1, pos: Infinity }) }}
         style={{ padding: '12px 16px', overflowY: 'auto', overscrollBehavior: 'contain', cursor: readOnly ? 'default' : 'text',
           // 크게 보기면 화면 대부분을, 평소엔 읽기·편집 모두 화면의 45% (내용 길이와 상관없이 같은 크기)
-          ...(full ? { height: `calc(100dvh - ${readOnly ? 200 : 255}px - env(safe-area-inset-bottom) - env(safe-area-inset-top))`, minHeight: 200 }
-            : { height: '45dvh', minHeight: 180 }) }}>
+          ...(full ? { height: `calc(calc(100dvh * var(--vz, 1)) - ${readOnly ? 200 : 255}px - env(safe-area-inset-bottom) - env(safe-area-inset-top))`, minHeight: 200 }
+            : { height: 'calc(45dvh * var(--vz, 1))', minHeight: 180 }) }}>
         {/* 읽기 보기: 키보드 없이 큰 글씨로, 체크 항목은 바로 체크 가능 */}
         {readOnly && lines.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: l.check ? '4px 0' : 0, minHeight: l.text ? 0 : '0.9em' }}>
@@ -1398,7 +1399,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
   const linkCtx = { open: openLink, openItem, notes: noteIndex, memos }
 
   return (
-    <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
+    <div style={{ minHeight: 'calc(100dvh * var(--vz, 1))', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
       <header style={{ maxWidth: 680, margin: '0 auto', padding: `calc(${tabBar ? 8 : 16}px + env(safe-area-inset-top)) 12px ${tabBar ? 0 : 8}px` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* 하단 탭이 있으면 지금 화면 이름을 작은 제목(22px)으로 */}
@@ -1407,6 +1408,7 @@ export default function NotesApp({ initialTab = 'memo' }) {
               <ChevronLeft size={16} />가계부
             </button>
           )}
+          <MoreMenu items={[{ icon: Type, label: '글자 크기', run: openTextSize }]} />
         </div>
         {/* 하단 탭이 있으면 메모/일정 큰 제목은 생략 */}
         {!tabBar && (

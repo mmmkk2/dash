@@ -7,6 +7,7 @@ import { supabase } from './login'
 import { API, F, C, COL, GREEN, plain, won, Switch } from './anding-shared'
 import { SettingsSheet, SmsToolSheet, SalarySheet } from './anding-tools'
 import { ask, tell } from '../src/dialog'
+import { openTextSize } from '../src/textsize'
 
 // 앤딩 관리자 메인 — 내비서가 직접 그리는 화면.
 // 숫자는 앤딩 앱(맥)의 /api/summary 에서 받고, 상세 표·그래프는 앤딩 앱 화면을 시트 안에 띄운다.
@@ -734,7 +735,7 @@ function IframeDetail({ k, path }) {
   return (
     <div style={{ background: '#fff', borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden', padding: '8px 6px' }}>
       {!loaded && <div style={{ textAlign: 'center', color: C.sub, padding: '40px 0' }}>불러오는 중…</div>}
-      <iframe title={k} src={API + path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(78dvh - 130px - env(safe-area-inset-bottom))', display: 'block' }} />
+      <iframe title={k} src={API + path} onLoad={onLoad} style={{ border: 0, width: '100%', height: 'calc(calc(78dvh * var(--vz, 1)) - 130px - env(safe-area-inset-bottom))', display: 'block' }} />
     </div>
   )
 }
@@ -832,7 +833,7 @@ function SeatDetail() {
       <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg }}>
       <div style={{ fontSize: 14, color: C.sub, padding: '0 4px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>자유 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
       {/* 위에 고정되는 부분이 창을 다 덮지 않게: 배치도 높이는 화면 높이의 26%까지 (넓은 화면에서 목록이 안 보이던 문제) */}
-      <Card style={{ aspectRatio: '16 / 10', width: 'min(84%, calc(26dvh * 1.6))', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
+      <Card style={{ aspectRatio: '16 / 10', width: 'min(84%, calc(calc(26dvh * var(--vz, 1)) * 1.6))', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
         {seatMap && !mapFailed
           ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
           : <div style={{ fontSize: 13, color: C.sub }}>배치도가 아직 없어요</div>}
@@ -1257,6 +1258,7 @@ export default function AndingHome() {
     { label: '방문 기록', run: () => setTool('visits') },
     { label: '박스 배치', run: () => setTool('layout') },
     // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
+    { label: '글자 크기', run: openTextSize },
     { label: '앤딩 로그인', run: () => setLoginOpen(true) },
     { label: '로그아웃', danger: true, run: async () => { if (!await ask('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
   ]
@@ -1271,7 +1273,7 @@ export default function AndingHome() {
     loadApi('/api/seat_detail').then(r => r.data && preloadMap('seat_map.png', r.data.updated)).catch(() => {})
   }, [seatTs])
   return (
-    <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, letterSpacing: '-0.01em' }}>
+    <div style={{ minHeight: 'calc(100dvh * var(--vz, 1))', background: C.bg, fontFamily: F, color: C.text, letterSpacing: '-0.01em' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: `${tabBar ? 'calc(8px + env(safe-area-inset-top))' : 'calc(16px + env(safe-area-inset-top))'} 12px calc(32px + var(--tabbar, 0px) + env(safe-area-inset-bottom))` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative' }}>
           <div style={{ fontSize: tabBar ? 22 : 28, fontWeight: 700, letterSpacing: tabBar ? '-0.5px' : '-0.7px', lineHeight: tabBar ? '38px' : 1.25 }}>앤딩</div>
