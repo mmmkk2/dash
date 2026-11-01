@@ -189,7 +189,11 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
   const shown = (q.trim() ? matched : matched.filter(n => !n.archived)).sort((a, b) => !!b.pinned - !!a.pinned)
   const archived = q.trim() ? [] : matched.filter(n => n.archived)
 
-  const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], orig: n.content, snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
+  // 태그·제목·본문이 비어 null로 저장된 노트도 빈 글자로 맞춰 연다
+  const open = n => {
+    const t = n.title || '', sj = n.subject || '', c = n.content || '', f = n.files || []
+    setEdit({ ...n, title: t, subject: sj, content: c, files: f, editing: false, uploaded: [], orig: c, snapshot: JSON.stringify([t, sj, c, f]) })
+  }
   // 다른 메모·노트의 [[링크]]로 들어오면 그 노트를 연다
   useEffect(() => {
     if (target?.kind !== 'note' || !notes) return
