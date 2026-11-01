@@ -4824,15 +4824,16 @@ export default function App(){
           {/* Entity tabs — 메모·일정 태그 칩과 같은 모양: 작은 알약 + 색 점, 선택하면 사업 색으로 채움 */}
           <div style={{display:"flex",gap:"6px",marginBottom:"18px",overflowX:"auto"}}>
             {["all",...visibleEntities].map(ek=>{
-              const e=ek==="all"?{...ENTITY_ALL,short:"전체"}:ENTITIES[ek];const sel=entity===ek;
+              // '전체'는 메모·일정·노트와 같은 코랄, 점 없음
+              const e=ek==="all"?{...ENTITY_ALL,short:"전체",color:"#ef6a5f"}:ENTITIES[ek];const sel=entity===ek;
               return(
                 <button key={ek} onClick={()=>switchEntity(ek)} aria-pressed={sel} style={{
                   display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap",
                   padding:"6px 11px",borderRadius:"999px",cursor:"pointer",
                   border:`0.5px solid ${sel?e.color:C.border}`,
-                  background:sel?e.color:C.white,color:sel?"#fff":e.color,
+                  background:sel?e.color:C.white,color:sel?"#fff":ek==="all"?C.ink:e.color,
                   fontFamily:FONT,fontSize:"13px",fontWeight:600,transition:"all 0.2s"}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":e.color}}/>
+                  {ek!=="all"&&<span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":e.color}}/>}
                   {e.short}
                 </button>
               );
