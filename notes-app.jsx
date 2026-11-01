@@ -756,7 +756,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
 
   return (
     <>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 12, padding: '10px 12px', marginBottom: hasTags ? 10 : 22, border: `0.5px solid ${C.sep}` }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.card, borderRadius: 10, padding: '6px 11px', marginBottom: hasTags ? 10 : 22, border: `0.5px solid ${C.sep}` }}>
         <Search size={16} color={C.sub} strokeWidth={2.2} />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={`메모 ${memos.length}개에서 검색`} style={field} />
       </label>
