@@ -302,3 +302,8 @@ create table if not exists anding_visits (
 alter table anding_visits enable row level security;
 drop policy if exists "본인 방문 기록만" on anding_visits;
 create policy "본인 방문 기록만" on anding_visits for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 반복 일정: repeat = {"freq":"daily|weekly|monthly|yearly","days":[0-6],"until":"YYYY-MM-DD"}
+-- 반복 일정의 회차별 완료 날짜 목록 (반복 아닌 일정은 done)
+alter table events add column if not exists repeat jsonb default null;
+alter table events add column if not exists done_dates jsonb default '[]';
