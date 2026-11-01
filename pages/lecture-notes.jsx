@@ -465,7 +465,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
 
       {edit && (
         // 높이는 메모 읽기 창과 같게 (메모 본문 45dvh + 머리·아래 198px), 크게 보기는 메모와 같은 full
-        <Sheet full={full} titleLines={2} title={edit.editing ? (edit.id ? '노트 편집' : '새 노트') : (edit.title || '제목 없음')} tint={subjectColor(edit.subject?.trim()).color}
+        <Sheet full={full} titleLines={2} title={edit.editing ? '' : (edit.title || '제목 없음')} tint={subjectColor(edit.subject?.trim()).color}
           onCancel={edit.editing ? (edit.id ? () => { removeFiles(edit.uploaded); open(notes.find(x => x.id === edit.id)) } : discard) : () => setEdit(null)}
           hideCancel={!edit.editing} onBackdrop={edit.editing ? save : () => setEdit(null)}
           doneLabel={edit.editing ? (uploading ? '올리는 중…' : '저장') : '편집'} doneDisabled={uploading > 0}
