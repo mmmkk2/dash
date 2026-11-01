@@ -510,16 +510,16 @@ function Todo({ d, onSms, open }) {
 
 function Tile({ color, title, value, unit, sub, bar, onClick, wide }) {
   return (
-    <button onClick={onClick} style={{ ...plain, textAlign: 'left', background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 13px', minHeight: 108, display: 'flex', flexDirection: 'column', color: C.text, minWidth: 0, ...(wide && { gridColumn: '1 / -1', minHeight: 0 }) }}>
+    <button onClick={onClick} style={{ ...plain, textAlign: 'left', background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 13px', minHeight: 96, display: 'flex', flexDirection: 'column', color: C.text, minWidth: 0, ...(wide && { gridColumn: '1 / -1', minHeight: 0 }) }}>
       <div style={{ fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}
         <ChevronRight size={14} color="#c7c7cc" style={{ marginLeft: 'auto' }} />
       </div>
-      <div style={{ fontSize: 21, fontWeight: 700, marginTop: 8, letterSpacing: '-0.02em' }}>
-        {value}{unit && <span style={{ fontSize: 13, color: C.sub, fontWeight: 600 }}>{unit}</span>}
+      <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6, letterSpacing: '-0.02em' }}>
+        {value}{unit && <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>{unit}</span>}
       </div>
       {bar != null && <div style={{ height: 5, borderRadius: 9, background: '#eee', marginTop: 7, overflow: 'hidden' }}><div style={{ width: `${Math.min(100, bar)}%`, height: '100%', background: color, borderRadius: 9 }} /></div>}
-      <div style={{ fontSize: 12, color: C.sub, marginTop: 'auto', paddingTop: 6, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{sub}</div>
+      <div style={{ fontSize: 11.5, color: C.sub, marginTop: 'auto', paddingTop: 6, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{sub}</div>
     </button>
   )
 }
