@@ -3,8 +3,10 @@
 export const API = '/andingapp'
 export const F = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif"
 export const C = { bg: '#f7f7f7', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)' }
-// 앤딩 테마(naebiseo_theme.js)의 섹션 색과 같게
-export const COL = { seat: '#3d7ebf', product: '#2d9e6b', payment: '#7b52ab', monthly: '#1a8fa0', room: '#d97706', locker: '#c2537a', users: '#5a67c9' }
+// 성격별 4색으로 단정하게: 사람(좌석·이용자) 파랑 · 돈(결제·월 매출) 보라 · 시설(스터디룸·사물함) 주황 · 상품 초록
+// 흰 바탕에서 글씨로 써도 읽히는 진하기(대비 4.5 이상). 앤딩 앱(naebiseo_theme.js·dashboard_app.css)도 같은 색
+const PEOPLE = '#3271b3', MONEY = '#7b52ab', PLACE = '#b8590e', GOODS = '#2f8064'
+export const COL = { seat: PEOPLE, users: PEOPLE, payment: MONEY, monthly: MONEY, room: PLACE, locker: PLACE, product: GOODS }
 export const GREEN = '#3e9478'
 export const plain = { border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
 
