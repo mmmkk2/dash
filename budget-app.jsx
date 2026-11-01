@@ -2833,26 +2833,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
   return(
     <div style={{display:"flex",flexDirection:"column",gap:"14px"}}>
 
-      {/* Summary */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px"}}>
-        {[
-          {label:"수입",val:"+"+fmtS(incomeAmt),color:P,bg:P+"10",tab:"income"},
-          {label:"지출",val:fmtS(expense),color:C.ink,bg:C.cream,tab:"expense"},
-          // 개인은 저축률, 사업(앤딩·부동산·고이온·전체)은 순이익 = 수입 − 지출
-          entity==="personal"
-            ?{label:"저축률",val:saved>0?`${savingsRate}%`:"—",color:saved>0?"#1d4e89":C.inkLight,bg:"#f0f4ff",tab:null}
-            :{label:"순이익",val:(incomeAmt-expense>0?"+":"")+fmtS(incomeAmt-expense),color:incomeAmt-expense>=0?P:"#d95f4b",bg:incomeAmt-expense>=0?"#f0f4ff":"#fdf0ee",tab:null},
-        ].map(({label,val,color,bg,tab})=>(
-          <div key={label} onClick={tab?()=>{setStatsTab(tab);setExpanded(null);}:undefined}
-            style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center",
-              cursor:tab?"pointer":"default",
-              outline:statsTab===tab?`2px solid ${color}`:"none",outlineOffset:"2px",transition:"outline 0.15s"}}>
-            <div style={{fontSize:"12px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>{label}</div>
-            <div style={{fontFamily:FONT,fontSize:"15px",color,letterSpacing:"-0.3px",wordBreak:"keep-all"}}>{val}</div>
-          </div>
-        ))}
-      </div>
-
+      {/* 수입·지출 합계는 위 요약 카드에 있어 여기선 생략 */}
       {/* Tab */}
       <div style={{display:"flex",background:C.white,borderRadius:"10px",padding:"3px",border:`1px solid ${C.border}`,gap:"3px"}}>
         {statsTabs.map(([k,l])=>(
@@ -2874,7 +2855,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
         return(
           <div style={{background:C.white,borderRadius:"16px",padding:"16px 16px 8px",border:`0.5px solid ${C.border}`}}>
             <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
-              <div style={{fontSize:"13px",fontWeight:600,color:C.inkLight,fontFamily:FONT}}>월별 {trendKind==="income"?"수입":"지출"}</div>
+              <div style={{fontSize:"13px",fontWeight:600,color:C.inkLight,fontFamily:FONT}}>월별 {trendKind==="income"?"수입":"지출"}{trendKind==="income"&&entity==="personal"&&saved>0?` · 저축률 ${savingsRate}%`:""}</div>
               {trend.prev>0||cur>0?(
                 <div style={{fontSize:"14px",fontFamily:FONT,color:C.inkMid}}>
                   {yearView?(trend.ongoing?"작년 이맘때":"작년"):(trend.ongoing?"지난달 이맘때":"지난달")}보다{" "}
