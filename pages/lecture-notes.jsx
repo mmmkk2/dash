@@ -1,9 +1,9 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, Pin, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, Pin, Link2, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
-import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu } from '../notes-app'
+import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu, WikiLink, WIKI_RE, LinkPicker } from '../notes-app'
 import { ask } from '../src/dialog'
 
 // 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
@@ -44,7 +44,11 @@ const URL_RE = /(https?:\/\/|www\.)[^\s<>"']+/g
 function Linkify({ text }) {
   const out = []
   let last = 0
-  for (const m of text.matchAll(URL_RE)) {
+  // [[제목]] → 메모·노트 링크, 그 밖의 주소 → 새 창 링크
+  const found = [...[...text.matchAll(WIKI_RE)].map(m => ({ index: m.index, 0: m[0], wiki: m[1].trim() })), ...text.matchAll(URL_RE)].sort((a, b) => a.index - b.index)
+  for (const m of found) {
+    if (m.index < last) continue
+    if (m.wiki) { if (m.index > last) out.push(text.slice(last, m.index)); out.push(<WikiLink key={'w' + m.index} title={m.wiki} />); last = m.index + m[0].length; continue }
     const url = m[0].replace(/[).,;:!?\]}'"]+$/, '') // 문장 끝 문장부호는 주소에서 뺀다
     if (m.index > last) out.push(text.slice(last, m.index))
     out.push(<a key={m.index} href={url.startsWith('www.') ? `https://${url}` : url} target="_blank" rel="noreferrer"
@@ -124,7 +128,7 @@ function FileRow({ f, onOpen, onRemove }) {
   )
 }
 
-export default function LectureNotes({ setErr, onMovedToMemo }) {
+export default function LectureNotes({ setErr, onMovedToMemo, target }) {
   const [notes, setNotes] = useState(null)
   const [q, setQ] = useState('')
   const [subject, setSubject] = useState('')
@@ -152,6 +156,22 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
   const archived = q.trim() ? [] : matched.filter(n => n.archived)
 
   const open = n => setEdit({ ...n, files: n.files || [], editing: false, uploaded: [], orig: n.content, snapshot: JSON.stringify([n.title, n.subject, n.content, n.files || []]) })
+  // 다른 메모·노트의 [[링크]]로 들어오면 그 노트를 연다
+  useEffect(() => {
+    if (target?.kind !== 'note' || !notes) return
+    const n = notes.find(x => x.id === target.id)
+    if (n) open(n)
+  }, [target, notes])
+  // [[링크]] 넣기: 커서 자리에
+  const [picking, setPicking] = useState(false)
+  const insertLink = t => {
+    const ta = taRef.current, mark = `[[${t}]]`
+    setEdit(ed => {
+      if (!ed) return ed
+      const pos = ta ? ta.selectionStart : ed.content.length
+      return { ...ed, content: ed.content.slice(0, pos) + mark + ed.content.slice(pos) }
+    })
+  }
   const create = () => setEdit({ title: '', subject: subject || '', content: '', files: [], editing: true, uploaded: [] })
   const removeFiles = paths => { if (paths.length) supabase.storage.from(BUCKET).remove(paths) }
   // 첨부 지우기: 파일마다 들어 있는 버킷에서
@@ -424,6 +444,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
                 <button onClick={() => prefix('## ')} style={toolBtn}><Heading size={14} />소제목</button>
                 <button onClick={() => prefix('- ')} style={toolBtn}><List size={14} />목록</button>
                 <button onClick={() => prefix('- [ ] ')} style={toolBtn}><ListChecks size={14} />체크</button>
+                <button onClick={() => setPicking(true)} style={toolBtn}><Link2 size={14} />링크</button>
                 <button onClick={() => fileRef.current?.click()} style={toolBtn}><Paperclip size={14} />파일 추가</button>
                 <button onClick={() => imgRef.current?.click()} style={toolBtn}><ImagePlus size={14} />사진</button>
                 <input ref={imgRef} type="file" accept="image/*" multiple hidden onChange={e => { addImages([...e.target.files]); e.target.value = '' }} />
@@ -448,6 +469,7 @@ export default function LectureNotes({ setErr, onMovedToMemo }) {
           )}
         </Sheet>
       )}
+      {picking && <LinkPicker onPick={insertLink} onClose={() => setPicking(false)} />}
     </div>
   )
 }

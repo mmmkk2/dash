@@ -1,6 +1,6 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, createContext, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal, Link2 } from 'lucide-react'
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
@@ -140,8 +140,46 @@ const telHref = num => 'tel:' + num.replace(/[^\d+]/g, '')
 
 // 글 속 전화번호는 바로 걸기, 주소(http·https·www.)는 새 창으로 열리는 링크로
 const URL_RE = /(https?:\/\/|www\.)[^\s<>"']+/g
+// 메모·노트 사이 링크: 글에 [[제목]]을 쓰면 그 제목의 노트(없으면 메모)로 이동
+export const LinkCtx = createContext(null)
+export const WIKI_RE = /\[\[([^\[\]\n]{1,80})\]\]/g
+export const memoTitle = m => (joinText(m.title, m.content).split('\n').map(l => l.replace(CHECK_RE, '').trim()).find(Boolean) || '').slice(0, 80)
+export function WikiLink({ title }) {
+  const ctx = useContext(LinkCtx)
+  return (
+    <button type="button" onClick={e => { e.stopPropagation(); ctx?.open(title) }}
+      style={{ ...plain, display: 'inline', fontSize: 'inherit', lineHeight: 'inherit', color: '#2f6fb3', fontWeight: 600, background: '#2f6fb314', borderRadius: 6, padding: '0 5px', margin: '0 1px' }}>{title}</button>
+  )
+}
+// 연결할 메모·노트 고르기 (검색) → onPick(제목)
+export function LinkPicker({ onPick, onClose }) {
+  const ctx = useContext(LinkCtx)
+  const [q, setQ] = useState('')
+  useBackClose(true, onClose)
+  const items = [
+    ...(ctx?.notes || []).filter(n => n.title?.trim()).map(n => ({ kind: '노트', title: n.title.trim(), key: 'n' + n.id })),
+    ...(ctx?.memos || []).map(m => ({ kind: '메모', title: memoTitle(m), key: 'm' + m.id })).filter(x => x.title),
+  ].filter(x => !q.trim() || x.title.toLowerCase().includes(q.trim().toLowerCase()))
+  return (
+    <Sheet title="링크 넣기" doneLabel="닫기" hideCancel onDone={onClose} onBackdrop={onClose}>
+      <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="메모·노트 제목 검색"
+        style={{ ...field, display: 'block', boxSizing: 'border-box', width: '100%', background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 12, padding: '10px 12px', fontSize: 15, marginBottom: 10 }} />
+      <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
+        {items.length === 0 && <div style={{ padding: '14px 16px', fontSize: 14, color: C.sub }}>찾는 메모·노트가 없어요</div>}
+        {items.slice(0, 60).map((x, i) => (
+          <button key={x.key} onClick={() => { onPick(x.title); onClose() }} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '11px 16px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15, color: C.text }}>
+            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: C.sub, background: C.fill, borderRadius: 6, padding: '1px 6px' }}>{x.kind}</span>
+            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title}</span>
+          </button>
+        ))}
+      </div>
+    </Sheet>
+  )
+}
+
 function Linkified({ text }) {
   const found = [
+    ...[...text.matchAll(WIKI_RE)].map(m => ({ i: m.index, s: m[0], wiki: m[1].trim() })),
     ...[...text.matchAll(URL_RE)].map(m => { const url = m[0].replace(/[).,;:!?\]}'"]+$/, ''); return { i: m.index, s: url, href: url.startsWith('www.') ? `https://${url}` : url, url: true } }),
     ...[...text.matchAll(PHONE_RE)].map(m => ({ i: m.index, s: m[0], href: telHref(m[0]) })),
   ].sort((a, b) => a.i - b.i)
@@ -150,6 +188,7 @@ function Linkified({ text }) {
   for (const f of found) {
     if (f.i < last) continue // 주소 안의 숫자는 전화번호로 보지 않음
     if (f.i > last) out.push(text.slice(last, f.i))
+    if (f.wiki) { out.push(<WikiLink key={f.i} title={f.wiki} />); last = f.i + f.s.length; continue }
     out.push(<a key={f.i} href={f.href} {...(f.url && { target: '_blank', rel: 'noreferrer' })} onClick={e => e.stopPropagation()}
       style={{ color: f.url ? '#2f6fb3' : C.text, textDecoration: 'underline', textUnderlineOffset: 3, ...(f.url && { wordBreak: 'break-all' }) }}>{f.s}</a>)
     last = f.i + f.s.length
@@ -478,7 +517,7 @@ function TagChip({ tag, on, onClick, small, allColor = C.tint }) {
   )
 }
 
-function MemoTab({ memos, reload, setErr, onMovedToNote }) {
+function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
   const [q, setQ] = useState('')
   const [edit, setEdit] = useState(null)
   const editRef = useRef(null)
@@ -591,6 +630,14 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
 
   // 목록에서 꾹 누르면 작은 메뉴: 고정·태그·보관·노트로·삭제 (내용·수정 시각은 그대로)
   const [menu, setMenu] = useState(null) // { m, rect }
+  // [[링크]] 넣기 (맨 아래 새 줄로) / 다른 곳의 링크로 이 메모 열기
+  const [picking, setPicking] = useState(false)
+  const insertLink = t => setEdit(ed => ed && ({ ...ed, content: `${(ed.content || '').replace(/\n+$/, '')}\n[[${t}]]` }))
+  useEffect(() => {
+    if (target?.kind !== 'memo') return
+    const m = memos.find(x => x.id === target.id)
+    if (m) open(m)
+  }, [target])
   useBackClose(!!menu, () => setMenu(null))
   async function patch(m, row) {
     const { error } = await supabase.from('memos').update(row).eq('id', m.id)
@@ -754,6 +801,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
               tools={<>
                 <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => fileRef.current?.click()} style={toolBtn}><ImagePlus size={18} />사진</button>
                 <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setPicking(true)} style={toolBtn}><Link2 size={18} />링크</button>
               </>} />
           </Group>
           </div>
@@ -775,6 +823,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote }) {
           )}
         </Sheet>
       )}
+      {picking && <LinkPicker onPick={insertLink} onClose={() => setPicking(false)} />}
     </>
   )
 }
@@ -1228,6 +1277,21 @@ export default function NotesApp({ initialTab = 'memo' }) {
   // 메모 화면 안의 메모 | 노트(강의노트처럼 긴 글·파일) 전환, 마지막 선택 기억
   const [kind, setKind] = useState(() => { try { return localStorage.getItem('notes-kind') || 'memo' } catch { return 'memo' } })
   const pickKind = k => { setKind(k); try { localStorage.setItem('notes-kind', k) } catch {} }
+  // 메모↔노트 링크: 노트 제목 목록(링크 고르기·찾기용)과 열 대상
+  const [noteIndex, setNoteIndex] = useState([])
+  const [target, setTarget] = useState(null) // { kind, id, at }
+  useEffect(() => {
+    supabase.from('lecture_notes').select('id,title').then(({ data }) => data && setNoteIndex(data))
+  }, [kind])
+  function openLink(title) {
+    const t = title.trim()
+    const note = noteIndex.find(n => (n.title || '').trim() === t)
+    const memo = !note && memos.find(m => memoTitle(m) === t)
+    if (!note && !memo) return setErr(`'${t}' 제목의 메모·노트를 찾지 못했어요`)
+    pickKind(note ? 'note' : 'memo')
+    setTarget({ kind: note ? 'note' : 'memo', id: (note || memo).id, at: Date.now() })
+  }
+  const linkCtx = { open: openLink, notes: noteIndex, memos }
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
@@ -1265,11 +1329,13 @@ export default function NotesApp({ initialTab = 'memo' }) {
             ))}
           </div>
         )}
+        <LinkCtx.Provider value={linkCtx}>
         {tab === 'memo'
           ? (kind === 'note'
-            ? <LectureNotes setErr={setErr} onMovedToMemo={() => { loadMemos(); pickKind('memo') }} />
-            : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} onMovedToNote={() => pickKind('note')} />)
+            ? <LectureNotes setErr={setErr} onMovedToMemo={() => { loadMemos(); pickKind('memo') }} target={target} />
+            : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} onMovedToNote={() => pickKind('note')} target={target} />)
           : <CalendarTab events={events} reload={loadEvents} setErr={setErr} body={body} reloadBody={loadBody} />}
+        </LinkCtx.Provider>
       </main>
     </div>
   )
