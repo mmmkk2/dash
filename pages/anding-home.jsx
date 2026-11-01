@@ -906,6 +906,61 @@ function PaymentDetail() {
 }
 
 // 스터디룸: 오늘~모레, 날짜 칩으로 바꿔 보고 2인실·4인실 나란히
+// 룸 사진: 창을 열면 맥이 CCTV에서 한 장씩 찍어 비공개 버킷에 올리고, 5분짜리 서명 URL로 본다
+const CCTV_ROOMS = [['2', '2인실'], ['4', '4인실']]
+function RoomCctv() {
+  const [shot, setShot] = useState({ busy: true })
+  const run = useRef(0)
+  const take = useCallback(async () => {
+    const id = ++run.current
+    setShot(s => ({ ...s, busy: true, error: null }))
+    try {
+      const res = await fetch(`${API}/api/cctv/snap`, { method: 'POST', credentials: 'same-origin' })
+      if (res.redirected || res.status === 401 || res.status === 403) throw new Error('앤딩 관리자 로그인 후 다시 시도해 주세요')
+      const { job, error } = await res.json().catch(() => ({}))
+      if (!res.ok || !job) throw new Error(error || '사진 찍기를 시작하지 못했어요')
+      for (let i = 0; i < 130; i++) {
+        await new Promise(r => setTimeout(r, 1000))
+        if (id !== run.current) return
+        const st = await (await fetch(`${API}/api/cctv/snap/${job}`, { credentials: 'same-origin' })).json().catch(() => ({}))
+        if (st.status === 'failed') throw new Error(st.message)
+        if (st.status === 'done') {
+          const urls = {}
+          for (const room of st.rooms) {
+            const { data } = await supabase.storage.from('anding').createSignedUrl(`cctv_${room}.jpg`, 300)
+            if (data?.signedUrl) urls[room] = `${data.signedUrl}&t=${encodeURIComponent(st.at)}`
+          }
+          if (!Object.keys(urls).length) throw new Error('사진을 불러오지 못했어요')
+          if (id === run.current) setShot({ urls, at: st.at })
+          return
+        }
+      }
+      throw new Error('맥이 응답하지 않아요')
+    } catch (e) { if (id === run.current) setShot({ error: e.message || '사진을 받지 못했어요' }) }
+  }, [])
+  useEffect(() => { take(); return () => { run.current = -1 } }, [take])
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, color: C.sub }}>{shot.busy ? '사진 찍는 중…' : shot.error || `${shot.at} 촬영`}</span>
+        <button onClick={take} disabled={shot.busy} style={{ ...plain, fontSize: 12, fontWeight: 600, color: shot.busy ? C.sub : COL.room }}>새로고침</button>
+      </div>
+      {shot.urls && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          {CCTV_ROOMS.map(([room, label]) => (
+            <div key={room} style={{ flex: 1, minWidth: 0, background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
+              {shot.urls[room]
+                ? <img src={shot.urls[room]} alt={`${label} 사진`} style={{ display: 'block', width: '100%' }} />
+                : <div style={{ padding: 14, fontSize: 13, color: C.sub }}>사진 없음</div>}
+              <div style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: C.text }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function RoomDetail() {
   const { data, status, error, loading } = useApi('/api/room_detail')
   const [day, setDay] = useState(0)
@@ -948,6 +1003,7 @@ function RoomDetail() {
   )
   return (
     <div>
+      <RoomCctv />
       <div style={{ display: 'flex', gap: 6 }}>
         {days.map((x, i) => (
           <button key={i} onClick={() => setDay(i)} aria-pressed={day === i} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: day === i ? COL.room : C.card, color: day === i ? '#fff' : COL.room, border: `0.5px solid ${day === i ? COL.room : C.sep}` }}>
