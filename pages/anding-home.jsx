@@ -264,11 +264,9 @@ function VisitsSheet({ onClose }) {
   )
 }
 
-// 박스 8개 — 위 초록 카드(메인, 최대 3칸)와 아래 타일 어디에 둘지·숨길지는 ⋯ > 박스 배치
-const BOX_NAME = { seat: '좌석', payment: '결제', monthly: '월 누적 매출', room: '스터디룸', locker: '사물함', product: '상품 판매', users: '이용자', cum: '누적 이용자' }
-const DEFAULT_LAYOUT = { top: ['seat', 'payment', 'monthly'], bottom: ['room', 'locker', 'product', 'users', 'cum'] }
-// 누르면 열 상세 창 (누적 이용자는 이용자 창)
-const detailOf = k => k === 'cum' ? 'users' : k
+// 박스 7개 — 위 초록 카드(메인, 최대 3칸)와 아래 타일 어디에 둘지·숨길지는 ⋯ > 박스 배치
+const BOX_NAME = { seat: '좌석', payment: '결제', monthly: '월 누적 매출', room: '스터디룸', locker: '사물함', product: '상품 판매', users: '오늘 이용자' }
+const DEFAULT_LAYOUT = { top: ['seat', 'payment', 'monthly'], bottom: ['room', 'locker', 'product', 'users'] }
 const TOP_MAX = 3
 // 박스마다 보일 값: label, value, unit, sub(한 줄 보조), alert(아래 타일에서 색 강조)
 function boxInfo(k, d) {
@@ -288,10 +286,8 @@ function boxInfo(k, d) {
     return { label: '사물함', value: d.locker.active ?? '-', unit: `/${d.locker.total}`, sub: n ? `만료 ${d.locker.expired.length} · 오늘 ${d.locker.expiring.length}` : '만료 없음', alert: !!n }
   }
   if (k === 'product') return { label: '상품 판매', value: d.product.mode, sub: `구매 ${d.product.buy}` }
-  // 오늘 누적 이용자 (코보페이 '금일 이용자', 05시 기준)
-  if (k === 'cum') return { label: '오늘 누적', value: `${s.today_users ?? '-'}명`, sub: `1회권 ${s.one_time ?? '-'}명` }
-  // 기간권 등록 수와 오늘 이용자 수 — 눌러서 날짜별 추이
-  return { label: '이용자', value: `기간권 ${s.period ?? '-'}명`, sub: `오늘 이용자 ${s.today_users ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명` }
+  // 오늘 누적 이용자(코보페이 '금일 이용자', 05시 기준) + 기간권·1회권 — 눌러서 날짜별 추이
+  return { label: '오늘 이용자', value: `${s.today_users ?? '-'}명`, sub: `기간권 ${s.period ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명` }
 }
 
 // 배치는 settings 표(anding_layout)에 — 기기끼리 같게. 먼저 이 기기에 둔 것으로 바로 그리고 받아서 맞춘다
@@ -332,7 +328,7 @@ function Hero({ d, open, keys }) {
   const cell = k => {
     const b = boxInfo(k, d)
     return (
-      <button key={k} onClick={() => open(detailOf(k))} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
+      <button key={k} onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
         <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.label}</div>
         <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.value}{b.unit && <span style={{ fontSize: 11.5, opacity: 0.8 }}>{b.unit}</span>}</div>
         <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.sub}</div>
@@ -535,7 +531,7 @@ function Tiles({ d, open, keys }) {
       {keys.map(k => {
         const b = boxInfo(k, d)
         return <Tile key={k} color={COL[k]} title={BOX_NAME[k]} value={b.value} unit={b.unit}
-          sub={b.alert ? <span style={{ color: COL[k], fontWeight: 600 }}>{b.sub}</span> : b.sub} onClick={() => open(detailOf(k))} />
+          sub={b.alert ? <span style={{ color: COL[k], fontWeight: 600 }}>{b.sub}</span> : b.sub} onClick={() => open(k)} />
       })}
     </div>
   )
@@ -835,7 +831,8 @@ function SeatDetail() {
       {/* 위: 요약 + 배치도. 목록을 내려도 위에 고정 (시간대별 그래프는 이용자 창으로) */}
       <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg }}>
       <div style={{ fontSize: 14, color: C.sub, padding: '0 4px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>자유 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
-      <Card style={{ aspectRatio: '16 / 10', width: '84%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
+      {/* 위에 고정되는 부분이 창을 다 덮지 않게: 배치도 높이는 화면 높이의 26%까지 (넓은 화면에서 목록이 안 보이던 문제) */}
+      <Card style={{ aspectRatio: '16 / 10', width: 'min(84%, calc(26dvh * 1.6))', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
         {seatMap && !mapFailed
           ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
           : <div style={{ fontSize: 13, color: C.sub }}>배치도가 아직 없어요</div>}
