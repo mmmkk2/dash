@@ -66,7 +66,7 @@ function ProductPatterns({ pats, setPats }) {
         {rows.length === 0 && <div style={{ padding: '12px 14px', fontSize: 13, color: C.sub }}>상품 목록을 아직 못 읽었어요</div>}
         {rows.map((name, i) => (
           <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none' }}>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
             {chip(name, 'buy', '판매')}{chip(name, 'ext', '연장')}
           </div>
         ))}
@@ -404,7 +404,7 @@ async function saveImage(el, name) {
 // 이미지 전용 배치: 폰 한 화면(390px 폭)에 보이게 — 그 달은 날짜를 세로 2단, 연간은 12달 2단
 function SalaryImage({ year, mon, calc, hourly }) {
   const cell = { padding: '3px 4px', fontSize: 11, textAlign: 'center', borderBottom: `0.5px solid ${C.sep}`, fontVariantNumeric: 'tabular-nums' }
-  const head = { ...cell, fontSize: 10, fontWeight: 600, color: '#fff', background: '#5f6b66', borderBottom: 'none' }
+  const head = { ...cell, fontSize: 11, fontWeight: 600, color: '#fff', background: '#5f6b66', borderBottom: 'none' }
   const box = { background: '#fff', borderRadius: 12, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }
   if (!mon) {
     const all = Array.from({ length: 12 }, (_, i) => ({ mon: i + 1, ...calc(i + 1) }))
@@ -418,7 +418,7 @@ function SalaryImage({ year, mon, calc, hourly }) {
             <div key={m.mon} style={{ ...box, padding: '7px 10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}><b>{m.mon}월</b><span style={{ color: C.sub }}>{m.hours.toFixed(1)}h</span></div>
               <div style={{ fontSize: 13, fontWeight: 700, color: GREEN, textAlign: 'right', marginTop: 2 }}>{won(Math.round(m.pay))}원</div>
-              {m.extra > 0 && <div style={{ fontSize: 10, color: '#7b52ab', textAlign: 'right' }}>추가 {won(m.extra)}원</div>}
+              {m.extra > 0 && <div style={{ fontSize: 11, color: '#7b52ab', textAlign: 'right' }}>추가 {won(m.extra)}원</div>}
             </div>
           ))}
         </div>

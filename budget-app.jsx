@@ -303,7 +303,7 @@ function LoginScreen({onLogin}){
       <div style={{background:"#fff",borderRadius:"24px",padding:"40px 32px",width:"100%",maxWidth:"360px",
         boxShadow:"0 8px 40px rgba(0,0,0,0.10)"}}>
         <div style={{textAlign:"center",marginBottom:"32px"}}>
-          <div style={{fontSize:"28px",fontWeight:800,color:"#1c1c1e",fontFamily:FONT,letterSpacing:"-0.5px"}}>가계부</div>
+          <div style={{fontSize:"28px",fontWeight:700,color:"#1c1c1e",fontFamily:FONT,letterSpacing:"-0.5px"}}>가계부</div>
           <div style={{fontSize:"12px",color:"#8e8e93",marginTop:"4px",fontFamily:FONT}}>로그인 후 이용하세요</div>
         </div>
         <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:"12px"}}>
@@ -361,7 +361,7 @@ function Modal({open,onClose,title,children}){
 }
 
 const SLabel = ({children}) => (
-  <div style={{fontSize:"9px",fontWeight:700,letterSpacing:"0.14em",color:C.inkLight,
+  <div style={{fontSize:"12px",fontWeight:700,letterSpacing:"0.14em",color:C.inkLight,
     textTransform:"uppercase",marginBottom:"10px",fontFamily:FONT}}>{children}</div>
 );
 const Inp = ({style,...p}) => (
@@ -384,7 +384,7 @@ function SetupGuide(){
       ].map(([n,t])=>(
         <div key={n} style={{display:"flex",gap:"12px",marginBottom:"14px",alignItems:"flex-start"}}>
           <div style={{width:"24px",height:"24px",borderRadius:"50%",background:C.ink,
-            color:"#fff",fontSize:"11px",fontWeight:700,display:"flex",alignItems:"center",
+            color:"#fff",fontSize:"12px",fontWeight:700,display:"flex",alignItems:"center",
             justifyContent:"center",flexShrink:0,fontFamily:FONT}}>{n}</div>
           <div style={{fontSize:"13px",color:C.inkMid,fontFamily:FONT,lineHeight:1.5}}>{t}</div>
         </div>
@@ -564,7 +564,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                 background:sel?e.color:C.white,color:sel?"#fff":C.inkMid,
                 fontFamily:FONT,transition:"all 0.18s",
                 boxShadow:sel?`0 2px 8px ${e.color}44`:"none"}}>
-                <div style={{fontSize:"11px",fontWeight:700,lineHeight:1.3}}>{e.label}</div>
+                <div style={{fontSize:"12px",fontWeight:700,lineHeight:1.3}}>{e.label}</div>
               </button>
             );
           })}
@@ -659,7 +659,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
             {cat3list.map(k=>(
               <button key={k} className="cat-btn" onClick={()=>setCat3(cat3===k?"":k)} style={{
-                padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
+                padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
                 fontFamily:FONT,
                 border:`1.5px solid ${cat3===k?m1.accent:C.border}`,
                 background:cat3===k?m1.accent+"18":C.cream,color:cat3===k?m1.color:C.inkLight}}>
@@ -700,7 +700,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"7px"}}>
             <SLabel style={{marginBottom:0}}>영수증/사진·PDF</SLabel>
             <button type="button" onClick={()=>imgInputRef.current?.click()}
-              style={{display:"flex",alignItems:"center",gap:"4px",fontSize:"11px",fontWeight:600,
+              style={{display:"flex",alignItems:"center",gap:"4px",fontSize:"12px",fontWeight:600,
                 color:"#1d4e89",background:"#e8f0fb",border:"none",borderRadius:"8px",
                 padding:"4px 10px",cursor:"pointer",fontFamily:FONT}}>
               📎 첨부
@@ -718,7 +718,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               {existingImages.map((path,i)=>(
                 <div key={path} style={{position:"relative",width:64,height:64}}>
                   {isPdfPath(path)
-                    ?<a href={getTxImageUrl(path)} target="_blank" rel="noreferrer" style={{textDecoration:"none"}}><div style={{width:64,height:64,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"10px",fontWeight:700}}>PDF</span></div></a>
+                    ?<a href={getTxImageUrl(path)} target="_blank" rel="noreferrer" style={{textDecoration:"none"}}><div style={{width:64,height:64,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"12px",fontWeight:700}}>PDF</span></div></a>
                     :<img src={getTxImageUrl(path)} alt=""
                     style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1px solid ${C.border}`}}/>}
                   <button type="button" onClick={()=>setExistingImages(p=>p.filter((_,j)=>j!==i))}
@@ -730,7 +730,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               {pendingImages.map((img,i)=>(
                 <div key={i} style={{position:"relative",width:64,height:64}}>
                   {isPdfPath(img.file.name)
-                    ?<div style={{width:64,height:64,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"10px",fontWeight:700}}>PDF</span></div>
+                    ?<div style={{width:64,height:64,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"12px",fontWeight:700}}>PDF</span></div>
                     :<img src={img.preview} alt=""
                     style={{width:64,height:64,objectFit:"cover",borderRadius:"8px",border:`1.5px dashed ${C.border}`}}/>}
                   <button type="button" onClick={()=>setPendingImages(p=>p.filter((_,j)=>j!==i))}
@@ -787,7 +787,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             </div>
             <div style={{flex:1,textAlign:"left"}}>
               <div style={{fontSize:"13px",fontWeight:600,color:isDutch?"#7c3aed":C.inkMid,fontFamily:FONT}}>더치페이</div>
-              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
+              <div style={{fontSize:"12px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
                 {isDutch?"인원수를 눌러 총액을 나눠요":"총액을 인원수로 나눠 내 몫만 기록"}
               </div>
             </div>
@@ -800,7 +800,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               <div style={{background:"#faf5ff",border:"1.5px solid #7c3aed",borderTop:"1px solid #e9d5ff",
                 borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:n>0?"8px":0}}>
-                  <div style={{fontSize:"11px",fontWeight:600,color:"#7c3aed",fontFamily:FONT,flexShrink:0}}>
+                  <div style={{fontSize:"12px",fontWeight:600,color:"#7c3aed",fontFamily:FONT,flexShrink:0}}>
                     인원수
                   </div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
@@ -812,7 +812,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                           const per2=Math.round(total/p);
                           setAmount(per2.toLocaleString("ko-KR"));
                         }} style={{
-                          padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                          padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
                           border:`1.5px solid ${sel?"#7c3aed":"#e9d5ff"}`,
                           background:sel?"#7c3aed":"#fff",color:sel?"#fff":"#7c3aed",
                           fontFamily:FONT}}>
@@ -834,7 +834,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                       background:"#fff",fontFamily:FONT,textAlign:"center"}}/>
                 </div>
                 {n>0&&(
-                  <div style={{fontSize:"11px",color:"#7c3aed",fontFamily:FONT}}>
+                  <div style={{fontSize:"12px",color:"#7c3aed",fontFamily:FONT}}>
                     총 {total.toLocaleString("ko-KR")}원 ÷ {n}명 = <b>{per.toLocaleString("ko-KR")}원</b>
                   </div>
                 )}
@@ -850,13 +850,13 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           <SLabel>결제수단</SLabel>
           <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
             <button onClick={()=>setCardId("")} style={{
-              padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
+              padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
               border:`1.5px solid ${cardId===""?C.ink:C.border}`,
               background:cardId===""?C.ink:"#fff",color:cardId===""?"#fff":C.inkMid,
               fontFamily:FONT}}>미지정</button>
             {cards.map(c=>(
               <button key={c.id} onClick={()=>setCardId(c.id)} style={{
-                padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:500,
+                padding:"5px 12px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:500,
                 border:`1.5px solid ${cardId===c.id?c.color:C.border}`,
                 background:cardId===c.id?c.color:"#fff",
                 color:cardId===c.id?"#fff":C.inkMid,
@@ -881,7 +881,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
           </div>
           <div style={{flex:1,textAlign:"left"}}>
             <div style={{fontSize:"13px",fontWeight:600,color:isFixed?P:C.inkMid,fontFamily:FONT}}>{isIncomeCat?"반복수입":"반복지출"}</div>
-            <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
+            <div style={{fontSize:"12px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
               {isIncomeCat?(isFixed?"매달 반복되는 수입":"일반 수입"):(isFixed?"매달 반복되는 지출":"일반 지출")}
             </div>
           </div>
@@ -891,7 +891,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
             {/* 매월 발생일 */}
             <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:600,color:P,fontFamily:FONT,flexShrink:0}}>
+              <div style={{fontSize:"12px",fontWeight:600,color:P,fontFamily:FONT,flexShrink:0}}>
                 매월 발생일
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
@@ -901,7 +901,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   const sel=parseInt(fixedDay)===val;
                   return(
                     <button key={d} onClick={()=>setFixedDay(sel?"":String(val))} style={{
-                      padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                      padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
                       border:`1.5px solid ${sel?P:P+"55"}`,
                       background:sel?P:"#fff",color:sel?"#fff":P,
                       fontFamily:FONT}}>
@@ -919,7 +919,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             </div>
             {/* 반복 주기 — 매월 외 N개월마다 설정 가능 */}
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-              <div style={{fontSize:"11px",fontWeight:600,color:P,fontFamily:FONT,flexShrink:0}}>
+              <div style={{fontSize:"12px",fontWeight:600,color:P,fontFamily:FONT,flexShrink:0}}>
                 반복 주기
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1,alignItems:"center"}}>
@@ -928,7 +928,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                   const sel=fixedInterval===n;
                   return(
                     <button key={n} onClick={()=>setFixedInterval(n)} style={{
-                      padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                      padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
                       border:`1.5px solid ${sel?P:P+"55"}`,
                       background:sel?P:"#fff",color:sel?"#fff":P,
                       fontFamily:FONT}}>
@@ -964,7 +964,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             </div>
             <div style={{flex:1,textAlign:"left"}}>
               <div style={{fontSize:"13px",fontWeight:600,color:taxDocIds.includes(initial.id)?"#1d4e89":C.inkMid,fontFamily:FONT}}>세무자료 필요</div>
-              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
+              <div style={{fontSize:"12px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
                 {isFixed?"반복거래라 같은 이름의 다른 달 거래에도 같이 적용돼요":"세금 신고 체크리스트에 추가돼요"}
               </div>
             </div>
@@ -988,7 +988,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             </div>
             <div style={{flex:1,textAlign:"left"}}>
               <div style={{fontSize:"13px",fontWeight:600,color:isInstallment?"#2563eb":C.inkMid,fontFamily:FONT}}>할부</div>
-              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
+              <div style={{fontSize:"12px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
                 {isInstallment?(isEdit?"저장 시 이 거래를 지우고 매달 분할로 재등록":"매달 분할된 거래로 자동 등록"):"일시불"}
               </div>
             </div>
@@ -1001,7 +1001,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               <div style={{background:"#eff6ff",border:"1.5px solid #2563eb",borderTop:"1px solid #bfdbfe",
                 borderRadius:"0 0 12px 12px",padding:"12px 14px"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                  <div style={{fontSize:"11px",fontWeight:600,color:"#2563eb",fontFamily:FONT,flexShrink:0}}>
+                  <div style={{fontSize:"12px",fontWeight:600,color:"#2563eb",fontFamily:FONT,flexShrink:0}}>
                     개월수
                   </div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:"5px",flex:1}}>
@@ -1009,7 +1009,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                       const sel=parseInt(installmentMonths)===m;
                       return(
                         <button key={m} onClick={()=>setInstallmentMonths(sel?"":String(m))} style={{
-                          padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"11px",fontWeight:600,
+                          padding:"4px 10px",borderRadius:"99px",cursor:"pointer",fontSize:"12px",fontWeight:600,
                           border:`1.5px solid ${sel?"#2563eb":"#bfdbfe"}`,
                           background:sel?"#2563eb":"#fff",color:sel?"#fff":"#2563eb",
                           fontFamily:FONT}}>
@@ -1025,7 +1025,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
                       background:"#fff",fontFamily:FONT,textAlign:"center"}}/>
                 </div>
                 {months>1&&num>0&&(
-                  <div style={{fontSize:"11px",color:"#2563eb",marginTop:"8px",fontFamily:FONT}}>
+                  <div style={{fontSize:"12px",color:"#2563eb",marginTop:"8px",fontFamily:FONT}}>
                     월 {per.toLocaleString("ko-KR")}원 × {months}개월로 나눠서 매달 등록돼요
                   </div>
                 )}
@@ -1041,7 +1041,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
         const match=supplies.find(s=>(s.name||"").toLowerCase()===name);
         return match?<div style={{marginBottom:"8px",padding:"7px 12px",borderRadius:"8px",
           background:P+"10",border:`1px solid ${P}44`,
-          fontSize:"11px",color:P,fontFamily:FONT}}>
+          fontSize:"12px",color:P,fontFamily:FONT}}>
           소모품 <b>{match.name}</b> 과 연결됩니다 — 토글을 켜면 구매일이 업데이트돼요
         </div>:null;
       })()}
@@ -1062,7 +1062,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             </div>
             <div style={{flex:1,textAlign:"left"}}>
               <div style={{fontSize:"13px",fontWeight:600,color:isSupply?P:C.inkMid,fontFamily:FONT}}>소모품 등록</div>
-              <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
+              <div style={{fontSize:"12px",color:C.inkLight,marginTop:"1px",fontFamily:FONT}}>
                 {isSupply?"소모품 탭에 자동 반영됩니다":"소모품 관리에 추가하려면 켜세요"}
               </div>
             </div>
@@ -1071,7 +1071,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             <div style={{background:P+"10",border:`1.5px solid ${P}`,borderTop:`1px solid ${P}44`,
               borderRadius:"0 0 12px 12px",padding:"12px 14px",display:"flex",flexDirection:"column",gap:"10px"}}>
               <div>
-                <div style={{fontSize:"10px",fontWeight:700,color:P,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>소모품명</div>
+                <div style={{fontSize:"12px",fontWeight:700,color:P,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>소모품명</div>
                 <input value={supplyName} onChange={e=>setSupplyName(e.target.value)}
                   placeholder={memo||cat2||"예: 원두, 화장지"}
                   style={{width:"100%",border:"1.5px solid #b7e4c7",borderRadius:"8px",padding:"8px 10px",
@@ -1079,9 +1079,9 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
               </div>
               {/* 기존 소모품 매칭 표시 */}
               {(()=>{const match=supplies.find(s=>s.name===(supplyName.trim()||memo.trim()||cat2));
-                return match?<div style={{fontSize:"11px",color:P,fontFamily:FONT}}>
+                return match?<div style={{fontSize:"12px",color:P,fontFamily:FONT}}>
                   ✓ 기존 소모품 &quot;{match.name}&quot;의 구매일이 업데이트됩니다
-                </div>:<div style={{fontSize:"11px",color:"#6a9070",fontFamily:FONT}}>
+                </div>:<div style={{fontSize:"12px",color:"#6a9070",fontFamily:FONT}}>
                   + 새 소모품으로 등록됩니다
                 </div>;
               })()}
@@ -1121,7 +1121,7 @@ function TxForm({initial,onSave,onDelete,onDuplicate,cards,defaultEntity="person
             <Inp type="date" value={date} onChange={e=>setDate(e.target.value)} style={{flex:1}}/>
             {date!==today&&<button onClick={()=>setDate(today)} style={{
               flexShrink:0,padding:"6px 9px",border:`1.5px solid ${C.border}`,borderRadius:"8px",
-              background:C.white,color:C.inkLight,cursor:"pointer",fontSize:"10px",fontWeight:600,
+              background:C.white,color:C.inkLight,cursor:"pointer",fontSize:"12px",fontWeight:600,
               fontFamily:FONT,whiteSpace:"nowrap"}}>오늘</button>}
           </div>
         </div>
@@ -1275,7 +1275,7 @@ function CategorySettings({trees, onChange}){
     display:"flex",alignItems:"center",gap:"4px"};
   const btnDel={background:"none",border:"none",cursor:"pointer",color:"#ccc",
     padding:"2px 4px",borderRadius:"4px",display:"flex",alignItems:"center",
-    fontSize:"11px",lineHeight:1};
+    fontSize:"12px",lineHeight:1};
 
   return(
     <div style={{fontFamily:FONT,width:"100%"}}>
@@ -1326,14 +1326,14 @@ function CategorySettings({trees, onChange}){
                   <>
                     <button onClick={e=>{e.stopPropagation();renameCat1(cat1,editCat1.val);}}
                       style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"6px",
-                        padding:"3px 8px",cursor:"pointer",color:P,fontSize:"11px",fontWeight:600}}>저장</button>
+                        padding:"3px 8px",cursor:"pointer",color:P,fontSize:"12px",fontWeight:600}}>저장</button>
                     <button onClick={e=>{e.stopPropagation();setEditCat1(null);}}
                       style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
-                        padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"11px"}}>취소</button>
+                        padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"12px"}}>취소</button>
                   </>
                 ):(
                   <>
-                    <span style={{fontSize:"11px",color:C.inkLight,marginRight:"2px"}}>{Object.keys(node.children||{}).length}개</span>
+                    <span style={{fontSize:"12px",color:C.inkLight,marginRight:"2px"}}>{Object.keys(node.children||{}).length}개</span>
                     <button onClick={e=>{e.stopPropagation();setEditCat1({key:cat1,val:cat1});}} style={btnDel}
                       onMouseEnter={e=>e.currentTarget.style.color=C.ink}
                       onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
@@ -1344,7 +1344,7 @@ function CategorySettings({trees, onChange}){
                       onMouseLeave={e=>e.currentTarget.style.color="#ccc"}>
                       <Trash2 size={12}/>
                     </button>
-                    <span style={{fontSize:"11px",color:C.inkLight,cursor:"pointer"}}>{isOpen?"▲":"▼"}</span>
+                    <span style={{fontSize:"12px",color:C.inkLight,cursor:"pointer"}}>{isOpen?"▲":"▼"}</span>
                   </>
                 )}
               </div>
@@ -1364,7 +1364,7 @@ function CategorySettings({trees, onChange}){
                       {/* cat2 row */}
                       {editCat2?.cat1===cat1&&editCat2?.key===cat2?(
                         <div style={{display:"flex",gap:"6px",alignItems:"center",marginBottom:"6px"}}>
-                          <span style={{fontSize:"11px",color:C.inkLight}}>▸</span>
+                          <span style={{fontSize:"12px",color:C.inkLight}}>▸</span>
                           <input autoFocus value={editCat2.val}
                             onChange={e=>setEditCat2({...editCat2,val:e.target.value})}
                             onKeyDown={e=>{if(e.key==="Enter")renameCat2(cat1,cat2,editCat2.val);if(e.key==="Escape")setEditCat2(null);}}
@@ -1372,19 +1372,19 @@ function CategorySettings({trees, onChange}){
                               fontSize:"12px",fontWeight:600,outline:"none",fontFamily:FONT}}/>
                           <button onClick={()=>renameCat2(cat1,cat2,editCat2.val)}
                             style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"6px",
-                              padding:"3px 8px",cursor:"pointer",color:P,fontSize:"11px",fontWeight:600}}>저장</button>
+                              padding:"3px 8px",cursor:"pointer",color:P,fontSize:"12px",fontWeight:600}}>저장</button>
                           <button onClick={()=>setEditCat2(null)}
                             style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
-                              padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"11px"}}>취소</button>
+                              padding:"3px 8px",cursor:"pointer",color:C.inkLight,fontSize:"12px"}}>취소</button>
                         </div>
                       ):(
                         <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"6px"}}>
                           <GripVertical size={12} style={{color:C.border,flexShrink:0,cursor:"grab"}}/>
                           <button onClick={()=>setOpenCat2(p=>({...p,[`${cat1}::${cat2}`]:!p[`${cat1}::${cat2}`]}))}
                             style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",gap:"4px",flex:1}}>
-                            <span style={{fontSize:"10px",color:C.inkLight}}>{openCat2[`${cat1}::${cat2}`]?"▼":"▶"}</span>
+                            <span style={{fontSize:"12px",color:C.inkLight}}>{openCat2[`${cat1}::${cat2}`]?"▼":"▶"}</span>
                             <span style={{fontSize:"12px",fontWeight:600,color:C.inkMid}}>{cat2}</span>
-                            {cat3list.length>0&&<span style={{fontSize:"10px",color:C.inkLight}}>({cat3list.length})</span>}
+                            {cat3list.length>0&&<span style={{fontSize:"12px",color:C.inkLight}}>({cat3list.length})</span>}
                           </button>
                           <button onClick={()=>{setAdding({level:"cat3",cat1,cat2});setAddVal(""); setOpenCat2(p=>({...p,[`${cat1}::${cat2}`]:true}));}}
                             style={btnAdd}><Plus size={11}/>소분류</button>
@@ -1413,13 +1413,13 @@ function CategorySettings({trees, onChange}){
                                   onChange={e=>setEditCat3({...editCat3,val:e.target.value})}
                                   onKeyDown={e=>{if(e.key==="Enter")renameCat3(cat1,cat2,cat3,editCat3.val);if(e.key==="Escape")setEditCat3(null);}}
                                   style={{border:`1px solid ${C.border}`,borderRadius:"20px",padding:"3px 8px",
-                                    fontSize:"11px",outline:"none",fontFamily:FONT,width:"90px"}}/>
+                                    fontSize:"12px",outline:"none",fontFamily:FONT,width:"90px"}}/>
                                 <button onClick={()=>renameCat3(cat1,cat2,cat3,editCat3.val)}
                                   style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"6px",
-                                    padding:"2px 6px",cursor:"pointer",color:P,fontSize:"10px",fontWeight:600}}>저장</button>
+                                    padding:"2px 6px",cursor:"pointer",color:P,fontSize:"12px",fontWeight:600}}>저장</button>
                                 <button onClick={()=>setEditCat3(null)}
                                   style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
-                                    padding:"2px 6px",cursor:"pointer",color:C.inkLight,fontSize:"10px"}}>취소</button>
+                                    padding:"2px 6px",cursor:"pointer",color:C.inkLight,fontSize:"12px"}}>취소</button>
                               </span>
                             ):(
                               <span key={cat3} draggable
@@ -1429,7 +1429,7 @@ function CategorySettings({trees, onChange}){
                                 onDragEnd={()=>{setDragCat3(null);setDragOverCat3(null);}}
                                 style={{display:"inline-flex",alignItems:"center",gap:"3px",
                                   background:"#fff",border:`1px solid ${isDragOver?C.ink:C.border}`,borderRadius:"20px",
-                                  padding:"3px 10px 3px 6px",fontSize:"11px",color:C.ink,
+                                  padding:"3px 10px 3px 6px",fontSize:"12px",color:C.ink,
                                   opacity:isDragging?0.4:1,cursor:"grab"}}>
                                 <GripVertical size={9} style={{color:C.border,flexShrink:0}}/>
                                 {cat3}
@@ -1556,7 +1556,7 @@ function CardSettings({cards,onChange,saving}){
     <div style={{fontFamily:FONT}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"22px"}}>
         <span style={{fontFamily:FONT,fontSize:"21px",color:C.ink}}>결제수단 관리</span>
-        <span style={{fontSize:"11px",color:C.inkLight}}>Cards</span>
+        <span style={{fontSize:"12px",color:C.inkLight}}>Cards</span>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"20px"}}>
         {cards.map((c,i)=>(
@@ -1604,7 +1604,7 @@ function CardSettings({cards,onChange,saving}){
             <Plus size={14}/> 추가
           </button>
         </div>
-        <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontWeight:600,letterSpacing:"0.08em"}}>색상</div>
+        <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"6px",fontWeight:600,letterSpacing:"0.08em"}}>색상</div>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
           {CARD_COLORS.map(col=>(
             <button key={col} onClick={()=>setNewColor(col)} style={{
@@ -1747,7 +1747,7 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
             </button>}
         </div>
       )}
-      {search&&<div style={{fontSize:"11px",color:C.inkLight,fontFamily:FONT,paddingLeft:"2px"}}>
+      {search&&<div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,paddingLeft:"2px"}}>
         {filteredTxs.length}건 검색됨
       </div>}
       {isRealty&&propTags.length>0&&(
@@ -1766,10 +1766,10 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
           <div key={date} style={{background:C.white,borderRadius:"16px",overflow:"hidden",border:`1px solid ${C.border}`}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
               padding:"9px 16px 8px",background:C.paper,borderBottom:`1px solid ${C.border}`}}>
-              <div style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:C.ink}}>{date}</div>
+              <div style={{fontFamily:FONT,fontSize:"13px",fontWeight:600,color:C.ink}}>{date}</div>
               <div style={{display:"flex",gap:"10px"}}>
-                {dayIncome>0&&<span style={{fontSize:"11px",color:pc,fontWeight:600,fontFamily:FONT}}>+{fmtS(dayIncome)}</span>}
-                {dayExpense>0&&<span style={{fontSize:"11px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(dayExpense)}</span>}
+                {dayIncome>0&&<span style={{fontSize:"12px",color:pc,fontWeight:600,fontFamily:FONT}}>+{fmtS(dayIncome)}</span>}
+                {dayExpense>0&&<span style={{fontSize:"12px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(dayExpense)}</span>}
               </div>
             </div>
             {items.map((tx,idx)=>{
@@ -1788,33 +1788,33 @@ function FlatListView({txs, onEdit, cards, entity, supplies=[], taxDocIds=[], on
                     background:ec}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
-                      <span style={{fontSize:"10px",background:ec+"18",color:ec,
+                      <span style={{fontSize:"12px",background:ec+"18",color:ec,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         fontFamily:FONT}}>{catDisplayName(tx.cat1)}</span>
-                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{tx.cat2}</span>
-                      {tx.cat3&&<span style={{fontSize:"10px",background:ec+"10",color:ec,
+                      <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>{tx.cat2}</span>
+                      {tx.cat3&&<span style={{fontSize:"12px",background:ec+"10",color:ec,
                         borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
                         fontFamily:FONT}}>{tx.cat3}</span>}
-                      {linkedSupply&&<span style={{fontSize:"9px",background:C.white,color:ec,
+                      {linkedSupply&&<span style={{fontSize:"12px",background:C.white,color:ec,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         border:`1px solid ${ec}55`,fontFamily:FONT}}>소모품</span>}
-                      {tx.images&&tx.images.length>0&&<span style={{fontSize:"9px",color:"#1d4e89",
+                      {tx.images&&tx.images.length>0&&<span style={{fontSize:"12px",color:"#1d4e89",
                         fontFamily:FONT}}>📎 {tx.images.length}</span>}
                     </div>
-                    <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:FONT,
+                    <div style={{fontSize:"15px",fontWeight:400,color:C.ink,fontFamily:FONT,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
                     <div style={{display:"flex",alignItems:"center",gap:"6px",marginTop:"2px",flexWrap:"wrap"}}>
-                      {tx.isFixed&&<span style={{fontSize:"9px",background:C.cream,color:C.inkMid,
+                      {tx.isFixed&&<span style={{fontSize:"12px",background:C.cream,color:C.inkMid,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:FONT,
                         border:`1px solid ${C.border}`}}>반복</span>}
-                      {taxDocIds.includes(tx.id)&&<span style={{fontSize:"9px",background:C.cream,color:C.inkMid,
+                      {taxDocIds.includes(tx.id)&&<span style={{fontSize:"12px",background:C.cream,color:C.inkMid,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:FONT,
                         border:`1px solid ${C.border}`}}>세무자료</span>}
-                      {card&&<span style={{fontSize:"9px",background:C.cream,color:C.inkMid,
+                      {card&&<span style={{fontSize:"12px",background:C.cream,color:C.inkMid,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:FONT}}>{card.name}</span>}
                     </div>
                   </div>
-                  <div style={{fontSize:"14px",fontWeight:700,flexShrink:0,
+                  <div style={{fontSize:"15px",fontWeight:600,flexShrink:0,
                     color:tx.type==="income"?ec:C.ink,
                     fontFamily:FONT,letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
@@ -1889,7 +1889,7 @@ function CalendarView({txs, year, month, onEdit, cards, onMove}){
         style={{background:C.white,borderRadius:"16px",border:`0.5px solid ${C.border}`,padding:"12px 6px 8px",overflow:"hidden",touchAction:"pan-y"}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",paddingBottom:"6px"}}>
         {WEEKDAYS.map((w,i)=>(
-          <div key={w} style={{textAlign:"center",fontSize:"11px",fontWeight:600,
+          <div key={w} style={{textAlign:"center",fontSize:"12px",fontWeight:600,
             color:i===0||i===6?"rgba(60,60,67,0.3)":C.inkLight,fontFamily:FONT}}>{w}</div>
         ))}
       </div>
@@ -1913,8 +1913,8 @@ function CalendarView({txs, year, month, onEdit, cards, onMove}){
                 color:isSelected?"#fff":isToday?P:dow===0||dow===6?C.inkLight:C.ink}}>{d}</span>
               {day&&(
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0,lineHeight:1.2}}>
-                  {day.expense>0&&<div style={{fontSize:"9px",fontWeight:600,fontFamily:FONT,color:C.inkMid}}>-{fmtCompact(day.expense)}</div>}
-                  {day.income>0&&<div style={{fontSize:"9px",fontWeight:600,fontFamily:FONT,color:P}}>+{fmtCompact(day.income)}</div>}
+                  {day.expense>0&&<div style={{fontSize:"12px",fontWeight:600,fontFamily:FONT,color:C.inkMid}}>-{fmtCompact(day.expense)}</div>}
+                  {day.income>0&&<div style={{fontSize:"12px",fontWeight:600,fontFamily:FONT,color:P}}>+{fmtCompact(day.income)}</div>}
                 </div>
               )}
             </button>
@@ -1938,8 +1938,8 @@ function CalendarView({txs, year, month, onEdit, cards, onMove}){
               padding:"9px 16px 8px",background:C.paper,borderBottom:`1px solid ${C.border}`}}>
               <div style={{fontFamily:FONT,fontSize:"12px",fontWeight:700,color:C.ink}}>{selected}</div>
               <div style={{display:"flex",gap:"10px"}}>
-                {byDate[selected].income>0&&<span style={{fontSize:"11px",color:P,fontWeight:600,fontFamily:FONT}}>+{fmtS(byDate[selected].income)}</span>}
-                {byDate[selected].expense>0&&<span style={{fontSize:"11px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(byDate[selected].expense)}</span>}
+                {byDate[selected].income>0&&<span style={{fontSize:"12px",color:P,fontWeight:600,fontFamily:FONT}}>+{fmtS(byDate[selected].income)}</span>}
+                {byDate[selected].expense>0&&<span style={{fontSize:"12px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(byDate[selected].expense)}</span>}
               </div>
             </div>
             {selectedItems.map((tx,idx)=>{
@@ -1954,20 +1954,20 @@ function CalendarView({txs, year, month, onEdit, cards, onMove}){
                     background:ec}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
-                      <span style={{fontSize:"10px",background:ec+"18",color:ec,
+                      <span style={{fontSize:"12px",background:ec+"18",color:ec,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                         fontFamily:FONT}}>{catDisplayName(tx.cat1)}</span>
-                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{tx.cat2}</span>
-                      {tx.cat3&&<span style={{fontSize:"10px",background:ec+"10",color:ec,
+                      <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>{tx.cat2}</span>
+                      {tx.cat3&&<span style={{fontSize:"12px",background:ec+"10",color:ec,
                         borderRadius:"4px",padding:"1px 5px",fontWeight:600,flexShrink:0,
                         fontFamily:FONT}}>{tx.cat3}</span>}
                     </div>
-                    <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:FONT,
+                    <div style={{fontSize:"15px",fontWeight:400,color:C.ink,fontFamily:FONT,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
-                    {card&&<div style={{marginTop:"2px"}}><span style={{fontSize:"9px",background:card.color+"14",color:card.color,
+                    {card&&<div style={{marginTop:"2px"}}><span style={{fontSize:"12px",background:card.color+"14",color:card.color,
                       borderRadius:"4px",padding:"1px 6px",fontWeight:600,fontFamily:FONT}}>{card.name}</span></div>}
                   </div>
-                  <div style={{fontSize:"14px",fontWeight:700,flexShrink:0,
+                  <div style={{fontSize:"15px",fontWeight:600,flexShrink:0,
                     color:tx.type==="income"?P:C.ink,
                     fontFamily:FONT,letterSpacing:"-0.2px"}}>
                     {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
@@ -2197,7 +2197,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
         <div style={{position:"absolute",top:0,left:0,bottom:0,width:"3px",background:barColor}}/>
         <div style={{flex:1,minWidth:0,paddingLeft:"4px"}}>
           <div style={{display:"flex",alignItems:"center",gap:"6px",marginBottom:"3px"}}>
-            <span style={{fontSize:"9px",background:isIncome?P+"10":"#fff0ee",
+            <span style={{fontSize:"12px",background:isIncome?P+"10":"#fff0ee",
               color:isIncome?P:C.ink,
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:`1px solid ${isIncome?P+"44":C.border}`,
@@ -2205,26 +2205,26 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             <span style={{fontSize:"13px",fontWeight:600,color:C.ink,
               fontFamily:FONT,overflow:"hidden",flex:1,minWidth:0,
               textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</span>
-            {isToday&&<span style={{fontSize:"9px",background:"#b5451b",color:"#fff",
+            {isToday&&<span style={{fontSize:"12px",background:"#b5451b",color:"#fff",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               fontFamily:FONT}}>오늘</span>}
-            {isPast&&!isToday&&<span style={{fontSize:"9px",background:"#fff0ee",color:"#e07a5f",
+            {isPast&&!isToday&&<span style={{fontSize:"12px",background:"#fff0ee",color:"#e07a5f",
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:"1px solid #f4c5b2",fontFamily:FONT}}>미발생</span>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap"}}>
             {isScheduled&&tx.fixedDay&&(
-              <span style={{fontSize:"10px",color:isToday?"#b5451b":isPast?"#e07a5f":C.inkLight,
+              <span style={{fontSize:"12px",color:isToday?"#b5451b":isPast?"#e07a5f":C.inkLight,
                 fontWeight:isToday||isPast?700:400,fontFamily:FONT,flexShrink:0}}>
                 매월 {tx.fixedDay===31?"말일":`${tx.fixedDay}일`}
               </span>
             )}
             {!isScheduled&&(
-              <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT,flexShrink:0}}>{tx.date}</span>
+              <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,flexShrink:0}}>{tx.date}</span>
             )}
             <button onClick={e=>{e.stopPropagation();cycleInterval(tx.memo);}}
               title="클릭마다 매월→격월→분기→반기→연간 순으로 바뀌어요" style={{
-              fontSize:"9px",background:biMonthly?"#f0f4ff":"transparent",
+              fontSize:"12px",background:biMonthly?"#f0f4ff":"transparent",
               color:biMonthly?"#1d4e89":C.border,
               borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
               border:`1px solid ${biMonthly?"#b0c4de":C.border}`,
@@ -2232,7 +2232,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             {isScheduled&&(
               <button onClick={e=>{e.stopPropagation();setFixedMenuOpenFor(isFixedMenuOpen?null:tx.memo);}}
                 title="날짜 수정 / 반복 삭제" style={{
-                fontSize:"9px",background:isFixedMenuOpen?"#f0f4ff":"transparent",
+                fontSize:"12px",background:isFixedMenuOpen?"#f0f4ff":"transparent",
                 color:isFixedMenuOpen?"#1d4e89":C.border,
                 borderRadius:"4px",padding:"1px 6px",fontWeight:700,flexShrink:0,
                 border:`1px solid ${isFixedMenuOpen?"#b0c4de":C.border}`,fontFamily:FONT,
@@ -2240,7 +2240,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                 <Pencil size={9}/> 편집
               </button>
             )}
-            {historyList.length>0&&<span style={{fontSize:"9px",color:C.inkLight,
+            {historyList.length>0&&<span style={{fontSize:"12px",color:C.inkLight,
               display:"flex",alignItems:"center",gap:"2px",flexShrink:0,
               fontFamily:FONT}}>
               <Clock size={9}/> {historyList.length}
@@ -2254,7 +2254,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             {tx.type==="income"?"+":"-"}{fmtS(tx.amount)}
           </div>
           {isScheduled&&avg&&avg!==tx.amount&&(
-            <div style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT,marginTop:"1px"}}>
+            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,marginTop:"1px"}}>
               평균 {fmtS(avg)}
             </div>
           )}
@@ -2274,7 +2274,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                   style={{width:"80px",border:"none",background:"transparent",fontSize:"13px",
                     fontWeight:700,color:C.ink,outline:"none",textAlign:"right",
                     fontFamily:FONT}}/>
-                <span style={{fontSize:"11px",color:C.ink,marginLeft:"2px"}}>원</span>
+                <span style={{fontSize:"12px",color:C.ink,marginLeft:"2px"}}>원</span>
               </div>
               <button onClick={()=>{
                 const num=parseInt(String(editAmount).replace(/,/g,""));
@@ -2312,7 +2312,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               </button>
               <button onClick={()=>handleRegister(tx,regDate)} disabled={isReg}
                 style={{background:isReg?P+"55":P+"12",border:`1px solid ${P}55`,borderRadius:"8px",
-                  padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:P,fontSize:"11px",fontWeight:600,
+                  padding:"5px 10px",cursor:isReg?"not-allowed":"pointer",color:P,fontSize:"12px",fontWeight:600,
                   flexShrink:0,fontFamily:FONT,display:"flex",alignItems:"center",gap:"4px",
                   opacity:isReg?0.6:1,transition:"opacity 0.15s"}}>
                 {isReg?<RefreshCw size={11} className="spin"/>:<Plus size={11}/>} {isReg?"저장중":"등록"}
@@ -2327,7 +2327,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
               onMouseLeave={e=>e.currentTarget.style.color=C.inkLight}><Pencil size={13}/></button>
             <button onClick={()=>onDelete(tx.id)}
               style={{background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
-                padding:"3px 7px",cursor:"pointer",color:C.inkLight,fontSize:"10px",
+                padding:"3px 7px",cursor:"pointer",color:C.inkLight,fontSize:"12px",
                 fontFamily:FONT,transition:"all 0.15s"}}
               title="발생 취소 → 예정으로 복귀">
               ↩예정
@@ -2341,7 +2341,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
           display:"flex",flexDirection:"column",gap:"6px"}}>
           <button onClick={()=>{setFixedMenuOpenFor(null);onEdit(tx);}} style={{display:"flex",alignItems:"center",gap:"6px",
             background:"#fff",border:`1px solid ${C.border}`,borderRadius:"8px",padding:"7px 10px",
-            cursor:"pointer",fontSize:"11px",color:C.ink,fontFamily:FONT,textAlign:"left"}}>
+            cursor:"pointer",fontSize:"12px",color:C.ink,fontFamily:FONT,textAlign:"left"}}>
             <Pencil size={11}/> 날짜/금액 수정
           </button>
           <button onClick={async ()=>{
@@ -2350,18 +2350,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
             }
           }} style={{display:"flex",alignItems:"center",gap:"6px",
             background:"#fff",border:"1px solid #f4c5b2",borderRadius:"8px",padding:"7px 10px",
-            cursor:"pointer",fontSize:"11px",color:"#b5451b",fontFamily:FONT,textAlign:"left"}}>
+            cursor:"pointer",fontSize:"12px",color:"#b5451b",fontFamily:FONT,textAlign:"left"}}>
             <Trash2 size={11}/> 반복 중단 (이력은 유지)
           </button>
         </div>
       )}
       {isLinkOpen&&(
         <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
-          <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontFamily:FONT}}>
+          <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"6px",fontFamily:FONT}}>
             이미 내역에 있는 거래를 고르면 새로 만들지 않고 이 반복 항목이 "발생"으로 표시돼요
           </div>
           {candidates.length===0?(
-            <div style={{fontSize:"11px",color:C.inkLight,fontFamily:FONT}}>이번 달 연결할 후보 거래가 없어요</div>
+            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>이번 달 연결할 후보 거래가 없어요</div>
           ):(
             <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
               {candidates.slice(0,8).map(c=>(
@@ -2370,7 +2370,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
                     background:"#fff",border:`1px solid ${C.border}`,borderRadius:"8px",
                     padding:"6px 10px",cursor:isLinking?"not-allowed":"pointer",textAlign:"left",
                     fontFamily:FONT,width:"100%",opacity:isLinking?0.6:1}}>
-                  <span style={{fontSize:"11px",color:C.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  <span style={{fontSize:"12px",color:C.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                     {c.date} · {c.memo}
                   </span>
                   <span style={{fontSize:"12px",fontWeight:700,flexShrink:0,
@@ -2385,18 +2385,18 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       )}
       {isHistoryOpen&&(
         <div style={{borderTop:`1px dashed ${C.border}`,padding:"8px 14px 12px",background:"#fffdf9"}}>
-          <div style={{fontSize:"10px",color:C.inkLight,marginBottom:"6px",fontFamily:FONT}}>
+          <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"6px",fontFamily:FONT}}>
             "{tx.memo}" 반복으로 등록된 과거 거래 — 편집에서 삭제하면 반복 패턴에서도 빠져요
           </div>
           {historyList.length===0?(
-            <div style={{fontSize:"11px",color:C.inkLight,fontFamily:FONT}}>이력이 없어요</div>
+            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>이력이 없어요</div>
           ):(
             <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
               {historyList.map(h=>(
                 <div key={h.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px",
                   background:"#fff",border:`1px solid ${C.border}`,borderRadius:"8px",
                   padding:"6px 10px",fontFamily:FONT}}>
-                  <span style={{fontSize:"11px",color:C.inkMid}}>{h.date}</span>
+                  <span style={{fontSize:"12px",color:C.inkMid}}>{h.date}</span>
                   <span style={{fontSize:"12px",fontWeight:700,flexShrink:0,
                     color:h.type==="income"?P:C.ink}}>
                     {h.type==="income"?"+":"-"}{fmtS(h.amount)}
@@ -2448,7 +2448,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       {scheduled.length>0&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkMid,letterSpacing:"0.12em",
+            <div style={{fontSize:"12px",fontWeight:700,color:C.inkMid,letterSpacing:"0.12em",
               textTransform:"uppercase",fontFamily:FONT}}>
               이번 달 예정 ({scheduled.length}건)
             </div>
@@ -2467,7 +2467,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       {occurred.length>0&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",
+            <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",
               textTransform:"uppercase",fontFamily:FONT}}>
               이번 달 발생 ({occurred.length}건)
             </div>
@@ -2492,7 +2492,7 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
       <div style={{background:C.white,borderRadius:"16px",padding:"16px 18px",
         border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontSize:"9px",fontWeight:700,color:netColor,letterSpacing:"0.12em",
+          <div style={{fontSize:"12px",fontWeight:700,color:netColor,letterSpacing:"0.12em",
             textTransform:"uppercase",marginBottom:"4px",fontFamily:FONT}}>
             이번 달 반복 예상 순액
           </div>
@@ -2501,9 +2501,9 @@ function FixedView({txs, onDelete, onEdit, onRegister, onLink, entity, year, mon
           </div>
         </div>
         <div style={{textAlign:"right"}}>
-          {totalIncome>0&&<div style={{fontSize:"10px",color:P,fontFamily:FONT}}>반복수입 +{fmtS(totalIncome)}</div>}
-          <div style={{fontSize:"10px",color:C.inkMid,fontFamily:FONT}}>반복지출 -{fmtS(totalExpense)}</div>
-          <div style={{fontSize:"9px",color:C.inkLight,marginTop:"2px",fontFamily:FONT}}>발생 {fmtS(totalOccurredIncome+totalOccurredExpense)} · 예정 {fmtS(totalScheduledIncome+totalScheduledExpense)}</div>
+          {totalIncome>0&&<div style={{fontSize:"12px",color:P,fontFamily:FONT}}>반복수입 +{fmtS(totalIncome)}</div>}
+          <div style={{fontSize:"12px",color:C.inkMid,fontFamily:FONT}}>반복지출 -{fmtS(totalExpense)}</div>
+          <div style={{fontSize:"12px",color:C.inkLight,marginTop:"2px",fontFamily:FONT}}>발생 {fmtS(totalOccurredIncome+totalOccurredExpense)} · 예정 {fmtS(totalScheduledIncome+totalScheduledExpense)}</div>
         </div>
       </div>
         );
@@ -2523,7 +2523,7 @@ function TxMiniList({txs, onEdit}){
   if(!txs.length)return null;
   return(
     <div>
-      <div style={{padding:"8px 14px 4px",fontSize:"10px",fontWeight:700,
+      <div style={{padding:"8px 14px 4px",fontSize:"12px",fontWeight:700,
         letterSpacing:"0.1em",color:C.inkLight,fontFamily:FONT,textTransform:"uppercase"}}>
         내역 {txs.length}건
       </div>
@@ -2536,7 +2536,7 @@ function TxMiniList({txs, onEdit}){
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:"12px",fontWeight:500,color:C.ink,fontFamily:FONT,
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
-            <div style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT,marginTop:"2px"}}>
+            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,marginTop:"2px"}}>
               {t.date}{t.cat2&&` · ${t.cat2}`}
             </div>
           </div>
@@ -2577,11 +2577,11 @@ function Cat3BreakdownList({subTxs,total,baseColor,onEdit}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
                   <div style={{width:"5px",height:"5px",borderRadius:"50%",background:color,flexShrink:0}}/>
-                  <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{c.name}</span>
+                  <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>{c.name}</span>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                  <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{fmtS(c.value)}&nbsp;·&nbsp;{pct}%</span>
-                  <span style={{fontSize:"8px",color:C.inkLight}}>{isOpen?"▲":"▼"}</span>
+                  <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>{fmtS(c.value)}&nbsp;·&nbsp;{pct}%</span>
+                  <span style={{fontSize:"12px",color:C.inkLight}}>{isOpen?"▲":"▼"}</span>
                 </div>
               </div>
             </div>
@@ -2612,9 +2612,9 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
               <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
                 <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
                 <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:FONT}}>{item.name}</div>
-                <div style={{fontSize:"11px",color:item.color,fontWeight:700,fontFamily:FONT,marginRight:"4px"}}>{pct}%</div>
+                <div style={{fontSize:"12px",color:item.color,fontWeight:700,fontFamily:FONT,marginRight:"4px"}}>{pct}%</div>
                 <div style={{fontFamily:FONT,fontSize:"14px",color:item.color}}>{sign}{fmtS(item.value)}</div>
-                <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
+                <div style={{fontSize:"12px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
               </div>
               <div style={{background:C.cream,borderRadius:"99px",height:"5px",overflow:"hidden"}}>
                 <div style={{width:`${pct}%`,height:"100%",background:item.color,borderRadius:"99px"}}/>
@@ -2631,7 +2631,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                             {subWithColors.map((s,i)=><Cell key={i} fill={s.color}/>)}
                           </Pie>
                           <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
-                          <Legend iconType="circle" iconSize={6} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:FONT}}>{v}</span>}/>
+                          <Legend iconType="circle" iconSize={6} formatter={v=><span style={{fontSize:"12px",color:C.inkMid,fontFamily:FONT}}>{v}</span>}/>
                         </PieChart>
                       </ResponsiveContainer>
                     )}
@@ -2656,11 +2656,11 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
                               <div style={{display:"flex",alignItems:"center",gap:"5px"}}>
                                 <div style={{width:"6px",height:"6px",borderRadius:"50%",background:s.isRefund?refundColor:s.color,flexShrink:0}}/>
-                                <span style={{fontSize:"11px",color:s.isRefund?refundColor:C.inkMid,fontFamily:FONT,fontWeight:500}}>{s.name||"기타"}</span>
+                                <span style={{fontSize:"12px",color:s.isRefund?refundColor:C.inkMid,fontFamily:FONT,fontWeight:500}}>{s.name||"기타"}</span>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                                <span style={{fontSize:"11px",color:s.isRefund?refundColor:C.inkMid,fontFamily:FONT}}>{s.isRefund?"-":""}{fmtS(absVal)}&nbsp;·&nbsp;{sp}%</span>
-                                <span style={{fontSize:"9px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
+                                <span style={{fontSize:"12px",color:s.isRefund?refundColor:C.inkMid,fontFamily:FONT}}>{s.isRefund?"-":""}{fmtS(absVal)}&nbsp;·&nbsp;{sp}%</span>
+                                <span style={{fontSize:"12px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
                               </div>
                             </div>
                             <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
@@ -2792,7 +2792,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
             style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center",
               cursor:tab?"pointer":"default",
               outline:statsTab===tab?`2px solid ${color}`:"none",outlineOffset:"2px",transition:"outline 0.15s"}}>
-            <div style={{fontSize:"9px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>{label}</div>
+            <div style={{fontSize:"12px",fontWeight:700,color,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:"6px",fontFamily:FONT}}>{label}</div>
             <div style={{fontFamily:FONT,fontSize:"15px",color,letterSpacing:"-0.3px",wordBreak:"keep-all"}}>{val}</div>
           </div>
         ))}
@@ -2812,14 +2812,14 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
       {/* Donut (property 탭 제외) */}
       {statsTab!=="property"&&activeData.length>0&&(
         <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
-          <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:FONT}}>{activeLabel}</div>
+          <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:FONT}}>{activeLabel}</div>
           <ResponsiveContainer width="100%" height={170}>
             <PieChart>
               <Pie data={activeData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
                 {activeData.map((e,i)=><Cell key={i} fill={e.color}/>)}
               </Pie>
               <Tooltip formatter={v=>[fmt(v)]} contentStyle={tt}/>
-              <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:FONT}}>{v}</span>}/>
+              <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"12px",color:C.inkMid,fontFamily:FONT}}>{v}</span>}/>
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -2842,15 +2842,15 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                     <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
                     <div style={{flex:1,fontSize:"13px",fontWeight:700,color:C.ink,fontFamily:FONT}}>{item.name}</div>
                     <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
-                      {item.income>0&&<span style={{fontSize:"11px",color:P,fontWeight:600,fontFamily:FONT}}>+{fmtS(item.income)}</span>}
-                      {item.expense>0&&<span style={{fontSize:"11px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(item.expense)}</span>}
+                      {item.income>0&&<span style={{fontSize:"12px",color:P,fontWeight:600,fontFamily:FONT}}>+{fmtS(item.income)}</span>}
+                      {item.expense>0&&<span style={{fontSize:"12px",color:C.inkMid,fontWeight:600,fontFamily:FONT}}>-{fmtS(item.expense)}</span>}
                       <span style={{fontSize:"13px",fontWeight:700,fontFamily:FONT,
                         color:item.net>=0?"#1d4e89":"#831843",
                         borderLeft:`1px solid ${C.border}`,paddingLeft:"8px"}}>
                         {item.net>=0?"+":""}{fmtS(item.net)}
                       </span>
                     </div>
-                    <div style={{fontSize:"10px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
+                    <div style={{fontSize:"12px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"4px"}}>
                     {item.income>0&&(
@@ -2884,13 +2884,13 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                           <div onClick={()=>setExpandedPropSub(isSubOpen?null:propSubKey)}
                             style={{cursor:"pointer",padding:"7px 10px 5px"}}>
                             <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
-                              <span style={{fontSize:"11px",color:C.inkMid,fontFamily:FONT,fontWeight:500}}>{s.name}</span>
+                              <span style={{fontSize:"12px",color:C.inkMid,fontFamily:FONT,fontWeight:500}}>{s.name}</span>
                               <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
-                                <span style={{fontSize:"11px",fontFamily:FONT,fontWeight:600,
+                                <span style={{fontSize:"12px",fontFamily:FONT,fontWeight:600,
                                   color:s.type==="income"?P:C.ink}}>
                                   {s.type==="income"?"+":"-"}{fmtS(s.value)}
                                 </span>
-                                <span style={{fontSize:"9px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
+                                <span style={{fontSize:"12px",color:C.inkLight}}>{isSubOpen?"▲":"▼"}</span>
                               </div>
                             </div>
                             <div style={{background:C.border,borderRadius:"99px",height:"3px",overflow:"hidden"}}>
@@ -2912,7 +2912,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                   if(!propImgs.length)return null;
                   return(
                     <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 14px",background:C.paper}}>
-                      <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,
+                      <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,
                         fontFamily:FONT,marginBottom:"8px",letterSpacing:"0.05em"}}>
                         📎 사진·PDF ({propImgs.length})
                       </div>
@@ -2920,7 +2920,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
                         {propImgs.map((img,i)=>(
                           <button key={i} type="button" onClick={()=>isPdfPath(img.path)?window.open(getTxImageUrl(img.path),"_blank"):setLightbox(getTxImageUrl(img.path))}
                             style={{padding:0,border:"none",background:"none",cursor:"pointer",borderRadius:"8px",overflow:"hidden"}}>
-                            {isPdfPath(img.path)?<div style={{width:72,height:72,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"10px",fontWeight:700}}>PDF</span></div>:<img src={getTxImageUrl(img.path)} alt={img.memo}
+                            {isPdfPath(img.path)?<div style={{width:72,height:72,borderRadius:"8px",border:`1px solid ${C.border}`,background:"#fff5f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"2px",color:"#e5484d",fontFamily:FONT}}><span style={{fontSize:"18px"}}>📄</span><span style={{fontSize:"12px",fontWeight:700}}>PDF</span></div>:<img src={getTxImageUrl(img.path)} alt={img.memo}
                               style={{width:72,height:72,objectFit:"cover",borderRadius:"8px",
                                 border:`1px solid ${C.border}`,display:"block"}}/>}
                           </button>
@@ -2956,14 +2956,14 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
         const K=1000;
         return(
           <div style={{background:C.white,borderRadius:"18px",padding:"18px 8px 10px 4px",border:`1px solid ${C.border}`}}>
-            <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"4px",fontFamily:FONT,paddingLeft:"14px"}}>월별 추이</div>
+            <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"4px",fontFamily:FONT,paddingLeft:"14px"}}>월별 추이</div>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={data} margin={{top:8,right:16,left:0,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/>
                 <XAxis dataKey="label" tick={{fontSize:10,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false}/>
                 <YAxis tickFormatter={v=>`${Math.round(v/K)}k`} tick={{fontSize:10,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false} width={36}/>
                 <Tooltip formatter={(v,n)=>[fmt(v),n]} contentStyle={{background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:FONT,fontSize:"12px"}}/>
-                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"10px",color:C.inkMid,fontFamily:FONT}}>{v}</span>}/>
+                <Legend iconType="circle" iconSize={7} formatter={v=><span style={{fontSize:"12px",color:C.inkMid,fontFamily:FONT}}>{v}</span>}/>
                 <Line type="monotone" dataKey="매출" stroke="#1d4e89" strokeWidth={2} dot={false} activeDot={{r:4}}/>
                 <Line type="monotone" dataKey="고정비" stroke="#7ab3e0" strokeWidth={1.5} dot={false} activeDot={{r:4}}/>
                 <Line type="monotone" dataKey="변동비" stroke="#e07a5f" strokeWidth={1.5} dot={false} activeDot={{r:4}}/>
@@ -3113,13 +3113,13 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
           <ChevronLeft size={16}/>
         </button>
         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-          <div style={{fontSize:"14px",fontWeight:800,color:C.ink,minWidth:"70px",textAlign:"center"}}>
+          <div style={{fontSize:"14px",fontWeight:700,color:C.ink,minWidth:"70px",textAlign:"center"}}>
             {yearView?`${year}년`:`${year}.${month+1}`}
           </div>
           <div style={{display:"flex",background:C.cream,borderRadius:"8px",padding:"2px",gap:"2px"}}>
             {[["월",false],["연",true]].map(([label,isYear])=>(
               <button key={label} onClick={()=>setYearView(isYear)} style={{border:"none",borderRadius:"6px",
-                padding:"4px 9px",fontSize:"11px",fontWeight:700,cursor:"pointer",
+                padding:"4px 9px",fontSize:"12px",fontWeight:700,cursor:"pointer",
                 background:yearView===isYear?C.ink:"transparent",
                 color:yearView===isYear?"#fff":C.inkLight,transition:"all 0.15s"}}>
                 {label}
@@ -3131,7 +3131,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
           <ChevronRight size={16}/>
         </button>
       </div>
-      <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
+      <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
         개인·카페 두 계정을 한 번에 봐 (부동산매매는 거래 금액이 커서 현금흐름 왜곡이 심해 제외). "대표자거래&gt;대표자 인출금"(지출)과 짝을 이루는 "…인출금"(수입) 카테고리는
         실제 지출이 아니라 계정 간 자금 이동이라 아래 전체 합산에서 자동으로 상쇄돼.
       </div>
@@ -3140,7 +3140,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
           <div key={r.ek} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:"14px",padding:"14px 16px"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
               <div style={{fontWeight:700,fontSize:"14px",color:ENTITIES[r.ek].color}}>{ENTITIES[r.ek].label}</div>
-              <div style={{fontWeight:800,fontSize:"15px",color:r.net>=0?P:C.ink}}>
+              <div style={{fontWeight:700,fontSize:"15px",color:r.net>=0?P:C.ink}}>
                 {r.net>=0?"+":""}{fmt(r.net)}
               </div>
             </div>
@@ -3149,7 +3149,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
               <span>지출 {fmt(r.expense)}</span>
             </div>
             {(r.principal>0||r.interest>0)&&(
-              <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,display:"flex",flexDirection:"column",gap:"3px",fontSize:"11px",color:C.inkLight}}>
+              <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,display:"flex",flexDirection:"column",gap:"3px",fontSize:"12px",color:C.inkLight}}>
                 <div style={{display:"flex",justifyContent:"space-between"}}>
                   <span>↳ 실지출(운영비 등)</span><span style={{color:C.ink,fontWeight:600}}>{fmt(r.realExpense)}</span>
                 </div>
@@ -3166,7 +3166,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
               </div>
             )}
             {(r.settleOut>0||r.settleIn>0)&&(
-              <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,fontSize:"11px",color:C.inkLight}}>
+              <div style={{marginTop:"8px",paddingTop:"8px",borderTop:`1px dashed ${C.border}`,fontSize:"12px",color:C.inkLight}}>
                 {r.settleOut>0&&<div>↳ 대표자 인출로 내보냄: {fmt(r.settleOut)}</div>}
                 {r.settleIn>0&&<div>↳ 다른 계정에서 인출 받음: {fmt(r.settleIn)}</div>}
               </div>
@@ -3178,13 +3178,13 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
       <div style={{marginBottom:"10px",padding:"10px 12px",background:C.cream,borderRadius:"10px",
         display:"flex",flexDirection:"column",gap:"6px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-          <div style={{fontSize:"11px",color:C.inkLight}}>카드만 합계 (현금 제외)</div>
-          <div style={{fontSize:"14px",fontWeight:800,color:C.ink}}>{fmt(cardOnlyTotal)}</div>
+          <div style={{fontSize:"12px",color:C.inkLight}}>카드만 합계 (현금 제외)</div>
+          <div style={{fontSize:"14px",fontWeight:700,color:C.ink}}>{fmt(cardOnlyTotal)}</div>
         </div>
         {cardOnlyByEntity.length>0&&(
           <div style={{display:"flex",flexDirection:"column",gap:"3px",paddingTop:"6px",borderTop:`1px dashed ${C.border}`}}>
             {cardOnlyByEntity.map(({ek,value})=>(
-              <div key={ek} style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
+              <div key={ek} style={{display:"flex",justifyContent:"space-between",fontSize:"12px"}}>
                 <span style={{color:ENTITIES[ek]?.color||C.inkLight,fontWeight:600}}>{ENTITIES[ek]?.label||ek}</span>
                 <span style={{color:C.ink,fontWeight:700}}>{fmt(value)}</span>
               </div>
@@ -3192,16 +3192,16 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
           </div>
         )}
         <div style={{display:"flex",flexDirection:"column",gap:"3px",paddingTop:"6px",borderTop:`1px dashed ${C.border}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px"}}>
             <span style={{color:C.inkLight,fontWeight:600}}>↳ 할부</span>
             <span style={{color:C.ink,fontWeight:700}}>{fmt(cardOnlyInstallLump.installment)}</span>
           </div>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:"12px"}}>
             <span style={{color:C.inkLight,fontWeight:600}}>↳ 일시불</span>
             <span style={{color:C.ink,fontWeight:700}}>{fmt(cardOnlyInstallLump.lumpsum)}</span>
           </div>
           {ENTITY_KEYS.filter(ek=>cardOnlyInstallLump.byEntity[ek]&&(cardOnlyInstallLump.byEntity[ek].installment>0||cardOnlyInstallLump.byEntity[ek].lumpsum>0)).map(ek=>(
-            <div key={ek} style={{display:"flex",justifyContent:"space-between",fontSize:"10px",paddingLeft:"10px"}}>
+            <div key={ek} style={{display:"flex",justifyContent:"space-between",fontSize:"12px",paddingLeft:"10px"}}>
               <span style={{color:ENTITIES[ek]?.color||C.inkLight}}>{ENTITIES[ek]?.label||ek}</span>
               <span style={{color:C.inkLight}}>할부 {fmt(cardOnlyInstallLump.byEntity[ek].installment)} · 일시불 {fmt(cardOnlyInstallLump.byEntity[ek].lumpsum)}</span>
             </div>
@@ -3219,11 +3219,11 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
             <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
               <div style={{width:"8px",height:"8px",borderRadius:"50%",background:c.color,flexShrink:0}}/>
               <div style={{flex:1,fontSize:"12px",fontFamily:FONT,color:C.ink}}>{c.name}</div>
-              <div style={{fontSize:"11px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
+              <div style={{fontSize:"12px",color:C.inkLight}}>{Math.round(c.value/cardTotal*100)}%</div>
               <div style={{fontSize:"12px",fontWeight:700,color:C.ink}}>{fmt(c.value)}</div>
             </div>
             {c.byEntity&&Object.keys(c.byEntity).length>1&&(
-              <div style={{fontSize:"10px",color:C.inkLight,paddingLeft:"18px"}}>
+              <div style={{fontSize:"12px",color:C.inkLight,paddingLeft:"18px"}}>
                 {ENTITY_KEYS.filter(ek=>c.byEntity[ek]>0).map(ek=>`${ENTITIES[ek]?.label||ek} ${fmt(c.byEntity[ek])}`).join(" · ")}
               </div>
             )}
@@ -3232,7 +3232,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
                 <div style={{height:"5px",borderRadius:"3px",background:C.cream,overflow:"hidden"}}>
                   <div style={{height:"100%",width:`${pct}%`,borderRadius:"3px",background:met?P:c.color,transition:"width 0.2s"}}/>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:"3px",fontSize:"10px",color:met?P:C.inkLight,fontWeight:met?700:400}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginTop:"3px",fontSize:"12px",color:met?P:C.inkLight,fontWeight:met?700:400}}>
                   <span>{met?"실적 달성":"실적 목표"} {fmt(goal)}</span>
                   <span>{pct}%</span>
                 </div>
@@ -3247,7 +3247,7 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
           <div>
             <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px"}}>
               <div style={{width:"9px",height:"9px",borderRadius:"50%",background:drillCard.color,flexShrink:0}}/>
-              <div data-form-title style={{fontSize:"15px",fontWeight:800,color:C.ink}}>{drillCard.name}</div>
+              <div data-form-title style={{fontSize:"15px",fontWeight:700,color:C.ink}}>{drillCard.name}</div>
               <div style={{marginLeft:"auto",fontSize:"13px",fontWeight:700,color:C.ink}}>{fmt(drillCard.value)}</div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
@@ -3260,10 +3260,10 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
                   cursor:onEdit?"pointer":"default",transition:"background 0.1s"}}
                   onMouseEnter={e=>onEdit&&(e.currentTarget.style.background=C.cream)}
                   onMouseLeave={e=>onEdit&&(e.currentTarget.style.background=C.white)}>
-                  <div style={{fontSize:"10px",color:C.inkLight,width:"52px",flexShrink:0,fontFamily:FONT}}>{t.date?.slice(5)}</div>
+                  <div style={{fontSize:"12px",color:C.inkLight,width:"52px",flexShrink:0,fontFamily:FONT}}>{t.date?.slice(5)}</div>
                   <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
                     <div style={{fontSize:"12px",color:C.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.memo||"(메모 없음)"}</div>
-                    <div style={{fontSize:"10px",color:C.inkLight}}>{ENTITIES[t.entity]?.label||t.entity}{t.cat1?` · ${t.cat1}`:""}</div>
+                    <div style={{fontSize:"12px",color:C.inkLight}}>{ENTITIES[t.entity]?.label||t.entity}{t.cat1?` · ${t.cat1}`:""}</div>
                   </div>
                   <div style={{fontSize:"12px",fontWeight:700,color:C.ink,flexShrink:0}}>{fmt(t.amount)}</div>
                   {onEdit&&<Pencil size={11} style={{color:C.border,flexShrink:0}}/>}
@@ -3275,12 +3275,12 @@ function CashFlowView({txs,year,month,yearView,cards=[],setYear,setMonth,setYear
       </Modal>
 
       <div style={{background:C.ink,borderRadius:"16px",padding:"16px 18px",color:"#fff"}}>
-        <div style={{fontSize:"11px",opacity:0.7,marginBottom:"6px",fontFamily:FONT}}>
+        <div style={{fontSize:"12px",opacity:0.7,marginBottom:"6px",fontFamily:FONT}}>
           전체 합산 (계정 간 이동 상쇄 후 실제 순증감)
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
           <div style={{fontSize:"12px",opacity:0.8}}>수입 {fmt(totalIncome)} · 지출 {fmt(totalExpense)}</div>
-          <div style={{fontSize:"20px",fontWeight:800}}>{totalNet>=0?"+":""}{fmt(totalNet)}</div>
+          <div style={{fontSize:"20px",fontWeight:700}}>{totalNet>=0?"+":""}{fmt(totalNet)}</div>
         </div>
       </div>
     </div>
@@ -3296,7 +3296,7 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
   return(
     <div>
       <SLabel>세무자료 체크리스트 (개인·앤딩스터디카페·부동산매매 통합)</SLabel>
-      <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
+      <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"14px",lineHeight:1.5}}>
         거래 목록에서 체크박스를 눌러 체크하면 여기 모여요. 반복지출/반복수입은 같은 이름의 다른 달 거래도 함께 체크·해제돼요. 세금 신고 때 이 화면만 확인하면 빠뜨리는 항목 없이 챙길 수 있어요. 제출 끝난 항목은 체크박스를 다시 눌러 해제하세요.
       </div>
       {flagged.length===0?(
@@ -3316,13 +3316,13 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
                   padding:"11px 12px",background:C.white,border:`1px solid ${C.border}`,borderRadius:"12px",cursor:"pointer"}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:"5px",marginBottom:"3px",flexWrap:"wrap"}}>
-                      <span style={{fontSize:"10px",color:ent?.color||C.inkLight,fontWeight:700,fontFamily:FONT}}>{ent?.label||tx.entity}</span>
-                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{tx.date}</span>
-                      <span style={{fontSize:"10px",color:C.inkLight,fontFamily:FONT}}>{tx.cat1} · {tx.cat2}</span>
+                      <span style={{fontSize:"12px",color:ent?.color||C.inkLight,fontWeight:700,fontFamily:FONT}}>{ent?.label||tx.entity}</span>
+                      <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>{tx.date}</span>
+                      <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>{tx.cat1} · {tx.cat2}</span>
                     </div>
-                    <div style={{fontSize:"13px",fontWeight:500,color:C.ink,fontFamily:FONT,
+                    <div style={{fontSize:"15px",fontWeight:400,color:C.ink,fontFamily:FONT,
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tx.memo}</div>
-                    {card&&<div style={{fontSize:"9px",color:card.color,marginTop:"2px",fontFamily:FONT}}>{card.name}</div>}
+                    {card&&<div style={{fontSize:"12px",color:card.color,marginTop:"2px",fontFamily:FONT}}>{card.name}</div>}
                   </div>
                   <div style={{fontSize:"13px",fontWeight:700,flexShrink:0,
                     color:tx.type==="income"?P:C.ink,fontFamily:FONT}}>
@@ -3342,7 +3342,7 @@ function TaxDocChecklist({txs,taxDocIds,onToggle,cards=[],onEdit}){
           <div style={{background:C.ink,borderRadius:"16px",padding:"16px 18px",color:"#fff",
             display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
             <div style={{fontSize:"12px",opacity:0.8}}>체크된 항목 {flagged.length}건</div>
-            <div style={{fontSize:"18px",fontWeight:800}}>{fmt(total)}</div>
+            <div style={{fontSize:"18px",fontWeight:700}}>{fmt(total)}</div>
           </div>
         </>
       )}
@@ -3507,7 +3507,7 @@ function CoupangImport({ onRegister }) {
     <div style={{fontFamily:FONT}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"20px"}}>
         <span style={{fontFamily:FONT,fontSize:"21px",color:C.ink}}>쿠팡 메일 가져오기</span>
-        <span style={{fontSize:"11px",color:C.inkLight}}>Gmail → 파싱 → 등록</span>
+        <span style={{fontSize:"12px",color:C.inkLight}}>Gmail → 파싱 → 등록</span>
       </div>
 
       {/* Gmail 연결 or 날짜 선택 */}
@@ -3537,7 +3537,7 @@ function CoupangImport({ onRegister }) {
           <>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
               <div style={{fontSize:"12px",color:C.inkMid}}>Gmail 연결됨 ✓</div>
-              <button onClick={()=>setGmailToken(null)} style={{fontSize:"11px",color:C.inkLight,
+              <button onClick={()=>setGmailToken(null)} style={{fontSize:"12px",color:C.inkLight,
                 background:"none",border:"none",cursor:"pointer",fontFamily:FONT}}>
                 연결 해제
               </button>
@@ -3584,7 +3584,7 @@ function CoupangImport({ onRegister }) {
         <div style={{background:C.cream,borderRadius:"14px",padding:"14px",
           border:`1px solid ${C.border}`,marginBottom:"16px"}}>
           <SLabel>이메일 내용 붙여넣기</SLabel>
-          <div style={{fontSize:"11px",color:C.inkLight,marginBottom:"8px",lineHeight:1.5}}>
+          <div style={{fontSize:"12px",color:C.inkLight,marginBottom:"8px",lineHeight:1.5}}>
             여러 메일은 <b>빈 줄</b>로 구분하면 한번에 파싱해요.
           </div>
           <textarea
@@ -3614,7 +3614,7 @@ function CoupangImport({ onRegister }) {
           <AlertCircle size={15} color="#b5451b" style={{flexShrink:0,marginTop:"1px"}}/>
           <div>
             <div style={{fontSize:"12px",fontWeight:700,color:"#b5451b",marginBottom:"2px"}}>가져오기 실패</div>
-            <div style={{fontSize:"11px",color:"#b5451b",opacity:0.8}}>{errMsg}</div>
+            <div style={{fontSize:"12px",color:"#b5451b",opacity:0.8}}>{errMsg}</div>
           </div>
         </div>
       )}
@@ -3659,12 +3659,12 @@ function CoupangImport({ onRegister }) {
                         <div style={{fontSize:"13px",fontWeight:600,color:C.ink,
                           lineHeight:1.4,marginBottom:"5px"}}>{r.name}</div>
                         <div style={{display:"flex",alignItems:"center",gap:"7px",flexWrap:"wrap"}}>
-                          <span style={{fontSize:"10px",color:C.inkLight}}>{r.date}</span>
+                          <span style={{fontSize:"12px",color:C.inkLight}}>{r.date}</span>
                           <div style={{display:"flex",alignItems:"center",
                             background:parseInt(r.amountEdit)>0?C.cream:"#fff8f0",
                             border:`1.5px solid ${parseInt(r.amountEdit)>0?C.borderDark:"#f4c5b2"}`,
                             borderRadius:"7px",padding:"2px 9px"}}>
-                            <span style={{fontSize:"10px",color:C.inkLight,marginRight:"2px"}}>₩</span>
+                            <span style={{fontSize:"12px",color:C.inkLight,marginRight:"2px"}}>₩</span>
                             <input type="number" value={r.amountEdit}
                               onChange={e=>setAmt(r.id,e.target.value)}
                               placeholder="금액 입력"
@@ -3673,7 +3673,7 @@ function CoupangImport({ onRegister }) {
                                 color:parseInt(r.amountEdit)>0?C.ink:"#b5451b",
                                 outline:"none",fontFamily:FONT}}/>
                           </div>
-                          <span style={{fontSize:"9px",fontWeight:700,
+                          <span style={{fontSize:"12px",fontWeight:700,
                             background:ent.color+"18",color:ent.color,
                             borderRadius:"4px",padding:"2px 6px",
                             border:`1px solid ${ent.color}30`}}>{ent.label}</span>
@@ -3690,7 +3690,7 @@ function CoupangImport({ onRegister }) {
                               borderRight:i<3?`1px solid ${C.border}`:"none",
                               background:sel?e.color:"transparent",
                               color:sel?"#fff":C.inkLight,
-                              fontSize:"10px",fontWeight:sel?700:400,
+                              fontSize:"12px",fontWeight:sel?700:400,
                               transition:"all 0.15s",fontFamily:FONT}}>
                               {e.label}
                             </button>
@@ -3702,7 +3702,7 @@ function CoupangImport({ onRegister }) {
                           width:"100%",padding:"8px",border:"none",
                           borderTop:`1px solid ${C.border}`,
                           background:ent.color+"0e",cursor:"pointer",
-                          color:ent.color,fontSize:"11px",fontWeight:600,
+                          color:ent.color,fontSize:"12px",fontWeight:600,
                           display:"flex",alignItems:"center",justifyContent:"center",gap:"4px",
                           fontFamily:FONT}}>
                           <Check size={11}/> {ent.label} 지출로 등록
@@ -3728,7 +3728,7 @@ function CoupangImport({ onRegister }) {
                       overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
                     <button onClick={()=>setEnt(r.id,"personal")} style={{
                       background:"none",border:`1px solid ${C.border}`,borderRadius:"6px",
-                      padding:"3px 8px",cursor:"pointer",fontSize:"10px",color:C.inkLight,
+                      padding:"3px 8px",cursor:"pointer",fontSize:"12px",color:C.inkLight,
                       fontFamily:FONT,flexShrink:0}}>되돌리기</button>
                   </div>
                 ))}
@@ -3754,7 +3754,7 @@ function CoupangImport({ onRegister }) {
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:"12px",fontWeight:500,color:C.mid,
                           overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</div>
-                        <div style={{fontSize:"10px",color:C.inkLight,marginTop:"1px"}}>
+                        <div style={{fontSize:"12px",color:C.inkLight,marginTop:"1px"}}>
                           {r.date} · <span style={{color:ent.color,fontWeight:600}}>{ent.label}</span>
                         </div>
                       </div>
@@ -3780,7 +3780,7 @@ function CoupangImport({ onRegister }) {
               <div style={{fontFamily:FONT,fontSize:"18px",color:P,marginBottom:"4px"}}>
                 모두 처리했어요
               </div>
-              <div style={{fontSize:"11px",color:P,opacity:0.7}}>
+              <div style={{fontSize:"12px",color:P,opacity:0.7}}>
                 {done.length}건 · -{done.reduce((s,r)=>s+(parseInt(r.amountEdit)||0),0).toLocaleString("ko-KR")}원
               </div>
             </div>
@@ -4088,7 +4088,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
         </div>
         {/* 기준 금액 */}
         <div style={{background:P+"10",borderRadius:"12px",padding:"12px 14px",border:`1px solid ${P}44`}}>
-          <div style={{fontSize:"10px",fontWeight:700,color:P,letterSpacing:"0.08em",marginBottom:"10px",fontFamily:FONT}}>
+          <div style={{fontSize:"12px",fontWeight:700,color:P,letterSpacing:"0.08em",marginBottom:"10px",fontFamily:FONT}}>
             소진 주기는 구매 이력으로 자동 계산됩니다
           </div>
           <SLabel>기준 구매금액 (원) — 금액이 다를 때 주기 보정용</SLabel>
@@ -4128,7 +4128,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontFamily:FONT,fontSize:"18px",color:C.ink}}>소모품 관리</div>
-          <div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:FONT}}>
+          <div style={{fontSize:"12px",color:C.inkLight,marginTop:"2px",fontFamily:FONT}}>
             앤딩스터디카페 재고 주기 트래커
           </div>
         </div>
@@ -4178,7 +4178,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                 ? `${needAction.filter(s=>daysUntil(s)<0).length}개 구매 필요 · ${needAction.filter(s=>daysUntil(s)>=0).length>0?`${needAction.filter(s=>daysUntil(s)>=0).length}개 임박`:""}`
                 : `${needAction.length}개 구매 임박`}
             </div>
-            <div style={{fontSize:"11px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:FONT}}>
+            <div style={{fontSize:"12px",color:"#b5451b",opacity:0.7,marginTop:"2px",fontFamily:FONT}}>
               {needAction.map(s=>s.name).join(", ")}
             </div>
           </div>
@@ -4219,17 +4219,17 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:"7px",marginBottom:"3px"}}>
                       <span style={{fontSize:"14px",fontWeight:700,color:C.ink,fontFamily:FONT}}>{s.name}</span>
-                      <span style={{fontSize:"9px",background:st.bg,color:st.color,border:`1px solid ${st.border}`,
+                      <span style={{fontSize:"12px",background:st.bg,color:st.color,border:`1px solid ${st.border}`,
                         borderRadius:"4px",padding:"1px 6px",fontWeight:700,fontFamily:FONT,
                         display:"flex",alignItems:"center",gap:"3px"}}>
                         {st.icon}{st.label}
                       </span>
                     </div>
-                    <div style={{fontSize:"11px",color:C.inkLight,fontFamily:FONT}}>
+                    <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>
                       {s.category} · {(()=>{const a=actualCycleInfo(s);return a?<span style={{color:"#1d4e89",fontWeight:600}}>평균 {a.days}일 <span style={{opacity:0.6,fontWeight:400}}>({a.count}건)</span></span>:<span style={{opacity:0.5}}>이력 부족</span>;})()}
                       {next?<>{" · 다음 구매 "}{next}</>:""}
                     </div>
-                    {s.memo&&<div style={{fontSize:"11px",color:C.inkLight,marginTop:"2px",fontFamily:FONT,fontStyle:"italic"}}>{s.memo}</div>}
+                    {s.memo&&<div style={{fontSize:"12px",color:C.inkLight,marginTop:"2px",fontFamily:FONT,fontStyle:"italic"}}>{s.memo}</div>}
                   </div>
                   <div style={{display:"flex",gap:"4px",flexShrink:0,alignItems:"center"}}>
                     <button onClick={e=>{
@@ -4242,7 +4242,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                            amount:s.base_amount||s.last_amount||"", cardId:"", isFixed:false, type:"expense"};
                       setBuyingTx(pre);
                     }} style={{background:P+"10",border:`1px solid ${P}44`,borderRadius:"8px",
-                      padding:"4px 10px",cursor:"pointer",color:P,fontSize:"11px",fontWeight:600,
+                      padding:"4px 10px",cursor:"pointer",color:P,fontSize:"12px",fontWeight:600,
                       display:"flex",alignItems:"center",gap:"4px",fontFamily:FONT}}>
                       <Plus size={11}/> 오늘 구매
                     </button>
@@ -4250,7 +4250,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                       color:C.inkLight,padding:"4px",borderRadius:"6px",display:"flex"}}>
                       <Pencil size={13}/>
                     </button>
-                    <span style={{fontSize:"10px",color:C.inkLight}}>{isExpanded?"▲":"▼"}</span>
+                    <span style={{fontSize:"12px",color:C.inkLight}}>{isExpanded?"▲":"▼"}</span>
                   </div>
                 </div>
 
@@ -4262,10 +4262,10 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                       background:progress>=100?"#b5451b":progress>=80?"#b8860b":P}}/>}
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:"4px"}}>
-                    <span style={{fontSize:"9px",color:C.inkLight,fontFamily:FONT}}>
+                    <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>
                       구매 후 {daysDiff(effectiveLastBought(s))}일 경과
                     </span>
-                    <span style={{fontSize:"9px",color:C.inkLight,fontFamily:FONT}}>
+                    <span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT}}>
                       {(()=>{
                         const a=actualCycleInfo(s);
                         const eff=effectiveCycle(s);
@@ -4281,7 +4281,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
               {/* 구매 이력 */}
               {isExpanded&&(
                 <div style={{borderTop:`1px solid ${C.border}`,padding:"10px 16px",background:C.cream}}>
-                  <div style={{fontSize:"10px",fontWeight:700,color:C.inkLight,letterSpacing:"0.1em",marginBottom:"8px",fontFamily:FONT}}>구매 이력</div>
+                  <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.1em",marginBottom:"8px",fontFamily:FONT}}>구매 이력</div>
                   {history.length===0
                     ?<div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,padding:"8px 0"}}>거래 내역이 없어요</div>
                     :history.map(t=>(
@@ -4289,7 +4289,7 @@ function SuppliesView({ supplies, onChange, txs=[], onEditTx, onDeleteTx, onAddT
                         padding:"6px 0",borderBottom:`1px solid ${C.border}`,cursor:"pointer"}}>
                         <div>
                           <span style={{fontSize:"12px",color:C.ink,fontFamily:FONT}}>{t.date}</span>
-                          {t.memo&&t.memo!==s.name&&<span style={{fontSize:"11px",color:C.inkLight,fontFamily:FONT,marginLeft:"6px"}}>{t.memo}</span>}
+                          {t.memo&&t.memo!==s.name&&<span style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,marginLeft:"6px"}}>{t.memo}</span>}
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                           <span style={{fontSize:"12px",fontWeight:600,color:C.ink,fontFamily:FONT}}>
@@ -4351,7 +4351,7 @@ function ThemePicker({ current, onChange }) {
     <div style={{fontFamily:FONT}}>
       <div style={{display:"flex",alignItems:"baseline",gap:"8px",marginBottom:"22px"}}>
         <span data-form-title style={{fontFamily:FONT,fontSize:"21px",color:C.ink}}>테마</span>
-        <span style={{fontSize:"11px",color:C.inkLight}}>Theme</span>
+        <span style={{fontSize:"12px",color:C.inkLight}}>Theme</span>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"10px"}}>
         {Object.entries(THEMES).map(([key,t])=>{
@@ -4764,8 +4764,8 @@ export default function App(){
                 {online
                   ?null
                   :!isConfigured()
-                    ?<><WifiOff size={10} color={C.inkMid}/><span style={{fontSize:"10px",opacity:0.3,fontFamily:FONT}}>로컬 모드</span></>
-                    :<><WifiOff size={10} color="#e07a5f"/><span style={{fontSize:"10px",color:"#e07a5f",fontFamily:FONT}}>연결 오류</span></>
+                    ?<><WifiOff size={10} color={C.inkMid}/><span style={{fontSize:"12px",opacity:0.3,fontFamily:FONT}}>로컬 모드</span></>
+                    :<><WifiOff size={10} color="#e07a5f"/><span style={{fontSize:"12px",color:"#e07a5f",fontFamily:FONT}}>연결 오류</span></>
                 }
               </div>
             </div>
@@ -4854,9 +4854,9 @@ export default function App(){
             ].map((item,i)=>item===null
               ?<div key={i} style={{background:C.border,height:"32px",width:"1px"}}/>
               :<div key={i} style={{textAlign:"center",minWidth:0}}>
-                <div style={{fontSize:"9px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"5px",fontFamily:FONT}}>{item.label}</div>
+                <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"5px",fontFamily:FONT}}>{item.label}</div>
                 <div style={{fontFamily:FONT,fontSize:"15px",color:item.color,letterSpacing:"-0.3px",whiteSpace:"nowrap",overflow:"hidden"}}>
-                  {item.sign}{item.val.toLocaleString("ko-KR")}<span style={{fontSize:"10px",marginLeft:"1px"}}>원</span>
+                  {item.sign}{item.val.toLocaleString("ko-KR")}<span style={{fontSize:"12px",marginLeft:"1px"}}>원</span>
                 </div>
               </div>
             )}
@@ -4885,7 +4885,7 @@ export default function App(){
               marginBottom:"-1px",fontFamily:FONT,transition:"all 0.2s"}}>
               {l}
               {badge>0&&<span style={{position:"absolute",top:"4px",right:"calc(50% - 26px)",minWidth:"14px",height:"14px",padding:"0 3px",
-                borderRadius:"7px",background:P,color:"#fff",fontSize:"9px",fontWeight:700,lineHeight:"14px",
+                borderRadius:"7px",background:P,color:"#fff",fontSize:"12px",fontWeight:700,lineHeight:"14px",
                 textAlign:"center",fontFamily:FONT}}>{badge}</span>}
             </button>
           ))}
@@ -4934,7 +4934,7 @@ export default function App(){
       </Modal>
 
       {/* FAB */}
-      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:"10px",color:C.inkLight,
+      <div style={{textAlign:"center",padding:"8px 0 4px",fontSize:"12px",color:C.inkLight,
         fontFamily:FONT,opacity:0.5}}>
         built {__BUILD_TIME__}
       </div>
