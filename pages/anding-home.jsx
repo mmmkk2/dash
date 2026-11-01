@@ -782,9 +782,6 @@ function SeatDetail() {
   const { data: d, status, error, loading } = useApi('/api/seat_detail')
   const seatMap = useMapUrl('seat_map.png', d?.updated)
   const [view, setView] = useState('soon')
-  // 위 카드: 그래프/배치도 중 하나 (기본 그래프, 마지막 선택을 기억)
-  const [top, setTop] = useState(() => { try { return localStorage.getItem('anding-seat-top') || 'chart' } catch { return 'chart' } })
-  const pickTop = k => { setTop(k); try { localStorage.setItem('anding-seat-top', k) } catch {} }
   const [mapFailed, setMapFailed] = useState(false)
   if (status === 404) return <IframeDetail k="seat" path="/seat" />
   if (error) return <Muted>{error}</Muted>
@@ -826,23 +823,13 @@ function SeatDetail() {
   )
   return (
     <div>
-      {/* 위: 요약 + 그래프/배치도 토글, 그 아래 큰 카드 하나. 목록을 내려도 위에 고정 */}
+      {/* 위: 요약 + 배치도. 목록을 내려도 위에 고정 (시간대별 그래프는 이용자 창으로) */}
       <div style={{ position: 'sticky', top: 64, zIndex: 1, background: C.bg }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 8px' }}>
-        <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>자유 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
-        <div style={{ display: 'flex', background: '#e9e9eb', borderRadius: 9, padding: 2, flexShrink: 0 }}>
-          {[['chart', '그래프'], ['map', '배치도']].map(([k, label]) => (
-            <button key={k} onClick={() => pickTop(k)} aria-pressed={top === k} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 7, padding: '4px 10px', background: top === k ? '#fff' : 'transparent', color: top === k ? C.text : C.sub, boxShadow: top === k ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{label}</button>
-          ))}
-        </div>
-      </div>
-      {/* 배치도·그래프 같은 비율(16:10) — 바꿔도 화면이 들썩이지 않게 */}
-      <Card style={{ aspectRatio: '16 / 10', width: '84%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(top === 'map' && seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
-        {top === 'chart'
-          ? <div style={{ width: '100%', padding: '8px 8px 2px' }}><SeatChart d={d} H={196} /></div>
-          : seatMap && !mapFailed
-            ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
-            : <div style={{ fontSize: 13, color: C.sub }}>배치도가 아직 없어요</div>}
+      <div style={{ fontSize: 14, color: C.sub, padding: '0 4px 8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>자유 {d.used_free}/{d.total_free} · 잔여 {d.remaining} · 노트북 {d.used_laptop}/{d.total_laptop}</div>
+      <Card style={{ aspectRatio: '16 / 10', width: '84%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', ...(seatMap && !mapFailed && { background: '#2b2b2b' }) }}>
+        {seatMap && !mapFailed
+          ? <img src={seatMap} alt="좌석 배치도" onError={() => setMapFailed(true)} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+          : <div style={{ fontSize: 13, color: C.sub }}>배치도가 아직 없어요</div>}
       </Card>
       <div style={{ display: 'flex', gap: 6, padding: '10px 0 8px', overflowX: 'auto' }}>
         {views.map(([k, label, rows]) => (
@@ -1121,11 +1108,22 @@ function DayBars({ days, field, color, H = 120, fmt = v => v }) {
 }
 
 // 이용자 상세: 날짜별 기간권 수 · 총 이용자 수 (맥이 그날 마지막 값을 남김)
+// 오늘 자유석 이용자 수 (시간대별) — 예전 좌석 창 위 그래프
+function TodaySeatCard({ card, head }) {
+  const { data: d } = useApi('/api/seat_detail')
+  if (!d?.history) return null
+  return <div style={card}>{head('오늘 자유석 (시간대별)', `지금 ${d.used_free}/${d.total_free}`)}<SeatChart d={d} H={150} /></div>
+}
+
 function UsersDetail() {
   const { data: d, status, error, loading } = useApi('/api/daily_counts')
   const [range, setRange] = useState(30)
-  if (status === 404 || (d && !d.days)) return <Muted>맥이 새 코드를 받은 뒤부터 쌓여요</Muted>
-  if (error) return <Muted>{error}</Muted>
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 12px 6px', marginBottom: 10 }
+  const head = (t, v) => <div style={{ display: 'flex', alignItems: 'baseline', fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t}<span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: C.sub }}>{v}</span></div>
+  // 날짜별 기록이 아직 없어도 오늘 그래프는 보이게
+  const only = m => <div><TodaySeatCard card={card} head={head} /><Muted>{m}</Muted></div>
+  if (status === 404 || (d && !d.days)) return only('맥이 새 코드를 받은 뒤부터 쌓여요')
+  if (error) return only(error)
   if (loading && !d) return <Muted>불러오는 중…</Muted>
   const by = Object.fromEntries(d.days.map(x => [x.date, x]))
   const days = Array.from({ length: range }, (_, i) => {
@@ -1133,8 +1131,6 @@ function UsersDetail() {
     const k = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
     return { date: k, ...by[k] }
   })
-  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 12px 6px', marginBottom: 10 }
-  const head = (t, v) => <div style={{ display: 'flex', alignItems: 'baseline', fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t}<span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: C.sub }}>{v}</span></div>
   const avg = f => { const v = days.map(x => x[f]).filter(x => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : '-' }
   const recent = [...d.days].reverse().slice(0, range)
   return (
@@ -1146,6 +1142,7 @@ function UsersDetail() {
           ))}
         </div>
       </div>
+      <TodaySeatCard card={card} head={head} />
       <div style={card}>{head('기간권 등록', `평균 ${avg('period')}명`)}<DayBars days={days} field="period" color={COL.users} /></div>
       <div style={card}>{head('총 이용자 (하루)', `평균 ${avg('users')}명`)}<DayBars days={days} field="users" color={COL.seat} /></div>
       <Card>
