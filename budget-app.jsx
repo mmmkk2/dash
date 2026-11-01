@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { useShowTabBar } from "./src/TabBar";
 import { PlusCircle, ChevronLeft, ChevronRight, Trash2, Pencil, Check, Plus, RefreshCw, Wifi, WifiOff, Package, ShoppingCart, AlertTriangle, Clock, Mail, AlertCircle, X, GripVertical, Copy, MoreHorizontal, Link2 } from "lucide-react";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar, ReferenceLine } from "recharts";
 import { ask } from './src/dialog'
 import { openTextSize } from './src/textsize'
 
@@ -158,6 +158,8 @@ const ENTITY_ALL = { label:"전체", sub:"All", color:"#4a4a4a", accent:"#888888
 // 포인트 색: 위에서 고른 사업 칩 색 (C처럼 렌더 때 갱신) — 수입·선택·주요 버튼에만
 let P = ENTITY_ALL.color;
 // 통계처럼 항목을 나눠 보여 줄 때: 사업 색을 진한 것부터 옅게 (실제 hex라 뒤에 투명도 붙여도 됨)
+// 통계 분류 색: 서로 잘 구분되는 색 (라이트 배경용)
+const STAT_COLORS=["#ef6a5f","#4d83ba","#3e9478","#e0a03a","#9867b7","#4fb3c4","#c27a5a","#8a8f98"];
 function shadeP(i){
   const t=[0,0.25,0.42,0.56,0.68,0.78][Math.min(i,5)];
   const h=P.replace("#",""), c=[0,2,4].map(k=>parseInt(h.slice(k,k+2),16));
@@ -2594,7 +2596,7 @@ function Cat3BreakdownList({subTxs,total,baseColor,onEdit}){
   );
 }
 
-function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
+function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit,prevByName=null,upBad=true}){
   const [expandedSub,setExpandedSub]=useState(null);
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:FONT,fontSize:"12px"};
   if(!data.length)return(
@@ -2612,7 +2614,16 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
               style={{width:"100%",background:"none",border:"none",padding:"13px 14px 10px",cursor:"pointer",textAlign:"left"}}>
               <div style={{display:"flex",alignItems:"center",gap:"9px",marginBottom:"8px"}}>
                 <div style={{width:"9px",height:"9px",borderRadius:"50%",background:item.color,flexShrink:0}}/>
-                <div style={{flex:1,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:FONT}}>{item.name}</div>
+                <div style={{flex:1,minWidth:0,fontSize:"13px",fontWeight:600,color:C.ink,fontFamily:FONT}}>
+                  {item.name}
+                  {/* 지난 기간 대비 증감 */}
+                  {prevByName&&(()=>{
+                    const d=item.value-(prevByName[item.name]||0);
+                    if(Math.abs(d)<1000) return null;
+                    const bad=upBad?d>0:d<0;
+                    return <span style={{marginLeft:"6px",fontSize:"12px",fontWeight:400,color:bad?"#d95f4b":C.inkLight}}>{d>0?"▲":"▼"}{Math.abs(d)>=1e4?`${Math.round(Math.abs(d)/1e4).toLocaleString("ko-KR")}만`:Math.abs(d).toLocaleString("ko-KR")}</span>;
+                  })()}
+                </div>
                 <div style={{fontSize:"12px",color:item.color,fontWeight:700,fontFamily:FONT,marginRight:"4px"}}>{pct}%</div>
                 <div style={{fontFamily:FONT,fontSize:"14px",color:item.color}}>{sign}{fmtS(item.value)}</div>
                 <div style={{fontSize:"12px",color:C.inkLight,marginLeft:"2px"}}>{isOpen?"▲":"▼"}</div>
@@ -2685,7 +2696,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit}){
   );
 }
 
-function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
+function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onPickMonth}){
   const tree=TREES[entity]||TREE_PERSONAL;
   const isRealty=entity==="realty";
   const [statsTab,setStatsTab]=useState("expense");
@@ -2717,10 +2728,46 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
     return Object.entries(m).map(([name,d])=>({
       name:catDisplayName(name),rawName:name,value:d.value,color:tree[name]?.color||C.inkMid,
       sub:Object.entries(d.sub).map(([n,v])=>({name:n,value:v,isRefund:n==="환불"})).sort((a,b)=>b.value-a.value),
-    })).sort((a,b)=>b.value-a.value).map((x,i)=>({...x,color:shadeP(i)}));
+    })).sort((a,b)=>b.value-a.value).map((x,i)=>({...x,color:STAT_COLORS[i%STAT_COLORS.length]}));
   }
 
   const byIncome=useMemo(()=>buildBreakdown(t=>t.type==="income"||(t.type==="expense"&&t.cat1===REFUND_CAT1)),[txs,tree,entity]);
+
+  // ── 월별 변화: 고른 달까지 최근 6개월(연 보기면 그해 12개월) + 지난 기간과 비교 ──
+  const src=allEntityTxs||txs;
+  const isExp=t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1;
+  const incOf=list=>{
+    const inc=list.filter(t=>t.type==="income"&&!t.cat1.startsWith("저축")).reduce((a,t)=>a+t.amount,0);
+    const ref=list.filter(t=>t.type==="expense"&&t.cat1===REFUND_CAT1).reduce((a,t)=>a+t.amount,0);
+    const sav=list.filter(t=>t.cat1.startsWith("저축")).reduce((a,t)=>a+t.amount,0);
+    return inc-ref+sav;
+  };
+  const expOf=list=>list.filter(isExp).reduce((a,t)=>a+t.amount,0);
+  const trendKind=statsTab==="income"?"income":"expense";
+  const ym=(y,m)=>`${y}-${String(m+1).padStart(2,"0")}`;
+  const trend=useMemo(()=>{
+    if(year==null) return null;
+    const byMonth={};
+    src.forEach(t=>{const k=t.date.slice(0,7);(byMonth[k]||(byMonth[k]=[])).push(t);});
+    const val=k=>trendKind==="income"?incOf(byMonth[k]||[]):expOf(byMonth[k]||[]);
+    const months=yearView
+      ?Array.from({length:12},(_,i)=>({y:year,m:i}))
+      :Array.from({length:6},(_,i)=>{const d=new Date(year,month-5+i,1);return{y:d.getFullYear(),m:d.getMonth()};});
+    const bars=months.map(({y,m})=>({y,m,key:ym(y,m),label:`${m+1}월`,value:val(ym(y,m)),sel:!yearView&&y===year&&m===month}));
+    // 비교 기준: 월 보기면 지난달, 연 보기면 작년
+    const prevKeys=yearView?Array.from({length:12},(_,i)=>ym(year-1,i)):[ym(...(month===0?[year-1,11]:[year,month-1]))];
+    const prevTxs=prevKeys.flatMap(k=>byMonth[k]||[]);
+    const shown=bars.filter(b=>b.value>0);
+    return {bars,prevTxs,prev:trendKind==="income"?incOf(prevTxs):expOf(prevTxs),
+      avg:shown.length?Math.round(shown.reduce((a,b)=>a+b.value,0)/shown.length):0};
+  },[src,year,month,yearView,trendKind]);
+  // 분류별 지난 기간 금액 (항목 줄에 증감 표시용)
+  const prevByName=useMemo(()=>{
+    if(!trend) return null;
+    const m={};
+    trend.prevTxs.filter(t=>trendKind==="income"?t.type==="income":isExp(t)).forEach(t=>{const n=catDisplayName(t.cat1);m[n]=(m[n]||0)+t.amount;});
+    return m;
+  },[trend,trendKind]);
   const byExpense=useMemo(()=>buildBreakdown(t=>t.type==="expense"&&t.cat1!==SETTLE_CAT1&&t.cat1!==REFUND_CAT1),[txs,tree]);
   const byCard=useMemo(()=>{
     const m={};
@@ -2809,6 +2856,40 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
             fontFamily:FONT}}>{l}</button>
         ))}
       </div>
+
+      {/* 월별 변화 */}
+      {trend&&statsTab!=="property"&&(()=>{
+        const cur=trendKind==="income"?totalIn:expense, diff=cur-trend.prev;
+        const up=diff>0, pct=trend.prev>0?Math.round(Math.abs(diff)/trend.prev*100):null;
+        // 지출이 늘면 빨강, 수입이 늘면 사업 색
+        const good=trendKind==="income"?up:!up, dc=diff===0?C.inkLight:good?P:"#d95f4b";
+        const man=v=>v>=1e8?`${(v/1e8).toFixed(1)}억`:v>=1e4?`${Math.round(v/1e4).toLocaleString("ko-KR")}만`:v.toLocaleString("ko-KR");
+        return(
+          <div style={{background:C.white,borderRadius:"16px",padding:"16px 16px 8px",border:`0.5px solid ${C.border}`}}>
+            <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:"8px",flexWrap:"wrap"}}>
+              <div style={{fontSize:"13px",fontWeight:600,color:C.inkLight,fontFamily:FONT}}>월별 {trendKind==="income"?"수입":"지출"}</div>
+              {trend.prev>0||cur>0?(
+                <div style={{fontSize:"14px",fontFamily:FONT,color:C.inkMid}}>
+                  {yearView?"작년":"지난달"}보다{" "}
+                  <span style={{color:dc,fontWeight:700}}>{diff===0?"같아요":`${up?"▲":"▼"} ${man(Math.abs(diff))}원${pct!=null?` (${pct}%)`:""}`}</span>
+                </div>
+              ):null}
+            </div>
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={trend.bars} margin={{top:18,right:4,left:4,bottom:0}}>
+                <XAxis dataKey="label" tick={{fontSize:12,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false} interval={0}/>
+                {trend.avg>0&&<ReferenceLine y={trend.avg} stroke={C.inkLight} strokeDasharray="3 3" strokeOpacity={0.6}/>}
+                <Bar dataKey="value" radius={[6,6,0,0]} maxBarSize={28} cursor="pointer"
+                  onClick={d=>d?.payload&&onPickMonth?.(d.payload.y,d.payload.m)}
+                  label={{position:"top",fontSize:12,fontFamily:FONT,fill:C.inkMid,formatter:v=>v>0?man(v):""}}>
+                  {trend.bars.map(b=><Cell key={b.key} fill={b.sel?P:"#d9dbe0"}/>)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,textAlign:"right",marginTop:"2px"}}>점선 = 평균 {man(trend.avg)}원 · 막대를 누르면 그 달로</div>
+          </div>
+        );
+      })()}
 
       {/* Donut (property 탭 제외) */}
       {statsTab!=="property"&&activeData.length>0&&(
@@ -2936,7 +3017,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit}){
         </div>
       ):(
         /* Breakdown bars */
-        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded} txs={txs} onEdit={onEdit}/>
+        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded} txs={txs} onEdit={onEdit} prevByName={statsTab==="card"?null:prevByName} upBad={trendKind!=="income"}/>
       )}
 
       {/* 카페 월별 추이 */}
@@ -4900,7 +4981,7 @@ export default function App(){
           :<div className="fade-in" key={entity+tab}>
             {tab==="list"?<FlatListView txs={viewTxs} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onDuplicate={tx=>{setEditTx({...tx,id:null});setModal("add");}} cards={cards} entity={entity} supplies={supplies} taxDocIds={taxDocIds} onToggleTaxDoc={toggleTaxDoc}/>
              :tab==="calendar"?<CalendarView txs={viewTxs} year={year} month={month} onEdit={tx=>{setEditTx(tx);setModal("edit");}} cards={cards} onMove={n=>n>0?nextMonth():prevMonth()}/>
-             :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
+             :tab==="stats"?<StatsView txs={viewTxs} allEntityTxs={entityTxs} entity={entity} cards={cards} year={year} month={month} yearView={yearView} onPickMonth={(y,m)=>{setYear(y);setMonth(m);setYearView(false);}} onEdit={tx=>{setEditTx(tx);setModal("edit");}}/>
 :tab==="supplies"?<SuppliesView supplies={supplies} onChange={handleSupplies} txs={txs} onAddTx={addTx} onEditTx={updateTx} onDeleteTx={deleteTx} cards={cards}/>
              :<FixedView txs={txs} onDelete={deleteTx} onEdit={tx=>{setEditTx(tx);setModal("edit");}} onRegister={addTx} onLink={updateTx} entity={entity} year={year} month={month}/>}
           </div>
