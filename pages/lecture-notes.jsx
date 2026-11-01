@@ -423,7 +423,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
           {['', ...subjects].map(s => {
             const on = subject === s, t = s && subjectColor(s)
             return (
-              <button key={s || '_all'} onClick={() => setSubject(on && s ? '' : s)} aria-pressed={on} style={{ ...plain, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: on ? (t ? t.color : MEMO_TINT) : C.card, color: on ? '#fff' : (t ? t.color : C.text), border: `0.5px solid ${on && t ? t.color : C.sep}` }}>
+              <button key={s || '_all'} onClick={() => setSubject(on && s ? '' : s)} aria-pressed={on} style={{ ...plain, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', fontSize: 13, fontWeight: 600, borderRadius: 999, padding: '6px 11px', background: on ? (t ? t.color : MEMO_TINT) : C.card, color: on ? '#fff' : (t ? t.color : C.text), border: `0.5px solid ${on && t ? t.color : C.sep}` }}>
                 {t && <span style={{ width: 8, height: 8, borderRadius: '50%', background: on ? '#fff' : t.color }} />}
                 {s || '전체'}
               </button>

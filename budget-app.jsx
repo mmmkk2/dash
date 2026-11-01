@@ -4828,10 +4828,10 @@ export default function App(){
               return(
                 <button key={ek} onClick={()=>switchEntity(ek)} aria-pressed={sel} style={{
                   display:"flex",alignItems:"center",gap:"5px",whiteSpace:"nowrap",
-                  padding:"5px 10px",borderRadius:"999px",cursor:"pointer",
+                  padding:"6px 11px",borderRadius:"999px",cursor:"pointer",
                   border:`0.5px solid ${sel?e.color:C.border}`,
                   background:sel?e.color:C.white,color:sel?"#fff":e.color,
-                  fontFamily:FONT,fontSize:"12px",fontWeight:600,transition:"all 0.2s"}}>
+                  fontFamily:FONT,fontSize:"13px",fontWeight:600,transition:"all 0.2s"}}>
                   <span style={{width:8,height:8,borderRadius:"50%",background:sel?"#fff":e.color}}/>
                   {e.short}
                 </button>
