@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, Pin, Link2, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
 import { supabase } from './login'
-import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu, WikiLink, WIKI_RE, LinkPicker } from '../notes-app'
+import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu, WikiLink, WIKI_RE, LinkPicker, Backlinks } from '../notes-app'
 import { ask } from '../src/dialog'
 
 // 노트 태그(과목) 색: 메모 태그와 이름이 겹치면 같은 색(부동산·고이온·앤딩·개인), 아니면 이름으로 정해지는 색
@@ -465,6 +465,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
                 {edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} />)}
               </div>}
               <NoteBody text={edit.content} onToggle={toggleCheck} tint={subjectColor(edit.subject?.trim()).color} />
+              <Backlinks title={edit.title} kind="note" id={edit.id} />
             </>
           )}
         </Sheet>
