@@ -264,9 +264,11 @@ function VisitsSheet({ onClose }) {
   )
 }
 
-// 박스 7개 — 위 초록 카드(메인, 최대 3칸)와 아래 타일 어디에 둘지·숨길지는 ⋯ > 박스 배치
-const BOX_NAME = { seat: '좌석', payment: '결제', monthly: '월 누적 매출', room: '스터디룸', locker: '사물함', product: '상품 판매', users: '이용자' }
-const DEFAULT_LAYOUT = { top: ['seat', 'payment', 'monthly'], bottom: ['room', 'locker', 'product', 'users'] }
+// 박스 8개 — 위 초록 카드(메인, 최대 3칸)와 아래 타일 어디에 둘지·숨길지는 ⋯ > 박스 배치
+const BOX_NAME = { seat: '좌석', payment: '결제', monthly: '월 누적 매출', room: '스터디룸', locker: '사물함', product: '상품 판매', users: '이용자', cum: '누적 이용자' }
+const DEFAULT_LAYOUT = { top: ['seat', 'payment', 'monthly'], bottom: ['room', 'locker', 'product', 'users', 'cum'] }
+// 누르면 열 상세 창 (누적 이용자는 이용자 창)
+const detailOf = k => k === 'cum' ? 'users' : k
 const TOP_MAX = 3
 // 박스마다 보일 값: label, value, unit, sub(한 줄 보조), alert(아래 타일에서 색 강조)
 function boxInfo(k, d) {
@@ -286,17 +288,24 @@ function boxInfo(k, d) {
     return { label: '사물함', value: d.locker.active ?? '-', unit: `/${d.locker.total}`, sub: n ? `만료 ${d.locker.expired.length} · 오늘 ${d.locker.expiring.length}` : '만료 없음', alert: !!n }
   }
   if (k === 'product') return { label: '상품 판매', value: d.product.mode, sub: `구매 ${d.product.buy}` }
+  // 오늘 누적 이용자 (코보페이 '금일 이용자', 05시 기준)
+  if (k === 'cum') return { label: '오늘 누적', value: `${s.today_users ?? '-'}명`, sub: `1회권 ${s.one_time ?? '-'}명` }
   // 기간권 등록 수와 오늘 이용자 수 — 눌러서 날짜별 추이
   return { label: '이용자', value: `기간권 ${s.period ?? '-'}명`, sub: `오늘 이용자 ${s.today_users ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명` }
 }
 
 // 배치는 settings 표(anding_layout)에 — 기기끼리 같게. 먼저 이 기기에 둔 것으로 바로 그리고 받아서 맞춘다
 const LAYOUT_KEY = 'anding_layout'
+// seen: 저장할 때 있던 박스들 — 그 뒤에 새로 생긴 박스는 숨기지 않고 아래 맨 끝에 붙인다
+const FIRST_BOXES = ['seat', 'payment', 'monthly', 'room', 'locker', 'product', 'users']
 function cleanLayout(v) {
+  if (!v) return DEFAULT_LAYOUT
   const ok = k => BOX_NAME[k]
-  const top = (v?.top || []).filter(ok).slice(0, TOP_MAX)
-  const bottom = (v?.bottom || []).filter(k => ok(k) && !top.includes(k))
-  return v ? { top, bottom } : DEFAULT_LAYOUT
+  const top = (v.top || []).filter(ok).slice(0, TOP_MAX)
+  const bottom = (v.bottom || []).filter(k => ok(k) && !top.includes(k))
+  const seen = v.seen || FIRST_BOXES
+  const fresh = Object.keys(BOX_NAME).filter(k => !seen.includes(k) && !top.includes(k) && !bottom.includes(k))
+  return { top, bottom: [...bottom, ...fresh] }
 }
 function useLayout() {
   const [layout, setLayout] = useState(() => { try { return cleanLayout(JSON.parse(localStorage.getItem(LAYOUT_KEY))) } catch { return DEFAULT_LAYOUT } })
@@ -311,7 +320,7 @@ function useLayout() {
   const save = async v => {
     setLayout(v)
     try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(v)) } catch {}
-    const { error } = await supabase.from('settings').upsert({ key: LAYOUT_KEY, value: v })
+    const { error } = await supabase.from('settings').upsert({ key: LAYOUT_KEY, value: { ...v, seen: Object.keys(BOX_NAME) } })
     if (error) tell('배치를 이 기기에만 저장했어요 (Supabase 저장 실패)')
   }
   return [layout, save]
@@ -323,7 +332,7 @@ function Hero({ d, open, keys }) {
   const cell = k => {
     const b = boxInfo(k, d)
     return (
-      <button key={k} onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
+      <button key={k} onClick={() => open(detailOf(k))} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
         <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.label}</div>
         <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.value}{b.unit && <span style={{ fontSize: 11.5, opacity: 0.8 }}>{b.unit}</span>}</div>
         <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.sub}</div>
@@ -526,7 +535,7 @@ function Tiles({ d, open, keys }) {
       {keys.map(k => {
         const b = boxInfo(k, d)
         return <Tile key={k} color={COL[k]} title={BOX_NAME[k]} value={b.value} unit={b.unit}
-          sub={b.alert ? <span style={{ color: COL[k], fontWeight: 600 }}>{b.sub}</span> : b.sub} onClick={() => open(k)} />
+          sub={b.alert ? <span style={{ color: COL[k], fontWeight: 600 }}>{b.sub}</span> : b.sub} onClick={() => open(detailOf(k))} />
       })}
     </div>
   )
@@ -1109,19 +1118,19 @@ function DayBars({ days, field, color, H = 120, fmt = v => v }) {
 
 // 이용자 상세: 날짜별 기간권 수 · 총 이용자 수 (맥이 그날 마지막 값을 남김)
 // 오늘 자유석 이용자 수 (시간대별) — 예전 좌석 창 위 그래프
-function TodaySeatCard({ card, head }) {
+function TodaySeatCard({ card, head, cum }) {
   const { data: d } = useApi('/api/seat_detail')
   if (!d?.history) return null
-  return <div style={card}>{head('오늘 자유석 (시간대별)', `지금 ${d.used_free}/${d.total_free}`)}<SeatChart d={d} H={150} /></div>
+  return <div style={card}>{head('오늘 자유석 (시간대별)', `지금 ${d.used_free}/${d.total_free}${cum != null ? ` · 누적 ${cum}명` : ''}`)}<SeatChart d={d} H={150} /></div>
 }
 
-function UsersDetail() {
+function UsersDetail({ cum }) {
   const { data: d, status, error, loading } = useApi('/api/daily_counts')
   const [range, setRange] = useState(30)
   const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 12px 6px', marginBottom: 10 }
   const head = (t, v) => <div style={{ display: 'flex', alignItems: 'baseline', fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{t}<span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, color: C.sub }}>{v}</span></div>
   // 날짜별 기록이 아직 없어도 오늘 그래프는 보이게
-  const only = m => <div><TodaySeatCard card={card} head={head} /><Muted>{m}</Muted></div>
+  const only = m => <div><TodaySeatCard card={card} head={head} cum={cum} /><Muted>{m}</Muted></div>
   if (status === 404 || (d && !d.days)) return only('맥이 새 코드를 받은 뒤부터 쌓여요')
   if (error) return only(error)
   if (loading && !d) return <Muted>불러오는 중…</Muted>
@@ -1142,7 +1151,7 @@ function UsersDetail() {
           ))}
         </div>
       </div>
-      <TodaySeatCard card={card} head={head} />
+      <TodaySeatCard card={card} head={head} cum={cum} />
       <div style={card}>{head('기간권 등록', `평균 ${avg('period')}명`)}<DayBars days={days} field="period" color={COL.users} /></div>
       <div style={card}>{head('총 이용자 (하루)', `평균 ${avg('users')}명`)}<DayBars days={days} field="users" color={COL.seat} /></div>
       <Card>
@@ -1180,7 +1189,7 @@ function Detail({ k, d, onClose, onSms, onReload, onSettings }) {
         : k === 'room' ? <RoomDetail />
         : k === 'monthly' ? <MonthlyDetail />
         : k === 'product' ? <ProductTable />
-        : k === 'users' ? <UsersDetail />
+        : k === 'users' ? <UsersDetail cum={d.seat.today_users} />
         : <IframeDetail k={k} path={info.path} />}
     </Sheet>
   )
