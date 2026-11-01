@@ -396,10 +396,9 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
         <span style={{ width: 3, alignSelf: 'stretch', margin: '11px 0', borderRadius: 2, background: n.subject ? subjectColor(n.subject).color : C.sep, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px 11px 0', borderBottom: last ? 'none' : `0.5px solid ${C.sep}`, alignSelf: 'stretch' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
+            <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.subject && <span style={{ color: subjectColor(n.subject).color, background: subjectColor(n.subject).color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 6, verticalAlign: 2 }}>{n.subject}</span>}{n.title || '제목 없음'}</div>
             <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {n.subject && <span style={{ color: subjectColor(n.subject).color, background: subjectColor(n.subject).color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>{n.subject}</span>}
-              {preview || (n.subject ? '' : '내용 없음')}
+              {preview || '내용 없음'}
             </div>
           </div>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: C.sub }}>
