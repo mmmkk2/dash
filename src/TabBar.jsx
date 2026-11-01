@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { StickyNote, CalendarDays, Wallet, PiggyBank, Store } from 'lucide-react'
+import { supabase } from '../pages/login'
 
 // 앱 하단 탭: 앱 설치 여부·화면 폭과 상관없이 늘 보인다 (메모·일정·가계부·자산·앤딩 화면에서)
 const SECTIONS = ['/notes', '/budget', '/assets', '/anding']
 const LAST_BUDGET = 'dash.lastBudget'
 const HEIGHT = 56
-const ORDER_KEY = 'dash.tabOrder' // 꾹 눌러 바꾼 탭 순서 (이 기기)
+const ORDER_KEY = 'dash.tabOrder' // 꾹 눌러 바꾼 탭 순서 — 이 기기에 바로, Supabase settings('tab_order')로 다른 기기와 맞춤
 
 export function useShowTabBar() {
   const { pathname } = useLocation()
@@ -32,6 +33,12 @@ export default function TabBar() {
   const [drag, setDrag] = useState(null) // { label, dx }
   const press = useRef(null), rowRef = useRef(null), fired = useRef(false)
   useEffect(() => () => clearTimeout(press.current?.timer), [])
+  // 다른 기기에서 바꾼 순서 받기
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'tab_order').maybeSingle().then(({ data }) => {
+      if (Array.isArray(data?.value) && data.value.length) { setOrder(data.value); try { localStorage.setItem(ORDER_KEY, JSON.stringify(data.value)) } catch {} }
+    })
+  }, [])
 
   if (!show) return null
   const lastBudget = () => { try { return sessionStorage.getItem(LAST_BUDGET) || '/budget' } catch { return '/budget' } }
@@ -72,7 +79,12 @@ export default function TabBar() {
   }
   const up = () => {
     clearTimeout(press.current?.timer); press.current = null
-    if (drag) { try { localStorage.setItem(ORDER_KEY, JSON.stringify(tabs.map(t => t.label))) } catch {} setDrag(null) }
+    if (drag) {
+      const labels = tabs.map(t => t.label)
+      try { localStorage.setItem(ORDER_KEY, JSON.stringify(labels)) } catch {}
+      supabase.from('settings').upsert({ key: 'tab_order', value: labels }, { onConflict: 'key' }).then(() => {})
+      setDrag(null)
+    }
   }
 
   return (
