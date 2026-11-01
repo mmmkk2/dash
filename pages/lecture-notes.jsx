@@ -375,7 +375,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
     return () => document.removeEventListener('pointerdown', close)
   }, [menu])
   // 꾹 누른 카드 오른쪽 가운데에 붙는 버튼 (카드와 함께 움직임)
-  const listBox = { background: C.card, borderRadius: 16, overflow: 'hidden', border: `0.5px solid ${C.sep}`, marginBottom: 8 }
+  const listBox = { background: C.card, borderRadius: 16, overflow: 'hidden', border: `0.5px solid ${C.sep}`, marginBottom: 24 }
   const cardActions = n => {
     const btn = (Icon, label, run, danger) => (
       <button key={label} aria-label={label} title={label} onClick={e => { e.stopPropagation(); setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
@@ -396,7 +396,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
     const last = i === arr.length - 1
     // 메모 목록처럼 카드 하나 안의 줄: 왼쪽 태그 색 줄 · 제목 / 태그·미리보기 · 오른쪽 날짜
     return (
-      <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
+      <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, color: C.text }}>
         <span style={{ width: 3, alignSelf: 'stretch', margin: '11px 0', borderRadius: 2, background: n.subject ? subjectColor(n.subject).color : C.sep, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px 11px 0', borderBottom: last ? 'none' : `0.5px solid ${C.sep}`, alignSelf: 'stretch' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -439,7 +439,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
       {shown.length > 0 && <div style={listBox}>{shown.map(card)}</div>}
       {archived.length > 0 && (
         <>
-          <button onClick={() => setShowArchived(v => !v)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: C.sub, padding: '12px 4px 8px' }}>
+          <button onClick={() => setShowArchived(v => !v)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: C.sub, padding: '4px 4px 8px' }}>
             <Archive size={15} />보관함 {archived.length}
             <ChevronDown size={16} style={{ transform: showArchived ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }} />
           </button>
