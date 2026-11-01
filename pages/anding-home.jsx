@@ -906,7 +906,7 @@ function PaymentDetail() {
 }
 
 // 스터디룸: 오늘~모레, 날짜 칩으로 바꿔 보고 2인실·4인실 나란히
-// 룸 사진: 창을 열면 맥이 CCTV에서 한 장씩 찍어 비공개 버킷에 올리고, 5분짜리 서명 URL로 본다
+// 룸 사진: CCTV를 누르면 맥이 한 장씩 찍어 비공개 버킷에 올리고, 5분짜리 서명 URL로 본다
 const CCTV_ROOMS = [['2', '2인실'], ['4', '4인실']]
 function RoomCctv() {
   const [shot, setShot] = useState({ busy: true })
@@ -940,9 +940,11 @@ function RoomCctv() {
   }, [])
   useEffect(() => { take(); return () => { run.current = -1 } }, [take])
   return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 12, color: C.sub }}>{shot.busy ? '사진 찍는 중…' : shot.error || `${shot.at} 촬영`}</span>
+    <div style={{ margin: '10px 0 2px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <span style={{ fontSize: 12, color: C.sub, marginRight: 'auto' }}>{shot.busy ? '사진 찍는 중…' : shot.error || `${shot.at} 촬영`}</span>
+        {/* 실시간은 다후아 DMSS 앱으로 (앱 첫 화면에서 카메라 고르기) */}
+        <a href="dmss://" style={{ fontSize: 12, fontWeight: 600, color: COL.room, textDecoration: 'none' }}>실시간</a>
         <button onClick={take} disabled={shot.busy} style={{ ...plain, fontSize: 12, fontWeight: 600, color: shot.busy ? C.sub : COL.room }}>새로고침</button>
       </div>
       {shot.urls && (
@@ -964,6 +966,7 @@ function RoomCctv() {
 function RoomDetail() {
   const { data, status, error, loading } = useApi('/api/room_detail')
   const [day, setDay] = useState(0)
+  const [cctv, setCctv] = useState(false)
   if (status === 404 || (data && !data.days)) return <IframeDetail k="room" path="/room" />
   if (error) return <Muted>{error}</Muted>
   if (loading && !data) return <Muted>불러오는 중…</Muted>
@@ -1003,16 +1006,15 @@ function RoomDetail() {
   )
   return (
     <div>
-      <RoomCctv />
       <div style={{ display: 'flex', gap: 6 }}>
         {days.map((x, i) => (
           <button key={i} onClick={() => setDay(i)} aria-pressed={day === i} style={{ ...plain, fontSize: 12, fontWeight: 600, borderRadius: 999, padding: '5px 10px', background: day === i ? COL.room : C.card, color: day === i ? '#fff' : COL.room, border: `0.5px solid ${day === i ? COL.room : C.sep}` }}>
             {i === 0 ? '오늘' : x.label}{(x.count_2 + x.count_4) > 0 && ` ${x.count_2 + x.count_4}`}
           </button>
         ))}
-        {/* 매장 CCTV: 다후아 DMSS 앱을 연다 (앱 첫 화면에서 카메라 고르기) */}
-        <a href="dmss://" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: COL.room, textDecoration: 'none', whiteSpace: 'nowrap' }}><Video size={14} />CCTV<ChevronRight size={14} /></a>
+        <button onClick={() => setCctv(v => !v)} aria-expanded={cctv} style={{ ...plain, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: COL.room, whiteSpace: 'nowrap' }}><Video size={14} />CCTV<ChevronRight size={14} style={{ transform: cctv ? 'rotate(90deg)' : 'none' }} /></button>
       </div>
+      {cctv && <RoomCctv />}
       <div style={{ display: 'flex', gap: 8 }}>
         {col('2인실', d.reservations_2 || [])}
         {col('4인실', d.reservations_4 || [])}
