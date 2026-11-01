@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, MessageSquare, ChevronRight, DoorOpen, Trash2 } from 'lucide-react'
+import { MoreHorizontal, MessageSquare, ChevronRight, DoorOpen, Trash2, Video } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
@@ -953,6 +953,8 @@ function RoomDetail() {
             {i === 0 ? '오늘' : x.label}{(x.count_2 + x.count_4) > 0 && ` ${x.count_2 + x.count_4}`}
           </button>
         ))}
+        {/* 매장 CCTV: 다후아 DMSS 앱을 연다 (앱 첫 화면에서 카메라 고르기) */}
+        <a href="dmss://" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: COL.room, textDecoration: 'none', whiteSpace: 'nowrap' }}><Video size={14} />CCTV<ChevronRight size={14} /></a>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         {col('2인실', d.reservations_2 || [])}
