@@ -4,7 +4,6 @@ import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListC
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
-import InstallButton from './src/InstallButton'
 import { ask } from './src/dialog'
 
 // 시스템 폰트 + 무채색 미니멀 라이트 톤 (색은 사용자가 고른 태그와 경고에만)
@@ -1408,7 +1407,6 @@ export default function NotesApp({ initialTab = 'memo' }) {
               <ChevronLeft size={16} />가계부
             </button>
           )}
-          <InstallButton />
         </div>
         {/* 하단 탭이 있으면 메모/일정 큰 제목은 생략 */}
         {!tabBar && (

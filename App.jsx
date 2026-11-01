@@ -9,7 +9,6 @@ import AndingHome from './pages/anding-home'
 import Notes from './pages/notes'
 import Login, { supabase } from './pages/login'
 import TabBar from './src/TabBar'
-import { InstallFloat } from './src/InstallButton'
 
 // 페이지(주소)별 브라우저 탭 제목
 // 앱 바로가기(같은 주소 안에서만 가능)용: 외부 앤딩 관리자 화면으로 넘겨준다
@@ -90,7 +89,6 @@ export default function App() {
         )}
       </Routes>
       {session && <TabBar />}
-      {session && <InstallFloat />}
       <Analytics />
     </BrowserRouter>
   )
