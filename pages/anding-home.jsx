@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, MessageSquare, ChevronRight, DoorOpen, Trash2 } from 'lucide-react'
+import { MoreHorizontal, MessageSquare, ChevronRight, ChevronUp, ChevronDown, DoorOpen, Trash2 } from 'lucide-react'
 import { useShowTabBar } from '../src/TabBar'
 import { Sheet, useBackClose } from '../notes-app'
 import { supabase } from './login'
@@ -264,27 +264,78 @@ function VisitsSheet({ onClose }) {
   )
 }
 
-// 위 카드의 칸도 누르면 해당 상세로 (아래 타일과 같은 창)
-function Hero({ d, open }) {
+// 박스 7개 — 위 초록 카드(메인, 최대 3칸)와 아래 타일 어디에 둘지·숨길지는 ⋯ > 박스 배치
+const BOX_NAME = { seat: '좌석', payment: '결제', monthly: '월 누적 매출', room: '스터디룸', locker: '사물함', product: '상품 판매', users: '이용자' }
+const DEFAULT_LAYOUT = { top: ['seat', 'payment', 'monthly'], bottom: ['room', 'locker', 'product', 'users'] }
+const TOP_MAX = 3
+// 박스마다 보일 값: label, value, unit, sub(한 줄 보조), alert(아래 타일에서 색 강조)
+function boxInfo(k, d) {
   const s = d.seat
-  // 칸마다 아래 한 줄 보조 정보 (예전 좌석·결제·월 매출 타일 내용)
-  const cell = (label, value, k, sub) => (
-    <button onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
-      {label}<div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap' }}>{value}</div>
-      {sub && <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
-    </button>
-  )
-  const used = (s.used_free ?? 0) + (s.used_laptop ?? 0), total = (s.total_free ?? 0) + (s.total_laptop ?? 0)
+  if (k === 'seat') {
+    const used = (s.used_free ?? 0) + (s.used_laptop ?? 0), total = (s.total_free ?? 0) + (s.total_laptop ?? 0)
+    return { label: '잔여 좌석', value: s.remain ?? '-', sub: `사용 ${used}/${total}` }
+  }
+  if (k === 'payment') return { label: '결제', value: `${d.payment.count}건`, sub: `${hhmm(d.payment.updated)} 기준` }
+  if (k === 'monthly') return { label: `${d.monthly.month}월 누적`, value: man(d.monthly.amount), sub: `예상 ${man(d.monthly.predicted)}` }
+  if (k === 'room') {
+    const rooms = d.studyroom.items.filter(r => !r.done)
+    return { label: '스터디룸', value: `${rooms.length}건`, sub: rooms.length ? rooms.map(r => `${r.room} ${r.start}–${r.end}`).join(' · ') : '남은 예약 없음' }
+  }
+  if (k === 'locker') {
+    const n = d.locker.expired.length + d.locker.expiring.length
+    return { label: '사물함', value: d.locker.active ?? '-', unit: `/${d.locker.total}`, sub: n ? `만료 ${d.locker.expired.length} · 오늘 ${d.locker.expiring.length}` : '만료 없음', alert: !!n }
+  }
+  if (k === 'product') return { label: '상품 판매', value: d.product.mode, sub: `구매 ${d.product.buy}` }
+  // 기간권 등록 수와 오늘 이용자 수 — 눌러서 날짜별 추이
+  return { label: '이용자', value: `기간권 ${s.period ?? '-'}명`, sub: `오늘 이용자 ${s.today_users ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명` }
+}
+
+// 배치는 settings 표(anding_layout)에 — 기기끼리 같게. 먼저 이 기기에 둔 것으로 바로 그리고 받아서 맞춘다
+const LAYOUT_KEY = 'anding_layout'
+function cleanLayout(v) {
+  const ok = k => BOX_NAME[k]
+  const top = (v?.top || []).filter(ok).slice(0, TOP_MAX)
+  const bottom = (v?.bottom || []).filter(k => ok(k) && !top.includes(k))
+  return v ? { top, bottom } : DEFAULT_LAYOUT
+}
+function useLayout() {
+  const [layout, setLayout] = useState(() => { try { return cleanLayout(JSON.parse(localStorage.getItem(LAYOUT_KEY))) } catch { return DEFAULT_LAYOUT } })
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', LAYOUT_KEY).maybeSingle().then(({ data }) => {
+      if (!data?.value) return
+      const v = cleanLayout(data.value)
+      setLayout(v)
+      try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(v)) } catch {}
+    })
+  }, [])
+  const save = async v => {
+    setLayout(v)
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(v)) } catch {}
+    const { error } = await supabase.from('settings').upsert({ key: LAYOUT_KEY, value: v })
+    if (error) tell('배치를 이 기기에만 저장했어요 (Supabase 저장 실패)')
+  }
+  return [layout, save]
+}
+
+// 위 카드의 칸도 누르면 해당 상세로 (아래 타일과 같은 창)
+function Hero({ d, open, keys }) {
+  // 칸마다 아래 한 줄 보조 정보
+  const cell = k => {
+    const b = boxInfo(k, d)
+    return (
+      <button key={k} onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
+        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.label}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.value}{b.unit && <span style={{ fontSize: 11.5, opacity: 0.8 }}>{b.unit}</span>}</div>
+        <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.sub}</div>
+      </button>
+    )
+  }
   const date = d.today
   return (
     <div style={{ borderRadius: 20, padding: '16px 18px', color: '#fff', background: `linear-gradient(135deg, ${GREEN}, #2f7d8f)` }}>
       <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>오늘 매출 · {date.getMonth() + 1}월 {date.getDate()}일</div>
-      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', margin: '2px 0 10px' }}>{won(d.payment.amount)}원</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-        {cell('잔여 좌석', s.remain ?? '-', 'seat', `사용 ${used}/${total}`)}
-        {cell('결제', `${d.payment.count}건`, 'payment', `${hhmm(d.payment.updated)} 기준`)}
-        {cell(`${d.monthly.month}월 누적`, man(d.monthly.amount), 'monthly', `예상 ${man(d.monthly.predicted)}`)}
-      </div>
+      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', margin: keys.length ? '2px 0 10px' : '2px 0 0' }}>{won(d.payment.amount)}원</div>
+      {keys.length > 0 && <div style={{ display: 'grid', gridTemplateColumns: `repeat(${keys.length}, 1fr)`, gap: 6 }}>{keys.map(cell)}</div>}
     </div>
   )
 }
@@ -468,21 +519,69 @@ function Tile({ color, title, value, unit, sub, bar, onClick, wide }) {
   )
 }
 
-function Tiles({ d, open }) {
-  const s = d.seat
-  const rooms = d.studyroom.items.filter(r => !r.done)
-  const lockerAlert = d.locker.expired.length + d.locker.expiring.length
+function Tiles({ d, open, keys }) {
+  if (!keys.length) return null
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
-      <Tile color={COL.room} title="스터디룸" value={`${rooms.length}건`}
-        sub={rooms.length ? rooms.map(r => `${r.room} ${r.start}–${r.end}`).join(' · ') : '남은 예약 없음'} onClick={() => open('room')} />
-      <Tile color={COL.locker} title="사물함" value={d.locker.active ?? '-'} unit={`/${d.locker.total}`}
-        sub={lockerAlert ? <span style={{ color: COL.locker, fontWeight: 600 }}>만료 {d.locker.expired.length} · 오늘 {d.locker.expiring.length}</span> : '만료 없음'} onClick={() => open('locker')} />
-      <Tile color={COL.product} title="상품 판매" value={d.product.mode} sub={`구매 ${d.product.buy}`} onClick={() => open('product')} />
-      {/* 기간권 등록 수와 오늘 이용자 수 — 눌러서 날짜별 추이 */}
-      <Tile color={COL.users} title="이용자" value={`기간권 ${s.period ?? '-'}명`}
-        sub={`오늘 이용자 ${s.today_users ?? '-'}명 · 1회권 ${s.one_time ?? '-'}명`} onClick={() => open('users')} />
+      {keys.map(k => {
+        const b = boxInfo(k, d)
+        return <Tile key={k} color={COL[k]} title={BOX_NAME[k]} value={b.value} unit={b.unit}
+          sub={b.alert ? <span style={{ color: COL[k], fontWeight: 600 }}>{b.sub}</span> : b.sub} onClick={() => open(k)} />
+      })}
     </div>
+  )
+}
+
+// 박스 배치 (⋯ 메뉴): 위·아래 화살표로 순서와 자리(메인 ↔ 아래)를, 스위치로 끼우기·빼기
+function LayoutSheet({ layout, onSave, onClose }) {
+  const [v, setV] = useState(layout)
+  useBackClose(true, onClose)
+  const hidden = Object.keys(BOX_NAME).filter(k => !v.top.includes(k) && !v.bottom.includes(k))
+  const all = [...v.top, ...v.bottom]
+  // 한 줄로 이어 보고 한 칸 옮긴 뒤 다시 나눈다. 메인 맨 아래에서 ↓ → 아래 맨 앞으로(메인 한 칸 줄어듦),
+  // 아래 맨 앞에서 ↑ → 메인이 비었으면 들어가고, 꽉 찼으면 메인 마지막과 자리 바꿈
+  const move = (k, dir) => {
+    const i = all.indexOf(k), n = v.top.length
+    if (dir > 0 && i === n - 1) return setV({ top: v.top.slice(0, -1), bottom: [k, ...v.bottom] })
+    if (dir < 0 && i === n && n < TOP_MAX) return setV({ top: [...v.top, k], bottom: v.bottom.slice(1) })
+    const j = i + dir
+    if (j < 0 || j >= all.length) return
+    const next = [...all];[next[i], next[j]] = [next[j], next[i]]
+    setV({ top: next.slice(0, n), bottom: next.slice(n) })
+  }
+  const toggle = (k, on) => setV(on
+    ? { ...v, bottom: [...v.bottom, k] }
+    : { top: v.top.filter(x => x !== k), bottom: v.bottom.filter(x => x !== k) })
+  const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, overflow: 'hidden' }
+  const arrow = (k, dir, off) => (
+    <button onClick={() => move(k, dir)} disabled={off} aria-label={dir < 0 ? '위로' : '아래로'} style={{ ...plain, width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.fill, color: C.text, opacity: off ? 0.3 : 1 }}>
+      {dir < 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+    </button>
+  )
+  const row = (k, i, on) => {
+    const at = all.indexOf(k)
+    return (
+      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px 9px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: COL[k], flexShrink: 0 }} />
+        <span style={{ flex: 1, color: on ? C.text : C.sub }}>{BOX_NAME[k]}</span>
+        {on && <>{arrow(k, -1, at === 0)}{arrow(k, 1, at === all.length - 1)}</>}
+        <span style={{ marginLeft: 4 }}><Switch on={on} color={GREEN} onChange={x => toggle(k, x)} /></span>
+      </div>
+    )
+  }
+  const sec = (title, keys, on, empty) => (
+    <>
+      <Label>{title}</Label>
+      <div style={card}>{keys.length ? keys.map((k, i) => row(k, i, on)) : <div style={{ padding: '12px 14px', fontSize: 13.5, color: C.sub }}>{empty}</div>}</div>
+    </>
+  )
+  return (
+    <Sheet title="박스 배치" tint={GREEN} onCancel={onClose} onDone={() => { onSave(v); onClose() }}>
+      {sec(`메인 (위 초록 카드, 최대 ${TOP_MAX}칸)`, v.top, true, '비어 있음 — 아래 박스에서 ↑로 올리기')}
+      {sec('아래 박스', v.bottom, true, '비어 있음')}
+      {hidden.length > 0 && sec('숨김', hidden, false)}
+      <button onClick={() => setV(DEFAULT_LAYOUT)} style={{ ...plain, display: 'block', margin: '16px auto 0', fontSize: 13.5, fontWeight: 600, color: C.sub }}>처음 배치로</button>
+    </Sheet>
   )
 }
 
@@ -1065,6 +1164,7 @@ export default function AndingHome() {
   const [detail, setDetail] = useState(null)
   const [sms, setSms] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [layout, saveLayout] = useLayout()
 
   const load = useCallback(async () => {
     try { setState(await getSummary()) } catch (e) { setState({ error: e.message }) }
@@ -1078,7 +1178,7 @@ export default function AndingHome() {
   }, [load])
 
   const [loginOpen, setLoginOpen] = useState(false)
-  const [tool, setTool] = useState(null) // ⋯ 메뉴 도구: settings | sms | salary | visits
+  const [tool, setTool] = useState(null) // ⋯ 메뉴 도구: settings | sms | salary | visits | layout
   const gate = useGate(() => setLoginOpen(true))
   const menu = [
     { label: '문열기', run: gate.open },
@@ -1086,6 +1186,7 @@ export default function AndingHome() {
     { label: '문자 생성기', run: () => setTool('sms') },
     { label: '급여 관리표', run: () => setTool('salary') },
     { label: '방문 기록', run: () => setTool('visits') },
+    { label: '박스 배치', run: () => setTool('layout') },
     // 현황은 Supabase에서 읽어 로그인 없이 보이지만, 문자·판매 설정·사물함 종료는 앤딩 로그인이 필요
     { label: '앤딩 로그인', run: () => setLoginOpen(true) },
     { label: '로그아웃', danger: true, run: async () => { if (!await ask('앤딩에서 로그아웃 할까요?')) return; await fetch(`${API}/logout`, { credentials: 'same-origin' }).catch(() => {}); load() } },
@@ -1136,10 +1237,10 @@ export default function AndingHome() {
         )}
         {d && (
           <>
-            <Hero d={d} open={setDetail} />
+            <Hero d={d} open={setDetail} keys={layout.top} />
             <AndingMemo />
             <Todo d={d} onSms={setSms} open={setDetail} />
-            <Tiles d={d} open={setDetail} />
+            <Tiles d={d} open={setDetail} keys={layout.bottom} />
             <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>{d.stale
               ? <span style={{ color: '#d97706' }}>맥 수집이 {(d.now || '').slice(5, 16).replace('-', '/')}에서 멈춰 있어요 · 날짜는 오늘 기준</span>
               : <>Updated {hhmm(d.seat.updated) || hhmm(d.now)} · 1분마다 자동 갱신</>}</div>
@@ -1152,6 +1253,7 @@ export default function AndingHome() {
       {tool === 'sms' && <SmsToolSheet onClose={() => setTool(null)} />}
       {tool === 'salary' && <SalarySheet onClose={() => setTool(null)} />}
       {tool === 'visits' && <VisitsSheet onClose={() => setTool(null)} />}
+      {tool === 'layout' && <LayoutSheet layout={layout} onSave={saveLayout} onClose={() => setTool(null)} />}
     </div>
   )
 }
