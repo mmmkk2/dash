@@ -1,7 +1,7 @@
 // 노트 (메모 화면의 '노트'): 강의노트처럼 긴 글을 소제목·목록으로 정리하고 PDF 등 파일을 붙인다
 // Supabase lecture_notes 테이블 + 비공개 버킷 note-files('<user id>/...'), 본인만 (supabase_setup.sql 맨 아래)
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, Pin, Link2, ChevronDown, StickyNote, Maximize2, Minimize2 } from 'lucide-react'
+import { Search, Paperclip, FileText, File as FileIcon, X, Pencil, Trash2, Heading, List, ListChecks, ImagePlus, Archive, ArchiveRestore, Pin, Link2, ChevronDown, StickyNote, Maximize2, Minimize2, Bold as BoldIcon, Quote, Highlighter, CircleHelp } from 'lucide-react'
 import { supabase } from './login'
 import { F, C, plain, Sheet, useBackClose, GrowTextarea, Fab, TAGS, MEMO_TINT, CheckCircle, shrinkImage, MoreMenu, WikiLink, WIKI_RE, LinkPicker, Backlinks } from '../notes-app'
 import { ask } from '../src/dialog'
@@ -23,7 +23,8 @@ const MAX_FILE = 50 * 1024 * 1024
 const shortDate = s => { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()}` }
 const fileSize = n => n >= 1048576 ? `${(n / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`
 
-// 본문 한 줄씩: '# 제목' / '## 소제목' / '- [ ] 체크'(메모와 같은 표기) / '- 목록' / 그 외 문단
+// 본문 한 줄씩: '# 제목' / '## 소제목' / '- [ ] 체크'(메모와 같은 표기) / '- 목록' / '1. 번호' / '> 요점' / 그 외 문단
+// 목록·체크는 앞 칸(2칸마다 한 단계)으로 들여쓴다
 const CHECK_RE = /^- \[( |x)\] ?/
 // 본문 사이 사진: '![사진](저장 경로)' 한 줄 (note-files 버킷)
 const IMG_RE = /^!\[[^\]]*\]\(([^)\s]+)\)\s*$/
@@ -31,13 +32,39 @@ const imagePaths = text => (text || '').split('\n').map(l => l.match(IMG_RE)?.[1
 const parse = text => (text || '').split('\n').map((line, i) => {
   const im = line.match(IMG_RE)
   if (im) return { kind: 'img', path: im[1], text: '', i }
-  const c = line.match(CHECK_RE)
-  if (c) return { kind: 'check', done: c[1] === 'x', text: line.slice(c[0].length), i }
+  const sp = line.match(/^\s*/)[0].replace(/\t/g, '  ').length
+  const lv = Math.min(3, Math.floor(sp / 2)), body = line.trimStart()
+  const c = body.match(CHECK_RE)
+  if (c) return { kind: 'check', done: c[1] === 'x', text: body.slice(c[0].length), lv, i }
   const h = line.match(/^(#{1,2}) (.*)/)
   if (h) return { kind: h[1].length === 1 ? 'h1' : 'h2', text: h[2], i }
-  if (/^[-*] /.test(line)) return { kind: 'li', text: line.slice(2), i }
+  if (/^[-*] /.test(body)) return { kind: 'li', text: body.slice(2), lv, i }
+  const o = body.match(/^(\d{1,3})[.)] (.*)/)
+  if (o) return { kind: 'ol', n: o[1], text: o[2], lv, i }
+  const q = line.match(/^> ?(.*)/)
+  if (q) return { kind: 'quote', text: q[1], i }
   return { kind: line.trim() ? 'p' : 'gap', text: line, i }
 })
+// 목록 미리보기용: **굵게**·==형광펜== 표시는 빼고
+const unmark = t => t.replace(/\*\*(.+?)\*\*|==(.+?)==/g, (_, a, b) => a ?? b)
+const HILITE = '#fff1a8' // 형광펜은 연노랑 한 가지만
+
+// '**핵심어**' → 굵게, '==중요==' → 형광펜
+function Bold({ text }) {
+  const out = [], re = /\*\*(.+?)\*\*|==(.+?)==/g
+  let last = 0, m
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index))
+    out.push(m[1] != null ? <b key={m.index} style={{ fontWeight: 700 }}>{m[1]}</b>
+      : <mark key={m.index} style={{ background: HILITE, color: 'inherit', borderRadius: 3, padding: '0 2px', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>{m[2]}</mark>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
+}
+
+// 편집 화면의 '쓰는 법' 안내 (? 버튼)
+const GUIDE = [['# 큰 제목', '큰 제목 + 밑줄'], ['## 소제목', '소제목'], ['- 목록', '• 목록'], ['  - 하위 목록', '앞에 두 칸 → 들여쓰기'], ['1. 번호', '번호 목록'], ['- [ ] 할 일', '체크 목록'], ['> 요점', '회색 요점 상자'], ['**굵게**', '굵은 글씨'], ['==형광펜==', '노란 형광펜'], ['[[제목]]', '다른 메모·노트 링크']]
 
 // 본문의 주소(http·https·www.)는 눌러서 새 창으로 열리게
 const URL_RE = /(https?:\/\/|www\.)[^\s<>"']+/g
@@ -56,7 +83,7 @@ function Linkify({ text }) {
     last = m.index + url.length
   }
   if (last < text.length) out.push(text.slice(last))
-  return out
+  return out.map((x, k) => typeof x === 'string' ? <Bold key={'b' + k} text={x} /> : x)
 }
 
 const signed = {} // path → { url, at } (50분 재사용)
@@ -93,15 +120,22 @@ function NoteBody({ text, onToggle, tint }) {
           ))}
         </div>
       )}
-      <div style={{ fontSize: 15.5, lineHeight: 1.65 }}>
-        {lines.map(l => {
+      <div style={{ fontSize: 15.5, lineHeight: 1.7 }}>
+        {lines.map((l, k) => {
           const id = `note-line-${l.i}`
-          if (l.kind === 'h1') return <div key={l.i} id={id} style={{ fontSize: 19, fontWeight: 700, margin: '18px 0 6px', scrollMarginTop: 80 }}>{l.text}</div>
-          if (l.kind === 'h2') return <div key={l.i} id={id} style={{ fontSize: 16.5, fontWeight: 700, margin: '14px 0 4px', scrollMarginTop: 80 }}>{l.text}</div>
-          if (l.kind === 'li') return <div key={l.i} style={{ display: 'flex', gap: 8, paddingLeft: 4 }}><span style={{ color: C.sub }}>•</span><span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></span></div>
+          const pad = 4 + (l.lv || 0) * 18 // 들여쓰기 한 단계 18px
+          if (l.kind === 'h1') return <div key={l.i} id={id} style={{ fontSize: 20, fontWeight: 700, letterSpacing: -0.3, margin: k ? '26px 0 10px' : '2px 0 10px', paddingBottom: 7, borderBottom: `0.5px solid ${C.sep}`, scrollMarginTop: 80 }}><Bold text={l.text} /></div>
+          if (l.kind === 'h2') return <div key={l.i} id={id} style={{ fontSize: 17, fontWeight: 700, margin: k ? '18px 0 4px' : '2px 0 4px', scrollMarginTop: 80 }}><Bold text={l.text} /></div>
+          if (l.kind === 'li') return <div key={l.i} style={{ display: 'flex', gap: 8, padding: `2px 0 2px ${pad}px` }}><span style={{ color: C.sub, width: 10, flexShrink: 0 }}>{l.lv ? '◦' : '•'}</span><span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></span></div>
+          if (l.kind === 'ol') return <div key={l.i} style={{ display: 'flex', gap: 6, padding: `2px 0 2px ${pad}px` }}><span style={{ color: C.sub, minWidth: 16, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{l.n}.</span><span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap' }}><Linkify text={l.text} /></span></div>
+          if (l.kind === 'quote') {
+            // 이어진 '>' 줄은 한 상자로
+            const prev = lines[k - 1]?.kind === 'quote', next = lines[k + 1]?.kind === 'quote'
+            return <div key={l.i} style={{ background: C.fill, padding: `${prev ? 0 : 10}px 14px ${next ? 0 : 10}px`, borderRadius: `${prev ? 0 : 12}px ${prev ? 0 : 12}px ${next ? 0 : 12}px ${next ? 0 : 12}px`, margin: `${prev ? 0 : 8}px 0 ${next ? 0 : 8}px`, whiteSpace: 'pre-wrap', minHeight: l.text ? undefined : 12 }}><Linkify text={l.text} /></div>
+          }
           if (l.kind === 'img') return <NoteImage key={l.i} path={l.path} />
           if (l.kind === 'check') return (
-            <div key={l.i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '3px 0' }}>
+            <div key={l.i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: `3px 0 3px ${(l.lv || 0) * 18}px` }}>
               <span style={{ paddingTop: 2 }}><CheckCircle done={l.done} color={tint} onClick={() => onToggle?.(l.i)} /></span>
               <span style={{ flex: 1, minWidth: 0, whiteSpace: 'pre-wrap', color: l.done ? C.sub : C.text, textDecoration: l.done ? 'line-through' : 'none' }}><Linkify text={l.text} /></span>
             </div>
@@ -164,6 +198,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
   }, [target, notes])
   // [[링크]] 넣기: 커서 자리에
   const [picking, setPicking] = useState(false)
+  const [guide, setGuide] = useState(false)
   const insertLink = t => {
     const ta = taRef.current, mark = `[[${t}]]`
     setEdit(ed => {
@@ -194,7 +229,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
   // 읽기 화면에서 체크: 바로 저장 (편집 버튼 없이)
   async function toggleCheck(i) {
     const ls = edit.content.split('\n')
-    ls[i] = ls[i].replace(/^- \[( |x)\]/, (_, d) => `- [${d === 'x' ? ' ' : 'x'}]`)
+    ls[i] = ls[i].replace(/^(\s*)- \[( |x)\]/, (_, sp, d) => `${sp}- [${d === 'x' ? ' ' : 'x'}]`)
     const content = ls.join('\n'), id = edit.id
     setEdit(ed => ({ ...ed, content, snapshot: JSON.stringify([ed.title, ed.subject, content, ed.files]) }))
     setNotes(ns => ns.map(n => n.id === id ? { ...n, content } : n))
@@ -300,9 +335,16 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
     setEdit(ed => ({ ...ed, content }))
     requestAnimationFrame(() => { ta?.focus(); ta?.setSelectionRange(pos + mark.length, pos + mark.length) })
   }
+  // 고른 글자를 **굵게**·==형광펜==으로 감싼다 (고른 게 없으면 표시 사이에 커서)
+  const wrap = mk => {
+    const ta = taRef.current, c = edit.content
+    const a = ta ? ta.selectionStart : c.length, b = ta ? ta.selectionEnd : c.length
+    setEdit(ed => ({ ...ed, content: c.slice(0, a) + mk + c.slice(a, b) + mk + c.slice(b) }))
+    requestAnimationFrame(() => { ta?.focus(); ta?.setSelectionRange(a + mk.length, b + mk.length) })
+  }
 
   const input = { width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', background: 'transparent', fontFamily: F, color: C.text }
-  const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: C.text, background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 999, padding: '7px 11px' }
+  const toolBtn = { ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, color: C.text, background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 999, padding: '7px 11px' }
 
   // 카드를 꾹 누르면 오른쪽에 보관·메모로·삭제 아이콘 (메모 목록과 같은 방식)
   const [menu, setMenu] = useState(null) // { n, rect }
@@ -345,11 +387,11 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
   }
   const asTarget = n => ({ ...n, files: n.files || [] })
   const card = n => {
-    const preview = parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || ''
+    const preview = unmark(parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || '')
     return (
       <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', ...plain, display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
-        <div style={{ fontSize: 16, fontWeight: 650, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
-        {preview && <div style={{ fontSize: 13.5, color: C.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
+        <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
+        {preview && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
           {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
           <span>{shortDate(n.updated_at)}</span>
@@ -443,16 +485,31 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
                 <button onClick={() => prefix('## ')} style={toolBtn}><Heading size={14} />소제목</button>
                 <button onClick={() => prefix('- ')} style={toolBtn}><List size={14} />목록</button>
+                <button onClick={() => wrap('**')} style={toolBtn}><BoldIcon size={14} />굵게</button>
+                <button onClick={() => prefix('> ')} style={toolBtn}><Quote size={14} />요점</button>
+                <button onClick={() => wrap('==')} style={toolBtn}><Highlighter size={14} />형광펜</button>
                 <button onClick={() => prefix('- [ ] ')} style={toolBtn}><ListChecks size={14} />체크</button>
                 <button onClick={() => setPicking(true)} style={toolBtn}><Link2 size={14} />링크</button>
                 <button onClick={() => fileRef.current?.click()} style={toolBtn}><Paperclip size={14} />파일 추가</button>
                 <button onClick={() => imgRef.current?.click()} style={toolBtn}><ImagePlus size={14} />사진</button>
+                <button onClick={() => setGuide(g => !g)} aria-pressed={guide} aria-label="쓰는 법" style={{ ...toolBtn, background: guide ? C.fill : C.card }}><CircleHelp size={14} />쓰는 법</button>
                 <input ref={imgRef} type="file" accept="image/*" multiple hidden onChange={e => { addImages([...e.target.files]); e.target.value = '' }} />
                 <input ref={fileRef} type="file" multiple hidden onChange={e => { addFiles([...e.target.files]); e.target.value = '' }} />
               </div>
+              {guide && (
+                <div style={{ background: C.fill, borderRadius: 12, padding: '10px 14px', marginBottom: 12, fontSize: 13.5, lineHeight: 1.5 }}>
+                  {GUIDE.map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', gap: 10, padding: '2px 0' }}>
+                      <code style={{ flex: '0 0 116px', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12.5, color: C.sub, whiteSpace: 'pre' }}>{k}</code>
+                      <span><Bold text={v === '굵은 글씨' ? '**굵은 글씨**' : v === '노란 형광펜' ? '==노란 형광펜==' : v} /></span>
+                    </div>
+                  ))}
+                  <div style={{ fontSize: 12, color: C.sub, marginTop: 6 }}>글자를 고르고 굵게·형광펜을 누르면 감싸져요</div>
+                </div>
+              )}
               {edit.files.length > 0 && <div style={{ marginBottom: 10 }}>{edit.files.map(f => <FileRow key={f.path} f={f} onOpen={() => openFile(f)} onRemove={() => setEdit(ed => ({ ...ed, files: ed.files.filter(x => x.path !== f.path) }))} />)}</div>}
               <GrowTextarea value={edit.content} minRows={12} maxHeight="none" onChange={e => setEdit(ed => ({ ...ed, content: e.target.value }))}
-                placeholder={'강의 내용을 정리해 보세요\n\n# 큰 제목\n## 소제목\n- 목록'} style={{ ...input, fontSize: 15.5, lineHeight: 1.6, resize: 'none' }} inputRef={taRef} />
+                placeholder={'강의 내용을 정리해 보세요\n\n# 큰 제목\n## 소제목\n- 목록 (앞에 두 칸 띄우면 들여쓰기)\n1. 번호 목록\n> 요점\n**굵게**  ==형광펜==\n\n도구줄의 「쓰는 법」에서 전체 표기를 볼 수 있어요'} style={{ ...input, fontSize: 15.5, lineHeight: 1.6, resize: 'none' }} inputRef={taRef} />
             </>
           ) : (
             <>
