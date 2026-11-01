@@ -44,6 +44,9 @@ const C = {
 };
 // 탭별 포인트 색 (무채색 바탕 위에 선택된 탭·요약 카드·추가 버튼에만)
 const TAB_COLOR = { stock: "#5b8fc9", asset: "#3f9fae", pension: "#8f6bbf", loan: "#d08a3a", vest: "#4fa784" };
+// 탭 색을 옅게: 같은 탭 안 분류는 그 탭 색의 농담으로 (0 = 원래 색)
+const tint = (hex, t) => { const c = [1, 3, 5].map(k => parseInt(hex.slice(k, k + 2), 16)); return "#" + c.map(v => Math.round(v + (255 - v) * t).toString(16).padStart(2, "0")).join(""); };
+const TINTS = [0, 0.3, 0.5, 0.65, 0.78];
 const TAB_LABEL = { stock: "주식", asset: "실물자산", pension: "연금", loan: "부채", vest: "AMAT" };
 const TAB_KEYS = Object.keys(TAB_LABEL);
 // 저장된 순서에서 모르는 탭은 빼고, 빠진 탭은 뒤에 붙임
@@ -1978,9 +1981,16 @@ export default function AssetsApp() {
     assets.forEach(a => { m[a.cat] = (m[a.cat] || 0) + a.amount; });
     const effectiveCats = cats.find(c => c.key === "예수금") ? cats : [...cats, { key: "예수금", color: "#0d7377" }];
     return effectiveCats.filter(c => m[c.key] > 0)
-      .map(c => ({ name: c.key, value: m[c.key], color: c.color }))
+      .map(c => ({ name: c.key, value: m[c.key] }))
       .sort((a, b) => b.value - a.value);
   }, [assets, stockValue, cats]);
+  // 색은 탭과 맞춤: 주식·예수금 = 주식 탭 색, 연금 = 연금 탭 색, 부채 = 부채 탭 색, 실물자산 분류 = 실물자산 탭 색의 농담(큰 것부터 진하게)
+  const realCatColor = useMemo(() => {
+    const m = {};
+    assets.filter(a => !["예수금", "퇴직연금", "대출"].includes(a.cat)).forEach(a => { m[a.cat] = (m[a.cat] || 0) + a.amount; });
+    return Object.fromEntries(Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k], i) => [k, tint(TAB_COLOR.asset, TINTS[Math.min(i, TINTS.length - 1)])]));
+  }, [assets]);
+  const groupColor = key => key === "주식" ? TAB_COLOR.stock : key === "예수금" ? tint(TAB_COLOR.stock, 0.45) : key === "퇴직연금" ? TAB_COLOR.pension : key === "대출" ? TAB_COLOR.loan : realCatColor[key] || TAB_COLOR.asset;
 
   /* ── unvested RSU 예상가치 ── */
   const unvestedValue = useMemo(() =>
@@ -2105,7 +2115,7 @@ export default function AssetsApp() {
   function updateAsset(a) { setAssets(p => p.map(x => x.id === a.id ? a : x)); setModal(null); setEditItem(null); upsertAsset(a); }
   function deleteAsset(id){ setAssets(p => p.filter(x => x.id !== id)); setModal(null); setEditItem(null); if (isConfigured()) sb(`assets?id=eq.${id}`, { method: "DELETE" }).catch(() => {}); }
 
-  const catColor = key => cats.find(c => c.key === key)?.color || C.inkMid;
+  const catColor = groupColor;
   const tt = { background: C.paper, border: `1px solid ${C.border}`, borderRadius: 10, fontFamily: F, fontSize: 12 };
 
   return (
@@ -2141,7 +2151,7 @@ export default function AssetsApp() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={26} outerRadius={40} paddingAngle={3} stroke="none">
-                    {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                    {pieData.map((e, i) => <Cell key={i} fill={groupColor(e.name)} />)}
                   </Pie>
                   <Tooltip formatter={v => [fmt(v)]} contentStyle={tt} />
                 </PieChart>
