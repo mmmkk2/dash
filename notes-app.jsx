@@ -151,6 +151,33 @@ export function WikiLink({ title }) {
       style={{ ...plain, display: 'inline', fontSize: 'inherit', lineHeight: 'inherit', color: '#2f6fb3', fontWeight: 600, background: '#2f6fb314', borderRadius: 6, padding: '0 5px', margin: '0 1px' }}>{title}</button>
   )
 }
+// 이 글을 [[링크]]한 메모·노트 목록 (읽기 화면 아래)
+export function Backlinks({ title, kind, id }) {
+  const ctx = useContext(LinkCtx)
+  const t = (title || '').trim()
+  if (!ctx || !t) return null
+  const has = text => [...(text || '').matchAll(WIKI_RE)].some(m => m[1].trim() === t)
+  const list = [
+    ...(ctx.notes || []).filter(n => !(kind === 'note' && n.id === id) && has(n.content)).map(n => ({ kind: 'note', id: n.id, title: (n.title || '').trim() || '제목 없음' })),
+    ...(ctx.memos || []).filter(m => !(kind === 'memo' && m.id === id) && has(joinText(m.title, m.content))).map(m => ({ kind: 'memo', id: m.id, title: memoTitle(m) || '빈 메모' })),
+  ]
+  if (!list.length) return null
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.sub, padding: '0 4px 6px' }}>이 글을 링크한 곳 {list.length}</div>
+      <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, overflow: 'hidden' }}>
+        {list.map((x, i) => (
+          <button key={x.kind + x.id} onClick={() => ctx.openItem(x.kind, x.id)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '11px 16px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15, color: C.text }}>
+            <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: C.sub, background: C.fill, borderRadius: 6, padding: '1px 6px' }}>{x.kind === 'note' ? '노트' : '메모'}</span>
+            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title}</span>
+            <ChevronRight size={16} color={C.faint} />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // 연결할 메모·노트 고르기 (검색) → onPick(제목)
 export function LinkPicker({ onPick, onClose }) {
   const ctx = useContext(LinkCtx)
@@ -805,6 +832,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
               </>} />
           </Group>
           </div>
+          {!editing && edit.id && <div style={{ margin: '-6px 0 16px' }}><Backlinks title={memoTitle(edit)} kind="memo" id={edit.id} /></div>}
           {/* 마감일·고정 / 사업자 태그 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, margin: '-10px 0 8px' }}>
             <Chip on={!!edit.due_date} icon={CalendarDays} onClick={() => setEdit({ ...edit, due_date: edit.due_date ? '' : todayStr() })}>마감일</Chip>
@@ -1281,8 +1309,8 @@ export default function NotesApp({ initialTab = 'memo' }) {
   const [noteIndex, setNoteIndex] = useState([])
   const [target, setTarget] = useState(null) // { kind, id, at }
   useEffect(() => {
-    supabase.from('lecture_notes').select('id,title').then(({ data }) => data && setNoteIndex(data))
-  }, [kind])
+    supabase.from('lecture_notes').select('id,title,content').then(({ data }) => data && setNoteIndex(data))
+  }, [kind, target])
   function openLink(title) {
     const t = title.trim()
     const note = noteIndex.find(n => (n.title || '').trim() === t)
@@ -1291,7 +1319,8 @@ export default function NotesApp({ initialTab = 'memo' }) {
     pickKind(note ? 'note' : 'memo')
     setTarget({ kind: note ? 'note' : 'memo', id: (note || memo).id, at: Date.now() })
   }
-  const linkCtx = { open: openLink, notes: noteIndex, memos }
+  const openItem = (k, id) => { pickKind(k); setTarget({ kind: k, id, at: Date.now() }) }
+  const linkCtx = { open: openLink, openItem, notes: noteIndex, memos }
 
   return (
     <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: F, color: C.text, WebkitFontSmoothing: 'antialiased', letterSpacing: '-0.01em' }}>
