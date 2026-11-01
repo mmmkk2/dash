@@ -143,7 +143,7 @@ async function sb(path, opts = {}) {
 
 /* ── UI helpers ── */
 function SLabel({ children }) {
-  return <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 7, fontFamily: F }}>{children}</div>;
+  return <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 7, fontFamily: F }}>{children}</div>;
 }
 
 function Modal({ open, onClose, title, children }) {
@@ -318,14 +318,14 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
 
       {/* Account */}
       <div style={{ marginBottom: 12 }}>
-        <SLabel>계좌 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <SLabel>계좌 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
         <AutoInput value={institution} onChange={setInstitution} suggestions={suggestions} placeholder="미래에셋, 키움…"
           style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
 
       {/* Purchase Date (optional) */}
       <div style={{ marginBottom: market === "US" ? 12 : 20 }}>
-        <SLabel>매입일자 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <SLabel>매입일자 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input type="date" value={purchaseDate}
             onChange={e => { setPurchaseDate(e.target.value); lookupRate(e.target.value); }}
@@ -338,7 +338,7 @@ function StockForm({ initial, onSave, onDelete, onCopy, saving, suggestions = []
 
       {market === "US" && (
         <div style={{ marginBottom: 20 }}>
-          <SLabel>매입 환율 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(USD/KRW, 선택)</span></SLabel>
+          <SLabel>매입 환율 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(USD/KRW, 선택)</span></SLabel>
           <div style={{ display: "flex", alignItems: "center", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "0 12px", background: rateFetching ? C.cream : C.white }}>
             <span style={{ fontSize: 12, color: C.inkLight, marginRight: 6 }}>1 USD =</span>
             <input type="text" inputMode="numeric" value={rateFetching ? "" : purchaseRate}
@@ -421,7 +421,7 @@ function AssetForm({ initial, cats, onSave, onDelete, saving, suggestions = [] }
 
       {/* Account */}
       <div style={{ marginBottom: 12 }}>
-        <SLabel>계좌 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <SLabel>계좌 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
         <AutoInput value={institution} onChange={setInstitution} suggestions={suggestions} placeholder="국민은행, 미래에셋…"
           style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
@@ -482,14 +482,14 @@ function DepositForm({ initial, onSave, onDelete, saving, suggestions = [] }) {
       </div>
 
       <div style={{ marginBottom: 12 }}>
-        <SLabel>계좌 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <SLabel>계좌 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
         <AutoInput value={institution} onChange={setInstitution} suggestions={suggestions} placeholder="미래에셋, 키움…"
           style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 18 }}>
         <div>
-          <SLabel>메모 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+          <SLabel>메모 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
           <input value={memo} onChange={e => setMemo(e.target.value)} placeholder="대기 자금, CMA…"
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
@@ -685,9 +685,9 @@ function DCEtfForm({ initial = {}, institution, onSave, onDelete }) {
       <SLabel>티커</SLabel>
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
         <input value={ticker} onChange={e => setTicker(e.target.value)} onBlur={() => fetchName(ticker, market)} placeholder={market === "KR" ? "069500" : "SPY"}
-          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 17, fontWeight: 800, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", letterSpacing: "0.05em" }} />
+          style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 17, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", letterSpacing: "0.05em" }} />
       </div>
-      <SLabel>종목명 {nameLoading ? <span style={{ fontSize: 11, color: C.inkLight, fontWeight: 400 }}>조회 중…</span> : "(자동 조회 · 수정 가능)"}</SLabel>
+      <SLabel>종목명 {nameLoading ? <span style={{ fontSize: 12, color: C.inkLight, fontWeight: 400 }}>조회 중…</span> : "(자동 조회 · 수정 가능)"}</SLabel>
       <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
         <input value={name} onChange={e => setName(e.target.value)} placeholder={market === "KR" ? "KODEX 200" : "S&P500 ETF"}
           style={{ width: "100%", border: "none", padding: "11px 12px", fontSize: 14, fontWeight: 600, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
@@ -890,7 +890,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
             <input value={principal} onChange={e => setPrincipal(e.target.value.replace(/[^\d]/g, ""))} placeholder="300000000"
               style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
-            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>원</span>
           </div>
         </div>
         <div>
@@ -898,7 +898,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
             <input value={balance} onChange={e => setBalance(e.target.value.replace(/[^\d]/g, ""))} placeholder="250000000"
               style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
-            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>원</span>
           </div>
         </div>
       </div>
@@ -917,7 +917,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
             <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
               <input value={termMonths} onChange={e => setTermMonths(e.target.value.replace(/[^\d]/g, ""))} placeholder="360"
                 style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 16, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
-              <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>개월</span>
+              <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>개월</span>
             </div>
           </div>
         )}
@@ -926,7 +926,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {REPAY_TYPES.map(t => (
           <button key={t} onClick={() => setRepayType(t)}
-            style={{ flex: "1 1 auto", padding: "8px 0", border: `1.5px solid ${repayType === t ? C.ink : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 11, background: repayType === t ? C.ink : C.white, color: repayType === t ? "#fff" : C.inkMid, fontFamily: F }}>
+            style={{ flex: "1 1 auto", padding: "8px 0", border: `1.5px solid ${repayType === t ? C.ink : C.border}`, borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 12, background: repayType === t ? C.ink : C.white, color: repayType === t ? "#fff" : C.inkMid, fontFamily: F }}>
             {t}
           </button>
         ))}
@@ -937,23 +937,23 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center", marginBottom: 8 }}>
             <input value={monthlyPrinStr} onChange={e => setMonthlyPrinStr(e.target.value.replace(/[^\d]/g, ""))} placeholder="500000"
               style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
-            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>원</span>
           </div>
           {monthlyPrin > 0 && (
             <div style={{ background: C.cream, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", display: "flex", gap: 16, alignItems: "baseline" }}>
               <span style={{ fontSize: 12, color: C.inkMid }}>월 상환액</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(monthlyPrin + monthlyInt)}원</span>
-              <span style={{ fontSize: 11, color: C.inkLight }}>원금 {fmtS(monthlyPrin)} + 이자 {fmtS(monthlyInt)}</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(monthlyPrin + monthlyInt)}원</span>
+              <span style={{ fontSize: 12, color: C.inkLight }}>원금 {fmtS(monthlyPrin)} + 이자 {fmtS(monthlyInt)}</span>
             </div>
           )}
         </div>
       ) : repayType !== "직접입력" ? (
         <div style={{ background: calcedMonthly ? C.cream : C.paper, border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "baseline", gap: 8 }}>
           <span style={{ fontSize: 12, color: C.inkMid }}>월 상환액</span>
-          <span style={{ fontSize: 20, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
+          <span style={{ fontSize: 20, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>
             {calcedMonthly ? `${fmtS(calcedMonthly)}원` : "—"}
           </span>
-          {repayType === "원금균등" && <span style={{ fontSize: 10, color: C.inkLight }}>(현재 잔액 기준)</span>}
+          {repayType === "원금균등" && <span style={{ fontSize: 12, color: C.inkLight }}>(현재 잔액 기준)</span>}
         </div>
       ) : (
         <div style={{ marginBottom: 12 }}>
@@ -961,7 +961,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
           <div style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", display: "flex", alignItems: "center" }}>
             <input value={monthly} onChange={e => setMonthly(e.target.value.replace(/[^\d]/g, ""))} placeholder="800000"
               style={{ flex: 1, border: "none", padding: "11px 10px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, fontVariantNumeric: "tabular-nums", minWidth: 0 }} />
-            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 11, flexShrink: 0 }}>원</span>
+            <span style={{ padding: "0 8px 0 2px", color: C.inkLight, fontSize: 12, flexShrink: 0 }}>원</span>
           </div>
         </div>
       )}
@@ -977,7 +977,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
           {[...new Set([...(linkItems.length ? linkItems : LOAN_LINK_ITEMS), ...(initMemo.budgetLink ? [initMemo.budgetLink] : [])])].map(v => <option key={v} value={v}>{v}</option>)}
         </select>
       </div>
-      <div style={{ fontSize: 11.5, color: C.inkLight, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, color: C.inkLight, marginBottom: 12 }}>
         {link ? `가계부에 '${link}'로 쓴 원금상환이 이 부채 잔액에서 빠져요${initMemo.linkFrom && link === initMemo.budgetLink ? ` (${initMemo.linkFrom}부터)` : " (오늘부터)"}` : "연결하면 가계부 원금상환 기록이 잔액에 자동 반영돼요"}
       </div>
       <SLabel>메모 (선택)</SLabel>
@@ -1168,7 +1168,7 @@ function GrantEditForm({ grantName, grantDate, onSave }) {
           style={{ width: "100%", border: `1.5px solid ${err && !name.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
       <div style={{ marginBottom: 20 }}>
-        <SLabel>Award Date <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <SLabel>Award Date <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: date ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
@@ -1217,11 +1217,11 @@ function VestingForm({ initial, onSave, onDelete }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div><SLabel>어워드일 <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <div><SLabel>어워드일 <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
           <input type="date" value={grantDate} onChange={e => setGrantDate(e.target.value)}
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: grantDate ? C.ink : C.inkLight, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
-        <div><SLabel>부여가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <div><SLabel>부여가 (USD) <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
           <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="175.00"
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
@@ -1310,7 +1310,7 @@ function EsppForm({ initial, onSave, onDelete }) {
         {isEdit && <button onClick={onDelete} style={{ display: "flex", alignItems: "center", gap: 5, background: C.white, border: `0.5px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.down, fontSize: 12, fontWeight: 600 }}><Trash2 size={13} /> 삭제</button>}
       </div>
       <div style={{ marginBottom: 12 }}>
-        <SLabel>Plan ID <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 오퍼링 구분용 (예: 2026 H1)</span></SLabel>
+        <SLabel>Plan ID <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— 오퍼링 구분용 (예: 2026 H1)</span></SLabel>
         <input value={planId} onChange={e => setPlanId(e.target.value)} placeholder="2026 H1"
           style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
       </div>
@@ -1323,7 +1323,7 @@ function EsppForm({ initial, onSave, onDelete }) {
           <input type="text" inputMode="numeric" value={shares} onChange={e => setShares(e.target.value.replace(/\D/g, ""))} placeholder="48"
             style={{ width: "100%", border: `1.5px solid ${err && !parseInt(shares) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
-        <div><SLabel>취득가 USD <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>Cost/Other Basis</span></SLabel>
+        <div><SLabel>취득가 USD <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>Cost/Other Basis</span></SLabel>
           <input type="text" inputMode="decimal" value={avgPrice} onChange={e => setAvgPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="133.9345"
             style={{ width: "100%", border: `1.5px solid ${err && !parseFloat(avgPrice) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
@@ -1485,7 +1485,7 @@ function VestingBatchForm({ onSave }) {
           <input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="AMAT"
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textTransform: "uppercase" }} />
         </div>
-        <div><SLabel>그랜트 ID <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— UBS의 Grant ID (예: AMK1066155)</span></SLabel>
+        <div><SLabel>그랜트 ID <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— UBS의 Grant ID (예: AMK1066155)</span></SLabel>
           <input value={grantName} onChange={e => setGrantName(e.target.value)} placeholder="AMK1066155"
             style={{ width: "100%", border: `1.5px solid ${err && !grantName.trim() ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
@@ -1499,7 +1499,7 @@ function VestingBatchForm({ onSave }) {
           <input type="text" inputMode="numeric" value={totalShares} onChange={e => { setTotalShares(e.target.value.replace(/\D/g, "")); setGenerated(false); }} placeholder="55"
             style={{ width: "100%", border: `1.5px solid ${err && !parseInt(totalShares) ? "#e07a5f" : C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 14, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
-        <div><SLabel>부여가 USD <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
+        <div><SLabel>부여가 USD <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>(선택)</span></SLabel>
           <input type="text" inputMode="decimal" value={grantPrice} onChange={e => setGrantPrice(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="175.00"
             style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "9px 12px", fontSize: 13, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box" }} />
         </div>
@@ -1511,7 +1511,7 @@ function VestingBatchForm({ onSave }) {
         </div>
       </div>
       {awardYear && parseInt(awardYear) > 2000 && (
-        <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 10, paddingLeft: 2 }}>
+        <div style={{ fontSize: 12, color: C.inkLight, marginBottom: 10, paddingLeft: 2 }}>
           {awardDate} 어워드 → {startYear}-01-01 ~ {startYear + 3}-01-01 · 분기별 13회
         </div>
       )}
@@ -1521,7 +1521,7 @@ function VestingBatchForm({ onSave }) {
         {vestedCount > 0 && (
           <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 8 }}>
             <div style={{ flex: 1 }}>
-              <SLabel>완료 항목 베스팅가 (USD) <span style={{ fontSize: 9, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— Cost/Other Basis 값 입력 후 일괄 적용</span></SLabel>
+              <SLabel>완료 항목 베스팅가 (USD) <span style={{ fontSize: 12, fontWeight: 400, color: C.inkLight, textTransform: "none", letterSpacing: 0 }}>— Cost/Other Basis 값 입력 후 일괄 적용</span></SLabel>
               <input type="text" inputMode="decimal" value={bulkVestPrice}
                 onChange={e => setBulkVestPrice(e.target.value.replace(/[^0-9.]/g, ""))}
                 placeholder="256.99"
@@ -1537,9 +1537,9 @@ function VestingBatchForm({ onSave }) {
         <div style={{ marginBottom: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "28px 1fr 76px 68px", gap: 0, padding: "4px 6px", background: C.paper, borderRadius: "10px 10px 0 0", border: `1px solid ${C.border}` }}>
             <div />
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase" }}>베스팅일</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", textAlign: "center" }}>베스팅가$</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", textAlign: "right", paddingRight: 8 }}>주수</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase" }}>베스팅일</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", textAlign: "center" }}>베스팅가$</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.06em", textTransform: "uppercase", textAlign: "right", paddingRight: 8 }}>주수</div>
           </div>
           <div style={{ maxHeight: 260, overflowY: "auto", border: `1px solid ${C.border}`, borderTop: "none" }}>
             {rows.map((row, i) => (
@@ -1557,7 +1557,7 @@ function VestingBatchForm({ onSave }) {
                         onChange={e => setRowVPrice(i, e.target.value.replace(/[^0-9.]/g, ""))}
                         placeholder="—"
                         style={{ width: "100%", border: `1.5px solid ${row.vestPrice ? C.inkLight : C.border}`, borderRadius: 6, padding: "3px 5px", fontSize: 12, fontWeight: 700, color: C.ink, background: C.white, outline: "none", fontFamily: F, boxSizing: "border-box", textAlign: "right" }} />
-                    : <div style={{ textAlign: "center", fontSize: 11, color: C.inkLight }}>—</div>
+                    : <div style={{ textAlign: "center", fontSize: 12, color: C.inkLight }}>—</div>
                   }
                 </div>
                 <div style={{ padding: "3px 8px 3px 4px" }} onClick={e => e.stopPropagation()}>
@@ -1583,7 +1583,7 @@ function VestingBatchForm({ onSave }) {
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: autoPortfolio ? C.ink : C.inkMid }}>완료 항목 보유주식에 자동 등록</div>
-            <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>베스팅가가 입력된 완료 항목을 포트폴리오에 추가 (베스팅가 = 취득단가)</div>
+            <div style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>베스팅가가 입력된 완료 항목을 포트폴리오에 추가 (베스팅가 = 취득단가)</div>
           </div>
         </button>
       )}
@@ -1624,13 +1624,13 @@ function StockSaleForm({ stocks, onSave, saving }) {
     catch (e) { setError(e?.message || "매도 처리 중 오류가 났어."); }
   };
   return <div style={{ fontFamily: F }}>
-    <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>AMAT 매도 처리</div>
-    <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 16 }}>UBS Order Summary의 lot별 수량대로 선택해줘.</div>
+    <div style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>AMAT 매도 처리</div>
+    <div style={{ fontSize: 12, color: C.inkLight, marginBottom: 16 }}>UBS Order Summary의 lot별 수량대로 선택해줘.</div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
       <div><SLabel>매도일</SLabel><input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} style={input} /></div>
       <div><SLabel>체결가 USD</SLabel><input inputMode="decimal" value={salePriceUsd} onChange={e => setSalePriceUsd(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /></div>
       <div><SLabel>수수료 USD</SLabel><input inputMode="decimal" value={feesUsd} onChange={e => setFeesUsd(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /></div>
-      <div><SLabel>매도환율</SLabel><div style={{ display: "flex", gap: 5 }}><input inputMode="decimal" value={saleRate} onChange={e => setSaleRate(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /><button onClick={loadRate} style={{ border: 0, borderRadius: 8, padding: "0 9px", background: C.cream, color: C.inkMid, fontSize: 10 }}>{rateLoading ? "…" : "조회"}</button></div></div>
+      <div><SLabel>매도환율</SLabel><div style={{ display: "flex", gap: 5 }}><input inputMode="decimal" value={saleRate} onChange={e => setSaleRate(e.target.value.replace(/[^0-9.]/g, ""))} style={input} /><button onClick={loadRate} style={{ border: 0, borderRadius: 8, padding: "0 9px", background: C.cream, color: C.inkMid, fontSize: 12 }}>{rateLoading ? "…" : "조회"}</button></div></div>
     </div>
     <div style={{ marginBottom: 10 }}><SLabel>주문번호</SLabel><input value={orderRef} onChange={e => setOrderRef(e.target.value)} placeholder="Q520… (여러 건이면 쉼표)" style={input} /></div>
     <SLabel>매도 LOT</SLabel>
@@ -1638,7 +1638,7 @@ function StockSaleForm({ stocks, onSave, saving }) {
       {lots.map(s => { const on = selected[s.id] != null; return <div key={s.id} style={{ border: `1px solid ${on ? C.inkLight : C.border}`, borderRadius: 10, padding: 9, background: on ? C.cream : C.white }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input type="checkbox" checked={on} onChange={e => setSelected(p => { const n = { ...p }; if (e.target.checked) n[s.id] = { shares: String(s.shares), rate: String(s.purchaseRate || "") }; else delete n[s.id]; return n; })} />
-          <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700 }}>{s.name}</div><div style={{ fontSize: 10, color: C.inkLight }}>{s.purchaseDate} · 보유 {s.shares}주 · ${s.avgPrice.toFixed(3)}</div></div>
+          <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700 }}>{s.name}</div><div style={{ fontSize: 12, color: C.inkLight }}>{s.purchaseDate} · 보유 {s.shares}주 · ${s.avgPrice.toFixed(3)}</div></div>
         </div>
         {on && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}><input inputMode="decimal" value={selected[s.id].shares} onChange={e => setSelected(p => ({ ...p, [s.id]: { ...p[s.id], shares: e.target.value.replace(/[^0-9.]/g, "") } }))} placeholder="매도수량" style={input} /><input inputMode="decimal" value={selected[s.id].rate} onChange={e => setSelected(p => ({ ...p, [s.id]: { ...p[s.id], rate: e.target.value.replace(/[^0-9.]/g, "") } }))} placeholder="취득환율" style={input} /></div>}
       </div>; })}
@@ -1650,12 +1650,12 @@ function StockSaleForm({ stocks, onSave, saving }) {
       const feeKrw   = Math.round(Number(feesUsd || 0) * Number(saleRate));
       const costKrw  = lots.reduce((s, l) => { const sel = selected[l.id]; if (!sel) return s; return s + Math.round(Number(sel.shares || 0) * l.avgPrice * Number(sel.rate || l.purchaseRate || 0)); }, 0);
       const gainKrw  = grossKrw - feeKrw - costKrw;
-      return <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 11px", background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9, marginBottom: 12, fontSize: 11, color: C.inkMid }}>
+      return <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 11px", background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9, marginBottom: 12, fontSize: 12, color: C.inkMid }}>
         <span>매도대금 {fmtS(grossKrw)}</span><span>원가 {fmtS(costKrw)}</span><span style={{ color: gainKrw >= 0 ? C.up : C.down, fontWeight: 700 }}>{gainKrw >= 0 ? "+" : ""}{fmtS(gainKrw)}</span>
       </div>;
     })()}
-    {error && <div style={{ color: "#b5451b", fontSize: 11, marginBottom: 9 }}>{error}</div>}
-    <button onClick={submit} disabled={saving} style={{ width: "100%", border: 0, borderRadius: 11, padding: 13, background: C.ink, color: "#fff", fontWeight: 800, fontFamily: F }}>{saving ? "처리 중…" : "보유량 차감 + 매도 기록"}</button>
+    {error && <div style={{ color: "#b5451b", fontSize: 12, marginBottom: 9 }}>{error}</div>}
+    <button onClick={submit} disabled={saving} style={{ width: "100%", border: 0, borderRadius: 11, padding: 13, background: C.ink, color: "#fff", fontWeight: 700, fontFamily: F }}>{saving ? "처리 중…" : "보유량 차감 + 매도 기록"}</button>
   </div>;
 }
 
@@ -1665,14 +1665,14 @@ function TaxReportView({ sales, year = 2026 }) {
   const totals = complete.reduce((a, s) => { const c = saleCalc(s); Object.keys(a).forEach(k => a[k] += c[k] || 0); return a; }, { shares: 0, grossKrw: 0, feeKrw: 0, costKrw: 0, gainKrw: 0 });
   const taxable = Math.max(0, totals.gainKrw - 2500000), tax = Math.round(taxable * 0.22);
   return <div style={{ fontFamily: F }}>
-    <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 4 }}>{year} AMAT 양도소득 리포트</div>
-    <div style={{ fontSize: 11, color: C.inkLight, marginBottom: 14 }}>해외주식 전체 기본공제 250만원 · 예상세율 22%</div>
-    {yearSales.some(s => s.status !== "complete") && <div style={{ padding: 10, borderRadius: 9, background: "#fff8f0", border: "1px solid #f4c5b2", color: "#b5451b", fontSize: 11, marginBottom: 12 }}>미완성 거래가 있어 아래 합계는 확정 전이야. 미완성 거래는 합계에서 제외했어.</div>}
+    <div style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>{year} AMAT 양도소득 리포트</div>
+    <div style={{ fontSize: 12, color: C.inkLight, marginBottom: 14 }}>해외주식 전체 기본공제 250만원 · 예상세율 22%</div>
+    {yearSales.some(s => s.status !== "complete") && <div style={{ padding: 10, borderRadius: 9, background: "#fff8f0", border: "1px solid #f4c5b2", color: "#b5451b", fontSize: 12, marginBottom: 12 }}>미완성 거래가 있어 아래 합계는 확정 전이야. 미완성 거래는 합계에서 제외했어.</div>}
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 14 }}>
-      {[["매도대금", totals.grossKrw], ["취득원가", totals.costKrw], ["수수료", totals.feeKrw], ["양도차익", totals.gainKrw], ["과세표준", taxable], ["예상세액", tax]].map(([l, v]) => <div key={l} style={{ padding: 10, background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9 }}><div style={{ fontSize: 10, color: C.inkLight }}>{l}</div><div style={{ fontSize: 14, fontWeight: 800, color: l === "예상세액" ? "#b5451b" : C.ink }}>{fmt(v)}</div></div>)}
+      {[["매도대금", totals.grossKrw], ["취득원가", totals.costKrw], ["수수료", totals.feeKrw], ["양도차익", totals.gainKrw], ["과세표준", taxable], ["예상세액", tax]].map(([l, v]) => <div key={l} style={{ padding: 10, background: C.paper, border: `1px solid ${C.border}`, borderRadius: 9 }}><div style={{ fontSize: 12, color: C.inkLight }}>{l}</div><div style={{ fontSize: 14, fontWeight: 700, color: l === "예상세액" ? "#b5451b" : C.ink }}>{fmt(v)}</div></div>)}
     </div>
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-      {yearSales.sort((a,b) => b.saleDate.localeCompare(a.saleDate)).map(s => { const c = saleCalc(s); return <details key={s.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 11px", background: C.white }}><summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 700 }}>{s.saleDate} · {c.shares}주 · {s.status === "complete" ? `${c.gainKrw >= 0 ? "+" : ""}${fmt(c.gainKrw)}` : "상세 확인 필요"}</summary><div style={{ marginTop: 8, fontSize: 11, color: C.inkMid, lineHeight: 1.65 }}>체결가 ${s.salePriceUsd || "—"} · 수수료 ${s.feesUsd || 0} · 환율 {s.saleRate || "—"} <span style={{ color: C.inkLight }}>(매도대금 {fmt(c.grossKrw)} · 수수료 {fmt(c.feeKrw)})</span><br />주문 {s.orderRef || "—"}{(s.lots || []).map((l,i) => <div key={i} style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${C.border}` }}>{l.sourceName} · {l.acquisitionDate} · {l.shares}주 · 원가 ${l.costBasisUsd} · 취득환율 {l.acquisitionRate} <span style={{ color: C.inkLight }}>(원가 {fmt(Math.round(Number(l.shares || 0) * Number(l.costBasisUsd || 0) * Number(l.acquisitionRate || 0)))})</span></div>)}</div></details>; })}
+      {yearSales.sort((a,b) => b.saleDate.localeCompare(a.saleDate)).map(s => { const c = saleCalc(s); return <details key={s.id} style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 11px", background: C.white }}><summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 700 }}>{s.saleDate} · {c.shares}주 · {s.status === "complete" ? `${c.gainKrw >= 0 ? "+" : ""}${fmt(c.gainKrw)}` : "상세 확인 필요"}</summary><div style={{ marginTop: 8, fontSize: 12, color: C.inkMid, lineHeight: 1.65 }}>체결가 ${s.salePriceUsd || "—"} · 수수료 ${s.feesUsd || 0} · 환율 {s.saleRate || "—"} <span style={{ color: C.inkLight }}>(매도대금 {fmt(c.grossKrw)} · 수수료 {fmt(c.feeKrw)})</span><br />주문 {s.orderRef || "—"}{(s.lots || []).map((l,i) => <div key={i} style={{ marginTop: 5, paddingTop: 5, borderTop: `1px solid ${C.border}` }}>{l.sourceName} · {l.acquisitionDate} · {l.shares}주 · 원가 ${l.costBasisUsd} · 취득환율 {l.acquisitionRate} <span style={{ color: C.inkLight }}>(원가 {fmt(Math.round(Number(l.shares || 0) * Number(l.costBasisUsd || 0) * Number(l.acquisitionRate || 0)))})</span></div>)}</div></details>; })}
     </div>
   </div>;
 }
@@ -2166,7 +2166,7 @@ export default function AssetsApp() {
             {unvestedValue > 0 && <span>미확정 RSU {fmtS(unvestedValue)}</span>}
           </div>
           {/* 환율·시세 기준 시각 */}
-          <div style={{ fontSize: 11, color: C.inkLight, marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: C.inkLight, marginTop: 8 }}>
             USD/KRW {rate.toLocaleString("ko-KR")}원
             {fetching ? <span style={{ marginLeft: 6 }}>· 시세 조회 중…</span> : lastSync && <span style={{ marginLeft: 6 }}>· {lastSync} 기준</span>}
             {fetchErr > 0 && <span style={{ marginLeft: 6, color: C.down }}>· {fetchErr}종목 조회 실패</span>}
@@ -2222,15 +2222,15 @@ export default function AssetsApp() {
                     { label: "수익률", val: (nonAmatGain >= 0 ? "+" : "") + nonAmatGainPct + "%", color: nonAmatGain >= 0 ? C.up : C.down },
                   ].map(({ label, val, color }) => (
                     <div key={label} style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{val}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{val}</div>
                     </div>
                   ))}
                 </div>
                 {hasDailyData && (
                   <div style={{ marginTop: 12, paddingTop: 10, borderTop: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em" }}>전일비</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: dailyGain >= 0 ? C.up : C.down, fontVariantNumeric: "tabular-nums" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em" }}>전일비</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: dailyGain >= 0 ? C.up : C.down, fontVariantNumeric: "tabular-nums" }}>
                       {dailyGain >= 0 ? "+" : ""}{fmtS(dailyGain)}
                     </span>
                     {dailyGain >= 0
@@ -2271,23 +2271,23 @@ export default function AssetsApp() {
                         {/* Account header card */}
                         <button onClick={() => toggleAcct(acctName)} style={{ width: "100%", border: "none", cursor: "pointer", background: C.white, padding: "13px 16px", textAlign: "left", fontFamily: F }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                            <div style={{ fontSize: 17, fontWeight: 900, color: C.ink, letterSpacing: "-0.02em", flex: 1 }}>{acctName}</div>
-                            {acctStocks.length > 0 && <span style={{ fontSize: 10, color: C.inkLight, fontWeight: 600 }}>{acctStocks.length}종목</span>}
+                            <div style={{ fontSize: 17, fontWeight: 700, color: C.ink, letterSpacing: "-0.02em", flex: 1 }}>{acctName}</div>
+                            {acctStocks.length > 0 && <span style={{ fontSize: 12, color: C.inkLight, fontWeight: 600 }}>{acctStocks.length}종목</span>}
                             {isAcctOpen ? <ChevronUp size={13} color={C.inkLight} /> : <ChevronDown size={13} color={C.inkLight} />}
                           </div>
                           <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
                             <div>
-                              <span style={{ fontSize: 10, color: C.inkLight, marginRight: 5 }}>총액</span>
-                              <span style={{ fontSize: 15, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</span>
-                              {acctStocks.length > 0 && <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</span>}
-                              {acctDeposit > 0 && <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>예수금 {fmtS(acctDeposit)}</span>}
+                              <span style={{ fontSize: 12, color: C.inkLight, marginRight: 5 }}>총액</span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctValue)}</span>
+                              {acctStocks.length > 0 && <span style={{ fontSize: 12, color: C.inkLight, marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>{fmtS(acctCost)} 투자</span>}
+                              {acctDeposit > 0 && <span style={{ fontSize: 12, color: C.inkLight, marginLeft: 4, fontVariantNumeric: "tabular-nums" }}>예수금 {fmtS(acctDeposit)}</span>}
                             </div>
                             {acctStocks.length > 0 && (
                               <div>
-                                <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: acctPos ? C.up : C.down }}>
+                                <span style={{ fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: acctPos ? C.up : C.down }}>
                                   {acctPos ? "+" : ""}{fmtS(acctGain)}
                                 </span>
-                                <span style={{ fontSize: 10, marginLeft: 4, fontVariantNumeric: "tabular-nums", color: acctPos ? C.up : C.down, opacity: 0.85 }}>
+                                <span style={{ fontSize: 12, marginLeft: 4, fontVariantNumeric: "tabular-nums", color: acctPos ? C.up : C.down, opacity: 0.85 }}>
                                   {acctGainPct != null ? `(${acctPos ? "+" : ""}${acctGainPct}%)` : ""}
                                 </span>
                               </div>
@@ -2303,7 +2303,7 @@ export default function AssetsApp() {
                                 <div style={{ width: 4, height: 32, borderRadius: 2, background: "#0d7377", flexShrink: 0 }} />
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>예수금{d.memo ? ` · ${d.memo}` : ""}</div>
-                                  <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>{d.date}</div>
+                                  <div style={{ fontSize: 12, color: C.inkLight, marginTop: 1 }}>{d.date}</div>
                                 </div>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums", marginRight: 4 }}>{fmtS(d.amount)}</div>
                                 <button onClick={() => { setEditItem(d); setModal("editDeposit"); }} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
@@ -2338,9 +2338,9 @@ export default function AssetsApp() {
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{(s.name && !s.name.includes(',') && !/^\d{5,6}\.(KS|KQ)/i.test(s.name)) ? s.name : s.ticker}</span>
-                                        <span style={{ fontSize: 10, fontWeight: 600, color: C.inkLight, background: C.cream, borderRadius: 4, padding: "1px 5px" }}>{s.ticker}</span>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: C.inkLight, background: C.cream, borderRadius: 4, padding: "1px 5px" }}>{s.ticker}</span>
                                       </div>
-                                      <div style={{ fontSize: 11, color: C.inkLight }}>
+                                      <div style={{ fontSize: 12, color: C.inkLight }}>
                                         {s.shares}주 · {fmtPrice(s.avgPrice, s.market === "US" ? "USD" : "KRW")}
                                       </div>
                                     </div>
@@ -2349,13 +2349,13 @@ export default function AssetsApp() {
                                         {valueKrw != null ? fmtS(valueKrw) : "—"}
                                       </div>
                                       {dayDiffKrw != null ? (
-                                        <div style={{ fontSize: 11, fontWeight: 600, color: dayDiffKrw >= 0 ? C.up : C.down, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                                        <div style={{ fontSize: 12, fontWeight: 600, color: dayDiffKrw >= 0 ? C.up : C.down, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
                                           {dayDiffKrw >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                                           {dayDiffKrw >= 0 ? "+" : ""}{fmtS(dayDiffKrw)}
-                                          {dayDiffPct != null && <span style={{ fontSize: 10, opacity: 0.7 }}>({dayDiffKrw >= 0 ? "+" : ""}{dayDiffPct}%)</span>}
+                                          {dayDiffPct != null && <span style={{ fontSize: 12, opacity: 0.7 }}>({dayDiffKrw >= 0 ? "+" : ""}{dayDiffPct}%)</span>}
                                         </div>
                                       ) : gainPct != null && (
-                                        <div style={{ fontSize: 11, fontWeight: 600, color: isPos ? C.up : C.down, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
+                                        <div style={{ fontSize: 12, fontWeight: 600, color: isPos ? C.up : C.down, display: "flex", alignItems: "center", gap: 2, justifyContent: "flex-end" }}>
                                           {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                                           {isPos ? "+" : ""}{gainPct}%
                                         </div>
@@ -2378,15 +2378,15 @@ export default function AssetsApp() {
                                       <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", background: C.paper }}>
                                         <div style={{ background: C.white, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
                                           <div style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "5px 12px", borderBottom: `1px solid ${C.border}` }}>
-                                            <span /><span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>원화</span>
-                                            <span style={{ fontSize: 9, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>달러</span>
+                                            <span /><span style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>원화</span>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, textAlign: "right", letterSpacing: "0.06em" }}>달러</span>
                                           </div>
                                           {dRows.map(({ label, krw, usd, isGain }, i) => {
                                             const color = isGain ? (krw == null ? C.inkLight : krw >= 0 ? C.up : C.down) : C.ink;
                                             const pfx = isGain && krw != null ? (krw >= 0 ? "+" : "−") : "";
                                             return (
                                               <div key={label} style={{ display: "grid", gridTemplateColumns: "2.6rem 1fr 1fr", padding: "9px 12px", borderBottom: i < 2 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
-                                                <span style={{ fontSize: 10, fontWeight: 700, color: C.inkLight }}>{label}</span>
+                                                <span style={{ fontSize: 12, fontWeight: 700, color: C.inkLight }}>{label}</span>
                                                 <span style={{ fontSize: 13, fontWeight: 700, color, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{krw != null ? pfx + fmtS(Math.abs(krw)) : "—"}</span>
                                                 <span style={{ fontSize: 12, fontWeight: 600, color: isGain ? color : C.inkMid, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{usd != null ? pfx + fu(usd) : "—"}</span>
                                               </div>
@@ -2394,7 +2394,7 @@ export default function AssetsApp() {
                                           })}
                                         </div>
                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                          <div style={{ fontSize: 10, color: C.inkLight }}>
+                                          <div style={{ fontSize: 12, color: C.inkLight }}>
                                             현재가 {hasPrice ? fmtPrice(p, s.market === "US" ? "USD" : "KRW") : "미조회"}
                                             {s.market === "US" && s.purchaseRate && <span style={{ marginLeft: 6 }}>· 매입 {s.purchaseRate.toLocaleString("ko-KR")}원</span>}
                                           </div>
@@ -2454,7 +2454,7 @@ export default function AssetsApp() {
                           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
                             <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
                             <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: C.ink }}>{catName}</div>
-                            <div style={{ fontSize: 11, color, fontWeight: 700, marginRight: 2 }}>{pct}%</div>
+                            <div style={{ fontSize: 12, color, fontWeight: 700, marginRight: 2 }}>{pct}%</div>
                             <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums", marginRight: 6 }}>{fmtS(catTotal)}</div>
                             {isCatOpen ? <ChevronUp size={13} color={C.inkLight} /> : <ChevronDown size={13} color={C.inkLight} />}
                           </div>
@@ -2477,12 +2477,12 @@ export default function AssetsApp() {
                                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                                         <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{a.name}</span>
                                         {a.institution && (
-                                          <span style={{ fontSize: 10, fontWeight: 600, color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 5, padding: "1px 6px" }}>
+                                          <span style={{ fontSize: 12, fontWeight: 600, color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 5, padding: "1px 6px" }}>
                                             {a.institution}
                                           </span>
                                         )}
                                       </div>
-                                      <div style={{ fontSize: 11, color: C.inkLight }}>{a.date}</div>
+                                      <div style={{ fontSize: 12, color: C.inkLight }}>{a.date}</div>
                                     </div>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
                                     {isOpen ? <ChevronUp size={12} color={C.inkLight} /> : <ChevronDown size={12} color={C.inkLight} />}
@@ -2491,8 +2491,8 @@ export default function AssetsApp() {
                                     <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 16px", background: C.paper, display: "flex", alignItems: "center", gap: 10 }}>
                                       <div style={{ flex: 1 }}>
                                         <div style={{ fontSize: 13, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>{fmt(a.amount)}</div>
-                                        {a.date && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 3 }}>기준일 {a.date}</div>}
-                                        {a.memo && <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>{a.memo}</div>}
+                                        {a.date && <div style={{ fontSize: 12, color: C.inkLight, marginTop: 3 }}>기준일 {a.date}</div>}
+                                        {a.memo && <div style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>{a.memo}</div>}
                                       </div>
                                       <button onClick={() => { setEditItem(a); setModal("editAsset"); }} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: "7px 12px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600 }}>
                                         <Pencil size={12} /> 수정
@@ -2526,16 +2526,16 @@ export default function AssetsApp() {
               {pensions.length > 0 && (
                 <div style={{ ...tintCard(TAB_COLOR.pension), borderRadius: 16, padding: "16px 18px", marginBottom: 14, color: C.ink }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>연금·공제</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>연금·공제</div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>총 적립액</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{fmtS(pensionTotal)}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>총 적립액</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fmtS(pensionTotal)}</div>
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>월 납입 합계</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>월 납입 합계</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                         {(() => { const m = pensions.filter(a => PENSION_MONTHLY.has(a.accountSuffix)).reduce((s, a) => s + (parseInt(a.memo) || 0), 0); return m > 0 ? fmtS(m) : "—"; })()}
                       </div>
                     </div>
@@ -2546,7 +2546,7 @@ export default function AssetsApp() {
                         const ev = t === "DC" && dcEtfValueByAcctId[String(a.id)] != null ? dcEtfValueByAcctId[String(a.id)] : null;
                         return acc + (ev ?? a.amount);
                       }, 0);
-                      return s > 0 ? <div key={t} style={{ fontSize: 11, opacity: 0.65 }}>{t} {fmtS(s)}</div> : null;
+                      return s > 0 ? <div key={t} style={{ fontSize: 12, opacity: 0.65 }}>{t} {fmtS(s)}</div> : null;
                     })}
                   </div>
                 </div>
@@ -2595,13 +2595,13 @@ export default function AssetsApp() {
                                   <div style={{ width: 4, height: isM ? 52 : 36, borderRadius: 2, background: color, flexShrink: 0 }} />
                                   <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{a.name || a.institution}</div>
-                                    <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                                    <div style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>
                                       {a.institution}
                                       {isM && monthly > 0 ? ` · 월 ${fmtS(monthly)}` : ""}
                                       {isM && months > 0 ? ` · ${months}개월` : (!isM && a.date ? ` · ${a.date}` : "")}
                                     </div>
                                     {isM && accum > 0 && (
-                                      <div style={{ fontSize: 11, color: C.inkLight, marginTop: 1 }}>
+                                      <div style={{ fontSize: 12, color: C.inkLight, marginTop: 1 }}>
                                         납입 {fmtS(accum)}
                                         {gain !== null && <span style={{ marginLeft: 6, fontWeight: 700, color: isPos ? "#2d9e6b" : "#d95f4b" }}>{isPos ? "+" : ""}{fmtS(gain)} ({gainPct}%)</span>}
                                       </div>
@@ -2609,11 +2609,11 @@ export default function AssetsApp() {
                                   </div>
                                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(dispAmt)}</div>
-                                    {isDC && etfs.length > 0 && <div style={{ fontSize: 10, color: C.inkLight, marginTop: 1 }}>{etfs.length}개 종목</div>}
+                                    {isDC && etfs.length > 0 && <div style={{ fontSize: 12, color: C.inkLight, marginTop: 1 }}>{etfs.length}개 종목</div>}
                                   </div>
                                   {isM && monthly > 0 && (
                                     <button onClick={() => { setEditItem(a); setModal("payPension"); }}
-                                      style={{ background: C.ink, border: "none", borderRadius: 7, padding: "5px 9px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700 }}>
+                                      style={{ background: C.ink, border: "none", borderRadius: 7, padding: "5px 9px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700 }}>
                                       납입
                                     </button>
                                   )}
@@ -2643,11 +2643,11 @@ export default function AssetsApp() {
                                           <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "9px 16px 9px 24px", borderBottom: si < etfs.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                             <div style={{ flex: 1 }}>
                                               <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{s.name || s.ticker}</div>
-                                              <div style={{ fontSize: 11, color: C.inkLight }}>{s.ticker} · {s.shares}주 · 단가 {s.market === "US" ? `$${s.avgPrice}` : fmtS(s.avgPrice)}</div>
+                                              <div style={{ fontSize: 12, color: C.inkLight }}>{s.ticker} · {s.shares}주 · 단가 {s.market === "US" ? `$${s.avgPrice}` : fmtS(s.avgPrice)}</div>
                                             </div>
                                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                                               <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw != null ? fmtS(valKrw) : "—"}</div>
-                                              {g != null && <div style={{ fontSize: 10, color: g >= 0 ? "#2d9e6b" : "#d95f4b", fontVariantNumeric: "tabular-nums" }}>{g >= 0 ? "+" : ""}{fmtS(g)} ({gPct}%)</div>}
+                                              {g != null && <div style={{ fontSize: 12, color: g >= 0 ? "#2d9e6b" : "#d95f4b", fontVariantNumeric: "tabular-nums" }}>{g >= 0 ? "+" : ""}{fmtS(g)} ({gPct}%)</div>}
                                             </div>
                                             <button onClick={() => { setEditItem(s); setModal("editDCEtf"); }}
                                               style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "4px 6px", cursor: "pointer", color: C.inkMid, display: "flex" }}>
@@ -2739,10 +2739,10 @@ export default function AssetsApp() {
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 15.5, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name || a.institution}</span>
-                              <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color, background: color + "14", borderRadius: 6, padding: "1px 6px" }}>{a.accountSuffix}</span>
+                              <span style={{ fontSize: 15, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name || a.institution}</span>
+                              <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color, background: color + "14", borderRadius: 6, padding: "1px 6px" }}>{a.accountSuffix}</span>
                             </div>
-                            <div style={{ fontSize: 12.5, color: C.inkLight, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div style={{ fontSize: 13, color: C.inkLight, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {[a.name && a.institution, m.rate != null && `${m.rate}%`, mt > 0 ? `월 ${fmtS(mt)}${mi ? ` (이자 ${fmtS(mi)})` : ""}` : mi ? `월 이자 ${fmtS(mi)}` : null].filter(Boolean).join(" · ")}
                             </div>
                           </div>
@@ -2754,7 +2754,7 @@ export default function AssetsApp() {
                           ) : (
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
-                              {dl != null && <div style={{ fontSize: 11.5, color: dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : C.inkLight, marginTop: 1 }}>{dl < 0 ? "만기됨" : `만기 D-${dl}`}</div>}
+                              {dl != null && <div style={{ fontSize: 13, color: dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : C.inkLight, marginTop: 1 }}>{dl < 0 ? "만기됨" : `만기 D-${dl}`}</div>}
                             </div>
                           )}
                           <button onClick={e => { e.stopPropagation(); setEditItem(a); setModal("payLoan"); }}
@@ -2766,7 +2766,7 @@ export default function AssetsApp() {
                             <div style={{ flex: 1, height: 4, borderRadius: 9, background: C.cream, overflow: "hidden" }}>
                               <div style={{ width: `${repaid}%`, height: "100%", background: TAB_COLOR.loan, borderRadius: 9 }} />
                             </div>
-                            <span style={{ fontSize: 11, color: C.inkLight, flexShrink: 0 }}>상환 {repaid}%</span>
+                            <span style={{ fontSize: 12, color: C.inkLight, flexShrink: 0 }}>상환 {repaid}%</span>
                           </div>
                         )}
                         {m.memo && <div style={{ fontSize: 12, color: C.inkLight, marginTop: 5 }}>{m.memo}</div>}
@@ -2824,32 +2824,32 @@ export default function AssetsApp() {
               {amatStocks.length > 0 && (
                 <div style={{ ...tintCard(TAB_COLOR.vest), borderRadius: 16, padding: "16px 18px", marginBottom: 14, color: C.ink }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, paddingRight: 72 }}>
-                    <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em" }}>AMAT</div>
-                    <div style={{ fontSize: 11, color: C.inkLight, fontWeight: 600 }}>Applied Materials</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em" }}>AMAT</div>
+                    <div style={{ fontSize: 12, color: C.inkLight, fontWeight: 600 }}>Applied Materials</div>
                     {amatPrice && <div style={{ marginLeft: "auto", fontSize: 12, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>${amatPrice.toFixed(2)}</div>}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>보유 총액</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{amatValue ? fmtS(amatValue) : "—"}</div>
-                      <div style={{ fontSize: 10, color: C.inkLight, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>보유 총액</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{amatValue ? fmtS(amatValue) : "—"}</div>
+                      <div style={{ fontSize: 12, color: C.inkLight, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                         {amatValueUsd != null ? `$${amatValueUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}` : ""} · {amatShares}주
                       </div>
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>평가손익</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? C.up : C.down }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>평가손익</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: amatGain >= 0 ? C.up : C.down }}>
                         {amatGain != null ? (amatGain >= 0 ? "+" : "") + fmtS(amatGain) : "—"}
                       </div>
-                      <div style={{ fontSize: 10, color: amatGainUsd >= 0 ? C.up : C.down, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                      <div style={{ fontSize: 12, color: amatGainUsd >= 0 ? C.up : C.down, marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                         {amatGainUsd != null ? `${amatGainUsd >= 0 ? "+" : ""}$${Math.round(amatGainUsd).toLocaleString("en-US")}` : ""}
                         {amatGainPct != null ? ` (${amatGainUsd >= 0 ? "+" : ""}${amatGainPct}%)` : ""}
                       </div>
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>미베스팅 예상가</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{unvestedVal > 0 ? fmtS(unvestedVal) : "—"}</div>
-                      <div style={{ fontSize: 10, color: C.inkLight, marginTop: 2 }}>{amatUnvested.reduce((s, v) => s + v.shares, 0)}주 예정</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.05em", marginBottom: 4 }}>미베스팅 예상가</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{unvestedVal > 0 ? fmtS(unvestedVal) : "—"}</div>
+                      <div style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>{amatUnvested.reduce((s, v) => s + v.shares, 0)}주 예정</div>
                     </div>
                   </div>
                 </div>
@@ -2858,11 +2858,11 @@ export default function AssetsApp() {
               <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.ink }}>2026 양도소득 리포트</div>
-                    <div style={{ fontSize: 11, color: C.inkLight, marginTop: 3 }}>{amatYearSales.length}건 · 확인분 양도차익 {completeSaleGain >= 0 ? "+" : ""}{fmtS(completeSaleGain)} · 예상세액 {fmtS(estimatedTax)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>2026 양도소득 리포트</div>
+                    <div style={{ fontSize: 12, color: C.inkLight, marginTop: 3 }}>{amatYearSales.length}건 · 확인분 양도차익 {completeSaleGain >= 0 ? "+" : ""}{fmtS(completeSaleGain)} · 예상세액 {fmtS(estimatedTax)}</div>
                   </div>
-                  <button onClick={() => setModal("taxReport")} style={{ border: `1px solid ${C.border}`, background: C.paper, borderRadius: 8, padding: "7px 10px", color: C.inkMid, fontSize: 11, fontWeight: 700 }}>상세</button>
-                  <button onClick={() => setModal("stockSale")} style={{ border: 0, background: TAB_COLOR.vest, borderRadius: 8, padding: "8px 11px", color: "#fff", fontSize: 11, fontWeight: 800 }}>매도 처리</button>
+                  <button onClick={() => setModal("taxReport")} style={{ border: `1px solid ${C.border}`, background: C.paper, borderRadius: 8, padding: "7px 10px", color: C.inkMid, fontSize: 12, fontWeight: 700 }}>상세</button>
+                  <button onClick={() => setModal("stockSale")} style={{ border: 0, background: TAB_COLOR.vest, borderRadius: 8, padding: "8px 11px", color: "#fff", fontSize: 12, fontWeight: 700 }}>매도 처리</button>
                 </div>
               </div>
 
@@ -2880,7 +2880,7 @@ export default function AssetsApp() {
                   <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, padding: "14px 12px 8px", marginBottom: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.inkMid }}>베스팅 누적 가치</span>
-                      <span style={{ fontSize: 11, color: C.inkLight }}>현재가 기준 · {amatUnvested.length}건 예정</span>
+                      <span style={{ fontSize: 12, color: C.inkLight }}>현재가 기준 · {amatUnvested.length}건 예정</span>
                     </div>
                     <ResponsiveContainer width="100%" height={150}>
                       <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -2891,12 +2891,12 @@ export default function AssetsApp() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.inkLight }} axisLine={false} tickLine={false} interval={0} />
+                        <XAxis dataKey="label" tick={{ fontSize: 12, fill: C.inkLight }} axisLine={false} tickLine={false} interval={0} />
                         <YAxis hide domain={["auto", "auto"]} />
                         <Tooltip
                           formatter={v => [fmtS(v), "누적 평가액"]}
                           labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? "현재"}
-                          contentStyle={{ fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, boxShadow: "0 2px 8px #0001" }}
+                          contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, boxShadow: "0 2px 8px #0001" }}
                           labelStyle={{ fontWeight: 700, color: C.ink, marginBottom: 2 }}
                         />
                         <Area type="monotone" dataKey="value" stroke="#2d6a4f" strokeWidth={2} fill="url(#amatCumGrad)"
@@ -2912,7 +2912,7 @@ export default function AssetsApp() {
               })()}
 
               {/* ─ 보유 · 예정 (그랜트별 폴딩) ─ */}
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10 }}>보유 · 예정</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, letterSpacing: "-0.01em", marginBottom: 10 }}>보유 · 예정</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
                 {grantEntriesShared.map(([grantName, gvs]) => {
                   const vestedVestings = gvs.filter(v => v.vested);
@@ -2938,9 +2938,9 @@ export default function AssetsApp() {
                             {/* 왼쪽: 이름 + 부여일 (D-XX는 펼침 시만) */}
                             <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>{grantName}</span>
-                              {grantDate && <span style={{ fontSize: 10, color: C.inkLight }}>{grantDate}</span>}
+                              {grantDate && <span style={{ fontSize: 12, color: C.inkLight }}>{grantDate}</span>}
                               {isOpen && dl != null && (
-                                <span style={{ fontSize: 11, fontWeight: 800, color: dc }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: dc }}>
                                   {dl < 0 ? "지남" : `D-${dl}`}
                                 </span>
                               )}
@@ -2949,12 +2949,12 @@ export default function AssetsApp() {
                             <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                               <div style={{ textAlign: "right", minWidth: 80 }}>
                                 {heldSh > 0 && (
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums" }}>
                                     보유 {heldSh}주{amatPrice ? <span style={{ color: C.ink, marginLeft: 4 }}>${Math.round(amatPrice * heldSh).toLocaleString()}</span> : null}
                                   </div>
                                 )}
                                 {futureSh > 0 && (
-                                  <div style={{ fontSize: 11, color: C.inkLight, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>예정 {futureSh}주</div>
+                                  <div style={{ fontSize: 12, color: C.inkLight, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>예정 {futureSh}주</div>
                                 )}
                               </div>
                             </div>
@@ -2988,12 +2988,12 @@ export default function AssetsApp() {
                             return (
                               <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: vi < vestedVestings.length - 1 || futures.length > 0 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: C.inkMid }}>베스팅 {v.shares}주 · 현재 {heldForVest}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid }}>베스팅 {v.shares}주 · 현재 {heldForVest}주{costUsd ? ` · 취득가 $${costUsd.toFixed(2)}` : ""}</div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}{p ? <span style={{ fontSize: 10, color: C.inkLight, marginLeft: 4 }}>${(p * v.shares).toFixed(0)}</span> : null}</div>
-                                  {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{valKrw ? fmtS(valKrw) : "—"}{p ? <span style={{ fontSize: 12, color: C.inkLight, marginLeft: 4 }}>${(p * v.shares).toFixed(0)}</span> : null}</div>
+                                  {gain != null && <div style={{ fontSize: 12, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                 </div>
                                 <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
                                   style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -3004,7 +3004,7 @@ export default function AssetsApp() {
                           })}
                           {/* 미래 예정 구분 */}
                           {futures.length > 0 && (
-                            <div style={{ padding: "5px 14px 5px 28px", background: C.paper, borderBottom: `1px solid ${C.border}`, fontSize: 10, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+                            <div style={{ padding: "5px 14px 5px 28px", background: C.paper, borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 700, color: C.inkLight, letterSpacing: "0.07em", textTransform: "uppercase" }}>
                               예정
                             </div>
                           )}
@@ -3018,15 +3018,15 @@ export default function AssetsApp() {
                               <div key={v.id} style={{ display: "flex", alignItems: "center", padding: "9px 14px 9px 28px", borderBottom: vi < futures.length - 1 ? `1px solid ${C.border}` : "none", gap: 8 }}>
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{v.vestDate}</div>
-                                  <div style={{ fontSize: 11, color: C.inkLight }}>{v.shares}주{v.grantPrice ? ` · 부여가 $${v.grantPrice}` : ""}</div>
+                                  <div style={{ fontSize: 12, color: C.inkLight }}>{v.shares}주{v.grantPrice ? ` · 부여가 $${v.grantPrice}` : ""}</div>
                                 </div>
                                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 700, color: vdc }}>{vdl < 0 ? "지남" : `D-${vdl}`}</div>
-                                  {estKrw && <div style={{ fontSize: 10, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>≈{fmtS(estKrw)}</div>}
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: vdc }}>{vdl < 0 ? "지남" : `D-${vdl}`}</div>
+                                  {estKrw && <div style={{ fontSize: 12, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>≈{fmtS(estKrw)}</div>}
                                 </div>
                                 <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                                   <button onClick={() => { setEditItem(v); setModal("vestComplete"); }}
-                                    style={{ background: C.ink, border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: F }}>✓</button>
+                                    style={{ background: C.ink, border: "none", borderRadius: 5, padding: "4px 8px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: F }}>✓</button>
                                   <button onClick={() => { setEditItem(v); setModal("editVesting"); }}
                                     style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center" }}>
                                     <Pencil size={10} />
@@ -3065,18 +3065,18 @@ export default function AssetsApp() {
                             <div style={{ flex: 1 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                 <span style={{ fontSize: 13, fontWeight: 700, color: C.ink }}>ESPP</span>
-                                <span style={{ fontSize: 10, color: C.inkLight }}>{purchaseDate}</span>
-                                {label && <span style={{ fontSize: 11, fontWeight: 600, color: C.ink }}>{label}</span>}
+                                <span style={{ fontSize: 12, color: C.inkLight }}>{purchaseDate}</span>
+                                {label && <span style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{label}</span>}
                               </div>
-                              <div style={{ fontSize: 11, color: C.inkLight, marginTop: 2 }}>
+                              <div style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>
                                 <span style={{ fontWeight: 700, color: C.inkMid }}>{totalSh}주</span>
                                 {totalUsd && <span style={{ marginLeft: 6 }}>${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>}
                               </div>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
-                              {totalValKrw != null && <div style={{ fontSize: 12, fontWeight: 800, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(totalValKrw)}</div>}
+                              {totalValKrw != null && <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(totalValKrw)}</div>}
                               {totalGain != null && (
-                                <div style={{ fontSize: 10, color: totalGain >= 0 ? C.up : C.down, fontVariantNumeric: "tabular-nums" }}>
+                                <div style={{ fontSize: 12, color: totalGain >= 0 ? C.up : C.down, fontVariantNumeric: "tabular-nums" }}>
                                   {totalGain >= 0 ? "+" : ""}{fmtS(totalGain)}{totalGainPct != null ? ` (${totalGainPct}%)` : ""}
                                 </div>
                               )}
@@ -3098,16 +3098,16 @@ export default function AssetsApp() {
                                   <div style={{ flex: 1 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                       <span style={{ fontSize: 12, fontWeight: 600, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{s.purchaseDate || "—"}</span>
-                                      {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 11, fontWeight: 600, color: C.ink }}>{s.accountSuffix || s.name}</span>}
+                                      {(s.accountSuffix || (!/^\s*AMAT\s*\(ESPP\)\s*$/i.test(s.name) && s.name)) && <span style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>{s.accountSuffix || s.name}</span>}
                                     </div>
                                     <div style={{ fontSize: 12, fontWeight: 700, color: C.inkMid, fontVariantNumeric: "tabular-nums", marginTop: 1 }}>
-                                      {s.shares}주 <span style={{ fontWeight: 400, fontSize: 11, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)} ({fmtS(costKrw)})</span>
+                                      {s.shares}주 <span style={{ fontWeight: 400, fontSize: 12, color: C.inkLight }}>· 취득가 ${s.avgPrice.toFixed(2)} ({fmtS(costKrw)})</span>
                                     </div>
                                   </div>
                                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                                     {valKrw != null && <div style={{ fontSize: 13, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(valKrw)}</div>}
-                                    {valUsd && <div style={{ fontSize: 10, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
-                                    {gain != null && <div style={{ fontSize: 10, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
+                                    {valUsd && <div style={{ fontSize: 12, color: C.inkLight, fontVariantNumeric: "tabular-nums" }}>${valUsd.toLocaleString("en-US", { maximumFractionDigits: 0 })}</div>}
+                                    {gain != null && <div style={{ fontSize: 12, color: gainColor, fontVariantNumeric: "tabular-nums" }}>{gain >= 0 ? "+" : ""}{fmtS(gain)} ({gainPct}%)</div>}
                                   </div>
                                   <button onClick={() => { setEditItem(s); setModal("editOffering"); }}
                                     style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 5, padding: "4px 7px", cursor: "pointer", color: C.inkMid, display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -3240,7 +3240,7 @@ export default function AssetsApp() {
       </Modal>
 
       {/* Build time footer */}
-      <div style={{ textAlign: "center", padding: "16px 0 8px", fontSize: 10, color: C.inkLight, fontFamily: F, opacity: 0.5 }}>
+      <div style={{ textAlign: "center", padding: "16px 0 8px", fontSize: 12, color: C.inkLight, fontFamily: F, opacity: 0.5 }}>
         built {__BUILD_TIME__}
       </div>
     </div>

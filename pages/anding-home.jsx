@@ -186,7 +186,7 @@ function AndingMemo() {
   return (
     <>
       <Label>
-        <span style={{ display: 'flex', alignItems: 'center' }}>메모<span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 11.5, color: state === 'error' ? '#e5484d' : C.sub }}>{status}</span>
+        <span style={{ display: 'flex', alignItems: 'center' }}>메모<span style={{ marginLeft: 'auto', fontWeight: 500, fontSize: 12, color: state === 'error' ? '#e5484d' : C.sub }}>{status}</span>
           {text && <button onClick={clear} aria-label="메모 지우기" style={{ ...plain, display: 'flex', color: C.sub, marginLeft: 8, padding: 2 }}><Trash2 size={14} /></button>}</span>
       </Label>
       {state === 'missing'
@@ -194,7 +194,7 @@ function AndingMemo() {
         : <div style={card}>
             <textarea autoFocus={adding && !text} value={text} onChange={e => change(e.target.value)} onBlur={() => { if (state === 'saving') { clearTimeout(timer.current); save(text) } if (!text) setAdding(false) }}
               placeholder="고정석 대기자 등 간단 메모" rows={Math.max(1, text.split('\n').length)}
-              style={{ display: 'block', width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: 0, fontSize: 14.5, lineHeight: 1.45, fontFamily: F, color: C.text, background: 'transparent' }} />
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', resize: 'none', padding: 0, fontSize: 15, lineHeight: 1.45, fontFamily: F, color: C.text, background: 'transparent' }} />
           </div>}
     </>
   )
@@ -230,7 +230,7 @@ function VisitsSheet({ onClose }) {
   const card = { background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, overflow: 'hidden' }
   const ago = rows[0] && Math.round((new Date(todayKey() + 'T00:00') - new Date(rows[0].date + 'T00:00')) / 864e5)
   const row = (r, i) => (
-    <button key={r.id} onClick={() => setEdit({ ...r, memo: r.memo || '' })} style={{ ...plain, display: 'flex', alignItems: 'baseline', gap: 10, width: '100%', textAlign: 'left', padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, color: C.text }}>
+    <button key={r.id} onClick={() => setEdit({ ...r, memo: r.memo || '' })} style={{ ...plain, display: 'flex', alignItems: 'baseline', gap: 10, width: '100%', textAlign: 'left', padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15, color: C.text }}>
       <span style={{ flexShrink: 0, fontWeight: 600, minWidth: 64 }}>{kDate(r.date)}</span>
       <span style={{ flex: 1, minWidth: 0, color: r.memo ? C.text : C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.memo || '메모 없음'}</span>
     </button>
@@ -328,17 +328,17 @@ function Hero({ d, open, keys }) {
   const cell = k => {
     const b = boxInfo(k, d)
     return (
-      <button key={k} onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 11.5, minWidth: 0 }}>
+      <button key={k} onClick={() => open(k)} style={{ ...plain, textAlign: 'left', color: '#fff', background: 'rgba(255,255,255,0.16)', borderRadius: 12, padding: '8px 10px', fontSize: 12, minWidth: 0 }}>
         <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.label}</div>
-        <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.value}{b.unit && <span style={{ fontSize: 11.5, opacity: 0.8 }}>{b.unit}</span>}</div>
-        <div style={{ fontSize: 10.5, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.sub}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.value}{b.unit && <span style={{ fontSize: 12, opacity: 0.8 }}>{b.unit}</span>}</div>
+        <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.sub}</div>
       </button>
     )
   }
   const date = d.today
   return (
     <div style={{ borderRadius: 20, padding: '16px 18px', color: '#fff', background: `linear-gradient(135deg, ${GREEN}, #2f7d8f)` }}>
-      <div style={{ fontSize: 12.5, opacity: 0.85, fontWeight: 600 }}>오늘 매출 · {date.getMonth() + 1}월 {date.getDate()}일</div>
+      <div style={{ fontSize: 13, opacity: 0.85, fontWeight: 600 }}>오늘 매출 · {date.getMonth() + 1}월 {date.getDate()}일</div>
       <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', margin: keys.length ? '2px 0 10px' : '2px 0 0' }}>{won(d.payment.amount)}원</div>
       {keys.length > 0 && <div style={{ display: 'grid', gridTemplateColumns: `repeat(${keys.length}, 1fr)`, gap: 6 }}>{keys.map(cell)}</div>}
     </div>
@@ -496,7 +496,7 @@ function Todo({ d, onSms, open }) {
       <div style={{ background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}` }}>
         {rows.map((r, i) => (
           // 줄을 누르면 해당 상세(좌석·사물함·스터디룸) 창 — 문자·리셋·종료 버튼은 따로
-          <div key={i} role="button" tabIndex={0} onClick={() => open(r.k)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, cursor: 'pointer' }}>
+          <div key={i} role="button" tabIndex={0} onClick={() => open(r.k)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15, cursor: 'pointer' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.c, flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.text}</div>
             <span style={{ color: C.sub, fontSize: 12 }}>{r.right}</span>
@@ -511,7 +511,7 @@ function Todo({ d, onSms, open }) {
 function Tile({ color, title, value, unit, sub, bar, onClick, wide }) {
   return (
     <button onClick={onClick} style={{ ...plain, textAlign: 'left', background: C.card, border: `0.5px solid ${C.sep}`, borderRadius: 16, padding: '12px 13px', minHeight: 96, display: 'flex', flexDirection: 'column', color: C.text, minWidth: 0, ...(wide && { gridColumn: '1 / -1', minHeight: 0 }) }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}
         <ChevronRight size={14} color="#c7c7cc" style={{ marginLeft: 'auto' }} />
       </div>
@@ -519,7 +519,7 @@ function Tile({ color, title, value, unit, sub, bar, onClick, wide }) {
         {value}{unit && <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>{unit}</span>}
       </div>
       {bar != null && <div style={{ height: 5, borderRadius: 9, background: '#eee', marginTop: 7, overflow: 'hidden' }}><div style={{ width: `${Math.min(100, bar)}%`, height: '100%', background: color, borderRadius: 9 }} /></div>}
-      <div style={{ fontSize: 11.5, color: C.sub, marginTop: 'auto', paddingTop: 6, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{sub}</div>
+      <div style={{ fontSize: 12, color: C.sub, marginTop: 'auto', paddingTop: 6, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{sub}</div>
     </button>
   )
 }
@@ -611,7 +611,7 @@ function LayoutSheet({ layout, onSave, onClose }) {
       </div>
     )
   }
-  const hint = t => <div style={{ fontSize: 12.5, opacity: 0.75, padding: '12px 4px', textAlign: 'center' }}>{t}</div>
+  const hint = t => <div style={{ fontSize: 13, opacity: 0.75, padding: '12px 4px', textAlign: 'center' }}>{t}</div>
   return (
     <Sheet title="박스 배치" tint={GREEN} onCancel={onClose} onDone={() => { onSave(v); onClose() }}>
       <div style={{ fontSize: 13, color: C.sub, padding: '0 4px 10px' }}>박스를 끌어서 옮기고, ×로 빼요</div>
@@ -631,7 +631,7 @@ function LayoutSheet({ layout, onSave, onClose }) {
       <div ref={el => { zones.current.hidden = el }} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 34, padding: 2 }}>
         {hidden.length ? hidden.map(k => box(k, 'hidden')) : <div style={{ fontSize: 13, color: C.sub, padding: '6px 2px' }}>없음 — 여기로 끌면 숨겨요</div>}
       </div>
-      <button onClick={() => setV(DEFAULT_LAYOUT)} style={{ ...plain, display: 'block', margin: '20px auto 0', fontSize: 13.5, fontWeight: 600, color: C.sub }}>처음 배치로</button>
+      <button onClick={() => setV(DEFAULT_LAYOUT)} style={{ ...plain, display: 'block', margin: '20px auto 0', fontSize: 14, fontWeight: 600, color: C.sub }}>처음 배치로</button>
       {/* 끌고 있는 박스: 손가락을 따라다니는 복사본 */}
       {drag && (
         <div style={{ position: 'fixed', left: drag.x - drag.dx, top: drag.y - drag.dy, width: drag.w, height: drag.h, zIndex: 60, pointerEvents: 'none', boxSizing: 'border-box',
@@ -889,8 +889,8 @@ function PaymentDetail() {
             <Card>
               {d.rows.map((r, i) => (
                 // 한 줄: 시각 · 이름 · 상품(길면 …) · 금액
-                <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, whiteSpace: 'nowrap', opacity: r.paid ? 1 : 0.45 }}>
-                  <span style={{ fontSize: 12.5, color: C.sub, minWidth: 36 }}>{r.time}</span>
+                <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15, whiteSpace: 'nowrap', opacity: r.paid ? 1 : 0.45 }}>
+                  <span style={{ fontSize: 13, color: C.sub, minWidth: 36 }}>{r.time}</span>
                   <span style={{ flexShrink: 0 }}>{r.user || '-'}</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.sub, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}{!r.paid && r.status ? ` · ${r.status}` : ''}</span>
                   <b style={{ fontWeight: 600, whiteSpace: 'nowrap', textDecoration: r.paid ? 'none' : 'line-through' }}>{won(r.amount)}원</b>
@@ -938,7 +938,7 @@ function RoomDetail() {
           return (
             <div key={i} style={{ padding: '10px 12px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', opacity: done ? 0.45 : 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: now ? COL.room : C.text }}>{a}–{b}{now && <span style={{ fontSize: 11, marginLeft: 6, color: '#fff', background: COL.room, borderRadius: 999, padding: '1px 6px', verticalAlign: 2 }}>이용 중</span>}</div>
-              <div style={{ fontSize: 12.5, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name || '-'}</div>
+              <div style={{ fontSize: 13, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name || '-'}</div>
             </div>
           )
         })}
@@ -954,7 +954,7 @@ function RoomDetail() {
           </button>
         ))}
         {/* 매장 CCTV: 다후아 DMSS 앱을 연다 (앱 첫 화면에서 카메라 고르기) */}
-        <a href="dmss://" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: COL.room, textDecoration: 'none', whiteSpace: 'nowrap' }}><Video size={14} />CCTV<ChevronRight size={14} /></a>
+        <a href="dmss://" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 600, color: COL.room, textDecoration: 'none', whiteSpace: 'nowrap' }}><Video size={14} />CCTV<ChevronRight size={14} /></a>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         {col('2인실', d.reservations_2 || [])}
@@ -1043,7 +1043,7 @@ function MonthHistory() {
       <Card>
         {list.map(([ym, total], i) => (
           <div key={ym} style={{ borderTop: i ? `0.5px solid ${C.sep}` : 'none' }}>
-            <button onClick={() => setOpen(open === ym ? null : ym)} aria-expanded={open === ym} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', color: C.text, fontSize: 14.5 }}>
+            <button onClick={() => setOpen(open === ym ? null : ym)} aria-expanded={open === ym} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', color: C.text, fontSize: 15 }}>
               <span style={{ width: 66, textAlign: 'left', flexShrink: 0 }}>{ym.slice(2, 4)}년 {Number(ym.slice(5))}월</span>
               <span style={{ flex: 1, height: 6, background: '#eee', borderRadius: 9, overflow: 'hidden' }}><span style={{ display: 'block', width: `${total / max * 100}%`, height: '100%', background: COL.monthly, opacity: open === ym ? 1 : 0.55, borderRadius: 9 }} /></span>
               <b style={{ fontWeight: 600, width: 64, textAlign: 'right' }}>{man(total)}</b>
@@ -1071,7 +1071,7 @@ function ProductTable() {
     : (data.tabs[k] || []).filter(p => !isFixed(p))
   const rows = list(tab)
   const flag = (on, label) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600, color: on ? COL.product : C.sub, opacity: on ? 1 : 0.6 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 600, color: on ? COL.product : C.sub, opacity: on ? 1 : 0.6 }}>
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: on ? COL.product : 'transparent', border: `1.5px solid ${on ? COL.product : C.sub}`, boxSizing: 'border-box' }} />{label}
     </span>
   )
@@ -1087,7 +1087,7 @@ function ProductTable() {
       {rows.length === 0 ? <Muted>{tab === 'fixed' ? (data.fixed_note || '아직 고정석 상품을 수집하지 않았어요 (다음 수집 후 보여요)') : '상품이 없어요'}</Muted> : (
         <Card>
           {rows.map((p, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5 }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 15 }}>
               <div style={{ flex: 1, minWidth: 0, opacity: p.sale || p.extend ? 1 : 0.5 }}>
                 <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: C.sub }}>{p.unit} · {won(p.price)}원</div>
@@ -1188,7 +1188,7 @@ function Detail({ k, d, onClose, onSms, onReload, onSettings }) {
           지금 판매 모드
           <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: COL.product, borderRadius: 999, padding: '2px 9px' }}>{d.product.mode}</span>
           {/* 판매 설정 창을 바로 (상품 창 위에 열림) */}
-          <button onClick={onSettings} style={{ ...plain, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, fontSize: 12.5, fontWeight: 600, color: COL.product }}>판매 설정<ChevronRight size={14} /></button>
+          <button onClick={onSettings} style={{ ...plain, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, fontSize: 13, fontWeight: 600, color: COL.product }}>판매 설정<ChevronRight size={14} /></button>
         </div>
       )}
       {k === 'seat' ? <SeatDetail />
@@ -1310,7 +1310,7 @@ export default function AndingHome() {
             <AndingMemo />
             <Todo d={d} onSms={setSms} open={setDetail} />
             <Tiles d={d} open={setDetail} keys={layout.bottom} />
-            <div style={{ textAlign: 'center', fontSize: 11.5, color: C.sub, marginTop: 14 }}>{d.stale
+            <div style={{ textAlign: 'center', fontSize: 12, color: C.sub, marginTop: 14 }}>{d.stale
               ? <span style={{ color: '#d97706' }}>맥 수집이 {(d.now || '').slice(5, 16).replace('-', '/')}에서 멈춰 있어요 · 날짜는 오늘 기준</span>
               : <>Updated {hhmm(d.seat.updated) || hhmm(d.now)} · 1분마다 자동 갱신</>}</div>
           </>
