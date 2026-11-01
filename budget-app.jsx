@@ -87,6 +87,7 @@ STYLE.textContent = `
   .fade-in { animation: fadeIn 0.2s ease forwards; }
   @keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }
   .spin { animation: spin 1s linear infinite; }
+  .recharts-wrapper:focus, .recharts-surface:focus, .recharts-wrapper *:focus { outline: none; }
 `;
 document.head.appendChild(STYLE);
 
@@ -2596,7 +2597,25 @@ function Cat3BreakdownList({subTxs,total,baseColor,onEdit}){
   );
 }
 
-function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit,prevByName=null,upBad=true}){
+// 분류 안에서 보는 작은 월별 막대: 고른 달만 분류 색, 진행 중인 달은 흐리게
+function MiniTrend({bars,color}){
+  if(!bars||!bars.some(b=>b.value>0)) return null;
+  const man=v=>v>=1e8?`${(v/1e8).toFixed(1)}억`:v>=1e4?`${Math.round(v/1e4).toLocaleString("ko-KR")}만`:v>0?`${Math.round(v/1e3)}천`:"";
+  return(
+    <div style={{padding:"8px 6px 0"}}>
+      <ResponsiveContainer width="100%" height={96}>
+        <BarChart accessibilityLayer={false} data={bars} margin={{top:16,right:4,left:4,bottom:0}}>
+          <XAxis dataKey="label" tick={{fontSize:12,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false} interval={0}/>
+          <Bar dataKey="value" radius={[4,4,0,0]} maxBarSize={20} isAnimationActive={false}
+            label={{position:"top",fontSize:12,fontFamily:FONT,fill:C.inkMid,formatter:man}}>
+            {bars.map(b=><Cell key={b.key} fill={b.sel?color:"#d9dbe0"} fillOpacity={b.ongoing?0.55:1}/>)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit,prevByName=null,upBad=true,trendFor=null}){
   const [expandedSub,setExpandedSub]=useState(null);
   const tt={background:C.paper,border:`1px solid ${C.border}`,borderRadius:"10px",fontFamily:FONT,fontSize:"12px"};
   if(!data.length)return(
@@ -2634,11 +2653,12 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit,prevB
             </button>
             {isOpen&&(
               <div style={{borderTop:`1px solid ${C.border}`,background:C.paper}}>
+                {trendFor&&<MiniTrend bars={trendFor(t=>item.cardId!==undefined?(t.cardId||"__none__")===item.cardId:(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name))} color={item.color}/>}
                 {item.sub.length>0&&(
                   <div style={{padding:"4px 14px 10px"}}>
                     {subWithColors.length>1&&(
                       <ResponsiveContainer width="100%" height={140}>
-                        <PieChart>
+                        <PieChart accessibilityLayer={false}>
                           <Pie data={subWithColors} dataKey="chartValue" nameKey="name" cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={2}>
                             {subWithColors.map((s,i)=><Cell key={i} fill={s.color}/>)}
                           </Pie>
@@ -2679,6 +2699,7 @@ function BreakdownList({data,total,sign,expanded,setExpanded,txs=[],onEdit,prevB
                               <div style={{width:`${sp}%`,height:"100%",background:(s.isRefund?refundColor:s.color)+"bb",borderRadius:"99px"}}/>
                             </div>
                           </div>
+                          {isSubOpen&&trendFor&&!s.isRefund&&<MiniTrend bars={trendFor(t=>item.cardId!==undefined?(t.cardId||"__none__")===item.cardId&&catDisplayName(t.cat1)===s.name:(t.cat1===item.rawName||catDisplayName(t.cat1)===item.name)&&t.cat2===s.name)} color={s.color}/>}
                           {isSubOpen&&(new Set(subTxs.map(t=>t.cat3||"기타")).size>1
                             ?<Cat3BreakdownList subTxs={subTxs} total={absVal} baseColor={s.color} onEdit={onEdit}/>
                             :<TxMiniList txs={subTxs} onEdit={onEdit}/>)}
@@ -2765,6 +2786,9 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
     return {bars,prevTxs,ongoing,prev:trendKind==="income"?incOf(prevTxs):expOf(prevTxs),
       avg:shown.length?Math.round(shown.reduce((a,b)=>a+b.value,0)/shown.length):0};
   },[src,year,month,yearView,trendKind]);
+  // 분류·세부 항목 안에서 보는 작은 월별 막대 (같은 달 범위)
+  const byMonthAll=useMemo(()=>{const m={};src.forEach(t=>{const k=t.date.slice(0,7);(m[k]||(m[k]=[])).push(t);});return m;},[src]);
+  const trendFor=pred=>trend?trend.bars.map(b=>({...b,value:(byMonthAll[b.key]||[]).filter(t=>(trendKind==="income"?t.type==="income":isExp(t))&&pred(t)).reduce((a,t)=>a+t.amount,0)})):null;
   // 분류별 지난 기간 금액 (항목 줄에 증감 표시용)
   const prevByName=useMemo(()=>{
     if(!trend) return null;
@@ -2864,7 +2888,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
               ):null}
             </div>
             <ResponsiveContainer width="100%" height={150}>
-              <BarChart data={trend.bars} margin={{top:18,right:4,left:4,bottom:0}}>
+              <BarChart accessibilityLayer={false} data={trend.bars} margin={{top:18,right:4,left:4,bottom:0}}>
                 <XAxis dataKey="label" tick={{fontSize:12,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false} interval={0}/>
                 {trend.avg>0&&<ReferenceLine y={trend.avg} stroke={C.inkLight} strokeDasharray="3 3" strokeOpacity={0.6}/>}
                 <Bar dataKey="value" radius={[6,6,0,0]} maxBarSize={28} cursor="pointer"
@@ -2884,7 +2908,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
         <div style={{background:C.white,borderRadius:"18px",padding:"18px 18px 10px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"8px",fontFamily:FONT}}>{activeLabel}</div>
           <ResponsiveContainer width="100%" height={170}>
-            <PieChart>
+            <PieChart accessibilityLayer={false}>
               <Pie data={activeData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={46} outerRadius={68} paddingAngle={3}>
                 {activeData.map((e,i)=><Cell key={i} fill={e.color}/>)}
               </Pie>
@@ -3005,7 +3029,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
         </div>
       ):(
         /* Breakdown bars */
-        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded} txs={txs} onEdit={onEdit} prevByName={statsTab==="card"?null:prevByName} upBad={trendKind!=="income"}/>
+        <BreakdownList data={activeData} total={activeTotal} sign={activeSign} expanded={expanded} setExpanded={setExpanded} txs={txs} onEdit={onEdit} prevByName={statsTab==="card"?null:prevByName} trendFor={trend?trendFor:null} upBad={trendKind!=="income"}/>
       )}
 
       {/* 카페 월별 추이 */}
@@ -3028,7 +3052,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
           <div style={{background:C.white,borderRadius:"18px",padding:"18px 8px 10px 4px",border:`1px solid ${C.border}`}}>
             <div style={{fontSize:"12px",fontWeight:700,color:C.inkLight,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"4px",fontFamily:FONT,paddingLeft:"14px"}}>월별 추이</div>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={data} margin={{top:8,right:16,left:0,bottom:0}}>
+              <LineChart accessibilityLayer={false} data={data} margin={{top:8,right:16,left:0,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false}/>
                 <XAxis dataKey="label" tick={{fontSize:10,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false}/>
                 <YAxis tickFormatter={v=>`${Math.round(v/K)}k`} tick={{fontSize:10,fontFamily:FONT,fill:C.inkLight}} tickLine={false} axisLine={false} width={36}/>
