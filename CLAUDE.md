@@ -29,7 +29,7 @@
 - 다른 탭과 다르게 보이는 곳을 고칠 땐 브라우저에서 재서(여백·폭·모서리·글자 크기) 맞춘다.
 
 ## 세션 나눔
-- ① 메모·노트·일정 (`notes-app.jsx`, `pages/lecture-notes.jsx`) ② 가계부·자산 (`budget-app.jsx`, `assets-app.jsx`) ③ 앤딩 (`pages/anding-*.jsx` + andingapp) ④ 공통(여러 화면에 걸친 통일·공용 컴포넌트 `src/`).
+- ① 공통(부모 세션: 여러 화면에 걸친 통일·공용 컴포넌트 `src/`·이 규칙 파일) ② 메모·노트·일정 (`notes-app.jsx`, `pages/lecture-notes.jsx`) ③ 가계부·자산 (`budget-app.jsx`, `assets-app.jsx`) ④ 앤딩 (`pages/anding-*.jsx` + andingapp).
 - 자기 영역 밖 파일은 꼭 필요할 때만 작게 고치고 알린다. 공통 작업은 다른 세션이 같은 파일을 고치지 않을 때.
 
 ## 빌드 주의
