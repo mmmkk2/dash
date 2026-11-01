@@ -1426,9 +1426,9 @@ export default function NotesApp({ initialTab = 'memo' }) {
           </div>
         )}
         {tab === 'memo' && (
-          <div style={{ display: 'flex', background: C.fill, borderRadius: 9, padding: 2, marginBottom: 12 }}>
+          <div style={{ display: 'flex', background: C.fill, borderRadius: 12, padding: 3, marginBottom: 12 }}>
             {[['memo', '메모'], ['note', '노트']].map(([k, label]) => (
-              <button key={k} onClick={() => pickKind(k)} aria-pressed={kind === k} style={{ ...plain, flex: 1, fontSize: 13, fontWeight: 600, borderRadius: 7, padding: '6px 0', background: kind === k ? '#fff' : 'transparent', color: kind === k ? C.text : C.sub, boxShadow: kind === k ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' }}>{label}</button>
+              <button key={k} onClick={() => pickKind(k)} aria-pressed={kind === k} style={{ ...plain, flex: 1, fontSize: 15, fontWeight: kind === k ? 700 : 600, borderRadius: 9, padding: '9px 0', background: kind === k ? '#fff' : 'transparent', color: kind === k ? C.text : C.sub, boxShadow: kind === k ? '0 1px 3px rgba(0,0,0,0.12)' : 'none' }}>{label}</button>
             ))}
           </div>
         )}
