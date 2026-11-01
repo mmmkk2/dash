@@ -21,7 +21,7 @@ const PAGE_TITLES = {
   '/': '내비서',
   '/calculator': '경매 수익 계산기',
   '/dashboard': '앤딩 비품관리',
-  '/budget': '가계부 · 개인',
+  '/budget': '가계부 · 전체',
   '/budget/personal': '가계부 · 개인',
   '/budget/anding': '가계부 · 앤딩스터디카페',
   '/budget/cafe': '가계부 · 앤딩스터디카페',

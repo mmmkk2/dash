@@ -164,8 +164,8 @@ function shadeP(i){
 }
 
 // URL 주소 ↔ 주체 매핑 (/budget=개인, /budget/anding=카페, /budget/realty=부동산, /budget/goion=고이온)
-const ENTITY_SLUG = { personal:"", cafe:"anding", realty:"realty", goion:"goion", all:"all" };
-const SLUG_ENTITY = { "":"personal", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty", goion:"goion", all:"all" };
+const ENTITY_SLUG = { personal:"personal", cafe:"anding", realty:"realty", goion:"goion", all:"" }; // 가계부 첫 화면(/budget)은 전체
+const SLUG_ENTITY = { "":"all", personal:"personal", anding:"cafe", cafe:"cafe", realty:"realty", goion:"goion", all:"all" };
 const entityPath = ek => `/budget${ENTITY_SLUG[ek]?`/${ENTITY_SLUG[ek]}`:""}`;
 
 const TREE_PERSONAL = {
@@ -4405,7 +4405,7 @@ export default function App(){
   const now=new Date();
   const routeParams=useParams();
   const navigate=useNavigate();
-  const urlEntity=SLUG_ENTITY[routeParams.entity||""]||"personal";
+  const urlEntity=SLUG_ENTITY[routeParams.entity||""]||"all";
   const [year,  setYear]  =useState(now.getFullYear());
   const [month, setMonth] =useState(now.getMonth());
   const [yearView, setYearView] =useState(false);
@@ -4513,10 +4513,10 @@ export default function App(){
 
   // URL 주소 변경(뒤로가기/링크 진입) → entity 동기화
   useEffect(()=>{
-    const nextEntity=SLUG_ENTITY[routeParams.entity||""]||"personal";
+    const nextEntity=SLUG_ENTITY[routeParams.entity||""]||"all";
     if(hideCafe&&nextEntity==="cafe"){
       setEntity("personal");
-      navigate("/budget",{replace:true});
+      navigate("/budget/personal",{replace:true});
       return;
     }
     setEntity(nextEntity);
@@ -4541,7 +4541,7 @@ export default function App(){
       setEntity("personal");
       setTab("list");
       changeTheme(ENTITY_THEME.personal);
-      navigate("/budget",{replace:true});
+      navigate("/budget/personal",{replace:true});
     }
   }
 
@@ -4560,6 +4560,15 @@ export default function App(){
       setTxs(rows.map(rowToTx));
       if(cardRows.length) setCards(cardRows.map(rowToCard));
       setSupplies(supplyRows);
+      // 물티슈는 티슈와 따로 셈 — 소모품에 없으면 한 번만 만들어 둠 (지운 뒤엔 다시 안 만듦)
+      try{
+        if(!localStorage.getItem("supply_seed_wet_tissue")&&!supplyRows.some(s=>(s.name||"").trim()==="물티슈")){
+          localStorage.setItem("supply_seed_wet_tissue","1");
+          const last=rows.filter(t=>t.entity==="cafe"&&t.type==="expense"&&/물티슈/.test(`${t.memo||""} ${t.cat2||""} ${t.cat3||""}`)).map(t=>t.date).sort().at(-1);
+          const ws={id:"s"+Date.now(),name:"물티슈",category:"위생/청소용품",cycle_days:30,last_bought:last||new Date().toISOString().slice(0,10),memo:""};
+          sb("supplies",{method:"POST",body:JSON.stringify(ws)}).then(r=>setSupplies(p=>p.some(s=>s.name==="물티슈")?p:[...p,{...ws,...(r?.[0]||{})}])).catch(e=>{localStorage.removeItem("supply_seed_wet_tissue");console.error("[supplies seed]",e);});
+        }
+      }catch{}
       setTaxDocIds(taxDocRows?.[0]?.value||[]);
       const dbTrees = settingsRows?.[0]?.value;
       if(dbTrees){
