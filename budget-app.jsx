@@ -3800,9 +3800,18 @@ function supplyMemoMatches(name, memo){
   if(!name||!memo) return false;
   const a=name.toLowerCase().trim(), b=memo.toLowerCase().trim();
   if(!a||!b) return false;
-  if(a===b||b.includes(a)||a.includes(b)) return true;
+  if(a===b||hasWord(b,a)||hasWord(a,b)) return true;
   const tail=a.includes("-")?a.split("-").pop():null;
-  return !!(tail&&tail.length>=2&&b.includes(tail));
+  return !!(tail&&tail.length>=2&&hasWord(b,tail));
+}
+// 단어 앞부분에서만 포함으로 봄: "물티슈"는 "티슈"로 치지 않음 ("쿠팡 · 티슈", "핸드타올/티슈"는 됨)
+function hasWord(text, word){
+  let i=text.indexOf(word);
+  while(i>=0){
+    if(i===0||!/[\p{L}\p{N}]/u.test(text[i-1])) return true;
+    i=text.indexOf(word,i+1);
+  }
+  return false;
 }
 function supplyCatMatches(name, cat){
   if(!name||!cat) return false;
