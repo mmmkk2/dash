@@ -31,6 +31,7 @@ export default function TabBar() {
   // 꾹 눌러(0.5초) 좌우로 끌면 탭 순서 바꾸기
   const [order, setOrder] = useState(() => { try { return JSON.parse(localStorage.getItem(ORDER_KEY)) || [] } catch { return [] } })
   const [drag, setDrag] = useState(null) // { label, dx }
+  const [pressing, setPressing] = useState(null) // 누르는 동안 그 탭도 선택된 것과 같은 알약 모양(옅게)
   const press = useRef(null), rowRef = useRef(null), fired = useRef(false)
   useEffect(() => () => clearTimeout(press.current?.timer), [])
   // 다른 기기에서 바꾼 순서 받기
@@ -54,6 +55,7 @@ export default function TabBar() {
 
   const down = (label, e) => {
     fired.current = false
+    setPressing(label)
     const x0 = e.clientX
     press.current = { x0, y0: e.clientY, timer: setTimeout(() => {
       fired.current = true; navigator.vibrate?.(15)
@@ -62,7 +64,7 @@ export default function TabBar() {
   }
   const move = e => {
     const p = press.current
-    if (!drag) { if (p && Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > 8) clearTimeout(p.timer); return }
+    if (!drag) { if (p && Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > 8) { clearTimeout(p.timer); setPressing(null) } return }
     const w = rowRef.current.offsetWidth / tabs.length
     let dx = e.clientX - drag.x0
     const i = tabs.findIndex(t => t.label === drag.label)
@@ -78,6 +80,7 @@ export default function TabBar() {
     setDrag({ ...drag, dx })
   }
   const up = () => {
+    setPressing(null)
     clearTimeout(press.current?.timer); press.current = null
     if (drag) {
       const labels = tabs.map(t => t.label)
@@ -100,7 +103,7 @@ export default function TabBar() {
             onPointerDown={e => { e.currentTarget.setPointerCapture?.(e.pointerId); down(label, e) }} onContextMenu={e => e.preventDefault()}
             onClick={() => { if (fired.current) { fired.current = false; return } navigate(typeof to === 'function' ? to() : to) }}
             style={{
-              userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', position: 'relative',
+              userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', WebkitTapHighlightColor: 'transparent', outline: 'none', position: 'relative',
               ...(drag?.label === label ? { transform: `translateX(${drag.dx}px) scale(1.08)`, zIndex: 1, opacity: 0.9 } : { transition: drag ? 'transform .15s' : 'none' }),
               background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
               color: on ? '#1c1c1e' : '#a1a1a6', fontFamily: "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif",
@@ -108,7 +111,7 @@ export default function TabBar() {
             }}>
             {/* 선택된 탭은 아이콘 뒤에 옅은 알약 배경 */}
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 28, borderRadius: 999,
-              background: on ? 'rgba(0,0,0,0.08)' : 'transparent', transition: 'background .2s' }}>
+              background: on ? 'rgba(0,0,0,0.08)' : pressing === label ? 'rgba(0,0,0,0.05)' : 'transparent', transition: 'background .15s' }}>
               <Icon size={21} strokeWidth={on ? 2.3 : 1.8} />
             </span>
             {label}

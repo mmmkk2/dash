@@ -10,3 +10,6 @@ html, body {
 #root {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* 폰에서 누를 때 브라우저가 그리는 회색·파란 네모 끄기 (눌림 표시는 각 버튼 모양대로) */
+* { -webkit-tap-highlight-color: transparent; }
