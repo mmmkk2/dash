@@ -1,23 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { StickyNote, CalendarDays, Wallet, PiggyBank, Store } from 'lucide-react'
 
-// 앱 하단 탭: 휴대폰 폭이거나 설치한 앱으로 열었을 때만 보인다
+// 앱 하단 탭: 앱 설치 여부·화면 폭과 상관없이 늘 보인다 (메모·일정·가계부·자산·앤딩 화면에서)
 const SECTIONS = ['/notes', '/budget', '/assets', '/anding']
 const LAST_BUDGET = 'dash.lastBudget'
 const HEIGHT = 56
 
-const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone
-
 export function useShowTabBar() {
   const { pathname } = useLocation()
-  const [narrow, setNarrow] = useState(() => window.innerWidth < 700)
-  useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < 700)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return (narrow || isStandalone()) && SECTIONS.some(s => pathname.startsWith(s))
+  return SECTIONS.some(s => pathname.startsWith(s))
 }
 
 export default function TabBar() {
