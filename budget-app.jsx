@@ -2756,9 +2756,13 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
     const bars=months.map(({y,m})=>({y,m,key:ym(y,m),label:`${m+1}월`,value:val(ym(y,m)),sel:!yearView&&y===year&&m===month}));
     // 비교 기준: 월 보기면 지난달, 연 보기면 작년
     const prevKeys=yearView?Array.from({length:12},(_,i)=>ym(year-1,i)):[ym(...(month===0?[year-1,11]:[year,month-1]))];
-    const prevTxs=prevKeys.flatMap(k=>byMonth[k]||[]);
-    const shown=bars.filter(b=>b.value>0);
-    return {bars,prevTxs,prev:trendKind==="income"?incOf(prevTxs):expOf(prevTxs),
+    // 지금 진행 중인 기간이면 지난 기간도 같은 날짜까지만 비교 (11/1이면 10/1까지, 올해면 작년 오늘까지)
+    const now=new Date(), ongoing=yearView?year===now.getFullYear():(year===now.getFullYear()&&month===now.getMonth());
+    const cut=yearView?`${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`:String(now.getDate()).padStart(2,"0");
+    const prevTxs=prevKeys.flatMap(k=>byMonth[k]||[]).filter(t=>!ongoing||(yearView?t.date.slice(5,10):t.date.slice(8,10))<=cut);
+    bars.forEach(b=>{b.ongoing=ongoing&&(yearView?b.m===now.getMonth():b.sel);});
+    const shown=bars.filter(b=>b.value>0&&!b.ongoing); // 평균은 다 끝난 달로만
+    return {bars,prevTxs,ongoing,prev:trendKind==="income"?incOf(prevTxs):expOf(prevTxs),
       avg:shown.length?Math.round(shown.reduce((a,b)=>a+b.value,0)/shown.length):0};
   },[src,year,month,yearView,trendKind]);
   // 분류별 지난 기간 금액 (항목 줄에 증감 표시용)
@@ -2873,7 +2877,7 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
               <div style={{fontSize:"13px",fontWeight:600,color:C.inkLight,fontFamily:FONT}}>월별 {trendKind==="income"?"수입":"지출"}</div>
               {trend.prev>0||cur>0?(
                 <div style={{fontSize:"14px",fontFamily:FONT,color:C.inkMid}}>
-                  {yearView?"작년":"지난달"}보다{" "}
+                  {yearView?(trend.ongoing?"작년 이맘때":"작년"):(trend.ongoing?"지난달 이맘때":"지난달")}보다{" "}
                   <span style={{color:dc,fontWeight:700}}>{diff===0?"같아요":`${up?"▲":"▼"} ${man(Math.abs(diff))}원${pct!=null?` (${pct}%)`:""}`}</span>
                 </div>
               ):null}
@@ -2885,11 +2889,11 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
                 <Bar dataKey="value" radius={[6,6,0,0]} maxBarSize={28} cursor="pointer"
                   onClick={d=>d?.payload&&onPickMonth?.(d.payload.y,d.payload.m)}
                   label={{position:"top",fontSize:12,fontFamily:FONT,fill:C.inkMid,formatter:v=>v>0?man(v):""}}>
-                  {trend.bars.map(b=><Cell key={b.key} fill={b.sel?P:"#d9dbe0"}/>)}
+                  {trend.bars.map(b=><Cell key={b.key} fill={b.sel?P:"#d9dbe0"} fillOpacity={b.ongoing?0.55:1}/>)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,textAlign:"right",marginTop:"2px"}}>점선 = 평균 {man(trend.avg)}원 · 막대를 누르면 그 달로</div>
+            <div style={{fontSize:"12px",color:C.inkLight,fontFamily:FONT,marginTop:"2px"}}>{trend.ongoing&&!yearView?`이번 달은 ${new Date().getDate()}일까지 · `:""}점선 = 평균 {man(trend.avg)}원 · 막대 누르면 그 달로</div>
           </div>
         );
       })()}
