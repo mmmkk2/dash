@@ -307,3 +307,6 @@ create policy "본인 방문 기록만" on anding_visits for all using (auth.uid
 -- 반복 일정의 회차별 완료 날짜 목록 (반복 아닌 일정은 done)
 alter table events add column if not exists repeat jsonb default null;
 alter table events add column if not exists done_dates jsonb default '[]';
+
+-- 중요 일정 (별표)
+alter table events add column if not exists important boolean default false;
