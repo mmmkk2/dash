@@ -721,9 +721,10 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
     const done = !m.archived && ((checks.length > 0 && doneN === checks.length) || (m.due_date && m.due_date < todayStr()))
     return (
       <Row key={m.id} onClick={() => open(m)} onLongPress={rect => setMenu({ m, rect })} last={i === arr.length - 1}>
+        {/* 왼쪽 세로 줄: 태그 색 (일정 목록과 같게), 태그 없으면 연회색 */}
+        <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: TAGS[m.tag]?.color || C.sep, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {TAGS[m.tag] && <span style={{ width: 8, height: 8, borderRadius: '50%', background: TAGS[m.tag].color, flexShrink: 0 }} />}
             <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

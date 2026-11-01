@@ -371,6 +371,7 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
     return () => document.removeEventListener('pointerdown', close)
   }, [menu])
   // 꾹 누른 카드 오른쪽 가운데에 붙는 버튼 (카드와 함께 움직임)
+  const listBox = { background: C.card, borderRadius: 16, overflow: 'hidden', border: `0.5px solid ${C.sep}`, marginBottom: 8 }
   const cardActions = n => {
     const btn = (Icon, label, run, danger) => (
       <button key={label} aria-label={label} title={label} onClick={e => { e.stopPropagation(); setMenu(null); run() }} style={{ ...plain, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 28, color: danger ? C.red : C.sub, background: danger ? C.red + '14' : C.fill, borderRadius: 999 }}>
@@ -386,19 +387,25 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
     )
   }
   const asTarget = n => ({ ...n, files: n.files || [] })
-  const card = n => {
+  const card = (n, i, arr) => {
     const preview = unmark(parse(n.content).find(l => l.kind !== 'gap' && l.kind !== 'img')?.text || '')
+    const last = i === arr.length - 1
+    // 메모 목록처럼 카드 하나 안의 줄: 왼쪽 태그 색 줄 · 제목 / 태그·미리보기 · 오른쪽 날짜
     return (
-      <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', ...plain, display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: C.card, borderRadius: 16, border: `0.5px solid ${C.sep}`, padding: '13px 15px', marginBottom: 8, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {n.subject && <span style={{ width: 8, height: 8, borderRadius: '50%', background: subjectColor(n.subject).color, flexShrink: 0 }} />}
-          <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
-        </div>
-        {preview && <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: C.sub, marginTop: 6 }}>
-          {n.subject && <span style={{ background: subjectColor(n.subject).soft, borderRadius: 6, padding: '2px 7px', color: subjectColor(n.subject).color, fontWeight: 600 }}>{n.subject}</span>}
-          <span>{shortDate(n.updated_at)}</span>
-          {n.files?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Paperclip size={12} />{n.files.length}</span>}
+      <div key={n.id} role="button" tabIndex={0} {...longPress(n)} onClick={() => { if (press.current.fired) { press.current.fired = false; return } open(n) }} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none', display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, color: C.text, opacity: n.archived ? 0.6 : 1 }}>
+        <span style={{ width: 3, alignSelf: 'stretch', margin: '11px 0', borderRadius: 2, background: n.subject ? subjectColor(n.subject).color : C.sep, flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px 11px 0', borderBottom: last ? 'none' : `0.5px solid ${C.sep}`, alignSelf: 'stretch' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.pinned && <Pin size={13} color={C.sub} style={{ marginRight: 5, verticalAlign: -1 }} />}{n.title || '제목 없음'}</div>
+            <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {n.subject && <span style={{ color: subjectColor(n.subject).color, background: subjectColor(n.subject).color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>{n.subject}</span>}
+              {preview || (n.subject ? '' : '내용 없음')}
+            </div>
+          </div>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: C.sub }}>
+            {n.files?.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 12 }}><Paperclip size={12} />{n.files.length}</span>}
+            {shortDate(n.updated_at)}
+          </div>
         </div>
         {menu?.n.id === n.id && cardActions(n)}
       </div>
@@ -426,14 +433,14 @@ export default function LectureNotes({ setErr, onMovedToMemo, target }) {
         </div>
       )}
       {notes && shown.length === 0 && <div style={{ textAlign: 'center', color: C.sub, padding: '60px 0', fontSize: 15 }}>{archived.length ? '모두 보관했어요' : notes.length ? '찾는 노트가 없어요' : '+ 버튼으로 첫 노트를 만들어 보세요'}</div>}
-      {shown.map(card)}
+      {shown.length > 0 && <div style={listBox}>{shown.map(card)}</div>}
       {archived.length > 0 && (
         <>
           <button onClick={() => setShowArchived(v => !v)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: C.sub, padding: '12px 4px 8px' }}>
             <Archive size={15} />보관함 {archived.length}
             <ChevronDown size={16} style={{ transform: showArchived ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }} />
           </button>
-          {showArchived && archived.map(card)}
+          {showArchived && <div style={listBox}>{archived.map(card)}</div>}
         </>
       )}
       {!edit && <Fab label="새 노트" color={subjectColor(subject).color} onClick={create} />}
