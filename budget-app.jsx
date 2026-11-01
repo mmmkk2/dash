@@ -2834,7 +2834,10 @@ function StatsView({txs,allEntityTxs,entity,cards,onEdit,year,month,yearView,onP
         {[
           {label:"수입",val:"+"+fmtS(incomeAmt),color:P,bg:P+"10",tab:"income"},
           {label:"지출",val:fmtS(expense),color:C.ink,bg:C.cream,tab:"expense"},
-          {label:"저축률",val:saved>0?`${savingsRate}%`:"—",color:saved>0?"#1d4e89":C.inkLight,bg:"#f0f4ff",tab:null},
+          // 개인은 저축률, 사업(앤딩·부동산·고이온·전체)은 순이익 = 수입 − 지출
+          entity==="personal"
+            ?{label:"저축률",val:saved>0?`${savingsRate}%`:"—",color:saved>0?"#1d4e89":C.inkLight,bg:"#f0f4ff",tab:null}
+            :{label:"순이익",val:(incomeAmt-expense>0?"+":"")+fmtS(incomeAmt-expense),color:incomeAmt-expense>=0?P:"#d95f4b",bg:incomeAmt-expense>=0?"#f0f4ff":"#fdf0ee",tab:null},
         ].map(({label,val,color,bg,tab})=>(
           <div key={label} onClick={tab?()=>{setStatsTab(tab);setExpanded(null);}:undefined}
             style={{background:bg,borderRadius:"14px",padding:"14px 8px",textAlign:"center",
