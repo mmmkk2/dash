@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, createContext, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal, Link2, Type } from 'lucide-react'
+import { Pin, Search, ChevronLeft, ChevronRight, ChevronDown, Plus, Check, ListChecks, Heart, Droplet, ImagePlus, X, Trash2, CalendarDays, Maximize2, Minimize2, Pencil, Phone, Archive, ArchiveRestore, BookOpen, MapPin, MoreHorizontal, Link2, Type, Star } from 'lucide-react'
 import { supabase } from './pages/login'
 import LectureNotes from './pages/lecture-notes'
 import { useShowTabBar } from './src/TabBar'
@@ -17,6 +17,7 @@ export const C = {
 const COLORS = ['#1c1c1e', '#8e8e93', '#3b82c4', '#e8890c', '#e5484d', '#8b5cf6']
 // 일정 색은 태그 색 (태그 없으면 회색)
 const eventColor = e => TAGS[e.tag]?.color || '#a1a1a6'
+const STAR = '#f2a922' // 중요 일정 별표 (노랑 한 가지)
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 
 const pad = n => String(n).padStart(2, '0')
@@ -961,10 +962,11 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     if (edit.tag !== undefined) row.tag = edit.tag || null
     if (edit.place?.trim() || edit.place0) row.place = edit.place?.trim() || null
     if (edit.repeat?.freq || edit.repeat0) row.repeat = edit.repeat?.freq ? edit.repeat : null
+    if (edit.important !== undefined) row.important = !!edit.important
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
       : await supabase.from('events').insert(row)
-    if (error) return setErr(/repeat|done_dates/.test(error.message) ? '반복 일정을 쓰려면 supabase_setup.sql 의 events repeat 줄을 실행하세요.' : /place/.test(error.message) ? '일정 장소를 쓰려면 supabase_setup.sql 의 events place 줄을 실행하세요.' : /tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : error.message)
+    if (error) return setErr(/repeat|done_dates/.test(error.message) ? '반복 일정을 쓰려면 supabase_setup.sql 의 events repeat 줄을 실행하세요.' : /place/.test(error.message) ? '일정 장소를 쓰려면 supabase_setup.sql 의 events place 줄을 실행하세요.' : /tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : /important/.test(error.message) ? '중요(별표)를 쓰려면 Supabase SQL 편집기에서 실행해 주세요: alter table events add column if not exists important boolean default false;' : error.message)
     setEdit(null); reload()
   }
   async function remove() {
@@ -1117,7 +1119,10 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
                   border: isPredicted && !isSel ? `1.5px dashed ${BODY.period}80` : 'none',
                 }}>{d.getDate()}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 3, height: 7 }}>
-                  {evs.slice(0, 3).map(e => <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e) }} />)}
+                  {/* 중요 일정은 점 대신 작은 별 */}
+                  {evs.slice(0, 3).map(e => e.important
+                    ? <Star key={e.id} size={8} fill={e.done ? C.faint : STAR} color={e.done ? C.faint : STAR} strokeWidth={1} />
+                    : <span key={e.id} style={{ width: 6, height: 6, borderRadius: '50%', background: e.done ? C.faint : eventColor(e) }} />)}
                 </span>
               </button>
             )
@@ -1173,7 +1178,9 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       <Fab label="일정 추가" color={TAGS[tagFilter]?.color || CAL_TINT} onClick={() => setEdit({ date: sel, time: '', end: '', text: '', done: false, ...(tagFilter ? { tag: tagFilter } : {}) })} />
 
       {edit && (
-        <Sheet title={edit.id ? '일정 편집' : '새 일정'} tint={TAGS[edit.tag]?.color || CAL_TINT} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}>
+        <Sheet title={edit.id ? '일정 편집' : '새 일정'} tint={TAGS[edit.tag]?.color || CAL_TINT} onCancel={() => setEdit(null)} onDone={save} doneDisabled={!edit.text.trim()}
+          actions={<button type="button" aria-label={edit.important ? '중요 해제' : '중요'} aria-pressed={!!edit.important} onClick={() => setEdit({ ...edit, important: !edit.important })}
+            style={{ ...plain, display: 'flex', padding: 4, color: edit.important ? STAR : C.sub }}><Star size={21} fill={edit.important ? STAR : 'none'} strokeWidth={edit.important ? 1.6 : 1.8} /></button>}>
           <Group>
             <GrowTextarea autoFocus={!edit.id} value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} placeholder="무슨 일정인가요?"
               style={{ ...field, display: 'block', padding: '12px 16px', resize: 'none', lineHeight: 1.4 }} />
@@ -1330,6 +1337,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
       <div style={{ flex: 1, minWidth: 0, opacity: e.done ? 0.45 : 1 }}>
         {/* 제목은 두 줄, 내용은 세 줄까지 */}
         <div style={{ fontSize: 16, lineHeight: 1.35, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>
+          {e.important && <Star size={14} fill={STAR} color={STAR} strokeWidth={1.4} style={{ marginRight: 4, verticalAlign: -2 }} aria-label="중요" />}
           {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
           {first}
           {rep && <span style={{ color: C.sub, fontSize: 12, fontWeight: 500, marginLeft: 6, whiteSpace: 'nowrap' }}>↻ {rep}</span>}
@@ -1381,6 +1389,37 @@ export default function NotesApp({ initialTab = 'memo' }) {
   // 메모 화면 안의 메모 | 노트(강의노트처럼 긴 글·파일) 전환, 마지막 선택 기억
   const [kind, setKind] = useState(() => { try { return localStorage.getItem('notes-kind') || 'memo' } catch { return 'memo' } })
   const pickKind = k => { setKind(k); try { localStorage.setItem('notes-kind', k) } catch {} }
+  // 메모 ↔ 노트: 목록을 좌우로 밀어 넘기기 (창·사진 보기 같은 떠 있는 층, 입력칸, 옆으로 스크롤되는 칩 줄에서는 무시)
+  const kindSwipe = useRef(null)
+  const swipeBlocked = (t, root) => {
+    for (let el = t; el && el !== root; el = el.parentElement) {
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return true
+      const st = getComputedStyle(el)
+      if (st.position === 'fixed') return true
+      if (/(auto|scroll)/.test(st.overflowX) && el.scrollWidth > el.clientWidth + 1) return true
+    }
+    return false
+  }
+  const kindTouch = {
+    onTouchStart: e => {
+      if (e.touches.length !== 1 || swipeBlocked(e.target, e.currentTarget)) { kindSwipe.current = null; return }
+      const p = e.touches[0]; kindSwipe.current = { x: p.clientX, y: p.clientY, lock: null, dx: 0 }
+    },
+    onTouchMove: e => {
+      const sw = kindSwipe.current
+      if (!sw) return
+      const p = e.touches[0], dx = p.clientX - sw.x, dy = p.clientY - sw.y
+      if (!sw.lock && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) sw.lock = Math.abs(dx) > Math.abs(dy) * 1.5 ? 'x' : 'y'
+      if (sw.lock === 'x') sw.dx = dx
+    },
+    onTouchEnd: () => {
+      const sw = kindSwipe.current
+      kindSwipe.current = null
+      if (sw?.lock !== 'x' || Math.abs(sw.dx) < 60) return
+      if (sw.dx < 0 && kind === 'memo') pickKind('note')
+      if (sw.dx > 0 && kind === 'note') pickKind('memo')
+    },
+  }
   // 메모↔노트 링크: 노트 제목 목록(링크 고르기·찾기용)과 열 대상
   const [noteIndex, setNoteIndex] = useState([])
   const [target, setTarget] = useState(null) // { kind, id, at }
@@ -1436,9 +1475,9 @@ export default function NotesApp({ initialTab = 'memo' }) {
         )}
         <LinkCtx.Provider value={linkCtx}>
         {tab === 'memo'
-          ? (kind === 'note'
+          ? <div {...kindTouch} style={{ minHeight: '60vh' }}>{kind === 'note'
             ? <LectureNotes setErr={setErr} onMovedToMemo={() => { loadMemos(); pickKind('memo') }} target={target} />
-            : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} onMovedToNote={() => pickKind('note')} target={target} />)
+            : <MemoTab memos={memos} reload={loadMemos} setErr={setErr} onMovedToNote={() => pickKind('note')} target={target} />}</div>
           : <CalendarTab events={events} reload={loadEvents} setErr={setErr} body={body} reloadBody={loadBody} />}
         </LinkCtx.Provider>
       </main>
