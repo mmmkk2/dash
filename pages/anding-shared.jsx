@@ -4,7 +4,7 @@ export const API = '/andingapp'
 export const F = "-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif"
 export const C = { bg: '#f7f7f7', card: '#fff', text: '#1c1c1e', sub: 'rgba(60,60,67,0.6)', sep: 'rgba(60,60,67,0.12)', fill: 'rgba(118,118,128,0.1)' }
 // 앤딩 테마(naebiseo_theme.js)의 섹션 색과 같게
-export const COL = { seat: '#3d7ebf', product: '#2d9e6b', payment: '#7b52ab', monthly: '#1a8fa0', room: '#d97706', locker: '#c2537a', users: '#5a67c9' }
+export const COL = { seat: '#3d7ebf', product: '#2d9e6b', payment: '#7b52ab', monthly: '#1a8fa0', room: '#d97706', locker: '#c2537a', users: '#5a67c9', cum: '#5a67c9' }
 export const GREEN = '#3e9478'
 export const plain = { border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: F }
 
