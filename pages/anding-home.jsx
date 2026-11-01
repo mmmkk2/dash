@@ -878,12 +878,11 @@ function PaymentDetail() {
           {d.rows.length === 0 ? <Muted>결제 내역이 없어요</Muted> : (
             <Card>
               {d.rows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, opacity: r.paid ? 1 : 0.45 }}>
-                  <span style={{ fontSize: 12.5, color: C.sub, minWidth: 38 }}>{r.time}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {r.user || '-'}
-                    <div style={{ fontSize: 12, color: C.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}{!r.paid && r.status ? ` · ${r.status}` : ''}</div>
-                  </div>
+                // 한 줄: 시각 · 이름 · 상품(길면 …) · 금액
+                <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 14px', borderTop: i ? `0.5px solid ${C.sep}` : 'none', fontSize: 14.5, whiteSpace: 'nowrap', opacity: r.paid ? 1 : 0.45 }}>
+                  <span style={{ fontSize: 12.5, color: C.sub, minWidth: 36 }}>{r.time}</span>
+                  <span style={{ flexShrink: 0 }}>{r.user || '-'}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.sub, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.product}{!r.paid && r.status ? ` · ${r.status}` : ''}</span>
                   <b style={{ fontWeight: 600, whiteSpace: 'nowrap', textDecoration: r.paid ? 'none' : 'line-through' }}>{won(r.amount)}원</b>
                 </div>
               ))}
