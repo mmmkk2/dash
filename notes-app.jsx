@@ -857,6 +857,25 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
 }
 
 // ───────────────────────── 일정 ─────────────────────────
+// ───────── 반복 일정 ─────────
+// repeat: { freq: 'daily'|'weekly'|'monthly'|'yearly', days?: [0-6] (매주 요일), until?: 'YYYY-MM-DD' }
+// 반복 일정은 회차마다 완료를 따로: done_dates에 완료한 날짜 (반복 아닌 일정은 done)
+export const REPEATS = [['daily', '매일'], ['weekly', '매주'], ['monthly', '매달'], ['yearly', '매년']]
+export function occursOn(e, k) {
+  const r = e.repeat
+  if (!r?.freq) return e.date === k
+  if (k < e.date || (r.until && k > r.until)) return false
+  const a = new Date(e.date + 'T00:00:00'), d = new Date(k + 'T00:00:00')
+  if (r.freq === 'daily') return true
+  if (r.freq === 'weekly') return (r.days?.length ? r.days : [a.getDay()]).includes(d.getDay())
+  const dom = Math.min(a.getDate(), new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()) // 31일 반복은 짧은 달엔 말일
+  if (r.freq === 'monthly') return d.getDate() === dom
+  if (r.freq === 'yearly') return d.getMonth() === a.getMonth() && d.getDate() === dom
+  return false
+}
+const occurrence = (e, k) => e.repeat?.freq ? { ...e, date: k, occ: k, done: (e.done_dates || []).includes(k) } : e
+const repeatLabel = r => !r?.freq ? '' : r.freq === 'weekly' && r.days?.length ? `매주 ${r.days.slice().sort().map(d => '일월화수목금토'[d]).join('')}` : REPEATS.find(x => x[0] === r.freq)?.[1] || ''
+
 function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [sel, setSel] = useState(todayStr())
@@ -869,25 +888,36 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
   const hasTags = events.some(e => TAGS[e.tag])
   const shown = useMemo(() => tagFilter ? events.filter(e => e.tag === tagFilter) : events, [events, tagFilter])
 
-  const byDate = useMemo(() => {
-    const m = {}
-    for (const e of shown) (m[e.date] ||= []).push(e)
-    for (const k in m) m[k].sort((a, b) => (a.time || '99').localeCompare(b.time || '99'))
-    return m
-  }, [shown])
-
   const cells = useMemo(() => {
     const start = new Date(month); start.setDate(1 - month.getDay())
     const weeks = Math.ceil((month.getDay() + new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()) / 7)
     return Array.from({ length: weeks * 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d })
   }, [month])
 
+  // 날짜별 일정: 반복 일정은 보이는 달력 칸(+ 고른 날)마다 회차로 펼침
+  const byDate = useMemo(() => {
+    const m = {}
+    const keys = [...new Set([...cells.map(ymd), sel])]
+    for (const e of shown) {
+      if (!e.repeat?.freq) { (m[e.date] ||= []).push(e); continue }
+      for (const k of keys) if (occursOn(e, k)) (m[k] ||= []).push(occurrence(e, k))
+    }
+    for (const k in m) m[k].sort((a, b) => (a.time || '99').localeCompare(b.time || '99'))
+    return m
+  }, [shown, cells, sel])
+
   // 다가오는 일정을 단계별로: 3일 안 / 이번 주 / 다음 주 / 그 이후(5개까지)
   const upcoming = useMemo(() => {
     const t = todayStr(), now = new Date(t + 'T00:00:00')
     const days = e => Math.round((new Date(e.date + 'T00:00:00') - now) / 864e5)
     const weekEnd = 6 - now.getDay() // 이번 주 토요일까지 남은 날 (달력처럼 일요일 시작)
-    const list = shown.filter(e => e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))
+    // 반복 일정은 내일부터 1년 안의 다음(안 끝낸) 회차 하나만
+    const nextOcc = e => {
+      const d = new Date(t + 'T00:00:00')
+      for (let i = 1; i <= 366; i++) { d.setDate(d.getDate() + 1); const k = ymd(d); if (occursOn(e, k) && !(e.done_dates || []).includes(k)) return occurrence(e, k) }
+      return null
+    }
+    const list = shown.map(e => e.repeat?.freq ? nextOcc(e) : e).filter(e => e && e.date > t && !e.done).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))
     const groups = [['3일 안', []], ['이번 주', []], ['다음 주', []], ['그 이후', []]]
     for (const e of list) {
       const d = days(e)
@@ -930,10 +960,11 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     const row = { date: edit.date, time: edit.time ? (edit.end ? `${edit.time}~${edit.end}` : edit.time) : null, title: edit.text.trim(), memo: '', done: edit.done }
     if (edit.tag !== undefined) row.tag = edit.tag || null
     if (edit.place?.trim() || edit.place0) row.place = edit.place?.trim() || null
+    if (edit.repeat?.freq || edit.repeat0) row.repeat = edit.repeat?.freq ? edit.repeat : null
     const { error } = edit.id
       ? await supabase.from('events').update(row).eq('id', edit.id)
       : await supabase.from('events').insert(row)
-    if (error) return setErr(/place/.test(error.message) ? '일정 장소를 쓰려면 supabase_setup.sql 의 events place 줄을 실행하세요.' : /tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : error.message)
+    if (error) return setErr(/repeat|done_dates/.test(error.message) ? '반복 일정을 쓰려면 supabase_setup.sql 의 events repeat 줄을 실행하세요.' : /place/.test(error.message) ? '일정 장소를 쓰려면 supabase_setup.sql 의 events place 줄을 실행하세요.' : /tag/.test(error.message) ? '일정 태그를 쓰려면 supabase_setup.sql 의 events tag 줄을 실행하세요.' : error.message)
     setEdit(null); reload()
   }
   async function remove() {
@@ -943,7 +974,12 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
     setEdit(null); reload()
   }
   async function toggleDone(e) {
-    const { error } = await supabase.from('events').update({ done: !e.done }).eq('id', e.id)
+    // 반복 일정은 그 회차(날짜)만 완료/해제
+    const base = events.find(x => x.id === e.id) || e
+    const patch = e.occ
+      ? { done_dates: e.done ? (base.done_dates || []).filter(d => d !== e.occ) : [...(base.done_dates || []), e.occ] }
+      : { done: !e.done }
+    const { error } = await supabase.from('events').update(patch).eq('id', e.id)
     if (error) return setErr(error.message)
     reload()
   }
@@ -1012,7 +1048,8 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
       : n === 0 ? '오늘 생리 예정일' : `생리 예정일 ${-n}일 지남`
     summary = [main, info.fertileDays.has(t) && !info.ongoing ? (info.ovulationDays.has(t) ? '배란 예정일' : '가임기') : null, `평균 주기 ${info.cycle}일`].filter(Boolean)
   }
-  const open = e => { const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, time, end, text: joinText(e.title, e.memo), place: e.place || '', place0: e.place || '' }) }
+  // 반복 회차를 눌러도 원래 일정(시작 날짜)을 편집
+  const open = o => { const e = events.find(x => x.id === o.id) || o; const [time = '', end = ''] = (e.time || '').split('~'); setEdit({ ...e, time, end, text: joinText(e.title, e.memo), place: e.place || '', place0: e.place || '', repeat0: !!e.repeat?.freq }) }
   const chevron = { ...plain, color: C.sub, display: 'flex', padding: 6, borderRadius: 8 }
 
   return (
@@ -1124,12 +1161,12 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
 
       <Group header={fmtDate(sel)}>
         {dayEvents.length === 0 && <Row last><span style={{ color: C.sub, fontSize: 15 }}>비어 있는 날이에요</span></Row>}
-        {dayEvents.map((e, i) => <EventRow key={e.id} e={e} last={i === dayEvents.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
+        {dayEvents.map((e, i) => <EventRow key={e.id + (e.occ || '')} e={e} last={i === dayEvents.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
       </Group>
 
       {upcoming.map(([label, es]) => (
         <Group key={label} header={label}>
-          {es.map((e, i) => <EventRow key={e.id} e={e} showDate last={i === es.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
+          {es.map((e, i) => <EventRow key={e.id + (e.occ || '')} e={e} showDate last={i === es.length - 1} onToggle={() => toggleDone(e)} onClick={() => open(e)} />)}
         </Group>
       ))}
 
@@ -1192,6 +1229,43 @@ function CalendarTab({ events, reload, setErr, body, reloadBody }) {
               {edit.place?.trim() && <a href={mapHref(edit.place)} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 600, color: TAGS[edit.tag]?.color || CAL_TINT, background: (TAGS[edit.tag]?.color || CAL_TINT) + '1a', borderRadius: 999, padding: '5px 10px', textDecoration: 'none', whiteSpace: 'nowrap' }}>지도</a>}
             </Row>
           </Group>
+          {/* 반복: 안 함 / 매일 / 매주(요일) / 매달 / 매년, 끝나는 날 */}
+          {(() => {
+            const tint = TAGS[edit.tag]?.color || CAL_TINT, r = edit.repeat || {}
+            const chip = (on, label, onClick) => <button key={label} type="button" onClick={onClick} style={{ ...plain, fontSize: 13.5, fontWeight: on ? 600 : 400, borderRadius: 8, padding: '6px 8px', whiteSpace: 'nowrap', background: on ? tint + '1f' : C.fill, color: on ? tint : C.text }}>{label}</button>
+            const setR = v => setEdit({ ...edit, repeat: v })
+            const anchorDow = new Date(edit.date + 'T00:00:00').getDay()
+            return (
+              <Group>
+                <Row last={!r.freq}>
+                  <span style={{ fontSize: 16, whiteSpace: 'nowrap', marginRight: 4 }}>반복</span>
+                  <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end' }}>
+                    {chip(!r.freq, '안 함', () => setR(null))}
+                    {REPEATS.map(([k, l]) => chip(r.freq === k, l, () => setR({ freq: k, ...(k === 'weekly' && { days: [anchorDow] }), ...(r.until && { until: r.until }) })))}
+                  </div>
+                </Row>
+                {r.freq === 'weekly' && (
+                  <Row>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', gap: 4 }}>
+                      {'일월화수목금토'.split('').map((w, i) => {
+                        const on = (r.days || []).includes(i)
+                        return <button key={w} type="button" onClick={() => { const days = on ? r.days.filter(d => d !== i) : [...(r.days || []), i]; setR({ ...r, days: days.length ? days : [anchorDow] }) }}
+                          style={{ ...plain, width: 36, height: 36, borderRadius: 12, fontSize: 15, fontWeight: on ? 700 : 400, background: on ? tint : C.fill, color: on ? '#fff' : C.text }}>{w}</button>
+                      })}
+                    </div>
+                  </Row>
+                )}
+                {r.freq && (
+                  <Row last>
+                    <span style={{ flex: 1, fontSize: 16 }}>끝나는 날</span>
+                    <input type="date" value={r.until || ''} min={edit.date} onChange={e => setR({ ...r, until: e.target.value || undefined })}
+                      style={{ ...field, width: 'auto', background: C.fill, borderRadius: 6, padding: '6px 10px', color: r.until ? C.text : C.sub }} />
+                    {r.until && <button type="button" aria-label="끝나는 날 지우기" onClick={() => { const { until, ...rest } = r; setR(rest) }} style={{ ...plain, color: C.sub, fontSize: 18, padding: '0 2px' }}>×</button>}
+                  </Row>
+                )}
+              </Group>
+            )
+          })()}
           {edit.id && (
             <Group>
               <Row last onClick={remove}>
@@ -1248,6 +1322,7 @@ const mapHref = place => `https://map.naver.com/p/search/${encodeURIComponent(pl
 
 function EventRow({ e, showDate, last, onToggle, onClick }) {
   const [first, ...rest] = joinText(e.title, e.memo).split('\n')
+  const rep = repeatLabel(e.repeat)
   return (
     <Row onClick={onClick} last={last}>
       <CheckCircle done={e.done} color={TAGS[e.tag]?.color || CAL_TINT} onClick={ev => { ev.stopPropagation(); onToggle() }} />
@@ -1257,6 +1332,7 @@ function EventRow({ e, showDate, last, onToggle, onClick }) {
         <div style={{ fontSize: 16, lineHeight: 1.35, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>
           {TAGS[e.tag] && <span style={{ color: TAGS[e.tag].color, background: TAGS[e.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8, verticalAlign: 2 }}>{TAGS[e.tag].label}</span>}
           {first}
+          {rep && <span style={{ color: C.sub, fontSize: 12, fontWeight: 500, marginLeft: 6, whiteSpace: 'nowrap' }}>↻ {rep}</span>}
         </div>
         {/* 목록에서는 장소만 보여주고, 지도는 일정을 연 뒤 '지도' 버튼으로 */}
         {e.place && <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13.5, color: C.sub, marginTop: 2, overflow: 'hidden' }}>
