@@ -2,6 +2,9 @@ import './index.css'
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '../App.jsx'
+import { applyTextSize } from './textsize.js'
+
+applyTextSize() // 저장된 글자 크기를 먼저 입혀서 화면이 한번 바뀌어 보이지 않게
 
 window.__appStarted = true // index.html의 '불러오지 못함' 안내가 뜨지 않게
 

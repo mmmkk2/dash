@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, A
 import { supabase } from "./src/lib/supabase";
 import { useShowTabBar } from "./src/TabBar";
 import { ask } from './src/dialog'
+import { openTextSize } from './src/textsize'
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -162,7 +163,7 @@ function Modal({ open, onClose, title, children }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(26,20,16,0.6)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <style>{`.sheet-form [data-form-title],.sheet-form [data-submit]{display:none!important}.sheet-form div,.sheet-form input,.sheet-form select{min-width:0}.sheet-form input,.sheet-form select{max-width:100%}`}</style>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", width: "calc(100% - 16px)", maxWidth: 660, height: "min(78dvh, calc(100dvh - 80px))", overflowY: "auto", overflowX: "hidden", paddingBottom: "calc(24px + env(safe-area-inset-bottom))", boxShadow: "0 -10px 40px rgba(0,0,0,0.12)" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.white, borderRadius: "24px 24px 0 0", width: "calc(100% - 16px)", maxWidth: 660, height: "min(calc(78dvh * var(--vz, 1)), calc(calc(100dvh * var(--vz, 1)) - 80px))", overflowY: "auto", overflowX: "hidden", paddingBottom: "calc(24px + env(safe-area-inset-bottom))", boxShadow: "0 -10px 40px rgba(0,0,0,0.12)" }}>
         <div style={{ position: "sticky", top: 0, zIndex: 2, background: C.white, display: "flex", alignItems: "center", gap: 8, padding: "18px 20px 12px" }}>
           <div style={{ flex: 1, minWidth: 0, fontSize: 20, fontWeight: 700, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{head.title}</div>
           {head.submit && <button onClick={onClose} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 15, color: C.inkLight, fontFamily: F }}>취소</button>}
@@ -2108,7 +2109,7 @@ export default function AssetsApp() {
   const tt = { background: C.paper, border: `1px solid ${C.border}`, borderRadius: 10, fontFamily: F, fontSize: 12 };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, paddingBottom: "calc(80px + var(--tabbar, 0px))", fontFamily: F }}>
+    <div style={{ minHeight: "calc(100vh * var(--vz, 1))", background: C.bg, paddingBottom: "calc(80px + var(--tabbar, 0px))", fontFamily: F }}>
 
       {/* 머리: 메모·일정처럼 밝은 바탕, 순자산을 크게 */}
       <div style={{ maxWidth: 680, margin: "0 auto", padding: `calc(${hasTabBar ? 8 : 16}px + env(safe-area-inset-top)) 12px 0` }}>
@@ -2124,7 +2125,7 @@ export default function AssetsApp() {
             <>
               <div onClick={() => setMoreOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
               <div style={{ position: "absolute", top: 44, right: 0, zIndex: 41, background: C.white, borderRadius: 14, border: `0.5px solid ${C.border}`, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 4, minWidth: 150 }}>
-                {[["분류 관리", () => setModal("cats")], ...(hasTabBar ? [] : [["가계부", () => { window.location.href = "/budget" }]])].map(([l, on]) => (
+                {[["분류 관리", () => setModal("cats")], ["글자 크기", openTextSize], ...(hasTabBar ? [] : [["가계부", () => { window.location.href = "/budget" }]])].map(([l, on]) => (
                   <button key={l} onClick={() => { setMoreOpen(false); on() }} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderRadius: 10, padding: "10px 12px", fontSize: 15, color: C.ink, cursor: "pointer", fontFamily: F }}>{l}</button>
                 ))}
               </div>
