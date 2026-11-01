@@ -122,7 +122,7 @@ export function SalePanel({ onApplied }) {
   const row = (label, color, k, sub, last) => (
     <div style={{ padding: '11px 14px', borderBottom: last ? 'none' : `0.5px solid ${C.sep}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ flex: 1, fontSize: 15.5, fontWeight: st[k] ? 600 : 400, color: st[k] ? color : C.text }}>{label}</div>
+        <div style={{ flex: 1, fontSize: 15, fontWeight: st[k] ? 600 : 400, color: st[k] ? color : C.text }}>{label}</div>
         <Switch on={!!st[k]} onChange={v => set(k, v)} color={color} />
       </div>
       {sub && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, color: C.sub, marginTop: 6 }}>{sub}</div>}

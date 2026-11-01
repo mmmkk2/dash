@@ -977,7 +977,7 @@ function LoanForm({ initial = {}, onSave, onDelete, linkItems = [] }) {
           {[...new Set([...(linkItems.length ? linkItems : LOAN_LINK_ITEMS), ...(initMemo.budgetLink ? [initMemo.budgetLink] : [])])].map(v => <option key={v} value={v}>{v}</option>)}
         </select>
       </div>
-      <div style={{ fontSize: 12.5, color: C.inkLight, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, color: C.inkLight, marginBottom: 12 }}>
         {link ? `가계부에 '${link}'로 쓴 원금상환이 이 부채 잔액에서 빠져요${initMemo.linkFrom && link === initMemo.budgetLink ? ` (${initMemo.linkFrom}부터)` : " (오늘부터)"}` : "연결하면 가계부 원금상환 기록이 잔액에 자동 반영돼요"}
       </div>
       <SLabel>메모 (선택)</SLabel>
@@ -2739,10 +2739,10 @@ export default function AssetsApp() {
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 15.5, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name || a.institution}</span>
+                              <span style={{ fontSize: 15, fontWeight: 600, color: C.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name || a.institution}</span>
                               <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 600, color, background: color + "14", borderRadius: 6, padding: "1px 6px" }}>{a.accountSuffix}</span>
                             </div>
-                            <div style={{ fontSize: 12.5, color: C.inkLight, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div style={{ fontSize: 13, color: C.inkLight, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {[a.name && a.institution, m.rate != null && `${m.rate}%`, mt > 0 ? `월 ${fmtS(mt)}${mi ? ` (이자 ${fmtS(mi)})` : ""}` : mi ? `월 이자 ${fmtS(mi)}` : null].filter(Boolean).join(" · ")}
                             </div>
                           </div>
@@ -2754,7 +2754,7 @@ export default function AssetsApp() {
                           ) : (
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div style={{ fontSize: 16, fontWeight: 700, color: C.ink, fontVariantNumeric: "tabular-nums" }}>{fmtS(a.amount)}</div>
-                              {dl != null && <div style={{ fontSize: 12.5, color: dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : C.inkLight, marginTop: 1 }}>{dl < 0 ? "만기됨" : `만기 D-${dl}`}</div>}
+                              {dl != null && <div style={{ fontSize: 13, color: dl < 0 ? C.inkLight : dl < 90 ? "#b5451b" : C.inkLight, marginTop: 1 }}>{dl < 0 ? "만기됨" : `만기 D-${dl}`}</div>}
                             </div>
                           )}
                           <button onClick={e => { e.stopPropagation(); setEditItem(a); setModal("payLoan"); }}
