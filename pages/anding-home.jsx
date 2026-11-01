@@ -853,22 +853,32 @@ function SeatDetail() {
 
 const ymdDot = dt => `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, '0')}.${String(dt.getDate()).padStart(2, '0')}`
 
+// 지난 결제: 맥이 Supabase에 90일까지 올려 둔다 (dash_sync DASH_PAY_DAYS). 날짜를 누르면 달력으로 고르기
+const PAY_DAYS = 90
 function PaymentDetail() {
   const today = ymdDot(new Date())
-  const yesterday = ymdDot(new Date(Date.now() - 864e5))
+  const oldest = ymdDot(new Date(Date.now() - (PAY_DAYS - 1) * 864e5))
   const [date, setDate] = useState(today)
   const { data: d, status, error, loading } = useApi(`/api/payments?date=${date}`)
   if (status === 404 && !d) return <IframeDetail k="payment" path="/payment" />
+  const shift = n => { const t = new Date(date.replace(/\./g, '-') + 'T12:00'); t.setDate(t.getDate() + n); return ymdDot(t) }
   const navBtn = (label, to, disabled) => (
     <button onClick={() => setDate(to)} disabled={disabled} aria-label={label} style={{ ...plain, width: 34, height: 34, borderRadius: 10, background: C.card, border: `0.5px solid ${C.sep}`, color: disabled ? C.sep : C.text, fontSize: 17 }}>{label === '이전 날' ? '‹' : '›'}</button>
   )
+  const dt = new Date(date.replace(/\./g, '-') + 'T12:00')
+  const tag = date === today ? '오늘' : date === ymdDot(new Date(Date.now() - 864e5)) ? '어제' : '일월화수목금토'[dt.getDay()]
   return (
     <div>
-      {/* 이전 결제는 어제(D-1)까지만 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        {navBtn('이전 날', yesterday, date === yesterday)}
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 600 }}>{date}{date === today ? ' (오늘)' : ' (어제)'}</div>
-        {navBtn('다음 날', today, date === today)}
+        {navBtn('이전 날', shift(-1), date <= oldest)}
+        {/* 날짜를 누르면 달력 (위에 투명하게 겹친 date 입력) */}
+        <label style={{ flex: 1, position: 'relative', textAlign: 'center', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+          {date} ({tag})
+          <input type="date" value={date.replace(/\./g, '-')} min={oldest.replace(/\./g, '-')} max={today.replace(/\./g, '-')}
+            onChange={e => e.target.value && setDate(e.target.value.replace(/-/g, '.'))}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+        </label>
+        {navBtn('다음 날', shift(1), date >= today)}
       </div>
       {error && <Muted>{error}</Muted>}
       {!error && loading && !d && <Muted>불러오는 중…</Muted>}
