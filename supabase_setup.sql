@@ -310,3 +310,6 @@ alter table events add column if not exists done_dates jsonb default '[]';
 
 -- 중요 일정 (별표)
 alter table events add column if not exists important boolean default false;
+
+-- 중요 메모 (별표)
+alter table memos add column if not exists important boolean default false;
