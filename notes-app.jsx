@@ -621,11 +621,12 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
     // images 컬럼이 아직 없는 DB에서도 사진을 안 쓰면 그대로 저장되도록 있을 때만 보낸다
     if (edit.images !== undefined) row.images = edit.images
     if (edit.tag !== undefined) row.tag = edit.tag || null
+    if (!edit.id && edit.important) row.important = true // 있는 메모는 별을 누를 때 바로 저장
     if (!row.content.trim() && !edit.images?.length) return discard()
     const { error } = edit.id
       ? await supabase.from('memos').update(row).eq('id', edit.id)
       : await supabase.from('memos').insert(row)
-    if (error) return setErr(error.message)
+    if (error) return setErr(/important/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table memos add column if not exists important boolean default false;' : error.message)
     removeImages((edit.origImages || []).filter(p => !edit.images.includes(p)))
     setEdit(null); reload()
   }
@@ -667,6 +668,16 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
     if (m) open(m)
   }, [target])
   useBackClose(!!menu, () => setMenu(null))
+  // 별(중요): 있는 메모는 수정 시각을 건드리지 않고 바로 저장
+  const IMPORTANT_SQL = 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table memos add column if not exists important boolean default false;'
+  async function toggleStar() {
+    const on = !edit.important
+    setEdit(ed => ({ ...ed, important: on }))
+    if (!edit.id) return
+    const { error } = await supabase.from('memos').update({ important: on }).eq('id', edit.id)
+    if (error) { setEdit(ed => ({ ...ed, important: !on })); return setErr(/important/.test(error.message) ? IMPORTANT_SQL : error.message) }
+    reload()
+  }
   async function patch(m, row) {
     const { error } = await supabase.from('memos').update(row).eq('id', m.id)
     if (error) return setErr(/archived/.test(error.message) ? 'Supabase SQL 편집기에서 먼저 실행해 주세요: alter table memos add column if not exists archived boolean default false;' : error.message)
@@ -727,7 +738,7 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
         <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: TAGS[m.tag]?.color || C.sep, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{TAGS[m.tag] && <span style={{ color: TAGS[m.tag].color, background: TAGS[m.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 6, verticalAlign: 2 }}>{TAGS[m.tag].label}</span>}{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
+            <div style={{ fontSize: 16, fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.important && <Star size={14} fill={STAR} color={STAR} strokeWidth={1.4} style={{ marginRight: 4, verticalAlign: -2 }} aria-label="중요" />}{TAGS[m.tag] && <span style={{ color: TAGS[m.tag].color, background: TAGS[m.tag].color + '1c', fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 6, verticalAlign: 2 }}>{TAGS[m.tag].label}</span>}{first || (m.images?.length ? '사진 메모' : '빈 메모')}</div>
           </div>
           <div style={{ fontSize: 14, color: C.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {m.archived && q.trim() && <span style={{ color: C.sub, background: C.fill, fontWeight: 600, fontSize: 12, borderRadius: 6, padding: '1px 6px', marginRight: 8 }}>보관됨</span>}
@@ -790,6 +801,8 @@ function MemoTab({ memos, reload, setErr, onMovedToNote, target }) {
         <Sheet title={!edit.id ? '새 메모' : editing ? '메모 편집' : '메모'} tint={TAGS[edit.tag]?.color || MEMO_TINT} doneLabel={editing ? '저장' : '닫기'} hideCancel={!editing} onCancel={discard} onDone={save} onBackdrop={save} doneDisabled={uploading > 0}
           full={full}
           actions={<>
+            <button type="button" aria-label={edit.important ? '중요 해제' : '중요'} aria-pressed={!!edit.important} onClick={toggleStar}
+              style={{ ...plain, display: 'flex', padding: 4, color: edit.important ? STAR : C.sub }}><Star size={20} fill={edit.important ? STAR : 'none'} strokeWidth={edit.important ? 1.6 : 1.8} /></button>
             {!editing && (
               <button onClick={() => setEditing(true)} style={{ ...plain, display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 600, color: C.text, padding: '6px 10px', borderRadius: 999, background: C.card, border: `0.5px solid ${C.sep}` }}>
                 <Pencil size={14} />편집
